@@ -1,0 +1,1064 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KiotViet Salon - Anna Chill Beauty (Quản lý & Thu ngân)</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        kiot: {
+                            50: '#f0fdf4',
+                            100: '#dcfce7',
+                            500: '#22c55e',
+                            600: '#16a34a',
+                            700: '#15803d',
+                            800: '#166534',
+                            primary: '#3F9B00', /* Màu xanh đặc trưng KiotViet */
+                            dark: '#2A6A00',
+                            accent: '#F38100', /* Màu cam nút phụ */
+                            bg: '#EBEFF2',
+                            panel: '#F8F9FA'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: #EBEFF2;
+        }
+        /* Style cuộn mượt cho danh sách sản phẩm */
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 3px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+        /* Hiệu ứng in hóa đơn */
+        @media print {
+            body * {
+                visibility: hidden;
+            }
+            #print-section, #print-section * {
+                visibility: visible;
+            }
+            #print-section {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body class="text-slate-800 text-sm overflow-hidden h-screen">
+    <div id="root" class="h-full"></div>
+
+    <!-- React and Babel CDN -->
+    <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <!-- Application Script -->
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+
+        // Dữ liệu ban đầu dịch vụ & sản phẩm
+        const initialMenu = [
+            { id: 1, name: "Cắt tạo kiểu (Nam/Nữ)", code: "DV0001", price: 150000, category: "Dịch vụ Tóc", duration: 30, type: "service" },
+            { id: 2, name: "Gội đầu dưỡng sinh thảo dược", code: "DV0002", price: 200000, category: "Gội & Massage", duration: 60, type: "service" },
+            { id: 3, name: "Nhuộm tóc bóng mượt Goldwell", code: "DV0003", price: 650000, category: "Dịch vụ Tóc", duration: 120, type: "service" },
+            { id: 4, name: "Uốn tóc sóng lơi Hàn Quốc", code: "DV0004", price: 800000, category: "Dịch vụ Tóc", duration: 150, type: "service" },
+            { id: 5, name: "Chăm sóc da mặt chuyên sâu", code: "DV0005", price: 350000, category: "Spa & Da mặt", duration: 75, type: "service" },
+            { id: 6, name: "Sơn Gel tay/chân cao cấp Mỹ", code: "DV0006", price: 180000, category: "Làm Móng (Nail)", duration: 45, type: "service" },
+            { id: 101, name: "Dầu gội bưởi giảm rụng tóc", code: "SP0001", price: 250000, category: "Mỹ phẩm tóc", stock: 15, type: "product" },
+            { id: 102, name: "Tinh chất serum phục hồi keratin", code: "SP0002", price: 420000, category: "Mỹ phẩm tóc", stock: 8, type: "product" },
+            { id: 103, name: "Sữa rửa mặt trà xanh dịu nhẹ", code: "SP0003", price: 180000, category: "Mỹ phẩm da", stock: 20, type: "product" },
+            { id: 104, name: "Kem chống nắng tế bào gốc Hàn Quốc", code: "SP0004", price: 390000, category: "Mỹ phẩm da", stock: 12, type: "product" }
+        ];
+
+        const staffMembers = [
+            { id: 1, name: "Anna Nguyễn", role: "Master Stylist", code: "NV001" },
+            { id: 2, name: "Trần Minh", role: "Senior Stylist", code: "NV002" },
+            { id: 3, name: "Hương Ly", role: "Spa Therapist", code: "NV003" },
+            { id: 4, name: "Bảo Trâm", role: "Nail Artist", code: "NV004" }
+        ];
+
+        // Khung thời gian làm việc
+        const timeSlots = ["09:00", "10:00", "11:00", "12:00", "13:30", "14:30", "15:30", "16:30", "17:30", "18:30", "19:30"];
+
+        // Danh sách Ghế/Giường hoạt động (phân loại ghế tóc và giường spa)
+        const initialRooms = [
+            { id: 1, name: "Ghế cắt tóc 01", type: "hair", status: "Trống" },
+            { id: 2, name: "Ghế cắt tóc 02", type: "hair", status: "Trống" },
+            { id: 3, name: "Ghế cắt tóc 03", type: "hair", status: "Trống" },
+            { id: 4, name: "Giường gội/Spa 01", type: "spa", status: "Trống" },
+            { id: 5, name: "Giường gội/Spa 02", type: "spa", status: "Trống" },
+            { id: 6, name: "Bàn làm móng Nail 01", type: "nail", status: "Trống" }
+        ];
+
+        function App() {
+            // Quản lý module: 'pos' (Thu ngân) | 'admin' (Quản lý)
+            const [activeModule, setActiveModule] = useState('pos');
+
+            // Quản lý tab trong Admin: 'dashboard' | 'history' | 'menu-management' | 'calendar'
+            const [adminTab, setAdminTab] = useState('dashboard');
+
+            // Cơ sở dữ liệu chính
+            const [menuItems, setMenuItems] = useState(initialMenu);
+            const [rooms, setRooms] = useState(initialRooms);
+            const [appointments, setAppointments] = useState([
+                { id: 1, customerName: "Nguyễn Hoàng Anh", phone: "0987654321", serviceId: 1, staffId: 1, date: "2026-07-26", time: "09:00", status: "Đã xác nhận", roomId: 1 },
+                { id: 2, customerName: "Lê Phương Mai", phone: "0912345678", serviceId: 2, staffId: 3, date: "2026-07-26", time: "10:00", status: "Đang phục vụ", roomId: 4 },
+                { id: 3, customerName: "Phạm Hà Nam", phone: "0905678912", serviceId: 3, staffId: 2, date: "2026-07-26", time: "14:30", status: "Chờ xác nhận", roomId: null }
+            ]);
+            const [invoices, setInvoices] = useState([
+                { id: "HD0001", customerName: "Trần Thế Khoa", phone: "0966888999", items: [{ id: 1, name: "Cắt tạo kiểu (Nam/Nữ)", price: 150000, qty: 1 }, { id: 101, name: "Dầu gội bưởi giảm rụng tóc", price: 250000, qty: 1 }], total: 400000, discount: 0, received: 400000, change: 0, date: "2026-07-26 10:15", paymentMethod: "Tiền mặt", creator: "Admin" }
+            ]);
+
+            // ================== STATE CỦA MODULE THU NGÂN (POS) ==================
+            const [selectedRoom, setSelectedRoom] = useState(null); // Chọn ghế/giường để phục vụ
+            const [posCart, setPosCart] = useState([]); // Giỏ hàng POS hiện tại
+            const [selectedCustomer, setSelectedCustomer] = useState({ name: 'Khách lẻ', phone: '' });
+            const [posDiscount, setPosDiscount] = useState(0); // Giảm giá trực tiếp (đ)
+            const [amountReceived, setAmountReceived] = useState(0); // Tiền khách đưa
+            const [paymentMethod, setPaymentMethod] = useState('Tiền mặt'); // Tiền mặt | Chuyển khoản | Quẹt thẻ
+            const [searchQuery, setSearchQuery] = useState('');
+            const [selectedCategory, setSelectedCategory] = useState('Tất cả');
+            const [showCustomerModal, setShowCustomerModal] = useState(false);
+            const [showInvoicePrint, setShowInvoicePrint] = useState(false);
+            const [printedInvoice, setPrintedInvoice] = useState(null);
+
+            // ================== STATE CỦA MODULE ADMIN / QUẢN LÝ ==================
+            // Form thêm dịch vụ/sản phẩm mới
+            const [newMenuItem, setNewMenuItem] = useState({ name: '', price: '', category: '', type: 'service', duration: 30, stock: 10 });
+            // Form đặt lịch hẹn trực tiếp từ Admin
+            const [newAppointment, setNewAppointment] = useState({ customerName: '', phone: '', serviceId: '', staffId: '', date: new Date().toISOString().split('T')[0], time: '09:00', roomId: '' });
+
+            // Đồng bộ trạng thái Ghế/Giường tự động dựa trên lịch "Đang phục vụ"
+            useEffect(() => {
+                const activeAppts = appointments.filter(appt => appt.status === "Đang phục vụ" && appt.roomId);
+                const updatedRooms = initialRooms.map(room => {
+                    const serving = activeAppts.find(appt => appt.roomId === room.id);
+                    if (serving) {
+                        return { ...room, status: "Đang phục vụ", customer: serving.customerName, service: menuItems.find(s => s.id === serving.serviceId)?.name };
+                    }
+                    return { ...room, status: "Trống", customer: null, service: null };
+                });
+                setRooms(updatedRooms);
+            }, [appointments, menuItems]);
+
+            // Thêm mặt hàng vào hóa đơn POS
+            const handleAddToPosCart = (item) => {
+                const existing = posCart.find(cartItem => cartItem.id === item.id);
+                if (existing) {
+                    setPosCart(posCart.map(cartItem => cartItem.id === item.id ? { ...cartItem, qty: cartItem.qty + 1 } : cartItem));
+                } else {
+                    setPosCart([...posCart, { ...item, qty: 1, staffId: staffMembers[0].id }]); // Mặc định NV phục vụ thứ nhất
+                }
+            };
+
+            // Thay đổi số lượng mặt hàng
+            const handleUpdateQty = (itemId, newQty) => {
+                if (newQty <= 0) {
+                    setPosCart(posCart.filter(item => item.id !== itemId));
+                } else {
+                    setPosCart(posCart.map(item => item.id === itemId ? { ...item, qty: newQty } : item));
+                }
+            };
+
+            // Gán nhân viên thực hiện cho dòng dịch vụ trong POS
+            const handleAssignStaff = (itemId, staffId) => {
+                setPosCart(posCart.map(item => item.id === itemId ? { ...item, staffId: parseInt(staffId) } : item));
+            };
+
+            // Tính toán tiền hàng POS
+            const totalItemsPrice = posCart.reduce((sum, item) => sum + (item.price * item.qty), 0);
+            const finalAmount = Math.max(0, totalItemsPrice - posDiscount);
+            const returnChange = amountReceived > finalAmount ? amountReceived - finalAmount : 0;
+
+            // Thanh toán hóa đơn POS & In hóa đơn
+            const handleProcessPayment = () => {
+                if (posCart.length === 0) {
+                    alert("Vui lòng chọn sản phẩm/dịch vụ trước khi thanh toán!");
+                    return;
+                }
+                const invoiceId = "HD" + String(Date.now()).slice(-6);
+                const newInvoice = {
+                    id: invoiceId,
+                    customerName: selectedCustomer.name,
+                    phone: selectedCustomer.phone || 'N/A',
+                    items: [...posCart],
+                    total: finalAmount,
+                    discount: posDiscount,
+                    received: amountReceived || finalAmount,
+                    change: returnChange,
+                    date: new Date().toISOString().replace('T', ' ').slice(0, 16),
+                    paymentMethod: paymentMethod,
+                    creator: "Admin Thu ngân"
+                };
+
+                // Lưu vào lịch sử hóa đơn
+                setInvoices([newInvoice, ...invoices]);
+
+                // Nếu có chọn Ghế/Giường phục vụ, cập nhật lịch hẹn tương ứng thành "Đã hoàn thành"
+                if (selectedRoom) {
+                    const activeAppt = appointments.find(a => a.roomId === selectedRoom.id && a.status === "Đang phục vụ");
+                    if (activeAppt) {
+                        setAppointments(appointments.map(a => a.id === activeAppt.id ? { ...a, status: "Đã hoàn thành" } : a));
+                    }
+                    setSelectedRoom(null);
+                }
+
+                // Cập nhật tồn kho sản phẩm nếu có bán lẻ
+                setMenuItems(menuItems.map(menuItem => {
+                    const soldItem = posCart.find(cartItem => cartItem.id === menuItem.id && cartItem.type === 'product');
+                    if (soldItem) {
+                        return { ...menuItem, stock: Math.max(0, menuItem.stock - soldItem.qty) };
+                    }
+                    return menuItem;
+                }));
+
+                // Hiển thị hóa đơn chuẩn bị in
+                setPrintedInvoice(newInvoice);
+                setShowInvoicePrint(true);
+
+                // Reset giỏ hàng
+                setPosCart([]);
+                setPosDiscount(0);
+                setAmountReceived(0);
+                setSelectedCustomer({ name: 'Khách lẻ', phone: '' });
+            };
+
+            // Thêm mặt hàng menu mới từ Admin
+            const handleAddMenuItem = (e) => {
+                e.preventDefault();
+                if (!newMenuItem.name || !newMenuItem.price) {
+                    alert("Vui lòng điền đủ thông tin tên và giá dịch vụ/sản phẩm!");
+                    return;
+                }
+                const codePrefix = newMenuItem.type === 'service' ? 'DV' : 'SP';
+                const newId = Date.now();
+                const itemToAdd = {
+                    id: newId,
+                    name: newMenuItem.name,
+                    code: codePrefix + String(newId).slice(-4),
+                    price: parseFloat(newMenuItem.price),
+                    category: newMenuItem.category || (newMenuItem.type === 'service' ? 'Dịch vụ khác' : 'Sản phẩm khác'),
+                    duration: parseInt(newMenuItem.duration),
+                    stock: parseInt(newMenuItem.stock),
+                    type: newMenuItem.type
+                };
+                setMenuItems([...menuItems, itemToAdd]);
+                setNewMenuItem({ name: '', price: '', category: '', type: 'service', duration: 30, stock: 10 });
+                alert("Đã thêm mặt hàng thành công!");
+            };
+
+            // Đặt lịch hẹn mới từ Admin
+            const handleAddAppointment = (e) => {
+                e.preventDefault();
+                if (!newAppointment.customerName || !newAppointment.phone || !newAppointment.serviceId) {
+                    alert("Vui lòng nhập tên khách hàng, số điện thoại và chọn dịch vụ!");
+                    return;
+                }
+                const newAppt = {
+                    id: Date.now(),
+                    customerName: newAppointment.customerName,
+                    phone: newAppointment.phone,
+                    serviceId: parseInt(newAppointment.serviceId),
+                    staffId: newAppointment.staffId ? parseInt(newAppointment.staffId) : null,
+                    date: newAppointment.date,
+                    time: newAppointment.time,
+                    status: "Chờ xác nhận",
+                    roomId: newAppointment.roomId ? parseInt(newAppointment.roomId) : null
+                };
+                setAppointments([...appointments, newAppt]);
+                setNewAppointment({ customerName: '', phone: '', serviceId: '', staffId: '', date: new Date().toISOString().split('T')[0], time: '09:00', roomId: '' });
+                alert("Đã đặt lịch thành công!");
+            };
+
+            // Cập nhật trạng thái cuộc hẹn
+            const handleUpdateAppointment = (id, action) => {
+                setAppointments(appointments.map(appt => {
+                    if (appt.id === id) {
+                        if (action === 'confirm') return { ...appt, status: "Đã xác nhận" };
+                        if (action === 'serve') {
+                            // Tự động phân phối vào một ghế trống thích hợp nếu chưa có phòng/ghế
+                            let assignedRoomId = appt.roomId;
+                            if (!assignedRoomId) {
+                                const emptyRoom = rooms.find(r => r.status === 'Trống');
+                                if (emptyRoom) assignedRoomId = emptyRoom.id;
+                            }
+                            return { ...appt, status: "Đang phục vụ", roomId: assignedRoomId };
+                        }
+                        if (action === 'complete') {
+                            // Tải thông tin vào thu ngân POS để thanh toán luôn
+                            const service = menuItems.find(s => s.id === appt.serviceId);
+                            setSelectedCustomer({ name: appt.customerName, phone: appt.phone });
+                            if (service) {
+                                setPosCart([{ ...service, qty: 1, staffId: appt.staffId || staffMembers[0].id }]);
+                            }
+                            setActiveModule('pos');
+                            if (appt.roomId) {
+                                const r = rooms.find(room => room.id === appt.roomId);
+                                setSelectedRoom(r);
+                            }
+                            return { ...appt, status: "Đang phục vụ" }; // Tạm để phục vụ để chờ thanh toán
+                        }
+                        if (action === 'cancel') return { ...appt, status: "Đã hủy", roomId: null };
+                    }
+                    return appt;
+                }));
+            };
+
+            // Lọc menu hàng hóa hiển thị tại màn POS
+            const categories = ['Tất cả', ...new Set(menuItems.map(item => item.category))];
+            const filteredMenuItems = menuItems.filter(item => {
+                const matchSearch = item.name.toLowerCase().includes(searchQuery.toLowerCase()) || item.code.toLowerCase().includes(searchQuery.toLowerCase());
+                const matchCategory = selectedCategory === 'Tất cả' || item.category === selectedCategory;
+                return matchSearch && matchCategory;
+            });
+
+            // Doanh thu tổng hợp
+            const posRevenue = invoices.reduce((sum, inv) => sum + inv.total, 0);
+
+            return (
+                <div className="h-screen flex flex-col bg-[#EBEFF2]">
+                    {/* TOP NAVBAR CHUNG CỦA KIOTVIET */}
+                    <header className="bg-kiot-primary text-white h-12 flex items-center justify-between px-4 shadow-md flex-shrink-0">
+                        <div className="flex items-center gap-6">
+                            {/* Logo KiotViet */}
+                            <div className="flex items-center gap-2 cursor-pointer">
+                                <div className="bg-white text-kiot-primary w-7 h-7 rounded flex items-center justify-center font-extrabold text-lg">K</div>
+                                <span className="font-bold text-base tracking-wide">KiotViet Salon <span className="font-light text-sm text-green-100">| Anna Chill Beauty</span></span>
+                            </div>
+
+                            {/* Chuyển đổi module nhanh */}
+                            <div className="flex items-center bg-kiot-dark/40 rounded overflow-hidden p-0.5 border border-kiot-dark/20 text-xs">
+                                <button onClick={() => { setActiveModule('pos'); }} className={`px-4 py-1.5 font-bold rounded transition flex items-center gap-1.5 ${activeModule === 'pos' ? 'bg-white text-kiot-primary' : 'text-green-100 hover:bg-white/10'}`}>
+                                    <i data-lucide="calculator" className="w-3.5 h-3.5"></i>
+                                    Màn hình Thu ngân (POS)
+                                </button>
+                                <button onClick={() => { setActiveModule('admin'); }} className={`px-4 py-1.5 font-bold rounded transition flex items-center gap-1.5 ${activeModule === 'admin' ? 'bg-white text-kiot-primary' : 'text-green-100 hover:bg-white/10'}`}>
+                                    <i data-lucide="layout-dashboard" className="w-3.5 h-3.5"></i>
+                                    Bản Quản lý (Admin)
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* Thông tin nhân viên & trạng thái */}
+                        <div className="flex items-center gap-4 text-xs font-medium">
+                            <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 bg-green-400 rounded-full inline-block animate-pulse"></span> Thu ngân chính: Admin</span>
+                            <div className="bg-kiot-dark/30 px-3 py-1 rounded border border-white/10 font-bold">
+                                Ca làm việc: {new Date().toLocaleDateString('vi-VN')}
+                            </div>
+                        </div>
+                    </header>
+
+                    {/* MODULE 1: MÀN HÌNH THU NGÂN (POS) */}
+                    {activeModule === 'pos' && (
+                        <div className="flex flex-grow overflow-hidden h-[calc(100vh-48px)]">
+                            {/* PANEL TRÁI: DANH SÁCH GHẾ / GIƯỜNG LÀM VIỆC */}
+                            <div className="w-56 bg-kiot-panel border-r border-slate-200 flex flex-col flex-shrink-0">
+                                <div className="p-3 bg-slate-100 border-b border-slate-200 font-bold flex items-center gap-1.5 text-slate-700">
+                                    <i data-lucide="armchair" className="w-4 h-4"></i> Sơ đồ dịch vụ ({rooms.length})
+                                </div>
+                                <div className="p-2 space-y-2 overflow-y-auto flex-grow custom-scrollbar">
+                                    {/* Nút khách vãng lai không ngồi giường */}
+                                    <button onClick={() => setSelectedRoom(null)} className={`w-full text-left p-2.5 rounded-xl border text-xs font-bold transition flex items-center justify-between ${!selectedRoom ? 'border-kiot-primary bg-kiot-100 text-kiot-dark' : 'border-slate-200 bg-white hover:bg-slate-50'}`}>
+                                        <span>Khách lẻ (Bán nhanh)</span>
+                                        <i data-lucide="user" className="w-4 h-4 text-slate-400"></i>
+                                    </button>
+
+                                    <div className="border-t border-slate-200 my-2 pt-2">
+                                        <span className="text-[10px] uppercase font-bold text-slate-400 px-1">Ghế / Giường kỹ thuật</span>
+                                    </div>
+
+                                    {rooms.map(room => (
+                                        <div key={room.id} onClick={() => setSelectedRoom(room)} className={`p-2.5 rounded-xl border cursor-pointer transition text-xs ${selectedRoom?.id === room.id ? 'border-kiot-primary bg-kiot-100 shadow-sm' : 'border-slate-200 bg-white hover:bg-slate-50'}`}>
+                                            <div className="flex justify-between items-center mb-1">
+                                                <span className="font-bold text-slate-700">{room.name}</span>
+                                                <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold ${room.status === 'Trống' ? 'bg-slate-100 text-slate-500' : 'bg-rose-100 text-rose-600'}`}>
+                                                    {room.status}
+                                                </span>
+                                            </div>
+                                            {room.status === 'Đang phục vụ' && (
+                                                <div className="text-[10px] text-slate-500 bg-white/60 p-1.5 rounded mt-1 border border-slate-100">
+                                                    <div className="font-semibold text-slate-700 truncate">Khách: {room.customer}</div>
+                                                    <div className="text-slate-500 truncate">{room.service}</div>
+                                                </div>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* PANEL GIỮA: MÀN HÌNH CHỌN HÀNG HÓA & DỊCH VỤ */}
+                            <div className="flex-grow flex flex-col bg-white overflow-hidden">
+                                {/* Bộ lọc & Tìm kiếm */}
+                                <div className="p-3 border-b border-slate-200 bg-slate-50 flex items-center justify-between gap-4">
+                                    <div className="relative flex-grow max-w-md">
+                                        <input type="text" placeholder="Tìm tên dịch vụ, sản phẩm hoặc mã (DV0001, SP...)" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="w-full pl-9 pr-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-kiot-primary focus:border-kiot-primary" />
+                                        <i data-lucide="search" className="absolute left-3 top-2.5 w-4 h-4 text-slate-400"></i>
+                                    </div>
+                                    {/* Chọn nhóm hàng */}
+                                    <div className="flex items-center gap-1 overflow-x-auto max-w-[50%] custom-scrollbar">
+                                        {categories.map(cat => (
+                                            <button key={cat} onClick={() => setSelectedCategory(cat)} className={`px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition ${selectedCategory === cat ? 'bg-kiot-primary text-white' : 'bg-slate-200 text-slate-600 hover:bg-slate-300'}`}>{cat}</button>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {/* Lưới sản phẩm & dịch vụ */}
+                                <div className="flex-grow overflow-y-auto p-4 grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4 bg-slate-50 custom-scrollbar">
+                                    {filteredMenuItems.map(item => (
+                                        <div key={item.id} onClick={() => handleAddToPosCart(item)} className="bg-white border border-slate-200 rounded-xl p-3.5 cursor-pointer hover:border-kiot-primary hover:shadow-md transition flex flex-col justify-between">
+                                            <div>
+                                                <div className="flex justify-between items-start gap-2 mb-1.5">
+                                                    <span className="text-xs font-bold text-slate-400 bg-slate-100 px-2 py-0.5 rounded">{item.code}</span>
+                                                    {item.type === 'product' ? (
+                                                        <span className="text-[10px] bg-sky-100 text-sky-700 px-2 py-0.5 rounded font-bold">Mỹ phẩm ({item.stock})</span>
+                                                    ) : (
+                                                        <span className="text-[10px] bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded font-bold">Dịch vụ ({item.duration}p)</span>
+                                                    )}
+                                                </div>
+                                                <h4 className="font-bold text-slate-800 text-sm mb-1 leading-snug line-clamp-2 h-10">{item.name}</h4>
+                                            </div>
+                                            <div className="flex justify-between items-baseline mt-2">
+                                                <span className="text-xs text-slate-400">{item.category}</span>
+                                                <span className="font-extrabold text-kiot-primary text-sm">{item.price.toLocaleString('vi-VN')} đ</span>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* PANEL PHẢI: GIỎ HÀNG THU NGÂN & THANH TOÁN */}
+                            <div className="w-[420px] bg-white border-l border-slate-200 flex flex-col flex-shrink-0 justify-between">
+                                {/* Tiêu đề & Chọn khách hàng */}
+                                <div>
+                                    <div className="p-3 border-b border-slate-200 bg-slate-50 flex items-center justify-between">
+                                        <div className="flex items-center gap-1.5 text-slate-700 font-bold">
+                                            <i data-lucide="shopping-cart" className="w-4 h-4"></i> Hóa đơn chờ {selectedRoom && ` - [${selectedRoom.name}]`}
+                                        </div>
+                                        <button onClick={() => setPosCart([])} className="text-slate-400 hover:text-slate-600 text-xs">Xóa giỏ hàng</button>
+                                    </div>
+
+                                    {/* Thông tin khách hàng */}
+                                    <div className="p-3 border-b border-slate-200 flex items-center justify-between gap-3">
+                                        <div className="flex items-center gap-2 flex-grow">
+                                            <i data-lucide="user" className="w-4 h-4 text-slate-400"></i>
+                                            <div className="flex-grow">
+                                                <span className="text-xs font-semibold text-slate-400 block">Khách hàng</span>
+                                                <span className="font-bold text-slate-800">{selectedCustomer.name}</span>
+                                                {selectedCustomer.phone && <span className="text-slate-500 font-normal text-xs ml-2">({selectedCustomer.phone})</span>}
+                                            </div>
+                                        </div>
+                                        <button onClick={() => setShowCustomerModal(true)} className="px-2.5 py-1 border border-slate-200 text-slate-600 hover:border-kiot-primary hover:text-kiot-primary rounded text-xs transition flex items-center gap-1">
+                                            <i data-lucide="user-cog" className="w-3.5 h-3.5"></i> Chọn
+                                        </button>
+                                    </div>
+
+                                    {/* Danh sách mặt hàng được chọn */}
+                                    <div className="overflow-y-auto max-h-[300px] border-b border-slate-100 custom-scrollbar divide-y divide-slate-100">
+                                        {posCart.length === 0 ? (
+                                            <div className="py-12 text-center text-slate-400">
+                                                <i data-lucide="shopping-bag" className="w-10 h-10 mx-auto mb-2 opacity-30"></i>
+                                                <p className="text-xs">Chưa có sản phẩm/dịch vụ nào</p>
+                                            </div>
+                                        ) : (
+                                            posCart.map(item => (
+                                                <div key={item.id} className="p-3 hover:bg-slate-50/50">
+                                                    <div className="flex justify-between items-start gap-2 mb-1.5">
+                                                        <h5 className="font-semibold text-slate-800 text-xs leading-snug">{item.name}</h5>
+                                                        <button onClick={() => handleUpdateQty(item.id, 0)} className="text-slate-300 hover:text-rose-500 transition">
+                                                            <i data-lucide="x" className="w-3.5 h-3.5"></i>
+                                                        </button>
+                                                    </div>
+                                                    <div className="flex items-center justify-between mt-2 flex-wrap gap-2">
+                                                        {/* Bộ tăng giảm số lượng */}
+                                                        <div className="flex items-center border border-slate-200 rounded overflow-hidden">
+                                                            <button onClick={() => handleUpdateQty(item.id, item.qty - 1)} className="px-2 py-0.5 bg-slate-100 hover:bg-slate-200 text-slate-600">-</button>
+                                                            <span className="px-3 py-0.5 text-xs font-bold text-slate-700 bg-white">{item.qty}</span>
+                                                            <button onClick={() => handleUpdateQty(item.id, item.qty + 1)} className="px-2 py-0.5 bg-slate-100 hover:bg-slate-200 text-slate-600">+</button>
+                                                        </div>
+
+                                                        {/* Nhân viên phục vụ */}
+                                                        <div className="flex items-center gap-1 text-[10px]">
+                                                            <span className="text-slate-400">NV phục vụ:</span>
+                                                            <select value={item.staffId} onChange={(e) => handleAssignStaff(item.id, e.target.value)} className="border border-slate-200 rounded p-0.5 bg-white font-semibold">
+                                                                {staffMembers.map(st => (
+                                                                    <option key={st.id} value={st.id}>{st.name}</option>
+                                                                ))}
+                                                            </select>
+                                                        </div>
+
+                                                        {/* Thành tiền */}
+                                                        <div className="text-right">
+                                                            <span className="font-extrabold text-slate-800 text-xs">{(item.price * item.qty).toLocaleString('vi-VN')} đ</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            ))
+                                        )}
+                                    </div>
+                                </div>
+
+                                {/* Chi tiết thanh toán */}
+                                <div className="bg-slate-50 p-4 border-t border-slate-200 space-y-3.5">
+                                    <div className="flex justify-between items-center text-slate-600 text-xs">
+                                        <span>Tổng tiền hàng ({posCart.reduce((sum, item) => sum + item.qty, 0)} sản phẩm)</span>
+                                        <span className="font-bold text-slate-800">{totalItemsPrice.toLocaleString('vi-VN')} đ</span>
+                                    </div>
+
+                                    <div className="flex justify-between items-center text-slate-600 text-xs">
+                                        <span>Giảm giá trực tiếp (đ)</span>
+                                        <input type="number" value={posDiscount} onChange={(e) => setPosDiscount(Math.max(0, parseInt(e.target.value) || 0))} className="w-28 text-right px-2 py-1 border border-slate-200 rounded focus:outline-none focus:ring-1 focus:ring-kiot-primary bg-white text-xs font-semibold" />
+                                    </div>
+
+                                    <div className="flex justify-between items-center font-bold text-sm text-slate-800 border-t border-dashed border-slate-200 pt-3">
+                                        <span>Khách cần trả</span>
+                                        <span className="text-kiot-primary text-base font-extrabold">{finalAmount.toLocaleString('vi-VN')} đ</span>
+                                    </div>
+
+                                    <div className="flex justify-between items-center text-slate-600 text-xs">
+                                        <span>Tiền khách đưa (đ)</span>
+                                        <input type="number" placeholder={finalAmount} value={amountReceived || ''} onChange={(e) => setAmountReceived(Math.max(0, parseInt(e.target.value) || 0))} className="w-28 text-right px-2 py-1 border border-slate-200 rounded focus:outline-none focus:ring-1 focus:ring-kiot-primary bg-white text-xs font-semibold" />
+                                    </div>
+
+                                    <div className="flex justify-between items-center text-slate-600 text-xs">
+                                        <span>Tiền thừa trả khách</span>
+                                        <span className="font-bold text-amber-600">{returnChange.toLocaleString('vi-VN')} đ</span>
+                                    </div>
+
+                                    <div className="grid grid-cols-3 gap-2 py-1 border-t border-slate-100 pt-2.5">
+                                        {['Tiền mặt', 'Chuyển khoản', 'Thẻ'].map(method => (
+                                            <button key={method} onClick={() => setPaymentMethod(method)} className={`py-1.5 rounded border text-xs font-bold transition ${paymentMethod === method ? 'border-kiot-primary bg-kiot-50 text-kiot-primary' : 'border-slate-200 bg-white text-slate-500 hover:bg-slate-100'}`}>{method}</button>
+                                        ))}
+                                    </div>
+
+                                    <button onClick={handleProcessPayment} className="w-full py-3 bg-kiot-primary hover:bg-kiot-dark text-white rounded-lg font-bold text-center text-sm transition shadow-lg shadow-green-100 uppercase tracking-wide flex items-center justify-center gap-2">
+                                        <i data-lucide="printer" className="w-4 h-4"></i> Thanh Toán & In Hóa Đơn (F9)
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* MODULE 2: BẢN QUẢN LÝ (ADMIN) */}
+                    {activeModule === 'admin' && (
+                        <div className="flex flex-grow overflow-hidden h-[calc(100vh-48px)]">
+                            {/* MENU BÊN TRÁI CỦA ADMIN */}
+                            <aside className="w-60 bg-slate-900 text-slate-300 flex flex-col justify-between flex-shrink-0">
+                                <div className="p-4 space-y-1.5">
+                                    <div className="text-[10px] uppercase font-bold text-slate-500 tracking-wider mb-2 px-2">Báo Cáo & Quản Trị</div>
+                                    <button onClick={() => setAdminTab('dashboard')} className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-bold transition text-left ${adminTab === 'dashboard' ? 'bg-kiot-primary text-white' : 'hover:bg-slate-800 text-slate-300'}`}>
+                                        <i data-lucide="trending-up" className="w-4 h-4"></i> Báo cáo tổng quan
+                                    </button>
+                                    <button onClick={() => setAdminTab('calendar')} className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-bold transition text-left ${adminTab === 'calendar' ? 'bg-kiot-primary text-white' : 'hover:bg-slate-800 text-slate-300'}`}>
+                                        <i data-lucide="calendar" className="w-4 h-4"></i> Lịch hẹn làm đẹp ({appointments.length})
+                                    </button>
+                                    <button onClick={() => setAdminTab('history')} className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-bold transition text-left ${adminTab === 'history' ? 'bg-kiot-primary text-white' : 'hover:bg-slate-800 text-slate-300'}`}>
+                                        <i data-lucide="receipt" className="w-4 h-4"></i> Lịch sử hóa đơn ({invoices.length})
+                                    </button>
+                                    <button onClick={() => setAdminTab('menu-management')} className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-bold transition text-left ${adminTab === 'menu-management' ? 'bg-kiot-primary text-white' : 'hover:bg-slate-800 text-slate-300'}`}>
+                                        <i data-lucide="database" className="w-4 h-4"></i> Quản lý dịch vụ/hàng hóa
+                                    </button>
+                                </div>
+
+                                <div className="p-4 border-t border-slate-800 text-slate-500 text-[10px] text-center">
+                                    Mô phỏng KiotViet Salon v2.1<br />
+                                    Dự án: Anna Chill Beauty
+                                </div>
+                            </aside>
+
+                            {/* CHI TIẾT TAB ADMIN */}
+                            <main className="flex-grow p-6 overflow-y-auto custom-scrollbar bg-slate-100">
+                                {/* TAB 1: BÁO CÁO TỔNG QUAN */}
+                                {adminTab === 'dashboard' && (
+                                    <div className="space-y-6">
+                                        <h3 className="text-xl font-bold text-slate-800">Báo Cáo Tổng Quan Doanh Số</h3>
+
+                                        {/* Card Thống Kê */}
+                                        <div className="grid grid-cols-1 md:grid-cols-4 gap-5">
+                                            <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
+                                                <span className="text-slate-400 text-xs font-semibold uppercase tracking-wider block">Doanh Thu Thu Ngân</span>
+                                                <h4 className="text-2xl font-extrabold text-kiot-primary mt-1.5">{posRevenue.toLocaleString('vi-VN')} đ</h4>
+                                                <span className="text-[10px] text-slate-400 mt-1 block">Từ {invoices.length} hóa đơn bán hàng</span>
+                                            </div>
+                                            <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
+                                                <span className="text-slate-400 text-xs font-semibold uppercase tracking-wider block">Lịch hẹn hoàn thành</span>
+                                                <h4 className="text-2xl font-extrabold text-blue-600 mt-1.5">{appointments.filter(a => a.status === 'Đã hoàn thành').length} Lịch hẹn</h4>
+                                                <span className="text-[10px] text-slate-400 mt-1 block">Đã được thanh toán qua quầy</span>
+                                            </div>
+                                            <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
+                                                <span className="text-slate-400 text-xs font-semibold uppercase tracking-wider block">Đang phục vụ (Tại quầy)</span>
+                                                <h4 className="text-2xl font-extrabold text-amber-500 mt-1.5">{appointments.filter(a => a.status === 'Đang phục vụ').length} Khách hàng</h4>
+                                                <span className="text-[10px] text-slate-400 mt-1 block">Đang ngồi ghế/giường phục vụ</span>
+                                            </div>
+                                            <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
+                                                <span className="text-slate-400 text-xs font-semibold uppercase tracking-wider block">Lịch hẹn chờ duyệt</span>
+                                                <h4 className="text-2xl font-extrabold text-rose-500 mt-1.5">{appointments.filter(a => a.status === 'Chờ xác nhận').length} Lịch hẹn</h4>
+                                                <span className="text-[10px] text-slate-400 mt-1 block">Khách hàng đặt trước trực tuyến</span>
+                                            </div>
+                                        </div>
+
+                                        {/* Trạng thái Ghế/Giường hoạt động */}
+                                        <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
+                                            <h4 className="font-bold text-slate-800 text-sm mb-4">Theo dõi hoạt động tại Giường/Ghế làm việc</h4>
+                                            <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
+                                                {rooms.map(room => (
+                                                    <div key={room.id} className={`p-4 rounded-xl border text-center ${room.status === 'Trống' ? 'bg-slate-50 border-slate-200' : 'bg-rose-50 border-rose-200'}`}>
+                                                        <i data-lucide={room.type === 'hair' ? 'scissors' : 'bed'} className={`w-6 h-6 mx-auto mb-2 ${room.status === 'Trống' ? 'text-slate-400' : 'text-rose-500'}`}></i>
+                                                        <div className="font-bold text-xs text-slate-700 truncate">{room.name}</div>
+                                                        <div className={`text-[10px] font-bold mt-1.5 ${room.status === 'Trống' ? 'text-slate-400' : 'text-rose-600'}`}>{room.status}</div>
+                                                        {room.customer && (
+                                                            <div className="text-[9px] text-slate-500 mt-1 truncate max-w-full">
+                                                                {room.customer}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* TAB 2: LỊCH HẸN LÀM ĐẸP */}
+                                {adminTab === 'calendar' && (
+                                    <div className="space-y-6">
+                                        <div className="flex justify-between items-center flex-wrap gap-4">
+                                            <h3 className="text-xl font-bold text-slate-800">Quản Lý Sổ Đặt Lịch Salon</h3>
+                                        </div>
+
+                                        <div className="grid lg:grid-cols-3 gap-6">
+                                            {/* Danh sách lịch hẹn */}
+                                            <div className="lg:col-span-2 bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
+                                                <div className="p-4 bg-slate-50 border-b border-slate-200 font-bold text-slate-700">Lịch đặt của khách</div>
+                                                <div className="divide-y divide-slate-100 overflow-y-auto max-h-[500px] custom-scrollbar">
+                                                    {appointments.length === 0 ? (
+                                                        <div className="py-12 text-center text-slate-400">Không có lịch hẹn nào.</div>
+                                                    ) : (
+                                                        appointments.map(appt => {
+                                                            const service = menuItems.find(s => s.id === appt.serviceId);
+                                                            const staff = staffMembers.find(s => s.id === appt.staffId);
+                                                            return (
+                                                                <div key={appt.id} className="p-4 hover:bg-slate-50/50 flex justify-between items-start gap-4">
+                                                                    <div className="space-y-1.5">
+                                                                        <div className="flex items-center gap-2">
+                                                                            <span className="font-bold text-slate-800 text-sm">{appt.customerName}</span>
+                                                                            <span className="text-slate-500 text-xs">({appt.phone})</span>
+                                                                        </div>
+                                                                        <div className="text-xs text-slate-600 flex items-center gap-4">
+                                                                            <span>Dịch vụ: <strong className="text-slate-800">{service ? service.name : 'Chưa chọn'}</strong></span>
+                                                                            <span>Nhân viên: <strong className="text-slate-800">{staff ? staff.name : 'Không chỉ định'}</strong></span>
+                                                                        </div>
+                                                                        <div className="text-[11px] text-slate-400 flex items-center gap-3">
+                                                                            <span><i data-lucide="calendar" className="w-3.5 h-3.5 inline-block mr-1"></i>{appt.date}</span>
+                                                                            <span><i data-lucide="clock" className="w-3.5 h-3.5 inline-block mr-1"></i>{appt.time}</span>
+                                                                            {appt.roomId && (
+                                                                                <span className="bg-slate-100 text-slate-600 px-2 py-0.5 rounded font-bold">
+                                                                                    {rooms.find(r => r.id === appt.roomId)?.name}
+                                                                                </span>
+                                                                            )}
+                                                                        </div>
+                                                                    </div>
+                                                                    <div className="flex flex-col items-end gap-2">
+                                                                        <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold ${appt.status === 'Chờ xác nhận' ? 'bg-amber-100 text-amber-700' : appt.status === 'Đã xác nhận' ? 'bg-blue-100 text-blue-700' : appt.status === 'Đang phục vụ' ? 'bg-purple-100 text-purple-700' : appt.status === 'Đã hoàn thành' ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-500'}`}>
+                                                                            {appt.status}
+                                                                        </span>
+
+                                                                        <div className="flex gap-1.5">
+                                                                            {appt.status === 'Chờ xác nhận' && (
+                                                                                <button onClick={() => handleUpdateAppointment(appt.id, 'confirm')} className="px-2.5 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded text-xs font-bold">Xác nhận</button>
+                                                                            )}
+                                                                            {appt.status === 'Đã xác nhận' && (
+                                                                                <button onClick={() => handleUpdateAppointment(appt.id, 'serve')} className="px-2.5 py-1 bg-purple-600 hover:bg-purple-700 text-white rounded text-xs font-bold">Phục vụ</button>
+                                                                            )}
+                                                                            {appt.status === 'Đang phục vụ' && (
+                                                                                <button onClick={() => handleUpdateAppointment(appt.id, 'complete')} className="px-2.5 py-1 bg-green-600 hover:bg-green-700 text-white rounded text-xs font-bold">Tính tiền</button>
+                                                                            )}
+                                                                            {appt.status !== 'Đã hoàn thành' && appt.status !== 'Đã hủy' && (
+                                                                                <button onClick={() => handleUpdateAppointment(appt.id, 'cancel')} className="px-2 py-1 border border-slate-200 hover:border-rose-500 hover:text-rose-500 text-slate-400 rounded text-xs">Hủy</button>
+                                                                            )}
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            );
+                                                        })
+                                                    )}
+                                                </div>
+                                            </div>
+
+                                            {/* Tạo lịch hẹn mới từ Admin */}
+                                            <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
+                                                <h4 className="font-bold text-slate-800 text-sm mb-4 border-b pb-2">Thêm lịch hẹn dịch vụ</h4>
+                                                <form onSubmit={handleAddAppointment} className="space-y-4">
+                                                    <div>
+                                                        <label className="block text-xs font-bold text-slate-600 mb-1">Tên khách hàng *</label>
+                                                        <input type="text" required value={newAppointment.customerName} onChange={(e) => setNewAppointment({ ...newAppointment, customerName: e.target.value })} className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-1 focus:ring-kiot-primary text-xs" placeholder="Họ và tên" />
+                                                    </div>
+                                                    <div>
+                                                        <label className="block text-xs font-bold text-slate-600 mb-1">Số điện thoại *</label>
+                                                        <input type="tel" required value={newAppointment.phone} onChange={(e) => setNewAppointment({ ...newAppointment, phone: e.target.value })} className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-1 focus:ring-kiot-primary text-xs" placeholder="Số điện thoại di động" />
+                                                    </div>
+                                                    <div>
+                                                        <label className="block text-xs font-bold text-slate-600 mb-1">Dịch vụ làm đẹp *</label>
+                                                        <select required value={newAppointment.serviceId} onChange={(e) => setNewAppointment({ ...newAppointment, serviceId: e.target.value })} className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-1 focus:ring-kiot-primary bg-white text-xs">
+                                                            <option value="">-- Chọn dịch vụ --</option>
+                                                            {menuItems.filter(i => i.type === 'service').map(s => (
+                                                                <option key={s.id} value={s.id}>{s.name} ({s.price.toLocaleString('vi-VN')} đ)</option>
+                                                            ))}
+                                                        </select>
+                                                    </div>
+                                                    <div>
+                                                        <label className="block text-xs font-bold text-slate-600 mb-1">Nhân viên phục vụ</label>
+                                                        <select value={newAppointment.staffId} onChange={(e) => setNewAppointment({ ...newAppointment, staffId: e.target.value })} className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-1 focus:ring-kiot-primary bg-white text-xs">
+                                                            <option value="">Ngẫu nhiên / Khách chọn sau</option>
+                                                            {staffMembers.map(st => (
+                                                                <option key={st.id} value={st.id}>{st.name} ({st.role})</option>
+                                                            ))}
+                                                        </select>
+                                                    </div>
+                                                    <div className="grid grid-cols-2 gap-3">
+                                                        <div>
+                                                            <label className="block text-xs font-bold text-slate-600 mb-1">Ngày hẹn</label>
+                                                            <input type="date" required value={newAppointment.date} onChange={(e) => setNewAppointment({ ...newAppointment, date: e.target.value })} className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-1 focus:ring-kiot-primary text-xs" />
+                                                        </div>
+                                                        <div>
+                                                            <label className="block text-xs font-bold text-slate-600 mb-1">Khung giờ</label>
+                                                            <select value={newAppointment.time} onChange={(e) => setNewAppointment({ ...newAppointment, time: e.target.value })} className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-1 focus:ring-kiot-primary bg-white text-xs">
+                                                                {timeSlots.map(slot => (
+                                                                    <option key={slot} value={slot}>{slot}</option>
+                                                                ))}
+                                                            </select>
+                                                        </div>
+                                                    </div>
+                                                    <div>
+                                                        <label className="block text-xs font-bold text-slate-600 mb-1">Xếp ghế/giường trước</label>
+                                                        <select value={newAppointment.roomId} onChange={(e) => setNewAppointment({ ...newAppointment, roomId: e.target.value })} className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-1 focus:ring-kiot-primary bg-white text-xs">
+                                                            <option value="">Chờ xếp khi khách đến</option>
+                                                            {rooms.map(r => (
+                                                                <option key={r.id} value={r.id}>{r.name} ({r.status})</option>
+                                                            ))}
+                                                        </select>
+                                                    </div>
+                                                    <button type="submit" className="w-full py-2.5 bg-kiot-primary hover:bg-kiot-dark text-white rounded-lg font-bold text-xs uppercase tracking-wide transition">Thêm Lịch Đặt Hẹn</button>
+                                                </form>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* TAB 3: LỊCH SỬ HÓA ĐƠN */}
+                                {adminTab === 'history' && (
+                                    <div className="space-y-6">
+                                        <h3 className="text-xl font-bold text-slate-800">Lịch Sử Hóa Đơn Thanh Toán</h3>
+
+                                        <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
+                                            <div className="overflow-x-auto">
+                                                <table className="w-full text-left border-collapse text-xs">
+                                                    <thead>
+                                                        <tr className="bg-slate-50 text-slate-500 font-bold border-b border-slate-200">
+                                                            <th className="p-4">Mã hóa đơn</th>
+                                                            <th className="p-4">Khách hàng</th>
+                                                            <th className="p-4">Chi tiết mặt hàng</th>
+                                                            <th className="p-4">Ngày giao dịch</th>
+                                                            <th className="p-4">Phương thức</th>
+                                                            <th className="p-4">Tổng tiền</th>
+                                                            <th className="p-4 text-right">Thao tác</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody className="divide-y divide-slate-100">
+                                                        {invoices.map(inv => (
+                                                            <tr key={inv.id} className="hover:bg-slate-50/50">
+                                                                <td className="p-4 font-bold text-kiot-primary">{inv.id}</td>
+                                                                <td className="p-4">
+                                                                    <div className="font-bold text-slate-700">{inv.customerName}</div>
+                                                                    <div className="text-[10px] text-slate-400">{inv.phone}</div>
+                                                                </td>
+                                                                <td className="p-4">
+                                                                    <div className="space-y-0.5">
+                                                                        {inv.items.map((item, idx) => (
+                                                                            <div key={idx} className="text-slate-600 text-[11px]">
+                                                                                • {item.name} x {item.qty} ({(item.price).toLocaleString('vi-VN')} đ)
+                                                                            </div>
+                                                                        ))}
+                                                                    </div>
+                                                                </td>
+                                                                <td className="p-4 text-slate-500">{inv.date}</td>
+                                                                <td className="p-4">
+                                                                    <span className="px-2 py-0.5 rounded bg-slate-100 text-slate-600 font-semibold">{inv.paymentMethod}</span>
+                                                                </td>
+                                                                <td className="p-4 font-extrabold text-slate-800">{(inv.total).toLocaleString('vi-VN')} đ</td>
+                                                                <td className="p-4 text-right">
+                                                                    <button onClick={() => { setPrintedInvoice(inv); setShowInvoicePrint(true); }} className="px-2 py-1 bg-slate-100 hover:bg-slate-200 border border-slate-200 rounded text-slate-600 font-semibold transition">Xem / In lại</button>
+                                                                </td>
+                                                            </tr>
+                                                        ))}
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* TAB 4: QUẢN LÝ DỊCH VỤ / HÀNG HÓA */}
+                                {adminTab === 'menu-management' && (
+                                    <div className="space-y-6">
+                                        <h3 className="text-xl font-bold text-slate-800">Danh Mục Dịch Vụ & Sản Phẩm</h3>
+
+                                        <div className="grid lg:grid-cols-3 gap-6">
+                                            {/* Danh mục menu hiện tại */}
+                                            <div className="lg:col-span-2 bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
+                                                <div className="p-4 bg-slate-50 border-b border-slate-200 font-bold text-slate-700">Dịch vụ & Sản phẩm đang kinh doanh</div>
+                                                <div className="overflow-x-auto">
+                                                    <table className="w-full text-left border-collapse text-xs">
+                                                        <thead>
+                                                            <tr className="bg-slate-100 text-slate-500 border-b border-slate-200 font-semibold">
+                                                                <th className="p-3">Mã</th>
+                                                                <th className="p-3">Tên mặt hàng</th>
+                                                                <th className="p-3">Nhóm hàng</th>
+                                                                <th className="p-3 text-right">Giá dịch vụ/bán</th>
+                                                                <th className="p-3 text-center">Thuộc tính</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody className="divide-y divide-slate-100">
+                                                            {menuItems.map(item => (
+                                                                <tr key={item.id} className="hover:bg-slate-50/50">
+                                                                    <td className="p-3 font-bold text-slate-500">{item.code}</td>
+                                                                    <td className="p-3 font-bold text-slate-800">{item.name}</td>
+                                                                    <td className="p-3 text-slate-600">{item.category}</td>
+                                                                    <td className="p-3 text-right font-bold text-kiot-primary">{item.price.toLocaleString('vi-VN')} đ</td>
+                                                                    <td className="p-3 text-center">
+                                                                        {item.type === 'service' ? (
+                                                                            <span className="px-2 py-0.5 rounded bg-emerald-50 text-emerald-600 font-bold text-[10px]">Thời gian: {item.duration} Phút</span>
+                                                                        ) : (
+                                                                            <span className="px-2 py-0.5 rounded bg-sky-50 text-sky-600 font-bold text-[10px]">Tồn kho: {item.stock}</span>
+                                                                        )}
+                                                                    </td>
+                                                                </tr>
+                                                            ))}
+                                                        </tbody>
+                                                    </table>
+                                                </div>
+                                            </div>
+
+                                            {/* Thêm mặt hàng mới */}
+                                            <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
+                                                <h4 className="font-bold text-slate-800 text-sm mb-4 border-b pb-2">Thêm dịch vụ / sản phẩm mới</h4>
+                                                <form onSubmit={handleAddMenuItem} className="space-y-4">
+                                                    <div>
+                                                        <label className="block text-xs font-bold text-slate-600 mb-1">Loại mặt hàng</label>
+                                                        <div className="grid grid-cols-2 gap-2">
+                                                            <button type="button" onClick={() => setNewMenuItem({ ...newMenuItem, type: 'service' })} className={`py-1.5 rounded border text-xs font-bold transition ${newMenuItem.type === 'service' ? 'border-kiot-primary bg-kiot-50 text-kiot-primary' : 'border-slate-200 bg-white text-slate-500 hover:bg-slate-50'}`}>Dịch vụ Spa/Tóc</button>
+                                                            <button type="button" onClick={() => setNewMenuItem({ ...newMenuItem, type: 'product' })} className={`py-1.5 rounded border text-xs font-bold transition ${newMenuItem.type === 'product' ? 'border-kiot-primary bg-kiot-50 text-kiot-primary' : 'border-slate-200 bg-white text-slate-500 hover:bg-slate-50'}`}>Sản phẩm bán lẻ</button>
+                                                        </div>
+                                                    </div>
+                                                    <div>
+                                                        <label className="block text-xs font-bold text-slate-600 mb-1">Tên dịch vụ/sản phẩm *</label>
+                                                        <input type="text" required value={newMenuItem.name} onChange={(e) => setNewMenuItem({ ...newMenuItem, name: e.target.value })} className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-1 focus:ring-kiot-primary text-xs" placeholder="Nhập tên mặt hàng" />
+                                                    </div>
+                                                    <div>
+                                                        <label className="block text-xs font-bold text-slate-600 mb-1">Nhóm hàng / Danh mục</label>
+                                                        <input type="text" value={newMenuItem.category} onChange={(e) => setNewMenuItem({ ...newMenuItem, category: e.target.value })} className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-1 focus:ring-kiot-primary text-xs" placeholder="VD: Dịch vụ tóc, Mỹ phẩm da..." />
+                                                    </div>
+                                                    <div>
+                                                        <label className="block text-xs font-bold text-slate-600 mb-1">Giá bán / Giá dịch vụ *</label>
+                                                        <input type="number" required value={newMenuItem.price} onChange={(e) => setNewMenuItem({ ...newMenuItem, price: e.target.value })} className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-1 focus:ring-kiot-primary text-xs" placeholder="VNĐ" />
+                                                    </div>
+
+                                                    {newMenuItem.type === 'service' ? (
+                                                        <div>
+                                                            <label className="block text-xs font-bold text-slate-600 mb-1">Thời gian thực hiện (Phút)</label>
+                                                            <input type="number" value={newMenuItem.duration} onChange={(e) => setNewMenuItem({ ...newMenuItem, duration: e.target.value })} className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-1 focus:ring-kiot-primary text-xs" />
+                                                        </div>
+                                                    ) : (
+                                                        <div>
+                                                            <label className="block text-xs font-bold text-slate-600 mb-1">Số lượng nhập kho</label>
+                                                            <input type="number" value={newMenuItem.stock} onChange={(e) => setNewMenuItem({ ...newMenuItem, stock: e.target.value })} className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-1 focus:ring-kiot-primary text-xs" />
+                                                        </div>
+                                                    )}
+
+                                                    <button type="submit" className="w-full py-2.5 bg-kiot-primary hover:bg-kiot-dark text-white rounded-lg font-bold text-xs uppercase tracking-wide transition">Đăng Ký Mặt Hàng</button>
+                                                </form>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+                            </main>
+                        </div>
+                    )}
+
+                    {/* MODAL 1: CHỌN / THÊM KHÁCH HÀNG NHANH */}
+                    {showCustomerModal && (
+                        <div className="fixed inset-0 z-50 overflow-hidden flex items-center justify-center bg-slate-900/60 backdrop-blur-sm">
+                            <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl p-6 border border-slate-200">
+                                <div className="flex justify-between items-center mb-4 border-b pb-2">
+                                    <h4 className="font-bold text-slate-800 text-base">Thông tin Khách hàng</h4>
+                                    <button onClick={() => setShowCustomerModal(false)} className="text-slate-400 hover:text-slate-600"><i data-lucide="x" className="w-5 h-5"></i></button>
+                                </div>
+                                <div className="space-y-4">
+                                    {/* Khách hàng thường dùng */}
+                                    <div>
+                                        <label className="block text-xs font-bold text-slate-600 mb-1.5">Khách hàng cũ thường ghé</label>
+                                        <div className="grid grid-cols-2 gap-2">
+                                            {[
+                                                { name: 'Nguyễn Văn Nam', phone: '0901234567' },
+                                                { name: 'Phạm Thu Thảo', phone: '0977888999' },
+                                                { name: 'Lê Thế Bảo', phone: '0912444555' }
+                                            ].map(c => (
+                                                <button key={c.phone} onClick={() => { setSelectedCustomer({ name: c.name, phone: c.phone }); setShowCustomerModal(false); }} className="p-2 border border-slate-200 hover:border-kiot-primary rounded text-left transition bg-slate-50 hover:bg-white">
+                                                    <div className="font-bold text-xs text-slate-700 truncate">{c.name}</div>
+                                                    <div className="text-[10px] text-slate-400">{c.phone}</div>
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    {/* Thêm mới nhanh */}
+                                    <div className="border-t border-slate-100 pt-3">
+                                        <label className="block text-xs font-bold text-slate-600 mb-1.5">Thêm khách hàng mới</label>
+                                        <div className="space-y-3">
+                                            <input type="text" placeholder="Họ và tên khách hàng" id="new-cust-name" className="w-full px-3 py-2 border rounded-lg text-xs" />
+                                            <input type="tel" placeholder="Số điện thoại di động" id="new-cust-phone" className="w-full px-3 py-2 border rounded-lg text-xs" />
+                                            <button onClick={() => {
+                                                const name = document.getElementById('new-cust-name').value;
+                                                const phone = document.getElementById('new-cust-phone').value;
+                                                if (!name || !phone) {
+                                                    alert("Vui lòng điền đủ tên và số điện thoại!");
+                                                    return;
+                                                }
+                                                setSelectedCustomer({ name, phone });
+                                                setShowCustomerModal(false);
+                                            }} className="w-full py-2.5 bg-slate-800 text-white rounded-lg font-bold text-xs uppercase tracking-wide hover:bg-slate-900 transition">Sử dụng khách mới</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* HÓA ĐƠN THANH TOÁN ĐỂ IN (MÔ PHỎNG IN RA NHIỆT K80) */}
+                    {showInvoicePrint && printedInvoice && (
+                        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/70 overflow-y-auto p-4">
+                            <div className="bg-white rounded-2xl w-full max-w-sm shadow-2xl p-6 border my-8">
+                                {/* Hóa đơn K80 nhiệt */}
+                                <div id="print-section" className="bg-white text-slate-950 p-2 font-mono text-xs border border-dashed border-slate-300 rounded">
+                                    <div className="text-center space-y-1 mb-4">
+                                        <h2 className="font-bold text-base uppercase">Anna Chill Beauty</h2>
+                                        <p className="text-[10px]">ĐC: 123 Đường Sắc Đẹp, Quận 1, TP. HCM</p>
+                                        <p className="text-[10px]">ĐT: 0909 123 456</p>
+                                        <div className="border-t border-dashed border-slate-400 my-2"></div>
+                                        <h3 className="font-bold text-sm">HÓA ĐƠN BÁN HÀNG</h3>
+                                        <p className="text-[10px]">Số: {printedInvoice.id}</p>
+                                        <p className="text-[9px]">{printedInvoice.date}</p>
+                                    </div>
+
+                                    <div className="space-y-1 mb-3 text-[11px]">
+                                        <p>Khách hàng: <strong>{printedInvoice.customerName}</strong></p>
+                                        <p>Số ĐT: <strong>{printedInvoice.phone}</strong></p>
+                                        <p>Thu ngân: <strong>{printedInvoice.creator}</strong></p>
+                                    </div>
+
+                                    <table className="w-full border-collapse text-[10px] my-3">
+                                        <thead>
+                                            <tr className="border-b border-dashed border-slate-400 text-left">
+                                                <th className="pb-1">Hàng hóa/DV</th>
+                                                <th className="pb-1 text-center">SL</th>
+                                                <th className="pb-1 text-right">Đ.Giá</th>
+                                                <th className="pb-1 text-right">T.Tiền</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {printedInvoice.items.map((item, idx) => (
+                                                <tr key={idx} className="border-b border-dotted border-slate-200">
+                                                    <td className="py-1 max-w-[120px] truncate">{item.name}</td>
+                                                    <td className="py-1 text-center">{item.qty}</td>
+                                                    <td className="py-1 text-right">{(item.price).toLocaleString('vi-VN')}</td>
+                                                    <td className="py-1 text-right font-bold">{(item.price * item.qty).toLocaleString('vi-VN')}</td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+
+                                    <div className="space-y-1 text-[11px] border-t border-dashed border-slate-400 pt-2.5">
+                                        <div className="flex justify-between">
+                                            <span>Tiền hàng:</span>
+                                            <span>{printedInvoice.items.reduce((sum, item) => sum + (item.price * item.qty), 0).toLocaleString('vi-VN')} đ</span>
+                                        </div>
+                                        {printedInvoice.discount > 0 && (
+                                            <div className="flex justify-between text-rose-600">
+                                                <span>Giảm giá:</span>
+                                                <span>-{printedInvoice.discount.toLocaleString('vi-VN')} đ</span>
+                                            </div>
+                                        )}
+                                        <div className="flex justify-between font-bold text-xs border-t border-dotted border-slate-300 pt-1">
+                                            <span>Tổng cộng:</span>
+                                            <span>{printedInvoice.total.toLocaleString('vi-VN')} đ</span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span>Khách đưa:</span>
+                                            <span>{printedInvoice.received.toLocaleString('vi-VN')} đ</span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span>Tiền thừa:</span>
+                                            <span>{printedInvoice.change.toLocaleString('vi-VN')} đ</span>
+                                        </div>
+                                        <div className="flex justify-between text-[10px] text-slate-500">
+                                            <span>Hình thức:</span>
+                                            <span>{printedInvoice.paymentMethod}</span>
+                                        </div>
+                                    </div>
+
+                                    <div className="text-center mt-6 space-y-1 text-[9px] border-t border-dashed border-slate-400 pt-4">
+                                        <p className="font-bold italic">Cảm ơn Quý Khách & Hẹn Gặp Lại!</p>
+                                        <p>Powered by KiotViet Salon System</p>
+                                    </div>
+                                </div>
+
+                                <div className="mt-6 flex gap-3">
+                                    <button onClick={() => { window.print(); }} className="flex-1 py-2.5 bg-kiot-primary hover:bg-kiot-dark text-white rounded-lg font-bold text-xs uppercase tracking-wide transition flex items-center justify-center gap-1.5">
+                                        <i data-lucide="printer" className="w-4 h-4"></i> In Hóa Đơn
+                                    </button>
+                                    <button onClick={() => { setShowInvoicePrint(false); setPrintedInvoice(null); }} className="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 border rounded-lg font-bold text-xs text-slate-700 uppercase tracking-wide transition">
+                                        Đóng lại
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+
+        // Tự động khởi tạo Lucide Icons sau khi React render xong
+        setTimeout(() => {
+            if (window.lucide) {
+                window.lucide.createIcons();
+            }
+        }, 1000);
+    </script>
+</body>
+</html>
