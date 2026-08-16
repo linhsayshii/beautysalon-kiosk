@@ -5,7 +5,17 @@ describe('Role Authorization for Mobile Routes', () => {
   it('allows manager to access all mobile routes', () => {
     expect(canAccessPath('manager', '/m/dashboard')).toBe(true);
     expect(canAccessPath('manager', '/m/pos')).toBe(true);
+    expect(canAccessPath('manager', '/m/invoices/new')).toBe(true);
+    expect(canAccessPath('manager', '/m/appointments/new')).toBe(true);
     expect(canAccessPath('manager', '/m/staff')).toBe(true);
+  });
+
+  it('allows cashier to access pos, new invoice, and new appointment', () => {
+    expect(canAccessPath('cashier', '/m/pos')).toBe(true);
+    expect(canAccessPath('cashier', '/m/invoices/new')).toBe(true);
+    expect(canAccessPath('cashier', '/m/appointments/new')).toBe(true);
+    expect(canAccessPath('cashier', '/m/dashboard')).toBe(false);
+    expect(canAccessPath('cashier', '/m/staff')).toBe(false);
   });
 
   it('restricts staff to mobile attendance, schedule and salary', () => {
@@ -14,6 +24,8 @@ describe('Role Authorization for Mobile Routes', () => {
     expect(canAccessPath('staff', '/m/salary')).toBe(true);
     expect(canAccessPath('staff', '/m/dashboard')).toBe(false);
     expect(canAccessPath('staff', '/m/pos')).toBe(false);
+    expect(canAccessPath('staff', '/m/invoices/new')).toBe(false);
+    expect(canAccessPath('staff', '/m/appointments/new')).toBe(false);
   });
 
   it('determines correct home path for role in mobile mode', () => {

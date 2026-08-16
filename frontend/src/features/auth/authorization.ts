@@ -37,6 +37,7 @@ export function hasPermission(role: AccountRole, permission: AppPermission) {
 export function permissionForPath(pathname: string): AppPermission | null {
   // Desktop and mobile paths
   if (pathname === '/pos' || pathname === '/m/pos' || pathname === '/m/invoices/new') return 'pos:use';
+  if (pathname === '/m/appointments/new') return 'pos:use';
   if (pathname === '/attendance/qr') return 'attendance:manage';
   if (pathname === '/attendance' || pathname === '/m/attendance') return 'attendance:self';
   if (pathname === '/dashboard' || pathname === '/m/dashboard') return 'dashboard:read';

@@ -1,5 +1,8 @@
 import { MobileInvoiceCreateView } from '@/features/mobile-pos/MobileInvoiceCreateView';
 
-export default function MobileInvoiceCreatePage() {
+export function Component() {
   return <MobileInvoiceCreateView />;
 }
+
+export default Component;
+
