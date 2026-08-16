@@ -74,7 +74,7 @@ export function StaffPayrollDetailAccordion({ periodId, onOpenSheetView }: Staff
       className="payroll-accordion-container"
       style={{
         background: '#ffffff',
-        borderTop: '2px solid #0284c7',
+        borderTop: '2px solid #0052cc',
         borderBottom: '1px solid #cbd5e1',
         padding: '16px 20px',
       }}
@@ -95,8 +95,8 @@ export function StaffPayrollDetailAccordion({ periodId, onOpenSheetView }: Staff
           style={{
             padding: '8px 4px',
             fontWeight: activeTab === 'info' ? 700 : 500,
-            color: activeTab === 'info' ? '#0284c7' : '#64748b',
-            borderBottom: activeTab === 'info' ? '2px solid #0284c7' : '2px solid transparent',
+            color: activeTab === 'info' ? '#0052cc' : '#64748b',
+            borderBottom: activeTab === 'info' ? '2px solid #0052cc' : '2px solid transparent',
             background: 'none',
             borderTop: 'none',
             borderLeft: 'none',
@@ -113,8 +113,8 @@ export function StaffPayrollDetailAccordion({ periodId, onOpenSheetView }: Staff
           style={{
             padding: '8px 4px',
             fontWeight: activeTab === 'records' ? 700 : 500,
-            color: activeTab === 'records' ? '#0284c7' : '#64748b',
-            borderBottom: activeTab === 'records' ? '2px solid #0284c7' : '2px solid transparent',
+            color: activeTab === 'records' ? '#0052cc' : '#64748b',
+            borderBottom: activeTab === 'records' ? '2px solid #0052cc' : '2px solid transparent',
             background: 'none',
             borderTop: 'none',
             borderLeft: 'none',
@@ -131,8 +131,8 @@ export function StaffPayrollDetailAccordion({ periodId, onOpenSheetView }: Staff
           style={{
             padding: '8px 4px',
             fontWeight: activeTab === 'payments' ? 700 : 500,
-            color: activeTab === 'payments' ? '#0284c7' : '#64748b',
-            borderBottom: activeTab === 'payments' ? '2px solid #0284c7' : '2px solid transparent',
+            color: activeTab === 'payments' ? '#0052cc' : '#64748b',
+            borderBottom: activeTab === 'payments' ? '2px solid #0052cc' : '2px solid transparent',
             background: 'none',
             borderTop: 'none',
             borderLeft: 'none',
@@ -288,7 +288,7 @@ export function StaffPayrollDetailAccordion({ periodId, onOpenSheetView }: Staff
                     borderRadius: 6,
                     border: '1px solid #cbd5e1',
                     background: '#fff',
-                    color: '#0284c7',
+                    color: '#0052cc',
                     fontWeight: 600,
                     fontSize: 13,
                     cursor: 'pointer',
@@ -309,7 +309,7 @@ export function StaffPayrollDetailAccordion({ periodId, onOpenSheetView }: Staff
                   padding: '6px 14px',
                   borderRadius: 6,
                   border: 'none',
-                  background: '#0284c7',
+                  background: '#0052cc',
                   color: '#fff',
                   fontWeight: 600,
                   fontSize: 13,
