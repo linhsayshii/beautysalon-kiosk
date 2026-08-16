@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { formatDateTime, formatMoney, formatNumber } from '@/lib/format';
-import { toIsoDate, todayIso, monthStartIso } from '@/lib/date';
+import { toIsoDate, todayIso, monthStartIso, COMMON_DATE_PRESETS, formatDayHeader } from '@/lib/date';
 import { StatusBadge } from '@/components/data-display/Badges';
 import { statusLabels, type ApiRecord } from '@/types/api';
 import { getOrders, getOrder } from '@/features/operations/operations.api';
@@ -20,44 +20,7 @@ const salesChannelLabels: Record<string, string> = {
   phone: 'Qua điện thoại',
 };
 
-const datePresets = [
-  { value: 'all', label: 'Tất cả ngày' },
-  { value: 'today', label: 'Hôm nay' },
-  { value: 'yesterday', label: 'Hôm qua' },
-  { value: '7days', label: '7 ngày qua' },
-  { value: 'this_month', label: 'Tháng này' },
-];
-
-function formatDayHeader(dateStr: string): string {
-  try {
-    const d = new Date(`${dateStr}T00:00:00`);
-    if (isNaN(d.getTime())) return dateStr;
-    const today = new Date();
-    const todayStr = toIsoDate(today);
-    const yesterday = new Date();
-    yesterday.setDate(yesterday.getDate() - 1);
-    const yesterdayStr = toIsoDate(yesterday);
-
-    const dayMonth = `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}`;
-    if (dateStr === todayStr) return `HÔM NAY, ${dayMonth}`;
-    if (dateStr === yesterdayStr) return `HÔM QUA, ${dayMonth}`;
-    return `NGÀY ${dayMonth}`;
-  } catch {
-    return dateStr;
-  }
-}
-
-function formatOrderTime(isoString: string): string {
-  try {
-    const d = new Date(isoString);
-    if (isNaN(d.getTime())) return '--:--';
-    const hours = String(d.getHours()).padStart(2, '0');
-    const minutes = String(d.getMinutes()).padStart(2, '0');
-    return `${hours}:${minutes}`;
-  } catch {
-    return '--:--';
-  }
-}
+const datePresets = COMMON_DATE_PRESETS;
 
 export function MobileOrdersView() {
   const navigate = useNavigate();
@@ -400,7 +363,8 @@ export function MobileOrdersView() {
                 {items.map((order) => {
                   const custName = order.customer?.name || order.customerName || 'Khách lẻ';
                   const custPhone = order.customer?.phone || order.customerPhone || '';
-                  const orderTime = formatOrderTime(order.issuedAt || order.createdAt);
+                  const rawTime = order.issuedAt || order.createdAt;
+                  const orderTime = rawTime ? new Date(rawTime).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) : '--:--';
                   const isPaid = order.status === 'paid';
 
                   return (
