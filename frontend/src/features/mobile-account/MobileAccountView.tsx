@@ -27,7 +27,7 @@ export function MobileAccountView() {
   };
 
   const handleToggleDesktop = () => {
-    window.localStorage.setItem('annachill-mobile-preference', 'desktop');
+    window.localStorage.setItem('annachill-ui-mode', 'desktop');
     navigate('/dashboard');
   };
 

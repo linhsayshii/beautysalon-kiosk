@@ -1,5 +1,8 @@
 import { MobileStaffManagementView } from '@/features/mobile-staff/MobileStaffManagementView';
 
-export function MobileStaffManagementPage() {
+export function Component() {
   return <MobileStaffManagementView />;
 }
+
+export default Component;
+

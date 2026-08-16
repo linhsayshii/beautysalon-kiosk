@@ -1,9 +1,27 @@
 import { Navigate, createBrowserRouter } from 'react-router-dom';
 import { AdminLayout } from '@/layouts/AdminLayout/AdminLayout';
+import { MobileAppLayout } from '@/layouts/MobileAppLayout/MobileAppLayout';
 import { NotFoundPage } from '@/pages/not-found/NotFoundPage';
 
 export const router = createBrowserRouter([
   { path: '/login', lazy: () => import('@/pages/login/LoginPage') },
+  {
+    path: '/m',
+    element: <MobileAppLayout />,
+    children: [
+      { index: true, element: <Navigate to="/m/dashboard" replace /> },
+      { path: 'dashboard', lazy: () => import('@/pages/dashboard/MobileDashboardPage') },
+      { path: 'pos', lazy: () => import('@/pages/pos/MobilePosPage') },
+      { path: 'orders', lazy: () => import('@/pages/orders/MobileOrdersPage') },
+      { path: 'customers', lazy: () => import('@/pages/customers/CustomersPage') },
+      { path: 'staff', lazy: () => import('@/pages/staff/MobileStaffManagementPage') },
+      { path: 'schedule', lazy: () => import('@/pages/staff/MobileStaffSchedulePage') },
+      { path: 'salary', lazy: () => import('@/pages/staff/MobileStaffSalaryPage') },
+      { path: 'attendance', lazy: () => import('@/pages/attendance/AttendanceScanPage') },
+      { path: 'account', lazy: () => import('@/pages/account-settings/MobileAccountPage') },
+      { path: '*', element: <NotFoundPage /> },
+    ],
+  },
   {
     path: '/',
     element: <AdminLayout />,
