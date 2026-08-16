@@ -19,9 +19,11 @@ import {
   MobileServiceItemDetailSheet,
   type ConfiguredServiceItem,
 } from '@/features/mobile-common/MobileServiceItemDetailSheet';
+import '@/features/mobile-appointments/mobile-appointments.css';
 import '@/features/mobile-pos/mobile-pos.css';
 
 type PaymentMethod = 'cash' | 'bank_transfer' | 'card' | 'wallet';
+
 
 export function MobileInvoiceCreateView() {
   const navigate = useNavigate();
@@ -203,26 +205,26 @@ export function MobileInvoiceCreateView() {
   };
 
   return (
-    <div className="mobile-appointment-create-container" style={{ background: '#f8fafc' }}>
+    <div className="mobile-form-view-container">
       {/* Top Header */}
-      <header className="mobile-appointment-header">
-        <div className="mobile-appointment-header-left">
+      <header className="mobile-form-header">
+        <div className="mobile-form-header-left">
           <button
             type="button"
-            className="mobile-appointment-back-btn"
+            className="mobile-form-back-btn"
             onClick={() => navigate(-1)}
             aria-label="Quay lại"
           >
             <i className="ph ph-caret-left" />
           </button>
-          <h1 className="mobile-appointment-header-title">Tạo hóa đơn</h1>
+          <h1 className="mobile-form-header-title">Tạo hóa đơn</h1>
         </div>
 
-        <div className="mobile-appointment-header-actions">
+        <div className="mobile-form-header-actions">
           {configuredItems.length > 0 && (
             <button
               type="button"
-              className="mobile-appointment-icon-btn"
+              className="mobile-form-icon-btn"
               onClick={handleClearAll}
               aria-label="Làm mới"
               title="Làm mới giỏ"
@@ -233,7 +235,7 @@ export function MobileInvoiceCreateView() {
 
           <button
             type="button"
-            className={`mobile-appointment-icon-btn ${note ? 'has-note' : ''}`}
+            className={`mobile-form-icon-btn ${note ? 'has-note' : ''}`}
             onClick={() => {
               setTempNote(note);
               setIsNoteDialogOpen(true);
@@ -247,24 +249,24 @@ export function MobileInvoiceCreateView() {
       </header>
 
       {/* Main Body Form Cards */}
-      <main className="mobile-appointment-body">
+      <div className="mobile-form-body">
         {/* Card 1: Customer Selection */}
-        <section className="mobile-appointment-card">
+        <section className="mobile-form-card">
           <div
-            className="mobile-appointment-row"
+            className="mobile-form-row"
             onClick={() => setIsCustomerSheetOpen(true)}
             role="button"
             tabIndex={0}
           >
-            <div className="mobile-appointment-row-left">
-              <div className="mobile-appointment-row-icon is-customer">
+            <div className="mobile-form-row-left">
+              <div className="mobile-form-row-icon is-customer">
                 <i className="ph ph-user" />
               </div>
-              <div className="mobile-appointment-row-info">
+              <div className="mobile-form-row-info">
                 {customer ? (
                   <>
-                    <span className="mobile-appointment-row-title">{customer.name}</span>
-                    <span className="mobile-appointment-row-subtitle">
+                    <span className="mobile-form-row-title">{customer.name}</span>
+                    <span className="mobile-form-row-subtitle">
                       {customer.phone || 'Chưa lưu số điện thoại'}
                       {customer.remainingPackageUnits !== undefined &&
                         customer.remainingPackageUnits > 0 && (
@@ -274,8 +276,8 @@ export function MobileInvoiceCreateView() {
                   </>
                 ) : (
                   <>
-                    <span className="mobile-appointment-row-title">Khách lẻ / Vãng lai</span>
-                    <span className="mobile-appointment-row-subtitle">
+                    <span className="mobile-form-row-title">Khách lẻ / Vãng lai</span>
+                    <span className="mobile-form-row-subtitle">
                       Chạm để tìm hoặc thêm khách hàng
                     </span>
                   </>
@@ -283,11 +285,11 @@ export function MobileInvoiceCreateView() {
               </div>
             </div>
 
-            <div className="mobile-appointment-row-right">
+            <div className="mobile-form-row-right">
               {customer ? (
                 <button
                   type="button"
-                  className="mobile-appointment-row-clear"
+                  className="mobile-form-row-clear"
                   onClick={(e) => {
                     e.stopPropagation();
                     setCustomer(null);
@@ -304,19 +306,19 @@ export function MobileInvoiceCreateView() {
         </section>
 
         {/* Card 2: Services & Products List */}
-        <section className="mobile-appointment-card mobile-appointment-items-card">
+        <section className="mobile-form-card mobile-form-items-card">
           {configuredItems.length === 0 ? (
             /* Empty State */
-            <div className="mobile-appointment-empty-items">
-              <div className="mobile-appointment-empty-icon">
+            <div className="mobile-form-empty-items">
+              <div className="mobile-form-empty-icon">
                 <i className="ph ph-shopping-bag" />
               </div>
-              <div className="mobile-appointment-empty-text">
+              <div className="mobile-form-empty-text">
                 Chưa có dịch vụ, sản phẩm trong hóa đơn
               </div>
               <button
                 type="button"
-                className="mobile-appointment-add-btn"
+                className="mobile-form-add-btn"
                 onClick={handleOpenCatalog}
               >
                 <i className="ph ph-plus-circle" />
@@ -326,16 +328,16 @@ export function MobileInvoiceCreateView() {
           ) : (
             /* Non-Empty State */
             <div>
-              <div className="mobile-appointment-items-list">
+              <div className="mobile-form-items-list">
                 {configuredItems.map((item, idx) => (
                   <div
                     key={`${item.itemId}-${idx}`}
-                    className="mobile-appointment-item-card"
+                    className="mobile-form-item-card"
                     onClick={() => handleEditItem(item, idx)}
                   >
-                    <div className="mobile-appointment-item-main">
-                      <div className="mobile-appointment-item-left">
-                        <div className="mobile-appointment-item-icon">
+                    <div className="mobile-form-item-main">
+                      <div className="mobile-form-item-left">
+                        <div className="mobile-form-item-icon">
                           <i
                             className={
                               item.itemType === 'service'
@@ -349,7 +351,7 @@ export function MobileInvoiceCreateView() {
                           />
                         </div>
                         <div>
-                          <div className="mobile-appointment-item-name">
+                          <div className="mobile-form-item-name">
                             {item.quantity > 1 ? `${item.quantity}x ` : ''}
                             {item.name}
                           </div>
@@ -358,27 +360,27 @@ export function MobileInvoiceCreateView() {
                           </div>
                         </div>
                       </div>
-                      <div className="mobile-appointment-item-price">
+                      <div className="mobile-form-item-price">
                         {formatNumber((item.unitPrice || 0) * item.quantity)}
                       </div>
                     </div>
 
                     {/* Assigned tags */}
-                    <div className="mobile-appointment-item-tags">
+                    <div className="mobile-form-item-tags">
                       {item.staffName ? (
-                        <span className="mobile-appointment-tag is-staff">
+                        <span className="mobile-form-tag is-staff">
                           <i className="ph ph-user-check" />
                           {item.staffName}
                         </span>
                       ) : (
-                        <span className="mobile-appointment-tag">
+                        <span className="mobile-form-tag">
                           <i className="ph ph-user" />
                           Chưa chọn nhân viên
                         </span>
                       )}
 
                       {item.position && (
-                        <span className="mobile-appointment-tag is-pos">
+                        <span className="mobile-form-tag is-pos">
                           <i className="ph ph-map-pin" />
                           {item.position}
                         </span>
@@ -386,7 +388,7 @@ export function MobileInvoiceCreateView() {
 
                       <button
                         type="button"
-                        className="mobile-appointment-item-remove-btn"
+                        className="mobile-form-item-remove-btn"
                         onClick={(e) => {
                           e.stopPropagation();
                           handleRemoveItem(idx);
@@ -402,7 +404,7 @@ export function MobileInvoiceCreateView() {
 
               <button
                 type="button"
-                className="mobile-appointment-add-btn"
+                className="mobile-form-add-btn"
                 onClick={handleOpenCatalog}
               >
                 <i className="ph ph-plus" />
@@ -413,7 +415,7 @@ export function MobileInvoiceCreateView() {
         </section>
 
         {/* Card 3: Payment Method & Discount */}
-        <section className="mobile-appointment-card" style={{ padding: 14 }}>
+        <section className="mobile-form-card" style={{ padding: 14 }}>
           {/* Payment Method Pills */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 14 }}>
             <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink-700)' }}>
@@ -535,13 +537,13 @@ export function MobileInvoiceCreateView() {
             </div>
           </div>
         </section>
-      </main>
+      </div>
 
       {/* Fixed Bottom Checkout Button */}
-      <footer className="mobile-appointment-footer">
+      <footer className="mobile-form-footer">
         <button
           type="button"
-          className="mobile-appointment-save-btn"
+          className="mobile-form-submit-btn"
           onClick={handleCheckout}
           disabled={checkoutMutation.isPending || configuredItems.length === 0}
           style={{

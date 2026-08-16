@@ -177,7 +177,7 @@ describe('MobileAppointmentCreateView Component', () => {
     const inServicePill = screen.getByText('Đang làm');
     fireEvent.click(inServicePill);
 
-    expect(inServicePill.closest('.mobile-status-pill')).toHaveClass('is-active');
+    expect(inServicePill.closest('.mobile-form-status-pill')).toHaveClass('is-active');
   });
 
   it('creates appointment when clicking save with valid customer and service item', async () => {

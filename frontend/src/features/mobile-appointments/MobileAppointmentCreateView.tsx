@@ -202,25 +202,25 @@ export function MobileAppointmentCreateView() {
   };
 
   return (
-    <div className="mobile-appointment-create-container">
+    <div className="mobile-form-view-container">
       {/* Top Header */}
-      <header className="mobile-appointment-header">
-        <div className="mobile-appointment-header-left">
+      <header className="mobile-form-header">
+        <div className="mobile-form-header-left">
           <button
             type="button"
-            className="mobile-appointment-back-btn"
+            className="mobile-form-back-btn"
             onClick={() => navigate(-1)}
             aria-label="Quay lại"
           >
             <i className="ph ph-caret-left" />
           </button>
-          <h1 className="mobile-appointment-header-title">Tạo lịch</h1>
+          <h1 className="mobile-form-header-title">Tạo lịch</h1>
         </div>
 
-        <div className="mobile-appointment-header-actions">
+        <div className="mobile-form-header-actions">
           <button
             type="button"
-            className={`mobile-appointment-icon-btn ${note ? 'has-note' : ''}`}
+            className={`mobile-form-icon-btn ${note ? 'has-note' : ''}`}
             onClick={() => {
               setTempNote(note);
               setIsNoteDialogOpen(true);
@@ -234,25 +234,25 @@ export function MobileAppointmentCreateView() {
       </header>
 
       {/* Main Body Form Cards */}
-      <main className="mobile-appointment-body">
+      <div className="mobile-form-body">
         {/* Card 1: Customer & Time Information */}
-        <section className="mobile-appointment-card">
+        <section className="mobile-form-card">
           {/* Customer Row */}
           <div
-            className="mobile-appointment-row"
+            className="mobile-form-row"
             onClick={() => setIsCustomerSheetOpen(true)}
             role="button"
             tabIndex={0}
           >
-            <div className="mobile-appointment-row-left">
-              <div className="mobile-appointment-row-icon is-customer">
+            <div className="mobile-form-row-left">
+              <div className="mobile-form-row-icon is-customer">
                 <i className="ph ph-user" />
               </div>
-              <div className="mobile-appointment-row-info">
+              <div className="mobile-form-row-info">
                 {customer ? (
                   <>
-                    <span className="mobile-appointment-row-title">{customer.name}</span>
-                    <span className="mobile-appointment-row-subtitle">
+                    <span className="mobile-form-row-title">{customer.name}</span>
+                    <span className="mobile-form-row-subtitle">
                       {customer.phone || 'Chưa lưu số điện thoại'}
                       {customer.remainingPackageUnits !== undefined && customer.remainingPackageUnits > 0 && (
                         <span> • Còn {customer.remainingPackageUnits} buổi DV</span>
@@ -261,8 +261,8 @@ export function MobileAppointmentCreateView() {
                   </>
                 ) : (
                   <>
-                    <span className="mobile-appointment-row-title">Thêm khách hàng</span>
-                    <span className="mobile-appointment-row-subtitle">
+                    <span className="mobile-form-row-title">Thêm khách hàng</span>
+                    <span className="mobile-form-row-subtitle">
                       Chọn hoặc tạo khách hàng mới
                     </span>
                   </>
@@ -270,11 +270,11 @@ export function MobileAppointmentCreateView() {
               </div>
             </div>
 
-            <div className="mobile-appointment-row-right">
+            <div className="mobile-form-row-right">
               {customer ? (
                 <button
                   type="button"
-                  className="mobile-appointment-row-clear"
+                  className="mobile-form-row-clear"
                   onClick={(e) => {
                     e.stopPropagation();
                     setCustomer(null);
@@ -291,41 +291,41 @@ export function MobileAppointmentCreateView() {
 
           {/* Time Picker Row */}
           <div
-            className="mobile-appointment-row"
+            className="mobile-form-row"
             onClick={() => setIsTimePickerOpen(true)}
             role="button"
             tabIndex={0}
           >
-            <div className="mobile-appointment-row-left">
-              <div className="mobile-appointment-row-icon is-time">
+            <div className="mobile-form-row-left">
+              <div className="mobile-form-row-icon is-time">
                 <i className="ph ph-calendar" />
               </div>
-              <div className="mobile-appointment-row-info">
-                <span className="mobile-appointment-row-title">{formattedStartTimeTitle}</span>
-                <span className="mobile-appointment-row-subtitle">
+              <div className="mobile-form-row-info">
+                <span className="mobile-form-row-title">{formattedStartTimeTitle}</span>
+                <span className="mobile-form-row-subtitle">
                   Chạm để thay đổi ngày giờ bắt đầu
                 </span>
               </div>
             </div>
 
-            <div className="mobile-appointment-row-right">
+            <div className="mobile-form-row-right">
               <i className="ph ph-caret-right" />
             </div>
           </div>
         </section>
 
         {/* Card 2: Services & Products List */}
-        <section className="mobile-appointment-card mobile-appointment-items-card">
+        <section className="mobile-form-card mobile-form-items-card">
           {configuredItems.length === 0 ? (
             /* Empty State */
-            <div className="mobile-appointment-empty-items">
-              <div className="mobile-appointment-empty-icon">
+            <div className="mobile-form-empty-items">
+              <div className="mobile-form-empty-icon">
                 <i className="ph ph-calendar-x" />
               </div>
-              <div className="mobile-appointment-empty-text">Chưa có dịch vụ, sản phẩm</div>
+              <div className="mobile-form-empty-text">Chưa có dịch vụ, sản phẩm</div>
               <button
                 type="button"
-                className="mobile-appointment-add-btn"
+                className="mobile-form-add-btn"
                 onClick={handleOpenCatalog}
               >
                 <i className="ph ph-plus-circle" />
@@ -335,16 +335,16 @@ export function MobileAppointmentCreateView() {
           ) : (
             /* Non-Empty State */
             <div>
-              <div className="mobile-appointment-items-list">
+              <div className="mobile-form-items-list">
                 {configuredItems.map((item, idx) => (
                   <div
                     key={`${item.itemId}-${idx}`}
-                    className="mobile-appointment-item-card"
+                    className="mobile-form-item-card"
                     onClick={() => handleEditItem(item, idx)}
                   >
-                    <div className="mobile-appointment-item-main">
-                      <div className="mobile-appointment-item-left">
-                        <div className="mobile-appointment-item-icon">
+                    <div className="mobile-form-item-main">
+                      <div className="mobile-form-item-left">
+                        <div className="mobile-form-item-icon">
                           <i
                             className={
                               item.itemType === 'service'
@@ -358,33 +358,33 @@ export function MobileAppointmentCreateView() {
                           />
                         </div>
                         <div>
-                          <div className="mobile-appointment-item-name">
+                          <div className="mobile-form-item-name">
                             {item.quantity > 1 ? `${item.quantity}x ` : ''}
                             {item.name}
                           </div>
                         </div>
                       </div>
-                      <div className="mobile-appointment-item-price">
+                      <div className="mobile-form-item-price">
                         {formatNumber((item.unitPrice || 0) * item.quantity)}
                       </div>
                     </div>
 
                     {/* Assigned tags */}
-                    <div className="mobile-appointment-item-tags">
+                    <div className="mobile-form-item-tags">
                       {item.staffName ? (
-                        <span className="mobile-appointment-tag is-staff">
+                        <span className="mobile-form-tag is-staff">
                           <i className="ph ph-user-check" />
                           {item.staffName}
                         </span>
                       ) : (
-                        <span className="mobile-appointment-tag">
+                        <span className="mobile-form-tag">
                           <i className="ph ph-user" />
                           Chưa phân thợ
                         </span>
                       )}
 
                       {item.position && (
-                        <span className="mobile-appointment-tag is-pos">
+                        <span className="mobile-form-tag is-pos">
                           <i className="ph ph-map-pin" />
                           {item.position}
                         </span>
@@ -392,7 +392,7 @@ export function MobileAppointmentCreateView() {
 
                       <button
                         type="button"
-                        className="mobile-appointment-item-remove-btn"
+                        className="mobile-form-item-remove-btn"
                         onClick={(e) => {
                           e.stopPropagation();
                           handleRemoveItem(idx);
@@ -408,7 +408,7 @@ export function MobileAppointmentCreateView() {
 
               <button
                 type="button"
-                className="mobile-appointment-add-btn"
+                className="mobile-form-add-btn"
                 onClick={handleOpenCatalog}
               >
                 <i className="ph ph-plus" />
@@ -419,16 +419,16 @@ export function MobileAppointmentCreateView() {
         </section>
 
         {/* Card 3: Status Selection Pills */}
-        <section className="mobile-appointment-card mobile-appointment-status-card">
-          <div className="mobile-appointment-section-label">Trạng thái lịch hẹn</div>
-          <div className="mobile-appointment-status-grid">
+        <section className="mobile-form-card mobile-form-status-card">
+          <div className="mobile-form-section-label">Trạng thái lịch hẹn</div>
+          <div className="mobile-form-status-grid">
             {APPOINTMENT_STATUSES.map((st) => {
               const isActive = status === st.value;
               return (
                 <button
                   key={st.value}
                   type="button"
-                  className={`mobile-status-pill ${isActive ? 'is-active' : ''}`}
+                  className={`mobile-form-status-pill ${isActive ? 'is-active' : ''}`}
                   onClick={() => setStatus(st.value)}
                 >
                   {st.label}
@@ -437,13 +437,13 @@ export function MobileAppointmentCreateView() {
             })}
           </div>
         </section>
-      </main>
+      </div>
 
       {/* Fixed Bottom Save Button */}
-      <footer className="mobile-appointment-footer">
+      <footer className="mobile-form-footer">
         <button
           type="button"
-          className="mobile-appointment-save-btn"
+          className="mobile-form-submit-btn"
           onClick={handleSubmit}
           disabled={createMutation.isPending}
         >
