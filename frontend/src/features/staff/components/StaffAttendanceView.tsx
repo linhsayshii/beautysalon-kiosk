@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, Fragment } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ErrorState, LoadingState } from '@/components/data-display/DataState';
 import { useToast } from '@/components/ui/Toast/ToastProvider';
@@ -8,6 +8,7 @@ import type { ApiRecord } from '@/types/api';
 import { WeekPicker } from './WeekPicker';
 import { AddShiftModal, ShiftFormValues } from './AddShiftModal';
 import { AssignStaffModal } from './AssignStaffModal';
+import { StaffAttendanceDetail } from './StaffAttendanceDetail';
 import {
   getStaff,
   getShifts,
@@ -27,6 +28,7 @@ export function StaffAttendanceView() {
   const [viewMode, setViewMode] = useState<'by-shift' | 'by-staff'>('by-shift');
   const [searchTerm, setSearchTerm] = useState('');
   const [timeUnit, setTimeUnit] = useState<'week' | 'month'>('week');
+  const [expandedStaffId, setExpandedStaffId] = useState<number | null>(null);
 
   // Modals state
   const [isAddShiftOpen, setIsAddShiftOpen] = useState(false);
@@ -495,6 +497,8 @@ export function StaffAttendanceView() {
                   {filteredStaffList.map((staff) => {
                     const isThuPhuong = staff.name.includes('Thu Phương') || staff.code.includes('016');
                     const isYen = staff.name.includes('Yến') || staff.code.includes('015');
+                    const isExpanded = expandedStaffId === staff.id;
+                    const detailId = `staff-attendance-detail-${staff.id}`;
 
                     let salaryTypeText = 'Theo ngày công chuẩn';
                     let workedSummary: React.ReactNode = null;
@@ -547,26 +551,44 @@ export function StaffAttendanceView() {
                     }
 
                     return (
-                      <tr key={staff.id}>
-                        <td>
-                          <div className="summary-staff-name">{staff.name}</div>
-                          <div className="summary-staff-code">{staff.code}</div>
-                        </td>
-                        <td style={{ fontWeight: 500 }}>{salaryTypeText}</td>
-                        {hasData ? (
-                          <>
-                            <td>{workedSummary}</td>
-                            <td style={{ color: '#94a3b8' }}>—</td>
-                            <td>{lateSummary || '—'}</td>
-                            <td style={{ color: '#94a3b8' }}>—</td>
-                            <td>{overtimeSummary || '—'}</td>
-                          </>
-                        ) : (
-                          <td colSpan={5} style={{ color: '#94a3b8', fontStyle: 'italic' }}>
-                            Nhân viên chưa có dữ liệu chấm công
+                      <Fragment key={staff.id}>
+                        <tr
+                          className={`expandable-data-row ${isExpanded ? 'is-expanded' : ''}`}
+                          onClick={() => setExpandedStaffId((current) => (current === staff.id ? null : staff.id))}
+                          aria-expanded={isExpanded}
+                          aria-controls={detailId}
+                        >
+                          <td>
+                            <div className="summary-staff-name" style={{ color: '#0052cc' }}>{staff.name}</div>
+                            <div className="summary-staff-code">{staff.code}</div>
                           </td>
+                          <td style={{ fontWeight: 500 }}>{salaryTypeText}</td>
+                          {hasData ? (
+                            <>
+                              <td>{workedSummary}</td>
+                              <td style={{ color: '#94a3b8' }}>—</td>
+                              <td>{lateSummary || '—'}</td>
+                              <td style={{ color: '#94a3b8' }}>—</td>
+                              <td>{overtimeSummary || '—'}</td>
+                            </>
+                          ) : (
+                            <td colSpan={5} style={{ color: '#94a3b8', fontStyle: 'italic' }}>
+                              Nhân viên chưa có dữ liệu chấm công
+                            </td>
+                          )}
+                        </tr>
+                        {isExpanded && (
+                          <tr id={detailId} className="expandable-detail-row">
+                            <td colSpan={7}>
+                              <StaffAttendanceDetail
+                                staff={staff}
+                                currentMonday={currentMonday}
+                                workShifts={workShifts}
+                              />
+                            </td>
+                          </tr>
                         )}
-                      </tr>
+                      </Fragment>
                     );
                   })}
                 </tbody>

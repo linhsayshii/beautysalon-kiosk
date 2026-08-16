@@ -132,7 +132,8 @@ export function StaffPayrollPaymentModal({ periodDetail, onClose }: StaffPayroll
                     border: '1px solid #cbd5e1',
                     fontSize: 15,
                     fontWeight: 600,
-                    color: '#0284c7',
+                    color: '#0052cc',
+                    outline: 'none',
                   }}
                 />
               </div>
@@ -197,7 +198,7 @@ export function StaffPayrollPaymentModal({ periodDetail, onClose }: StaffPayroll
               disabled={amount <= 0 || payMutation.isPending}
               onClick={() => payMutation.mutate()}
               className="btn-primary"
-              style={{ background: '#0284c7' }}
+              style={{ background: '#0052cc', borderColor: '#0052cc' }}
             >
               {payMutation.isPending ? 'Đang xử lý...' : 'Xác nhận thanh toán'}
             </button>

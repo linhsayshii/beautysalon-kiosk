@@ -112,13 +112,13 @@ export function AccountSettingsView() {
             <section className="settings-panel security-panel">
               <header>
                 <span className="settings-panel-icon is-security"><i className="ph ph-lock-key" /></span>
-                <div><h2>Đổi mật khẩu</h2><p>Dùng tối thiểu 12 ký tự và không dùng lại mật khẩu cũ.</p></div>
+                <div><h2>Đổi mật khẩu</h2><p>Dùng tối thiểu 6 ký tự và không dùng lại mật khẩu cũ.</p></div>
               </header>
               <form onSubmit={savePassword}>
                 <div className="settings-form-grid single">
                   <label><span>Mật khẩu hiện tại</span><input required type="password" autoComplete="current-password" value={passwords.currentPassword} onChange={(event) => setPasswords({ ...passwords, currentPassword: event.target.value })} /></label>
-                  <label><span>Mật khẩu mới</span><input required minLength={12} maxLength={128} type="password" autoComplete="new-password" value={passwords.newPassword} onChange={(event) => setPasswords({ ...passwords, newPassword: event.target.value })} /></label>
-                  <label><span>Nhập lại mật khẩu mới</span><input required minLength={12} maxLength={128} type="password" autoComplete="new-password" value={passwords.confirmPassword} onChange={(event) => setPasswords({ ...passwords, confirmPassword: event.target.value })} /></label>
+                  <label><span>Mật khẩu mới</span><input required minLength={6} maxLength={128} type="password" autoComplete="new-password" value={passwords.newPassword} onChange={(event) => setPasswords({ ...passwords, newPassword: event.target.value })} /></label>
+                  <label><span>Nhập lại mật khẩu mới</span><input required minLength={6} maxLength={128} type="password" autoComplete="new-password" value={passwords.confirmPassword} onChange={(event) => setPasswords({ ...passwords, confirmPassword: event.target.value })} /></label>
                 </div>
                 <div className="security-note">
                   <i className="ph ph-shield-check" /><span>Sau khi đổi, các thiết bị khác đang đăng nhập tài khoản này sẽ bị đăng xuất.</span>

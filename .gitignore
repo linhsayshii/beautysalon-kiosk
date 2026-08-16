@@ -11,4 +11,5 @@ backend/node_modules/
 *.log
 .DS_Store
 */.DS_Store
-# docs/
+data/
+docs/

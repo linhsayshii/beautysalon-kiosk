@@ -1379,9 +1379,12 @@
 }
 
 .activity-item p {
+  min-width: 0;
   color: var(--ink-600);
   font-size: 13.5px;
   line-height: 1.45;
+  word-break: break-word;
+  overflow-wrap: anywhere;
 }
 
 .activity-item p > strong {

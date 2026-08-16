@@ -1446,6 +1446,7 @@
 
 .customer-detail,
 .staff-detail,
+.staff-attendance-detail,
 .order-detail,
 .sold-card-detail,
 .purchase-detail,
@@ -1453,12 +1454,14 @@
   width: 100% !important;
   box-sizing: border-box !important;
   display: block !important;
-  border-top: 2px solid #0052cc;
-  background: #ffffff;
+  border-top: 2px solid #0052cc !important;
+  border-bottom: 1px solid #cbd5e1 !important;
+  background: #ffffff !important;
 }
 
 .customer-detail .table-scroll,
 .staff-detail .table-scroll,
+.staff-attendance-detail .table-scroll,
 .order-detail .table-scroll,
 .sold-card-detail .table-scroll,
 .payroll-accordion-container .table-scroll {
@@ -1469,11 +1472,13 @@
 
 .customer-detail table,
 .staff-detail table,
+.staff-attendance-detail table,
 .order-detail table,
 .sold-card-detail table,
 .payroll-accordion-container table,
 .customer-detail .kiotviet-payroll-table,
 .staff-detail .kiotviet-payroll-table,
+.staff-attendance-detail .kiotviet-payroll-table,
 .order-detail .kiotviet-payroll-table,
 .sold-card-detail .kiotviet-payroll-table,
 .customer-detail .inline-detail-table,
@@ -1484,6 +1489,72 @@
   min-width: 100% !important;
   table-layout: auto !important;
   border-collapse: collapse !important;
+  display: table !important;
+}
+
+.kiotviet-payroll-table thead,
+.inline-detail-table thead,
+.customer-detail thead,
+.staff-detail thead,
+.order-detail thead {
+  display: table-header-group !important;
+}
+
+.kiotviet-payroll-table thead th,
+.inline-detail-table thead th,
+.customer-detail thead th,
+.staff-detail thead th,
+.order-detail thead th {
+  font-size: 13px !important;
+  font-weight: 700 !important;
+  padding: 10px 14px !important;
+  color: #475569 !important;
+  background-color: #f8fafc !important;
+  border-bottom: 1px solid #e2e8f0 !important;
+}
+
+.kiotviet-payroll-table tbody,
+.inline-detail-table tbody,
+.customer-detail tbody,
+.staff-detail tbody,
+.order-detail tbody {
+  display: table-row-group !important;
+}
+
+.kiotviet-payroll-table tr,
+.inline-detail-table tr,
+.customer-detail tr,
+.staff-detail tr,
+.order-detail tr {
+  display: table-row !important;
+}
+
+.kiotviet-payroll-table td,
+.inline-detail-table td,
+.customer-detail td,
+.staff-detail td,
+.order-detail td {
+  display: table-cell !important;
+  vertical-align: middle !important;
+  padding: 10px 14px !important;
+  font-size: 13.5px !important;
+  border-bottom: 1px solid #f1f5f9 !important;
+}
+
+.kiotviet-payroll-table td::before,
+.inline-detail-table td::before,
+.customer-detail td::before,
+.staff-detail td::before,
+.order-detail td::before {
+  display: none !important;
+}
+
+.kiotviet-payroll-table tbody tr:hover,
+.inline-detail-table tbody tr:hover,
+.customer-detail tbody tr:hover,
+.staff-detail tbody tr:hover,
+.order-detail tbody tr:hover {
+  background-color: #f8fafc !important;
 }
 
 .inline-detail-tabs {
@@ -1535,6 +1606,64 @@
   background: #0052cc;
 }
 
+.order-profile-head,
+.staff-profile-head,
+.payroll-profile-head,
+.attendance-profile-head,
+.customer-profile-head {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 16px !important;
+  margin-bottom: 16px !important;
+  flex-wrap: wrap !important;
+}
+
+.order-profile-avatar,
+.staff-profile-avatar,
+.payroll-profile-avatar,
+.customer-profile-avatar {
+  display: grid !important;
+  place-items: center !important;
+  width: 58px !important;
+  height: 58px !important;
+  border-radius: 16px !important;
+  background: #e0f2fe !important;
+  color: #0052cc !important;
+  font-size: 28px !important;
+  flex-shrink: 0 !important;
+}
+
+.staff-profile-avatar.violet { color: var(--violet) !important; background: #f0edff !important; }
+.staff-profile-avatar.green { color: var(--green) !important; background: var(--green-soft) !important; }
+.staff-profile-avatar.orange { color: #b76612 !important; background: #fff1df !important; }
+.staff-profile-avatar.pink { color: #c03c6d !important; background: #ffeaf2 !important; }
+
+.order-value-strip,
+.staff-value-strip,
+.payroll-value-strip,
+.attendance-value-strip,
+.customer-value-strip {
+  display: grid !important;
+  grid-template-columns: repeat(4, 1fr) !important;
+  gap: 12px !important;
+  background: #f8fafc !important;
+  padding: 12px 16px !important;
+  border-radius: 8px !important;
+  border: 1px solid #e2e8f0 !important;
+  font-size: 14px !important;
+  margin-bottom: 16px !important;
+  box-sizing: border-box !important;
+}
+
+.order-value-strip strong,
+.staff-value-strip strong,
+.payroll-value-strip strong,
+.attendance-value-strip strong,
+.customer-value-strip strong {
+  color: var(--ink-950);
+}
+
 .customer-overview,
 .sold-card-information,
 .sold-card-history,
@@ -1544,83 +1673,6 @@
 .customer-detail > .table-error,
 .sold-card-detail > .table-empty {
   padding: 18px;
-}
-
-.customer-profile-head {
-  display: grid;
-  grid-template-columns: 74px minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 14px;
-}
-
-.customer-profile-avatar {
-  display: grid;
-  place-items: center;
-  width: 74px;
-  height: 74px;
-  border-radius: var(--radius-inner);
-  color: var(--blue-600);
-  background: var(--blue-100);
-  font-size: 36px;
-}
-
-.customer-profile-head > div {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px 16px;
-}
-
-.customer-profile-head > div > strong {
-  flex: 0 0 100%;
-  color: var(--ink-950);
-  font-size: 20px;
-  letter-spacing: -0.025em;
-}
-
-.customer-profile-head > div > span {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  color: var(--ink-700);
-  font-size: 11px;
-  font-weight: 700;
-}
-
-.customer-profile-head > div i {
-  color: var(--ink-500);
-  font-size: 16px;
-}
-
-.customer-profile-head > small {
-  color: var(--ink-500);
-  font-size: 10px;
-  line-height: 1.7;
-  text-align: right;
-}
-
-.customer-value-strip {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0;
-  margin-top: 18px;
-  padding: 11px 0;
-  border: 1px solid var(--line);
-  border-radius: var(--radius-inner);
-}
-
-.customer-value-strip > span {
-  padding: 0 14px;
-  color: var(--ink-700);
-  font-size: 11px;
-}
-
-.customer-value-strip > span + span {
-  border-left: 1px solid var(--line);
-}
-
-.customer-value-strip strong {
-  color: var(--ink-950);
 }
 
 .customer-facts,
@@ -1812,14 +1864,23 @@
     padding: 14px;
   }
 
+  .order-profile-head,
+  .staff-profile-head,
+  .payroll-profile-head,
+  .attendance-profile-head,
   .customer-profile-head {
-    grid-template-columns: 58px minmax(0, 1fr);
+    align-items: flex-start !important;
+    flex-direction: column !important;
+    gap: 10px !important;
   }
 
+  .order-profile-avatar,
+  .staff-profile-avatar,
+  .payroll-profile-avatar,
   .customer-profile-avatar {
-    width: 58px;
-    height: 58px;
-    font-size: 28px;
+    width: 48px !important;
+    height: 48px !important;
+    font-size: 24px !important;
   }
 
   .customer-profile-head > small {
@@ -1827,18 +1888,13 @@
     text-align: left;
   }
 
+  .order-value-strip,
+  .staff-value-strip,
+  .payroll-value-strip,
+  .attendance-value-strip,
   .customer-value-strip {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 9px 0;
-  }
-
-  .customer-value-strip > span + span {
-    border-left: 0;
-  }
-
-  .customer-value-strip > span:nth-child(even) {
-    border-left: 1px solid var(--line);
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 10px !important;
   }
 
   .inline-detail-table {
@@ -1883,51 +1939,30 @@
 }
 
 .staff-detail {
-  border-top: 2px solid var(--blue-600);
+  border-top: 2px solid #0052cc;
 }
 
 .staff-detail-panel {
   padding: 18px;
 }
 
-.staff-profile-head {
-  display: grid;
-  grid-template-columns: 72px minmax(0, 1fr);
-  align-items: center;
-  gap: 16px;
-  padding-bottom: 18px;
-}
-
-.staff-profile-avatar {
-  display: grid;
-  place-items: center;
-  width: 72px;
-  height: 72px;
-  border-radius: 50%;
-  color: var(--blue-600);
-  background: var(--blue-100);
-  font-size: 34px;
-}
-
-.staff-profile-avatar.violet { color: var(--violet); background: #f0edff; }
-.staff-profile-avatar.green { color: var(--green); background: var(--green-soft); }
-.staff-profile-avatar.orange { color: #b76612; background: #fff1df; }
-.staff-profile-avatar.pink { color: #c03c6d; background: #ffeaf2; }
-
 .staff-profile-head > div {
-  display: grid;
-  gap: 4px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
 }
 
 .staff-profile-head strong {
   color: var(--ink-950);
-  font-size: 18px;
+  font-size: 16px;
+  font-weight: 700;
 }
 
 .staff-profile-head span,
 .staff-profile-head small {
   color: var(--ink-600);
-  font-size: 11px;
+  font-size: 12px;
 }
 
 .staff-detail-facts {
@@ -2032,16 +2067,6 @@
 @media (max-width: 720px) {
   .staff-detail-panel {
     padding: 14px;
-  }
-
-  .staff-profile-head {
-    grid-template-columns: 58px minmax(0, 1fr);
-  }
-
-  .staff-profile-avatar {
-    width: 58px;
-    height: 58px;
-    font-size: 27px;
   }
 
   .staff-detail-facts,

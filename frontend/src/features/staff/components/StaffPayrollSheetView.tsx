@@ -192,6 +192,7 @@ export function StaffPayrollSheetView({ periodId, onBack }: StaffPayrollSheetVie
             <button
               type="button"
               onClick={onBack}
+              aria-label="Quay lại"
               style={{
                 background: 'none',
                 border: 'none',
@@ -200,6 +201,8 @@ export function StaffPayrollSheetView({ periodId, onBack }: StaffPayrollSheetVie
                 color: '#334155',
                 display: 'flex',
                 alignItems: 'center',
+                padding: 4,
+                borderRadius: 6,
               }}
             >
               <i className="ph ph-arrow-left" />
@@ -207,8 +210,8 @@ export function StaffPayrollSheetView({ periodId, onBack }: StaffPayrollSheetVie
             <h2 style={{ fontSize: 18, fontWeight: 700, margin: 0, color: '#0f172a' }}>
               Cập nhật bảng tính lương
             </h2>
-            <span style={{ fontSize: 13, color: '#64748b' }}>
-              ({detail.period.name} - {detail.period.code})
+            <span style={{ fontSize: 13, color: '#64748b', fontWeight: 600 }}>
+              ({detail.period.name} - <span style={{ color: '#0052cc' }}>{detail.period.code}</span>)
             </span>
           </div>
 
@@ -229,6 +232,7 @@ export function StaffPayrollSheetView({ periodId, onBack }: StaffPayrollSheetVie
                   borderRadius: 8,
                   border: '1px solid #cbd5e1',
                   fontSize: 13,
+                  outline: 'none',
                 }}
               />
             </div>
@@ -315,9 +319,10 @@ export function StaffPayrollSheetView({ periodId, onBack }: StaffPayrollSheetVie
             borderRadius: 12,
             border: '1px solid #e2e8f0',
             overflow: 'hidden',
+            width: '100%',
           }}
         >
-          <div style={{ overflowX: 'auto' }}>
+          <div className="table-scroll" style={{ width: '100%', overflowX: 'auto' }}>
             <table className="kiotviet-payroll-table">
               <thead>
                 <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569' }}>
@@ -366,6 +371,7 @@ export function StaffPayrollSheetView({ periodId, onBack }: StaffPayrollSheetVie
                     <td style={{ textAlign: 'center', padding: '8px' }}>
                       <button
                         type="button"
+                        aria-label="Xóa dòng"
                         style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer' }}
                       >
                         <i className="ph ph-trash" />
@@ -373,7 +379,7 @@ export function StaffPayrollSheetView({ periodId, onBack }: StaffPayrollSheetVie
                     </td>
                     <td style={{ textAlign: 'center', padding: '8px', color: '#64748b' }}>{idx + 1}</td>
                     <td style={{ padding: '8px 12px' }}>
-                      <div style={{ fontWeight: 600, color: '#0284c7' }}>{r.staff.name}</div>
+                      <div style={{ fontWeight: 600, color: '#0052cc' }}>{r.staff.name}</div>
                       <div style={{ fontSize: 11, color: '#94a3b8' }}>{r.staff.code}</div>
                     </td>
 
@@ -386,10 +392,11 @@ export function StaffPayrollSheetView({ periodId, onBack }: StaffPayrollSheetVie
                         style={{
                           width: '100%',
                           textAlign: 'right',
-                          padding: '4px 6px',
-                          borderRadius: 4,
-                          border: '1px solid #e2e8f0',
+                          padding: '5px 8px',
+                          borderRadius: 6,
+                          border: '1px solid #cbd5e1',
                           fontSize: 13,
+                          outline: 'none',
                         }}
                       />
                     </td>
@@ -403,10 +410,11 @@ export function StaffPayrollSheetView({ periodId, onBack }: StaffPayrollSheetVie
                         style={{
                           width: '100%',
                           textAlign: 'right',
-                          padding: '4px 6px',
-                          borderRadius: 4,
-                          border: '1px solid #e2e8f0',
+                          padding: '5px 8px',
+                          borderRadius: 6,
+                          border: '1px solid #cbd5e1',
                           fontSize: 13,
+                          outline: 'none',
                         }}
                       />
                     </td>
@@ -420,10 +428,11 @@ export function StaffPayrollSheetView({ periodId, onBack }: StaffPayrollSheetVie
                         style={{
                           width: '100%',
                           textAlign: 'right',
-                          padding: '4px 6px',
-                          borderRadius: 4,
-                          border: '1px solid #e2e8f0',
+                          padding: '5px 8px',
+                          borderRadius: 6,
+                          border: '1px solid #cbd5e1',
                           fontSize: 13,
+                          outline: 'none',
                         }}
                       />
                     </td>
@@ -437,10 +446,11 @@ export function StaffPayrollSheetView({ periodId, onBack }: StaffPayrollSheetVie
                         style={{
                           width: '100%',
                           textAlign: 'right',
-                          padding: '4px 6px',
-                          borderRadius: 4,
-                          border: '1px solid #e2e8f0',
+                          padding: '5px 8px',
+                          borderRadius: 6,
+                          border: '1px solid #cbd5e1',
                           fontSize: 13,
+                          outline: 'none',
                         }}
                       />
                     </td>
@@ -454,16 +464,17 @@ export function StaffPayrollSheetView({ periodId, onBack }: StaffPayrollSheetVie
                         style={{
                           width: '100%',
                           textAlign: 'right',
-                          padding: '4px 6px',
-                          borderRadius: 4,
-                          border: '1px solid #e2e8f0',
+                          padding: '5px 8px',
+                          borderRadius: 6,
+                          border: '1px solid #cbd5e1',
                           fontSize: 13,
+                          outline: 'none',
                         }}
                       />
                     </td>
 
                     {/* Tổng thu nhập */}
-                    <td style={{ padding: '8px 8px', textAlign: 'right', fontWeight: 600 }}>
+                    <td style={{ padding: '8px 8px', textAlign: 'right', fontWeight: 600, color: '#0f172a' }}>
                       {formatMoney(r.totalIncome)}
                     </td>
 
@@ -476,11 +487,12 @@ export function StaffPayrollSheetView({ periodId, onBack }: StaffPayrollSheetVie
                         style={{
                           width: '100%',
                           textAlign: 'right',
-                          padding: '4px 6px',
-                          borderRadius: 4,
-                          border: '1px solid #e2e8f0',
+                          padding: '5px 8px',
+                          borderRadius: 6,
+                          border: '1px solid #cbd5e1',
                           fontSize: 13,
                           color: '#e11d48',
+                          outline: 'none',
                         }}
                       />
                     </td>
@@ -491,7 +503,7 @@ export function StaffPayrollSheetView({ periodId, onBack }: StaffPayrollSheetVie
                     </td>
 
                     {/* Đã trả */}
-                    <td style={{ padding: '8px 8px', textAlign: 'right', color: '#059669' }}>
+                    <td style={{ padding: '8px 8px', textAlign: 'right', color: '#059669', fontWeight: 600 }}>
                       {formatMoney(r.paidAmount)}
                     </td>
 

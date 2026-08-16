@@ -1,13 +1,17 @@
 import { useState, useMemo, Fragment } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { EmptyState, ErrorState, LoadingState } from '@/components/data-display/DataState';
+import { StatusBadge } from '@/components/data-display/Badges';
 import { formatMoney } from '@/lib/format';
+import { exportCsv } from '@/lib/export';
+import { useToast } from '@/components/ui/Toast/ToastProvider';
 import { getPayrollList, type PayrollPeriodListItem } from '../staff.api';
 import { StaffPayrollDetailAccordion } from './StaffPayrollDetailAccordion';
 import { StaffPayrollSheetView } from './StaffPayrollSheetView';
 import './AttendanceTimekeeping.css';
 
 export function StaffPayrollView() {
+  const { notify } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
   const [periodTypeFilter, setPeriodTypeFilter] = useState('monthly');
   const [selectedStatuses, setSelectedStatuses] = useState<string[]>(['draft', 'approved']);
@@ -45,6 +49,26 @@ export function StaffPayrollView() {
       return true;
     });
   }, [rawRows, selectedStatuses, searchTerm]);
+
+  const handleExportList = () => {
+    if (!filteredRows.length) {
+      notify('Thông báo', 'Không có bảng lương nào để xuất');
+      return;
+    }
+    const exportRows = filteredRows.map((r) => ({
+      code: r.code,
+      name: r.name,
+      periodType: r.periodType === 'monthly' ? 'Hàng tháng' : r.periodType === 'weekly' ? 'Hàng tuần' : 'Nửa tháng',
+      startsOn: r.startsOn,
+      endsOn: r.endsOn,
+      totalNetSalary: r.totalNetSalary,
+      totalPaidAmount: r.totalPaidAmount,
+      totalRemainingAmount: r.totalRemainingAmount,
+      status: r.status === 'draft' ? 'Tạm tính' : r.status === 'approved' ? 'Đã chốt lương' : r.status === 'cancelled' ? 'Đã hủy' : r.status,
+    }));
+    exportCsv(exportRows, 'danh-sach-bang-luong');
+    notify('Thành công', 'Đã xuất file danh sách bảng lương');
+  };
 
   // If currently viewing the full calculation sheet
   if (viewingSheetPeriodId !== null) {
@@ -99,6 +123,7 @@ export function StaffPayrollView() {
                   fontSize: 13,
                   background: '#fff',
                   color: '#334155',
+                  outline: 'none',
                 }}
               >
                 <option value="monthly">Hàng tháng</option>
@@ -183,6 +208,7 @@ export function StaffPayrollView() {
               overflow: 'hidden',
               display: 'flex',
               flexDirection: 'column',
+              width: '100%',
             }}
           >
             {/* Top Toolbar */}
@@ -215,6 +241,7 @@ export function StaffPayrollView() {
                       borderRadius: 8,
                       border: '1px solid #cbd5e1',
                       fontSize: 13,
+                      outline: 'none',
                     }}
                   />
                 </div>
@@ -248,6 +275,7 @@ export function StaffPayrollView() {
 
                 <button
                   type="button"
+                  onClick={handleExportList}
                   style={{
                     display: 'flex',
                     alignItems: 'center',
@@ -281,7 +309,7 @@ export function StaffPayrollView() {
                 <EmptyState message="Không tìm thấy bảng lương nào." />
               </div>
             ) : (
-              <div style={{ overflowX: 'auto' }}>
+              <div className="table-scroll" style={{ width: '100%', overflowX: 'auto' }}>
                 <table className="kiotviet-payroll-table">
                   <thead>
                     <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569' }}>
@@ -297,7 +325,7 @@ export function StaffPayrollView() {
                       <th style={{ padding: '10px 12px', textAlign: 'right' }}>Còn cần trả</th>
                       <th style={{ padding: '10px 12px', textAlign: 'center' }}>Trạng thái</th>
                     </tr>
-                    {/* Header Summary Row (Chuẩn KiotViet) */}
+                    {/* Header Grand Summary Row (Chuẩn KiotViet) */}
                     <tr style={{ background: '#f1f5f9', borderBottom: '2px solid #cbd5e1', fontWeight: 700 }}>
                       <td colSpan={5} style={{ padding: '8px 12px' }} />
                       <td style={{ padding: '8px 12px', textAlign: 'right', color: '#0f172a' }}>
@@ -322,7 +350,7 @@ export function StaffPayrollView() {
                             onClick={() => setExpandedPeriodId(isExpanded ? null : row.id)}
                             style={{
                               borderBottom: isExpanded ? 'none' : '1px solid #f1f5f9',
-                              background: isExpanded ? '#f0fdf4' : '#ffffff',
+                              background: isExpanded ? '#f0f7ff' : '#ffffff',
                               cursor: 'pointer',
                               transition: 'background 0.15s ease',
                             }}
@@ -333,68 +361,24 @@ export function StaffPayrollView() {
                             >
                               <input type="checkbox" />
                             </td>
-                            <td style={{ padding: '10px 12px', fontWeight: 600, color: '#0284c7' }}>{row.code}</td>
-                            <td style={{ padding: '10px 12px', fontWeight: 600 }}>{row.name}</td>
+                            <td style={{ padding: '10px 12px', fontWeight: 600, color: '#0052cc' }}>{row.code}</td>
+                            <td style={{ padding: '10px 12px', fontWeight: 600, color: '#1e293b' }}>{row.name}</td>
                             <td style={{ padding: '10px 12px', color: '#64748b' }}>Hàng tháng</td>
                             <td style={{ padding: '10px 12px', color: '#64748b' }}>
                               {new Date(row.startsOn).toLocaleDateString('vi-VN')} -{' '}
                               {new Date(row.endsOn).toLocaleDateString('vi-VN')}
                             </td>
-                            <td style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 600 }}>
+                            <td style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 600, color: '#0f172a' }}>
                               {formatMoney(row.totalNetSalary)}
                             </td>
-                            <td style={{ padding: '10px 12px', textAlign: 'right', color: '#059669' }}>
+                            <td style={{ padding: '10px 12px', textAlign: 'right', color: '#059669', fontWeight: 600 }}>
                               {formatMoney(row.totalPaidAmount)}
                             </td>
                             <td style={{ padding: '10px 12px', textAlign: 'right', color: '#e11d48', fontWeight: 600 }}>
                               {formatMoney(row.totalRemainingAmount)}
                             </td>
                             <td style={{ padding: '10px 12px', textAlign: 'center' }}>
-                              {row.status === 'draft' && (
-                                <span
-                                  style={{
-                                    display: 'inline-block',
-                                    padding: '2px 8px',
-                                    borderRadius: 4,
-                                    fontSize: 12,
-                                    fontWeight: 500,
-                                    background: '#fef3c7',
-                                    color: '#b45309',
-                                  }}
-                                >
-                                  Tạm tính
-                                </span>
-                              )}
-                              {row.status === 'approved' && (
-                                <span
-                                  style={{
-                                    display: 'inline-block',
-                                    padding: '2px 8px',
-                                    borderRadius: 4,
-                                    fontSize: 12,
-                                    fontWeight: 500,
-                                    background: '#dcfce7',
-                                    color: '#15803d',
-                                  }}
-                                >
-                                  Đã chốt lương
-                                </span>
-                              )}
-                              {row.status === 'cancelled' && (
-                                <span
-                                  style={{
-                                    display: 'inline-block',
-                                    padding: '2px 8px',
-                                    borderRadius: 4,
-                                    fontSize: 12,
-                                    fontWeight: 500,
-                                    background: '#fee2e2',
-                                    color: '#b91c1c',
-                                  }}
-                                >
-                                  Đã hủy
-                                </span>
-                              )}
+                              <StatusBadge status={row.status} payroll />
                             </td>
                           </tr>
 
@@ -439,6 +423,7 @@ export function StaffPayrollView() {
                     borderRadius: 6,
                     border: '1px solid #cbd5e1',
                     fontSize: 13,
+                    outline: 'none',
                   }}
                 >
                   <option value={15}>15 bản ghi</option>
