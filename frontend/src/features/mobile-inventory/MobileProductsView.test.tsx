@@ -1,5 +1,6 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { MemoryRouter } from 'react-router-dom';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { MobileProductsView } from './MobileProductsView';
 import * as inventoryApi from '@/features/inventory/inventory.api';
@@ -73,25 +74,20 @@ describe('MobileProductsView Component', () => {
     vi.spyOn(inventoryApi, 'getProducts').mockResolvedValue(mockProductsResponse as any);
   });
 
-  it('renders title, metric cards, and product list cards with stock warning', async () => {
+  it('renders title, summary, and product grouped row items', async () => {
     render(
-      <QueryClientProvider client={queryClient}>
-        <MobileProductsView />
-      </QueryClientProvider>
+      <MemoryRouter>
+        <QueryClientProvider client={queryClient}>
+          <MobileProductsView />
+        </QueryClientProvider>
+      </MemoryRouter>
     );
 
-    expect(screen.getByText('Hàng hóa & Tồn kho')).toBeInTheDocument();
-
-    // Metrics
-    expect(screen.getByText('Tổng hàng hóa')).toBeInTheDocument();
-    expect(screen.getByText('Sản phẩm (tồn)')).toBeInTheDocument();
-    expect(screen.getByText('Dịch vụ & Gói')).toBeInTheDocument();
-    expect(screen.getByText('Dưới định mức')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 1, name: 'Hàng hóa' })).toBeInTheDocument();
 
     await waitFor(() => {
-      // Items rendered
+      expect(screen.getByText(/3 hàng hóa/)).toBeInTheDocument();
       expect(screen.getByText('Serum Dưỡng Trắng Da')).toBeInTheDocument();
-      expect(screen.getByText(/SP001/)).toBeInTheDocument();
       expect(screen.getByText('Gội Đầu Dưỡng Sinh 60p')).toBeInTheDocument();
       expect(screen.getByText('Liệu Trình Chăm Sóc Da 5 Buổi')).toBeInTheDocument();
     });
@@ -99,10 +95,16 @@ describe('MobileProductsView Component', () => {
 
   it('opens filter sheet and allows category/type filtering', async () => {
     render(
-      <QueryClientProvider client={queryClient}>
-        <MobileProductsView />
-      </QueryClientProvider>
+      <MemoryRouter>
+        <QueryClientProvider client={queryClient}>
+          <MobileProductsView />
+        </QueryClientProvider>
+      </MemoryRouter>
     );
+
+    await waitFor(() => {
+      expect(screen.getByText('Serum Dưỡng Trắng Da')).toBeInTheDocument();
+    });
 
     const filterBtn = screen.getByLabelText('Mở bộ lọc');
     fireEvent.click(filterBtn);
@@ -110,7 +112,7 @@ describe('MobileProductsView Component', () => {
     expect(screen.getByText('Bộ lọc hàng hóa')).toBeInTheDocument();
     expect(screen.getByText('Loại hàng')).toBeInTheDocument();
     expect(screen.getByText('Nhóm hàng')).toBeInTheDocument();
-    expect(screen.getByText('Tồn kho')).toBeInTheDocument();
+    expect(screen.getAllByText('Tồn kho').length).toBeGreaterThan(0);
 
     // Click Apply
     const applyBtn = screen.getByRole('button', { name: 'Áp dụng' });
@@ -121,25 +123,30 @@ describe('MobileProductsView Component', () => {
     });
   });
 
-  it('opens detail bottom sheet when clicking an item card', async () => {
+  it('opens detail bottom sheet when clicking an item row', async () => {
     render(
-      <QueryClientProvider client={queryClient}>
-        <MobileProductsView />
-      </QueryClientProvider>
+      <MemoryRouter>
+        <QueryClientProvider client={queryClient}>
+          <MobileProductsView />
+        </QueryClientProvider>
+      </MemoryRouter>
     );
 
     await waitFor(() => {
       expect(screen.getByText('Serum Dưỡng Trắng Da')).toBeInTheDocument();
     });
 
-    const card = screen.getByText('Serum Dưỡng Trắng Da').closest('.mobile-card');
-    fireEvent.click(card!);
+    const itemRow = screen.getByText('Serum Dưỡng Trắng Da').closest('.mobile-inventory-row-item');
+    fireEvent.click(itemRow!);
 
     await waitFor(() => {
-      expect(screen.getByText('Thông tin chi tiết')).toBeInTheDocument();
-      expect(screen.getAllByText('Innisfree').length).toBeGreaterThan(0);
-      expect(screen.getByText('8931234567890')).toBeInTheDocument();
-      expect(screen.getByText('Serum chiết xuất tự nhiên')).toBeInTheDocument();
+      expect(screen.getByText('Thông tin cơ bản')).toBeInTheDocument();
+      expect(screen.getByText('SP001')).toBeInTheDocument();
+      expect(screen.getByText('Cho phép bán')).toBeInTheDocument();
+      expect(screen.getByText('Đang kinh doanh')).toBeInTheDocument();
+      expect(screen.getByText('Thời hạn')).toBeInTheDocument();
+      expect(screen.getByText('Phạm vi thanh toán')).toBeInTheDocument();
     });
   });
 });
+

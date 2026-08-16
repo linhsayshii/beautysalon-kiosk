@@ -1,14 +1,12 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
 import { formatMoney, formatNumber } from '@/lib/format';
-import { GoodsTypeBadge } from '@/components/data-display/Badges';
-import { GoodsCreateMenu } from '@/features/inventory/components/GoodsCreateMenu';
-import { getProducts } from '@/features/inventory/inventory.api';
+import { GoodsCreateDialog } from '@/features/inventory/components/GoodsCreateDialog';
+import { getProducts, type InventoryItemType } from '@/features/inventory/inventory.api';
 import {
   MobileSearchBar,
   MobileFilterSheet,
-  MobileMetricCards,
-  MobileCard,
   MobileDetailSheet,
   MobileEmptyState,
 } from '@/features/mobile-common';
@@ -31,10 +29,14 @@ function getItemIcon(itemType: string) {
 }
 
 export function MobileProductsView() {
+  const navigate = useNavigate();
   const [search, setSearch] = useState('');
+  const [isSearchVisible, setIsSearchVisible] = useState(false);
   const [typeFilter, setTypeFilter] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('');
   const [stockStatusFilter, setStockStatusFilter] = useState('');
+  const [sortBy, setSortBy] = useState<'price' | 'name' | 'stock'>('price');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
 
   // Draft filters for bottom sheet
   const [draftType, setDraftType] = useState('');
@@ -43,11 +45,7 @@ export function MobileProductsView() {
   const [isFilterOpen, setIsFilterOpen] = useState(false);
 
   const [selectedItem, setSelectedItem] = useState<ApiRecord | null>(null);
-
-  const activeFilterCount =
-    (typeFilter ? 1 : 0) +
-    (categoryFilter ? 1 : 0) +
-    (stockStatusFilter ? 1 : 0);
+  const [isCreatingType, setIsCreatingType] = useState<InventoryItemType | null>(null);
 
   const { data: productsData, isLoading } = useQuery({
     queryKey: ['mobile-products', search, typeFilter, categoryFilter, stockStatusFilter],
@@ -58,14 +56,50 @@ export function MobileProductsView() {
         category: categoryFilter,
         stockStatus: stockStatusFilter,
         status: 'active',
-        pageSize: 50,
+        pageSize: 100,
       }),
   });
 
-  const rows = (productsData?.data ?? []) as ApiRecord[];
+  const rawRows = (productsData?.data ?? []) as ApiRecord[];
   const meta = productsData?.meta;
-  const summary = meta?.summary;
   const categories = meta?.categories ?? [];
+
+  // Sort and group by category
+  const sortedRows = useMemo(() => {
+    return [...rawRows].sort((a, b) => {
+      if (sortBy === 'price') {
+        const pA = Number(a.salePrice || 0);
+        const pB = Number(b.salePrice || 0);
+        return sortOrder === 'desc' ? pB - pA : pA - pB;
+      }
+      if (sortBy === 'name') {
+        return sortOrder === 'desc'
+          ? String(b.name).localeCompare(String(a.name))
+          : String(a.name).localeCompare(String(b.name));
+      }
+      if (sortBy === 'stock') {
+        const sA = Number(a.stockQuantity ?? -1);
+        const sB = Number(b.stockQuantity ?? -1);
+        return sortOrder === 'desc' ? sB - sA : sA - sB;
+      }
+      return 0;
+    });
+  }, [rawRows, sortBy, sortOrder]);
+
+  const groupedCategories = useMemo(() => {
+    const map = new Map<string, ApiRecord[]>();
+    sortedRows.forEach((row) => {
+      const cat = row.category || (row.itemType === 'package' ? 'GÓI DỊCH VỤ' : 'KHÁC');
+      const list = map.get(cat) || [];
+      list.push(row);
+      map.set(cat, list);
+    });
+    return Array.from(map.entries());
+  }, [sortedRows]);
+
+  const totalStockCount = useMemo(() => {
+    return rawRows.reduce((sum, r) => sum + (Number(r.stockQuantity) > 0 ? Number(r.stockQuantity) : 0), 0);
+  }, [rawRows]);
 
   const handleApplyFilter = () => {
     setTypeFilter(draftType);
@@ -91,144 +125,213 @@ export function MobileProductsView() {
     setIsFilterOpen(true);
   };
 
+  const toggleSort = () => {
+    if (sortBy === 'price') {
+      if (sortOrder === 'desc') setSortOrder('asc');
+      else {
+        setSortBy('name');
+        setSortOrder('asc');
+      }
+    } else if (sortBy === 'name') {
+      setSortBy('stock');
+      setSortOrder('desc');
+    } else {
+      setSortBy('price');
+      setSortOrder('desc');
+    }
+  };
+
   return (
     <div className="mobile-inventory-view">
-      {/* Header & Create Button */}
-      <div className="mobile-inventory-header">
-        <div className="mobile-inventory-header-top">
-          <h2 className="mobile-inventory-title">Hàng hóa & Tồn kho</h2>
-          <GoodsCreateMenu />
+      {/* 1. Header Top Navigation */}
+      <div className="mobile-inventory-top-nav">
+        <div className="mobile-inventory-nav-left">
+          <button
+            type="button"
+            className="mobile-inventory-back-icon"
+            onClick={() => navigate('/m/more')}
+            aria-label="Quay lại"
+          >
+            <i className="ph ph-caret-left" />
+          </button>
+          <h1 className="mobile-inventory-nav-title">Hàng hóa</h1>
         </div>
 
-        {/* Metric Cards */}
-        <MobileMetricCards
-          items={[
-            {
-              label: 'Tổng hàng hóa',
-              value: formatNumber(summary?.total ?? rows.length),
-              note: 'Tất cả loại hàng',
-              tone: 'blue',
-            },
-            {
-              label: 'Sản phẩm (tồn)',
-              value: formatNumber(summary?.products ?? rows.filter((r) => r.itemType === 'product').length),
-              note: 'Có theo dõi tồn kho',
-              tone: 'green',
-            },
-            {
-              label: 'Dịch vụ & Gói',
-              value: formatNumber(
-                Number(summary?.services ?? 0) +
-                  Number(summary?.packages ?? 0) +
-                  Number(summary?.account_cards ?? 0) ||
-                  rows.filter((r) => r.itemType !== 'product').length
-              ),
-              note: 'Không theo dõi tồn',
-              tone: 'violet',
-            },
-            {
-              label: 'Dưới định mức',
-              value: formatNumber(
-                summary?.low_stock ??
-                  rows.filter((r) => r.itemType === 'product' && r.stockQuantity < r.minStock).length
-              ),
-              note: 'Cần nhập thêm',
-              tone: 'orange',
-            },
-          ]}
-        />
-
-        {/* Search Bar with Filter Sheet */}
-        <MobileSearchBar
-          value={search}
-          placeholder="Tìm mã, tên, mã vạch..."
-          onChange={setSearch}
-          onFilterClick={openFilterSheet}
-          activeFilterCount={activeFilterCount}
-        />
+        <div className="mobile-inventory-nav-actions">
+          <button
+            type="button"
+            className="mobile-inventory-nav-btn"
+            onClick={() => setIsSearchVisible((prev) => !prev)}
+            aria-label="Tìm kiếm"
+          >
+            <i className="ph ph-magnifying-glass" />
+          </button>
+          <button
+            type="button"
+            className="mobile-inventory-nav-btn"
+            onClick={toggleSort}
+            aria-label="Sắp xếp"
+            title={`Sắp xếp theo: ${sortBy === 'price' ? 'Giá bán' : sortBy === 'name' ? 'Tên hàng' : 'Tồn kho'}`}
+          >
+            <i className="ph ph-arrows-down-up" />
+          </button>
+        </div>
       </div>
 
-      {/* Product / Service Card List */}
-      <div className="mobile-inventory-list">
-        {isLoading ? (
-          <div style={{ padding: '32px 0', textAlign: 'center', color: 'var(--ink-500)' }}>
-            Đang tải danh sách hàng hóa...
-          </div>
-        ) : rows.length === 0 ? (
-          <MobileEmptyState
-            title="Không tìm thấy hàng hóa"
-            description="Thử tìm kiếm với từ khóa khác hoặc thay đổi bộ lọc hàng hóa."
+      {/* Inline Search Bar */}
+      {isSearchVisible && (
+        <div className="mobile-inventory-search-bar-wrap">
+          <MobileSearchBar
+            value={search}
+            placeholder="Tìm theo tên, mã hàng..."
+            onChange={setSearch}
           />
-        ) : (
-          rows.map((row) => {
-            const isProduct = row.itemType === 'product';
-            const isLowStock = isProduct && row.stockQuantity !== null && row.stockQuantity < (row.minStock || 0);
+        </div>
+      )}
 
-            return (
-              <MobileCard
-                key={`${row.itemType}-${row.itemId}`}
-                title={row.name}
-                subtitle={row.code + (row.barcode ? ` · ${row.barcode}` : '')}
-                badge={{
-                  text: row.category || 'Chung',
-                  tone: row.itemType === 'product' ? 'blue' : 'violet',
-                }}
-                avatar={
-                  <div className={`mobile-goods-avatar is-${row.itemType}`}>
-                    <i className={getItemIcon(row.itemType)} />
-                  </div>
-                }
-                details={[
-                  {
-                    label: 'Loại hàng',
-                    value: <GoodsTypeBadge type={row.itemType} />,
-                  },
-                  {
-                    label: 'Đơn vị',
-                    value: row.unit || '---',
-                  },
-                  {
-                    label: 'Giá bán',
-                    value: (
-                      <span style={{ color: 'var(--blue-600)', fontWeight: 750 }}>
+      {/* 2. Horizontal Filter Chips Strip */}
+      <div className="mobile-inventory-filter-strip">
+        <button
+          type="button"
+          className="mobile-filter-icon-btn"
+          onClick={openFilterSheet}
+          aria-label="Mở bộ lọc"
+        >
+          <i className="ph ph-faders" />
+        </button>
+
+        <button
+          type="button"
+          className={`mobile-filter-chip ${categoryFilter ? 'is-active' : ''}`}
+          onClick={openFilterSheet}
+        >
+          <span>{categoryFilter ? categoryFilter : 'Tất cả nhóm hàng'}</span>
+          <i className="ph ph-caret-down" />
+        </button>
+
+        <button
+          type="button"
+          className={`mobile-filter-chip ${typeFilter ? 'is-active' : ''}`}
+          onClick={openFilterSheet}
+        >
+          <span>
+            {typeFilter === 'product'
+              ? 'Sản phẩm'
+              : typeFilter === 'service'
+              ? 'Dịch vụ'
+              : typeFilter === 'package'
+              ? 'Gói dịch vụ'
+              : typeFilter === 'account_card'
+              ? 'Thẻ tài khoản'
+              : 'Tất cả loại hàng'}
+          </span>
+          <i className="ph ph-caret-down" />
+        </button>
+
+        <button
+          type="button"
+          className={`mobile-filter-chip ${stockStatusFilter ? 'is-active' : ''}`}
+          onClick={openFilterSheet}
+        >
+          <span>{stockStatusFilter === 'in_stock' ? 'Còn tồn kho' : stockStatusFilter === 'below_min' ? 'Dưới định mức' : 'Tồn kho'}</span>
+          <i className="ph ph-caret-down" />
+        </button>
+      </div>
+
+      {/* 3. Summary & Sort Indicator Bar */}
+      <div className="mobile-inventory-summary-bar">
+        <button type="button" className="mobile-inventory-sort-selector" onClick={toggleSort}>
+          <span>
+            {sortBy === 'price'
+              ? `Giá bán ${sortOrder === 'desc' ? 'cao → thấp' : 'thấp → cao'}`
+              : sortBy === 'name'
+              ? 'Tên hàng hóa'
+              : 'Số lượng tồn'}
+          </span>
+          <i className="ph ph-caret-down" />
+        </button>
+
+        <div className="mobile-inventory-count-summary">
+          {rawRows.length} hàng hóa · Tồn: {formatNumber(totalStockCount)}
+        </div>
+      </div>
+
+      {/* 4. Grouped Section List */}
+      <div className="mobile-inventory-sections-wrapper">
+        {isLoading ? (
+          <div style={{ padding: '40px 16px', textAlign: 'center', color: '#64748b' }}>
+            Đang tải dữ liệu hàng hóa...
+          </div>
+        ) : rawRows.length === 0 ? (
+          <div style={{ padding: '24px 16px' }}>
+            <MobileEmptyState
+              title="Chưa có hàng hóa phù hợp"
+              description="Thử tìm kiếm với từ khóa khác hoặc điều chỉnh bộ lọc."
+            />
+          </div>
+        ) : (
+          groupedCategories.map(([categoryName, items]) => (
+            <div key={categoryName} className="mobile-inventory-section">
+              <div className="mobile-inventory-section-title">{categoryName}</div>
+              <div className="mobile-inventory-section-card">
+                {items.map((row) => {
+                  const isPackage = row.itemType === 'package';
+                  const isAccountCard = row.itemType === 'account_card';
+                  const isService = row.itemType === 'service';
+
+                  return (
+                    <div
+                      key={`${row.itemType}-${row.itemId}`}
+                      className="mobile-inventory-row-item"
+                      onClick={() => setSelectedItem(row)}
+                      role="button"
+                      tabIndex={0}
+                    >
+                      <div className={`mobile-row-avatar is-${row.itemType}`}>
+                        <i className={getItemIcon(row.itemType)} />
+                      </div>
+
+                      <div className="mobile-row-info">
+                        <div className="mobile-row-name">{row.name}</div>
+                        <div className="mobile-row-sub">
+                          {isService && row.durationMinutes ? (
+                            <>Thời lượng: <strong>{row.durationMinutes} phút</strong></>
+                          ) : isAccountCard && row.cardValue ? (
+                            <>Mệnh giá: {formatMoney(row.cardValue)}</>
+                          ) : isPackage && row.packageDetails ? (
+                            <>Gói dịch vụ, liệu trình</>
+                          ) : row.itemType === 'product' && row.stockQuantity !== null ? (
+                            <>Tồn: <strong>{formatNumber(row.stockQuantity)}</strong> {row.unit || ''}</>
+                          ) : (
+                            row.code || 'Gói dịch vụ, liệu trình'
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="mobile-row-price">
                         {formatMoney(row.salePrice)}
-                      </span>
-                    ),
-                  },
-                  {
-                    label: isProduct ? 'Giá vốn' : 'Thời lượng',
-                    value: isProduct
-                      ? formatMoney(row.costPrice)
-                      : row.durationMinutes
-                      ? `${row.durationMinutes} phút`
-                      : '---',
-                  },
-                  {
-                    label: 'Tồn kho',
-                    value: isProduct ? (
-                      <span
-                        className={`mobile-stock-badge ${isLowStock ? 'is-low' : 'is-normal'}`}
-                      >
-                        {formatNumber(row.stockQuantity)}{' '}
-                        {isLowStock && <i className="ph-fill ph-warning-circle" />}
-                      </span>
-                    ) : (
-                      'Không quản lý'
-                    ),
-                  },
-                  {
-                    label: 'Định mức tồn',
-                    value: isProduct ? `${formatNumber(row.minStock || 0)} - ${row.maxStock ? formatNumber(row.maxStock) : '∞'}` : '---',
-                  },
-                ]}
-                onClick={() => setSelectedItem(row)}
-              />
-            );
-          })
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          ))
         )}
       </div>
 
-      {/* Filter Sheet */}
+      {/* 5. Floating Action Button (FAB) for Creating Goods */}
+      <button
+        type="button"
+        className="mobile-inventory-fab-btn"
+        onClick={() => setIsCreatingType('service')}
+        aria-label="Thêm hàng hóa"
+        title="Thêm hàng hóa / Dịch vụ"
+      >
+        <i className="ph ph-plus" />
+      </button>
+
+      {/* Filter Bottom Sheet */}
       <MobileFilterSheet
         isOpen={isFilterOpen}
         title="Bộ lọc hàng hóa"
@@ -282,138 +385,143 @@ export function MobileProductsView() {
         </div>
       </MobileFilterSheet>
 
-      {/* Detail Bottom Sheet */}
+      {/* 6. Inset Detail View Bottom Sheet (Screenshots 1 style) */}
       <MobileDetailSheet
         isOpen={selectedItem !== null}
-        title={selectedItem?.name || 'Chi tiết hàng hóa'}
-        subtitle={selectedItem?.code}
+        title="Thông tin chi tiết"
         onClose={() => setSelectedItem(null)}
       >
         {selectedItem && (
-          <div className="mobile-inventory-detail-content">
-            {/* Header info */}
-            <div className="mobile-inventory-detail-header-card">
-              <div className={`mobile-goods-avatar is-${selectedItem.itemType}`}>
-                <i className={getItemIcon(selectedItem.itemType)} />
+          <div className="mobile-detail-page-container" style={{ padding: '4px 0 24px' }}>
+            {/* THÔNG TIN CƠ BẢN Card */}
+            <div className="mobile-detail-section-card">
+              <div className="mobile-detail-card-header">
+                <span className="mobile-detail-card-title">Thông tin cơ bản</span>
+                <button
+                  type="button"
+                  className="mobile-detail-edit-link"
+                  onClick={() => alert('Chức năng sửa hàng hóa')}
+                >
+                  Sửa
+                </button>
               </div>
-              <div className="mobile-inventory-detail-main-info">
-                <span className="mobile-inventory-detail-name">{selectedItem.name}</span>
-                <div className="mobile-inventory-detail-tags">
-                  <span className="mobile-inventory-tag is-code">
-                    <i className="ph ph-barcode" /> {selectedItem.code}
+
+              <h2 className="mobile-detail-main-name">{selectedItem.name}</h2>
+
+              <div className="mobile-detail-status-pills">
+                <span className="mobile-detail-pill is-gray">Cho phép bán</span>
+                <span className="mobile-detail-pill is-green">Đang kinh doanh</span>
+              </div>
+
+              <div className="mobile-detail-grid-2col">
+                <div className="mobile-detail-grid-item">
+                  <span className="mobile-detail-grid-label">Mã hàng</span>
+                  <span className="mobile-detail-grid-value">{selectedItem.code}</span>
+                </div>
+
+                <div className="mobile-detail-grid-item">
+                  {/* Empty right cell if needed */}
+                </div>
+
+                <div className="mobile-detail-grid-item">
+                  <span className="mobile-detail-grid-label">Loại hàng</span>
+                  <span className="mobile-detail-grid-value">
+                    {selectedItem.itemType === 'product'
+                      ? 'Sản phẩm'
+                      : selectedItem.itemType === 'service'
+                      ? 'Dịch vụ'
+                      : selectedItem.itemType === 'package'
+                      ? 'Gói dịch vụ'
+                      : 'Thẻ tài khoản'}
                   </span>
-                  {selectedItem.category && (
-                    <span className="mobile-inventory-tag">
-                      <i className="ph ph-folder" /> {selectedItem.category}
-                    </span>
-                  )}
-                  {selectedItem.brand && (
-                    <span className="mobile-inventory-tag">
-                      <i className="ph ph-tag" /> {selectedItem.brand}
-                    </span>
-                  )}
+                </div>
+
+                <div className="mobile-detail-grid-item">
+                  <span className="mobile-detail-grid-label">Nhóm hàng</span>
+                  <span className="mobile-detail-grid-value">{selectedItem.category || 'gói dịch vụ'}</span>
+                </div>
+
+                <div className="mobile-detail-grid-item">
+                  <span className="mobile-detail-grid-label">Giá bán</span>
+                  <span className="mobile-detail-grid-value">{formatMoney(selectedItem.salePrice)}</span>
+                </div>
+
+                <div className="mobile-detail-grid-item">
+                  <span className="mobile-detail-grid-label">
+                    {selectedItem.itemType === 'account_card' ? 'Mệnh giá' : 'Giá vốn'}
+                  </span>
+                  <span className="mobile-detail-grid-value">
+                    {selectedItem.itemType === 'account_card'
+                      ? formatMoney(selectedItem.cardValue || selectedItem.salePrice)
+                      : selectedItem.itemType === 'product'
+                      ? formatMoney(selectedItem.costPrice)
+                      : '---'}
+                  </span>
                 </div>
               </div>
             </div>
 
-            {/* Quick 4-fact strip */}
-            <div className="mobile-inventory-detail-facts-grid">
-              <div className="mobile-inventory-fact-box">
-                <span className="mobile-inventory-fact-label">Giá bán</span>
-                <span className="mobile-inventory-fact-val" style={{ color: 'var(--blue-600)' }}>
-                  {formatMoney(selectedItem.salePrice)}
-                </span>
+            {/* THẺ KHO / QUẢN LÝ TỒN */}
+            {selectedItem.itemType === 'product' && (
+              <div className="mobile-detail-section-card" style={{ padding: '12px 16px' }}>
+                <div className="mobile-detail-nav-row" style={{ border: 'none', padding: 0 }}>
+                  <span>Thẻ kho</span>
+                  <i className="ph ph-caret-right" />
+                </div>
               </div>
-              <div className="mobile-inventory-fact-box">
-                <span className="mobile-inventory-fact-label">
-                  {selectedItem.itemType === 'product' ? 'Giá vốn' : 'Thời lượng'}
-                </span>
-                <span className="mobile-inventory-fact-val">
-                  {selectedItem.itemType === 'product'
-                    ? formatMoney(selectedItem.costPrice)
-                    : selectedItem.durationMinutes
-                    ? `${selectedItem.durationMinutes} phút`
-                    : '---'}
-                </span>
+            )}
+
+            {/* THÊM HÌNH ẢNH */}
+            <div className="mobile-detail-section-card" style={{ padding: '14px 16px' }}>
+              <button type="button" className="mobile-detail-blue-action">
+                + Thêm hình ảnh
+              </button>
+            </div>
+
+            {/* THỜI HẠN */}
+            <div className="mobile-detail-section-card">
+              <div className="mobile-detail-card-header">
+                <span className="mobile-detail-card-title">Thời hạn</span>
+                <button type="button" className="mobile-detail-edit-link">Sửa</button>
               </div>
-              <div className="mobile-inventory-fact-box">
-                <span className="mobile-inventory-fact-label">Tồn hiện tại</span>
-                <span
-                  className="mobile-inventory-fact-val"
-                  style={{
-                    color:
-                      selectedItem.itemType === 'product' &&
-                      selectedItem.stockQuantity < selectedItem.minStock
-                        ? 'var(--red)'
-                        : 'var(--green)',
-                  }}
-                >
-                  {selectedItem.itemType === 'product'
-                    ? `${formatNumber(selectedItem.stockQuantity)} ${selectedItem.unit || ''}`
-                    : 'Không quản lý'}
-                </span>
-              </div>
-              <div className="mobile-inventory-fact-box">
-                <span className="mobile-inventory-fact-label">Định mức tồn</span>
-                <span className="mobile-inventory-fact-val">
-                  {selectedItem.itemType === 'product'
-                    ? `${formatNumber(selectedItem.minStock || 0)} - ${selectedItem.maxStock ? formatNumber(selectedItem.maxStock) : '∞'}`
-                    : '---'}
-                </span>
+
+              <div className="mobile-detail-nav-row" style={{ border: 'none', padding: '4px 0 0' }}>
+                <span style={{ color: '#0f172a', fontWeight: 650 }}>Hạn sử dụng</span>
+                <span style={{ color: '#0f172a', fontWeight: 650 }}>Vô thời hạn</span>
               </div>
             </div>
 
-            {/* General Info Card */}
-            <div className="mobile-inventory-detail-card">
-              <h4>Thông tin chi tiết</h4>
-              <div className="mobile-inventory-info-row">
-                <span className="mobile-inventory-info-label">Loại hàng:</span>
-                <GoodsTypeBadge type={selectedItem.itemType} />
+            {/* PHẠM VI THANH TOÁN */}
+            <div className="mobile-detail-section-card">
+              <div className="mobile-detail-card-header">
+                <span className="mobile-detail-card-title">Phạm vi thanh toán</span>
+                <button type="button" className="mobile-detail-edit-link">Sửa</button>
               </div>
-              <div className="mobile-inventory-info-row">
-                <span className="mobile-inventory-info-label">Nhóm hàng:</span>
-                <span className="mobile-inventory-info-val">{selectedItem.category || 'Chung'}</span>
+
+              <div style={{ fontSize: '15px', fontWeight: 650, color: '#0f172a' }}>
+                Tất cả loại hàng
               </div>
-              <div className="mobile-inventory-info-row">
-                <span className="mobile-inventory-info-label">Đơn vị tính:</span>
-                <span className="mobile-inventory-info-val">{selectedItem.unit || '---'}</span>
-              </div>
-              {selectedItem.barcode && (
-                <div className="mobile-inventory-info-row">
-                  <span className="mobile-inventory-info-label">Mã vạch:</span>
-                  <span className="mobile-inventory-info-val">{selectedItem.barcode}</span>
-                </div>
-              )}
-              {selectedItem.brand && (
-                <div className="mobile-inventory-info-row">
-                  <span className="mobile-inventory-info-label">Thương hiệu:</span>
-                  <span className="mobile-inventory-info-val">{selectedItem.brand}</span>
-                </div>
-              )}
-              <div className="mobile-inventory-info-row">
-                <span className="mobile-inventory-info-label">Trạng thái bán:</span>
-                <span
-                  className="mobile-inventory-info-val"
-                  style={{ color: selectedItem.active !== false ? 'var(--green)' : 'var(--red)' }}
-                >
-                  {selectedItem.active !== false ? 'Đang kinh doanh' : 'Ngừng kinh doanh'}
-                </span>
-              </div>
-              {selectedItem.description && (
-                <div
-                  className="mobile-inventory-info-row"
-                  style={{ flexDirection: 'column', alignItems: 'flex-start', gap: '4px' }}
-                >
-                  <span className="mobile-inventory-info-label">Mô tả:</span>
-                  <span className="mobile-inventory-info-val" style={{ textAlign: 'left' }}>
-                    {selectedItem.description}
-                  </span>
-                </div>
-              )}
+
+              <button
+                type="button"
+                className="mobile-detail-blue-action"
+                style={{ textAlign: 'center', marginTop: '6px' }}
+              >
+                Xem chi tiết
+              </button>
             </div>
           </div>
         )}
       </MobileDetailSheet>
+
+      {/* Creation Modal */}
+      {isCreatingType && (
+        <GoodsCreateDialog
+          type={isCreatingType}
+          onClose={() => setIsCreatingType(null)}
+        />
+      )}
     </div>
   );
 }
+
