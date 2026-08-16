@@ -1,4 +1,5 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { MobileStaffAttendanceAdminView } from './MobileStaffAttendanceAdminView';
@@ -56,17 +57,19 @@ describe('MobileStaffAttendanceAdminView Component', () => {
     vi.spyOn(staffApi, 'getSchedule').mockResolvedValue(mockScheduleResponse as any);
   });
 
-  it('renders title, metrics, week/month switch and staff attendance cards', async () => {
+  const renderComponent = () =>
     render(
       <QueryClientProvider client={queryClient}>
-        <MobileStaffAttendanceAdminView />
+        <MemoryRouter>
+          <MobileStaffAttendanceAdminView />
+        </MemoryRouter>
       </QueryClientProvider>
     );
 
-    expect(screen.getByText('Bảng chấm công nhân sự')).toBeInTheDocument();
-    expect(screen.getByText('Tổng nhân viên')).toBeInTheDocument();
-    expect(screen.getByText('Tổng giờ công')).toBeInTheDocument();
-    expect(screen.getByText('Lượt đi muộn')).toBeInTheDocument();
+  it('renders title, week/month switch and staff attendance rows without metric boxes', async () => {
+    renderComponent();
+
+    expect(screen.getByText('Bảng chấm công')).toBeInTheDocument();
 
     // Segmented tabs
     expect(screen.getByRole('tab', { name: /Theo tuần/i })).toBeInTheDocument();
@@ -80,11 +83,7 @@ describe('MobileStaffAttendanceAdminView Component', () => {
   });
 
   it('switches between week and month modes', async () => {
-    render(
-      <QueryClientProvider client={queryClient}>
-        <MobileStaffAttendanceAdminView />
-      </QueryClientProvider>
-    );
+    renderComponent();
 
     const monthTab = screen.getByRole('tab', { name: /Theo tháng/i });
     fireEvent.click(monthTab);
@@ -94,24 +93,20 @@ describe('MobileStaffAttendanceAdminView Component', () => {
     });
   });
 
-  it('opens detail bottom sheet when clicking a staff card to view GPS log', async () => {
-    render(
-      <QueryClientProvider client={queryClient}>
-        <MobileStaffAttendanceAdminView />
-      </QueryClientProvider>
-    );
+  it('opens detail bottom sheet when clicking a staff row to view GPS log', async () => {
+    renderComponent();
 
     await waitFor(() => {
       expect(screen.getByText('Thu Phương')).toBeInTheDocument();
     });
 
-    const staffCard = screen.getByText('Thu Phương').closest('.mobile-card');
-    fireEvent.click(staffCard!);
+    const staffRow = screen.getByText('Thu Phương').closest('.mobile-grouped-row');
+    fireEvent.click(staffRow!);
 
     await waitFor(() => {
       expect(screen.getByText('Nhật ký chấm công GPS')).toBeInTheDocument();
-      expect(screen.getByText('Tổng hợp kỳ công')).toBeInTheDocument();
-      expect(screen.getByText('Chi tiết từng ngày')).toBeInTheDocument();
+      expect(screen.getByText('Tổng giờ làm thực tế')).toBeInTheDocument();
+      expect(screen.getByText('Nhật ký quét mã chi tiết')).toBeInTheDocument();
     });
   });
 });

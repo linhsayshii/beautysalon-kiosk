@@ -1,11 +1,10 @@
 import { useState, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import {
   MobileSearchBar,
-  MobileMetricCards,
-  MobileCard,
+  MobileFilterSheet,
   MobileDetailSheet,
-  MobileSegmentedControl,
   MobileEmptyState,
 } from '@/features/mobile-common';
 import { getCommissions } from '@/features/staff/staff.api';
@@ -15,10 +14,12 @@ import type { ApiRecord } from '@/types/api';
 import './mobile-staff.css';
 
 export function MobileStaffCommissionsAdminView() {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<'by_staff' | 'details'>('by_staff');
   const [dateFrom, setDateFrom] = useState(monthStartIso());
   const [dateTo, setDateTo] = useState(todayIso());
   const [search, setSearch] = useState('');
+  const [isSearchVisible, setIsSearchVisible] = useState(false);
 
   // Selected item for bottom sheet
   const [selectedStaffSummary, setSelectedStaffSummary] = useState<ApiRecord | null>(null);
@@ -124,8 +125,8 @@ export function MobileStaffCommissionsAdminView() {
         staffName: 'Em Huệ',
         staffCode: 'NV000005',
         staffRole: 'Kỹ thuật viên',
-        serviceCommission: 1500000,
-        consultingCommission: 300000,
+        serviceCommission: 1400000,
+        consultingCommission: 400000,
         totalCommission: 1800000,
         totalRevenue: 9000000,
         itemCount: 25,
@@ -133,31 +134,7 @@ export function MobileStaffCommissionsAdminView() {
     ];
   }, [payload]);
 
-  // Aggregate totals for metrics
-  const totalRevenue = useMemo(
-    () => rows.reduce((sum, r) => sum + (Number(r.revenue) || 0), 0),
-    [rows]
-  );
-  const totalCommission = useMemo(
-    () => rows.reduce((sum, r) => sum + (Number(r.amount) || 0), 0),
-    [rows]
-  );
-  const serviceCommission = useMemo(
-    () =>
-      rows
-        .filter((r) => r.commissionType === 'service')
-        .reduce((sum, r) => sum + (Number(r.amount) || 0), 0),
-    [rows]
-  );
-  const consultingCommission = useMemo(
-    () =>
-      rows
-        .filter((r) => r.commissionType === 'consulting')
-        .reduce((sum, r) => sum + (Number(r.amount) || 0), 0),
-    [rows]
-  );
-
-  // Filtered lists
+  // Filter staff list
   const filteredByStaff = useMemo(() => {
     if (!search.trim()) return byStaff;
     const q = search.toLowerCase();
@@ -169,281 +146,292 @@ export function MobileStaffCommissionsAdminView() {
     );
   }, [byStaff, search]);
 
+  // Filter transaction rows
   const filteredRows = useMemo(() => {
     if (!search.trim()) return rows;
     const q = search.toLowerCase();
     return rows.filter(
       (r) =>
         r.staffName?.toLowerCase().includes(q) ||
-        r.staffCode?.toLowerCase().includes(q) ||
         r.itemName?.toLowerCase().includes(q) ||
         r.invoiceCode?.toLowerCase().includes(q)
     );
   }, [rows, search]);
 
+  // Group staff by Role for Tab 1
+  const groupedStaff = useMemo(() => {
+    const map = new Map<string, ApiRecord[]>();
+    filteredByStaff.forEach((s) => {
+      const role = (s.staffRole || 'KỸ THUẬT VIÊN').toUpperCase();
+      const list = map.get(role) || [];
+      list.push(s);
+      map.set(role, list);
+    });
+    return Array.from(map.entries());
+  }, [filteredByStaff]);
+
+  // Group transactions by date for Tab 2
+  const groupedTransactions = useMemo(() => {
+    const map = new Map<string, ApiRecord[]>();
+    filteredRows.forEach((r) => {
+      const dateKey = r.createdAt ? r.createdAt.slice(0, 10) : 'GẦN ĐÂY';
+      const list = map.get(dateKey) || [];
+      list.push(r);
+      map.set(dateKey, list);
+    });
+    return Array.from(map.entries());
+  }, [filteredRows]);
+
+  const totalCommissions = useMemo(() => {
+    return filteredByStaff.reduce((sum, s) => sum + Number(s.totalCommission || 0), 0);
+  }, [filteredByStaff]);
+
   return (
-    <div className="mobile-staff-container">
-      {/* Header */}
-      <div className="mobile-staff-header">
-        <div>
-          <h1 className="mobile-staff-header-title">Bảng tính hoa hồng</h1>
-          <div className="mobile-staff-subtitle">Chiết khấu thực hiện DV & tư vấn bán hàng</div>
+    <div className="mobile-staff-view">
+      {/* 1. Header Top Navigation */}
+      <div className="mobile-staff-top-nav">
+        <div className="mobile-staff-nav-left">
+          <button
+            type="button"
+            className="mobile-staff-back-icon"
+            onClick={() => navigate('/m/more')}
+            aria-label="Quay lại"
+          >
+            <i className="ph ph-caret-left" />
+          </button>
+          <h1 className="mobile-staff-nav-title">Bảng hoa hồng</h1>
+        </div>
+
+        <div className="mobile-staff-nav-actions">
+          <button
+            type="button"
+            className="mobile-staff-nav-btn"
+            onClick={() => setIsSearchVisible((prev) => !prev)}
+            aria-label="Tìm kiếm"
+          >
+            <i className="ph ph-magnifying-glass" />
+          </button>
         </div>
       </div>
 
-      {/* Date Range Inputs */}
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: '1fr 1fr',
-          gap: 8,
-          background: 'var(--surface, #ffffff)',
-          border: '1px solid var(--line, #e2e8f0)',
-          borderRadius: 12,
-          padding: '8px 10px',
-        }}
-      >
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-          <label style={{ fontSize: 11, color: 'var(--ink-500)' }}>Từ ngày:</label>
-          <input
-            type="date"
-            value={dateFrom}
-            onChange={(e) => setDateFrom(e.target.value)}
-            style={{
-              border: 'none',
-              fontSize: 13,
-              fontWeight: 600,
-              color: 'var(--ink-950)',
-              outline: 'none',
-              background: 'transparent',
-            }}
+      {/* Inline Search Bar */}
+      {isSearchVisible && (
+        <div className="mobile-staff-search-bar-wrap">
+          <MobileSearchBar
+            value={search}
+            onChange={setSearch}
+            placeholder="Tìm theo nhân viên, dịch vụ, hóa đơn..."
+            autoFocus
           />
         </div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-          <label style={{ fontSize: 11, color: 'var(--ink-500)' }}>Đến ngày:</label>
-          <input
-            type="date"
-            value={dateTo}
-            onChange={(e) => setDateTo(e.target.value)}
-            style={{
-              border: 'none',
-              fontSize: 13,
-              fontWeight: 600,
-              color: 'var(--ink-950)',
-              outline: 'none',
-              background: 'transparent',
-            }}
-          />
-        </div>
+      )}
+
+      {/* Underline Tab Navigation */}
+      <div className="mobile-staff-underline-tabs">
+        <button
+          type="button"
+          role="tab"
+          aria-selected={activeTab === 'by_staff'}
+          className={`mobile-staff-underline-tab ${activeTab === 'by_staff' ? 'is-active' : ''}`}
+          onClick={() => setActiveTab('by_staff')}
+        >
+          Theo nhân viên
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={activeTab === 'details'}
+          className={`mobile-staff-underline-tab ${activeTab === 'details' ? 'is-active' : ''}`}
+          onClick={() => setActiveTab('details')}
+        >
+          Chi tiết giao dịch
+        </button>
       </div>
 
-      {/* Metric Cards (Total, Service, Consulting, Revenue) */}
-      <MobileMetricCards
-        items={[
-          { label: 'Tổng hoa hồng', value: formatMoney(totalCommission), tone: 'green' },
-          { label: 'HH Thực hiện DV', value: formatMoney(serviceCommission), tone: 'blue' },
-          { label: 'HH Tư vấn bán hàng', value: formatMoney(consultingCommission), tone: 'violet' },
-          { label: 'Doanh thu phát sinh', value: formatMoney(totalRevenue), tone: 'orange' },
-        ]}
-      />
+      {/* Summary Bar */}
+      <div className="mobile-staff-summary-sort-bar">
+        <span className="mobile-sort-select-chip">
+          <span>Tháng này</span>
+        </span>
+        <span className="mobile-summary-text">
+          Tổng hoa hồng: <strong>{formatMoney(totalCommissions)}</strong>
+        </span>
+      </div>
 
-      {/* Segmented Control Tabs */}
-      <MobileSegmentedControl
-        value={activeTab}
-        onChange={setActiveTab}
-        options={[
-          {
-            value: 'by_staff',
-            label: 'Theo nhân viên',
-            icon: 'ph ph-users',
-            badge: byStaff.length,
-          },
-          {
-            value: 'details',
-            label: 'Chi tiết giao dịch',
-            icon: 'ph ph-receipt',
-            badge: rows.length,
-          },
-        ]}
-      />
-
-      {/* Search Bar */}
-      <MobileSearchBar
-        value={search}
-        onChange={setSearch}
-        placeholder={
-          activeTab === 'by_staff'
-            ? 'Tìm nhân viên...'
-            : 'Tìm theo dịch vụ, hóa đơn, thợ...'
-        }
-      />
-
-      {/* Content: By Staff */}
+      {/* Tab 1: Grouped list by Role showing individual staff commission */}
       {activeTab === 'by_staff' && (
-        <div className="mobile-staff-card-list">
+        <div className="mobile-grouped-list-container">
           {isLoading ? (
-            <div style={{ textAlign: 'center', padding: '24px 0', color: 'var(--ink-500)' }}>
-              Đang tải danh sách hoa hồng...
+            <div style={{ textAlign: 'center', padding: '36px 0', color: '#64748b' }}>
+              Đang tải dữ liệu hoa hồng...
             </div>
           ) : filteredByStaff.length === 0 ? (
             <MobileEmptyState
-              icon="ph ph-users"
-              title="Không có dữ liệu hoa hồng"
-              description="Chưa có hoa hồng phát sinh trong khoảng thời gian này."
+              icon="ph ph-chart-line-up"
+              title="Không có hoa hồng"
+              description="Chưa có dữ liệu hoa hồng trong khoảng thời gian này."
             />
           ) : (
-            filteredByStaff.map((staff) => (
-              <MobileCard
-                key={staff.staffId}
-                title={staff.staffName}
-                subtitle={`${staff.staffCode} • ${staff.staffRole || 'Kỹ thuật viên'}`}
-                avatar={
-                  <div className="mobile-staff-avatar">
-                    {initials(staff.staffName || 'NV')}
-                  </div>
-                }
-                badge={{
-                  text: formatMoney(staff.totalCommission),
-                  tone: 'green',
-                }}
-                details={[
-                  {
-                    label: 'HH Làm dịch vụ',
-                    value: (
-                      <span style={{ color: 'var(--blue-600)' }}>
-                        +{formatMoney(staff.serviceCommission)}
-                      </span>
-                    ),
-                  },
-                  {
-                    label: 'HH Tư vấn / Bán hàng',
-                    value: (
-                      <span style={{ color: 'var(--violet)' }}>
-                        +{formatMoney(staff.consultingCommission)}
-                      </span>
-                    ),
-                  },
-                  {
-                    label: 'Doanh số tạo ra',
-                    value: formatMoney(staff.totalRevenue),
-                  },
-                  {
-                    label: 'Số lượt thực hiện',
-                    value: `${staff.itemCount || 0} lượt`,
-                  },
-                ]}
-                onClick={() => setSelectedStaffSummary(staff)}
-              />
+            groupedStaff.map(([roleGroup, staffItems]) => (
+              <div key={roleGroup} className="mobile-grouped-section">
+                <div className="mobile-section-header">
+                  <span className="mobile-section-title">{roleGroup}</span>
+                  <span className="mobile-section-count">{staffItems.length} người</span>
+                </div>
+                <div className="mobile-section-card">
+                  {staffItems.map((staff) => (
+                    <div
+                      key={staff.staffId}
+                      className="mobile-grouped-row"
+                      onClick={() => setSelectedStaffSummary(staff)}
+                    >
+                      <div className="mobile-staff-row-left">
+                        <div className="mobile-staff-avatar rose">
+                          {initials(staff.staffName || 'NV')}
+                        </div>
+                        <div className="mobile-staff-row-info">
+                          <span className="mobile-staff-row-name">{staff.staffName}</span>
+                          <span className="mobile-staff-row-sub">
+                            <span>{staff.staffCode}</span>
+                            <span>•</span>
+                            <span>{staff.itemCount || 0} lượt làm</span>
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="mobile-staff-row-right">
+                        <span className="mobile-staff-row-value emerald">
+                          {formatMoney(staff.totalCommission)}
+                        </span>
+                        <span style={{ fontSize: 11.5, color: '#64748b' }}>
+                          Doanh số: {formatMoney(staff.totalRevenue)}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
             ))
           )}
         </div>
       )}
 
-      {/* Content: Details */}
+      {/* Tab 2: Grouped list by date showing transaction logs */}
       {activeTab === 'details' && (
-        <div className="mobile-staff-card-list">
-          {isLoading ? (
-            <div style={{ textAlign: 'center', padding: '24px 0', color: 'var(--ink-500)' }}>
-              Đang tải danh sách chi tiết...
-            </div>
-          ) : filteredRows.length === 0 ? (
+        <div className="mobile-grouped-list-container">
+          {filteredRows.length === 0 ? (
             <MobileEmptyState
               icon="ph ph-receipt"
               title="Không có giao dịch"
-              description="Không tìm thấy giao dịch hoa hồng nào."
+              description="Không có lịch sử hoa hồng nào phù hợp."
             />
           ) : (
-            filteredRows.map((item) => {
-              const isService = item.commissionType === 'service';
-              return (
-                <MobileCard
-                  key={item.id}
-                  title={item.itemName || 'Dịch vụ spa'}
-                  subtitle={`${item.invoiceCode || 'HĐ'} • ${item.createdAt || ''}`}
-                  badge={{
-                    text: `+${formatMoney(item.amount)}`,
-                    tone: isService ? 'blue' : 'violet',
-                  }}
-                  details={[
-                    {
-                      label: 'Nhân viên thụ hưởng',
-                      value: `${item.staffName} (${item.staffCode || ''})`,
-                    },
-                    {
-                      label: 'Loại hoa hồng',
-                      value: isService ? 'Thực hiện dịch vụ' : 'Tư vấn bán hàng',
-                    },
-                    {
-                      label: 'Giá trị hóa đơn',
-                      value: formatMoney(item.revenue),
-                    },
-                    {
-                      label: 'Tỷ lệ chiết khấu',
-                      value: item.ratePercent ? `${item.ratePercent}%` : 'Theo định mức',
-                    },
-                  ]}
-                  onClick={() => setSelectedTxRecord(item)}
-                />
-              );
-            })
+            groupedTransactions.map(([dateKey, txList]) => (
+              <div key={dateKey} className="mobile-grouped-section">
+                <div className="mobile-section-header">
+                  <span className="mobile-section-title">{dateKey}</span>
+                  <span className="mobile-section-count">{txList.length} giao dịch</span>
+                </div>
+                <div className="mobile-section-card">
+                  {txList.map((tx) => (
+                    <div
+                      key={tx.id}
+                      className="mobile-grouped-row"
+                      onClick={() => setSelectedTxRecord(tx)}
+                    >
+                      <div className="mobile-staff-row-left">
+                        <div className="mobile-staff-avatar emerald">
+                          <i
+                            className={
+                              tx.commissionType === 'service'
+                                ? 'ph ph-sparkle'
+                                : 'ph ph-shopping-bag'
+                            }
+                          />
+                        </div>
+                        <div className="mobile-staff-row-info">
+                          <span className="mobile-staff-row-name">{tx.itemName}</span>
+                          <span className="mobile-staff-row-sub">
+                            <span>{tx.staffName}</span>
+                            <span>•</span>
+                            <span>{tx.invoiceCode}</span>
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="mobile-staff-row-right">
+                        <span className="mobile-staff-row-value emerald">
+                          +{formatMoney(tx.amount)}
+                        </span>
+                        <span style={{ fontSize: 11.5, color: '#64748b' }}>
+                          {tx.ratePercent}% hoa hồng
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))
           )}
         </div>
       )}
 
-      {/* Detail Bottom Sheet for Staff Summary */}
+      {/* Inset Detail Sheet - Staff Summary */}
       <MobileDetailSheet
         isOpen={Boolean(selectedStaffSummary)}
         title="Tổng hợp hoa hồng nhân viên"
-        subtitle={
-          selectedStaffSummary
-            ? `${selectedStaffSummary.staffName} (${selectedStaffSummary.staffCode})`
-            : ''
-        }
+        subtitle={selectedStaffSummary ? `${selectedStaffSummary.staffName} • ${selectedStaffSummary.staffCode}` : ''}
         onClose={() => setSelectedStaffSummary(null)}
-        footerActions={
-          <button
-            type="button"
-            className="mobile-staff-action-btn primary"
-            style={{ width: '100%' }}
-            onClick={() => setSelectedStaffSummary(null)}
-          >
-            Đóng
-          </button>
-        }
       >
         {selectedStaffSummary && (
           <>
-            <div className="salary-overview-card" style={{ marginBottom: 16 }}>
-              <div className="salary-label">Tổng hoa hồng nhận được</div>
-              <div className="salary-amount">
-                {formatMoney(selectedStaffSummary.totalCommission)}
-              </div>
-              <div className="salary-meta-row">
-                <span>Doanh thu tạo ra: <strong>{formatMoney(selectedStaffSummary.totalRevenue)}</strong></span>
-                <span>Số lượt làm: <strong>{selectedStaffSummary.itemCount || 0}</strong></span>
+            <div className="mobile-detail-hero">
+              <div className="mobile-detail-hero-header">
+                <div>
+                  <div style={{ fontSize: 13, color: '#64748b' }}>Tổng hoa hồng nhận được</div>
+                  <div className="mobile-detail-hero-amount" style={{ color: '#16a34a' }}>
+                    {formatMoney(selectedStaffSummary.totalCommission)}
+                  </div>
+                </div>
+                <div style={{ textAlign: 'right' }}>
+                  <div style={{ fontSize: 13, color: '#64748b' }}>Doanh số phục vụ</div>
+                  <div style={{ fontSize: 16, fontWeight: 750, color: '#0f172a' }}>
+                    {formatMoney(selectedStaffSummary.totalRevenue)}
+                  </div>
+                </div>
               </div>
             </div>
 
             <div className="mobile-sheet-section">
-              <label className="mobile-sheet-section-title">Chi tiết phân loại hoa hồng</label>
-              <div className="salary-breakdown-list">
-                <div className="salary-breakdown-item">
-                  <div className="breakdown-left">
-                    <span className="breakdown-title">Hoa hồng làm dịch vụ</span>
-                    <span className="breakdown-sub">Chiết khấu trực tiếp theo lượt làm</span>
+              <span className="mobile-sheet-section-title">Chi tiết phân loại hoa hồng</span>
+              <div className="mobile-detail-list">
+                <div className="mobile-detail-item">
+                  <div className="mobile-detail-item-left">
+                    <span className="mobile-detail-item-title">Hoa hồng làm dịch vụ</span>
+                    <span className="mobile-detail-item-sub">Gội đầu, làm móng, chăm sóc da...</span>
                   </div>
-                  <span className="breakdown-value" style={{ color: 'var(--blue-600)' }}>
+                  <span className="mobile-detail-item-value" style={{ color: '#16a34a' }}>
                     +{formatMoney(selectedStaffSummary.serviceCommission)}
                   </span>
                 </div>
 
-                <div className="salary-breakdown-item">
-                  <div className="breakdown-left">
-                    <span className="breakdown-title">Hoa hồng tư vấn mỹ phẩm & gói thẻ</span>
-                    <span className="breakdown-sub">Chiết khấu giới thiệu / chốt đơn</span>
+                <div className="mobile-detail-item">
+                  <div className="mobile-detail-item-left">
+                    <span className="mobile-detail-item-title">Hoa hồng tư vấn bán sản phẩm</span>
+                    <span className="mobile-detail-item-sub">Bán mỹ phẩm, liệu trình spa...</span>
                   </div>
-                  <span className="breakdown-value" style={{ color: 'var(--violet)' }}>
+                  <span className="mobile-detail-item-value" style={{ color: '#16a34a' }}>
                     +{formatMoney(selectedStaffSummary.consultingCommission)}
+                  </span>
+                </div>
+
+                <div className="mobile-detail-item">
+                  <div className="mobile-detail-item-left">
+                    <span className="mobile-detail-item-title">Tổng số lượt thực hiện</span>
+                    <span className="mobile-detail-item-sub">Hóa đơn có ghi nhận thợ</span>
+                  </div>
+                  <span className="mobile-detail-item-value">
+                    {selectedStaffSummary.itemCount} lượt
                   </span>
                 </div>
               </div>
@@ -452,28 +440,32 @@ export function MobileStaffCommissionsAdminView() {
         )}
       </MobileDetailSheet>
 
-      {/* Detail Bottom Sheet for Single Transaction Record */}
+      {/* Inset Detail Sheet - Transaction Log */}
       <MobileDetailSheet
         isOpen={Boolean(selectedTxRecord)}
         title="Chi tiết giao dịch hoa hồng"
         subtitle={selectedTxRecord ? `${selectedTxRecord.invoiceCode} • ${selectedTxRecord.createdAt}` : ''}
         onClose={() => setSelectedTxRecord(null)}
-        footerActions={
-          <button
-            type="button"
-            className="mobile-staff-action-btn primary"
-            style={{ width: '100%' }}
-            onClick={() => setSelectedTxRecord(null)}
-          >
-            Đóng
-          </button>
-        }
       >
         {selectedTxRecord && (
-          <div className="mobile-sheet-section">
+          <>
+            <div className="mobile-detail-hero">
+              <div className="mobile-detail-hero-header">
+                <div>
+                  <div style={{ fontSize: 13, color: '#64748b' }}>Hoa hồng nhận được</div>
+                  <div className="mobile-detail-hero-amount" style={{ color: '#16a34a' }}>
+                    +{formatMoney(selectedTxRecord.amount)}
+                  </div>
+                </div>
+                <span className="mobile-shift-badge theme-green">
+                  {selectedTxRecord.commissionType === 'service' ? 'Làm dịch vụ' : 'Tư vấn bán SP'}
+                </span>
+              </div>
+            </div>
+
             <div className="mobile-detail-grid">
               <div className="mobile-detail-cell">
-                <span className="mobile-detail-cell-label">Tên dịch vụ/Sản phẩm</span>
+                <span className="mobile-detail-cell-label">Mặt hàng / Dịch vụ</span>
                 <span className="mobile-detail-cell-value">{selectedTxRecord.itemName}</span>
               </div>
               <div className="mobile-detail-cell">
@@ -481,29 +473,15 @@ export function MobileStaffCommissionsAdminView() {
                 <span className="mobile-detail-cell-value">{selectedTxRecord.staffName}</span>
               </div>
               <div className="mobile-detail-cell">
-                <span className="mobile-detail-cell-label">Loại hoa hồng</span>
-                <span className="mobile-detail-cell-value">
-                  {selectedTxRecord.commissionType === 'service' ? 'Làm dịch vụ' : 'Tư vấn'}
-                </span>
-              </div>
-              <div className="mobile-detail-cell">
                 <span className="mobile-detail-cell-label">Doanh thu hóa đơn</span>
                 <span className="mobile-detail-cell-value">{formatMoney(selectedTxRecord.revenue)}</span>
               </div>
               <div className="mobile-detail-cell">
-                <span className="mobile-detail-cell-label">Tiền hoa hồng</span>
-                <span className="mobile-detail-cell-value" style={{ color: 'var(--green)' }}>
-                  +{formatMoney(selectedTxRecord.amount)}
-                </span>
-              </div>
-              <div className="mobile-detail-cell">
-                <span className="mobile-detail-cell-label">Tỷ lệ chiết khấu</span>
-                <span className="mobile-detail-cell-value">
-                  {selectedTxRecord.ratePercent ? `${selectedTxRecord.ratePercent}%` : 'Theo bảng giá'}
-                </span>
+                <span className="mobile-detail-cell-label">Tỷ lệ hoa hồng</span>
+                <span className="mobile-detail-cell-value">{selectedTxRecord.ratePercent}%</span>
               </div>
             </div>
-          </div>
+          </>
         )}
       </MobileDetailSheet>
     </div>

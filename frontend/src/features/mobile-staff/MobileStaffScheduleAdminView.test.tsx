@@ -1,4 +1,5 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { ToastProvider } from '@/components/ui/Toast/ToastProvider';
@@ -53,18 +54,17 @@ describe('MobileStaffScheduleAdminView Component', () => {
     render(
       <QueryClientProvider client={queryClient}>
         <ToastProvider>
-          <MobileStaffScheduleAdminView />
+          <MemoryRouter>
+            <MobileStaffScheduleAdminView />
+          </MemoryRouter>
         </ToastProvider>
       </QueryClientProvider>
     );
 
-  it('renders title, metrics, week navigator, and staff schedule cards', async () => {
+  it('renders title, week navigator, and staff schedule list without metric cards', async () => {
     renderComponent();
 
-    expect(screen.getByText('Quản lý ca làm việc')).toBeInTheDocument();
-    expect(screen.getByText('Tổng nhân sự')).toBeInTheDocument();
-    expect(screen.getByText('Đã xếp ca')).toBeInTheDocument();
-    expect(screen.getByText('Chưa xếp ca')).toBeInTheDocument();
+    expect(screen.getByText('Lịch làm việc')).toBeInTheDocument();
 
     // Weekday chips
     expect(screen.getByText('T2')).toBeInTheDocument();
@@ -84,9 +84,9 @@ describe('MobileStaffScheduleAdminView Component', () => {
     fireEvent.click(shiftTab);
 
     await waitFor(() => {
-      expect(screen.getByText('Ca Partime')).toBeInTheDocument();
-      expect(screen.getByText('Ca Full')).toBeInTheDocument();
-      expect(screen.getByText('Ca sáng chuẩn')).toBeInTheDocument();
+      expect(screen.getByText(/Ca Partime/)).toBeInTheDocument();
+      expect(screen.getByText(/Ca Full/)).toBeInTheDocument();
+      expect(screen.getByText(/Ca sáng chuẩn/)).toBeInTheDocument();
     });
   });
 

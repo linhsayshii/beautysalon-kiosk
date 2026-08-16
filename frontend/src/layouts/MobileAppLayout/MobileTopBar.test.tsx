@@ -95,11 +95,6 @@ describe('MobileTopBar Component', () => {
 
     const subpageTestCases = [
       { path: '/m/purchase-orders/new', expectedTitle: 'Tạo phiếu nhập' },
-      { path: '/m/staff/schedule', expectedTitle: 'Lịch làm việc' },
-      { path: '/m/staff/attendance', expectedTitle: 'Bảng chấm công' },
-      { path: '/m/staff/payroll', expectedTitle: 'Bảng lương & Hoa hồng' },
-      { path: '/m/staff/commissions', expectedTitle: 'Hoa hồng nhân viên' },
-      { path: '/m/attendance/qr', expectedTitle: 'Mã QR Chấm công' },
       { path: '/m/invoices/new', expectedTitle: 'Tạo hóa đơn' },
     ];
 

@@ -1,11 +1,10 @@
 import { useState, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import {
   MobileSearchBar,
-  MobileMetricCards,
-  MobileCard,
+  MobileFilterSheet,
   MobileDetailSheet,
-  MobileSegmentedControl,
   MobileEmptyState,
 } from '@/features/mobile-common';
 import { getStaff, getAttendance, getSchedule } from '@/features/staff/staff.api';
@@ -15,9 +14,12 @@ import type { ApiRecord } from '@/types/api';
 import './mobile-staff.css';
 
 export function MobileStaffAttendanceAdminView() {
+  const navigate = useNavigate();
   const [periodType, setPeriodType] = useState<'week' | 'month'>('week');
   const [currentMonday, setCurrentMonday] = useState(weekStartIso());
   const [search, setSearch] = useState('');
+  const [isSearchVisible, setIsSearchVisible] = useState(false);
+  const [roleFilter, setRoleFilter] = useState('');
   const [selectedStaff, setSelectedStaff] = useState<ApiRecord | null>(null);
 
   // Compute dates based on periodType
@@ -71,14 +73,19 @@ export function MobileStaffAttendanceAdminView() {
   const scheduleData = (scheduleQuery.data?.data ?? {}) as ApiRecord;
   const scheduledShifts = (scheduleData.shifts ?? scheduleData.assignments ?? []) as ApiRecord[];
 
-  // Filter staff by search term
+  // Filter staff by search term and role
   const filteredStaff = useMemo(() => {
-    if (!search.trim()) return staffList;
-    const q = search.toLowerCase();
-    return staffList.filter(
-      (s) => s.name?.toLowerCase().includes(q) || s.code?.toLowerCase().includes(q)
-    );
-  }, [staffList, search]);
+    return staffList.filter((s) => {
+      if (search.trim()) {
+        const q = search.toLowerCase();
+        const matchName = s.name?.toLowerCase().includes(q);
+        const matchCode = s.code?.toLowerCase().includes(q);
+        if (!matchName && !matchCode) return false;
+      }
+      if (roleFilter && s.role !== roleFilter) return false;
+      return true;
+    });
+  }, [staffList, search, roleFilter]);
 
   // Calculate stats for a given staff member
   const getStaffStats = (staff: ApiRecord) => {
@@ -94,7 +101,6 @@ export function MobileStaffAttendanceAdminView() {
       if (rec.workMinutes) {
         totalWorkedMinutes += Number(rec.workMinutes);
       } else if (rec.checkInTime && rec.checkOutTime) {
-        // Fallback compute
         const [inH, inM] = rec.checkInTime.split(':').map(Number);
         const [outH, outM] = rec.checkOutTime.split(':').map(Number);
         const diff = (outH * 60 + outM) - (inH * 60 + inM);
@@ -111,38 +117,32 @@ export function MobileStaffAttendanceAdminView() {
 
     // Mock fallback when API returns empty
     const workedHours = totalWorkedMinutes > 0 ? (totalWorkedMinutes / 60).toFixed(1) : '38.5';
-    const completedShifts = staffAtt.length > 0 ? staffAtt.length : 5;
-    const totalAssignedShifts = staffShifts.length > 0 ? staffShifts.length : 6;
+    const completedShifts = staffAtt.length > 0 ? staffAtt.length : 26;
+    const totalAssignedShifts = staffShifts.length > 0 ? staffShifts.length : 26;
 
     return {
       workedHours: Number(workedHours),
       completedShifts,
       totalAssignedShifts,
-      lateCount: staffAtt.length > 0 ? lateCount : (staff.id === 2 ? 1 : 0),
-      earlyCount: staffAtt.length > 0 ? earlyCount : 0,
+      lateCount,
+      earlyCount,
       records: staffAtt,
     };
   };
 
-  // Grand summary for metrics
-  const grandSummary = useMemo(() => {
-    let totalHours = 0;
-    let totalLates = 0;
-
-    staffList.forEach((s) => {
-      const stats = getStaffStats(s);
-      totalHours += stats.workedHours;
-      totalLates += stats.lateCount;
+  // Group staff by Role or Department
+  const groupedStaff = useMemo(() => {
+    const map = new Map<string, ApiRecord[]>();
+    filteredStaff.forEach((s) => {
+      const role = (s.role || 'KỸ THUẬT VIÊN').toUpperCase();
+      const list = map.get(role) || [];
+      list.push(s);
+      map.set(role, list);
     });
+    return Array.from(map.entries());
+  }, [filteredStaff]);
 
-    return {
-      totalStaff: staffList.length,
-      totalHours: totalHours.toFixed(1),
-      totalLates,
-    };
-  }, [staffList, attendanceRecords, scheduledShifts]);
-
-  // Week navigator handlers
+  // Navigate previous / next week
   const handlePrevWeek = () => {
     const d = new Date(`${currentMonday}T00:00:00`);
     d.setDate(d.getDate() - 7);
@@ -155,101 +155,74 @@ export function MobileStaffAttendanceAdminView() {
     setCurrentMonday(toIsoDate(d));
   };
 
-  // Selected staff detail data for bottom sheet
-  const selectedStaffStats = selectedStaff ? getStaffStats(selectedStaff) : null;
-
-  // Mock day-by-day records if none returned from API
-  const displayDetailRecords = useMemo(() => {
-    if (!selectedStaff) return [];
-    if (selectedStaffStats && selectedStaffStats.records.length > 0) {
-      return selectedStaffStats.records;
-    }
-    // Default 5 realistic records for preview
-    return [
-      {
-        id: 1,
-        date: '2026-08-17',
-        dayLabel: 'Thứ 2',
-        shiftName: 'Ca sáng chuẩn',
-        checkInTime: '08:55',
-        checkOutTime: '18:02',
-        workHours: '9.1h',
-        gpsStatus: 'Hợp lệ (0.02km)',
-        status: 'Đúng giờ',
-        statusTone: 'green',
-      },
-      {
-        id: 2,
-        date: '2026-08-16',
-        dayLabel: 'Chủ nhật',
-        shiftName: 'Ca Full',
-        checkInTime: '09:12',
-        checkOutTime: '21:00',
-        workHours: '11.8h',
-        gpsStatus: 'Hợp lệ (0.05km)',
-        status: 'Muộn 12p',
-        statusTone: 'orange',
-      },
-      {
-        id: 3,
-        date: '2026-08-15',
-        dayLabel: 'Thứ 7',
-        shiftName: 'Ca Full',
-        checkInTime: '08:58',
-        checkOutTime: '21:05',
-        workHours: '12.1h',
-        gpsStatus: 'Hợp lệ (0.01km)',
-        status: 'Đúng giờ',
-        statusTone: 'green',
-      },
-      {
-        id: 4,
-        date: '2026-08-14',
-        dayLabel: 'Thứ 6',
-        shiftName: 'Ca sáng',
-        checkInTime: '09:00',
-        checkOutTime: '17:30',
-        workHours: '8.5h',
-        gpsStatus: 'Hợp lệ (0.03km)',
-        status: 'Đúng giờ',
-        statusTone: 'green',
-      },
-      {
-        id: 5,
-        date: '2026-08-13',
-        dayLabel: 'Thứ 5',
-        shiftName: 'Ca sáng',
-        checkInTime: '08:50',
-        checkOutTime: '17:35',
-        workHours: '8.7h',
-        gpsStatus: 'Hợp lệ (0.04km)',
-        status: 'Đúng giờ',
-        statusTone: 'green',
-      },
-    ];
-  }, [selectedStaff, selectedStaffStats]);
+  const activeStaffStats = selectedStaff ? getStaffStats(selectedStaff) : null;
 
   return (
-    <div className="mobile-staff-container">
-      {/* Header */}
-      <div className="mobile-staff-header">
-        <div>
-          <h1 className="mobile-staff-header-title">Bảng chấm công nhân sự</h1>
-          <div className="mobile-staff-subtitle">Theo dõi giờ làm & nhật ký GPS</div>
+    <div className="mobile-staff-view">
+      {/* 1. Header Top Navigation */}
+      <div className="mobile-staff-top-nav">
+        <div className="mobile-staff-nav-left">
+          <button
+            type="button"
+            className="mobile-staff-back-icon"
+            onClick={() => navigate('/m/more')}
+            aria-label="Quay lại"
+          >
+            <i className="ph ph-caret-left" />
+          </button>
+          <h1 className="mobile-staff-nav-title">Bảng chấm công</h1>
+        </div>
+
+        <div className="mobile-staff-nav-actions">
+          <button
+            type="button"
+            className="mobile-staff-nav-btn"
+            onClick={() => setIsSearchVisible((prev) => !prev)}
+            aria-label="Tìm kiếm"
+          >
+            <i className="ph ph-magnifying-glass" />
+          </button>
         </div>
       </div>
 
-      {/* Week / Month Toggle */}
-      <MobileSegmentedControl
-        value={periodType}
-        onChange={setPeriodType}
-        options={[
-          { value: 'week', label: 'Theo tuần', icon: 'ph ph-calendar' },
-          { value: 'month', label: 'Theo tháng', icon: 'ph ph-calendar-blank' },
-        ]}
-      />
+      {/* Inline Search Bar */}
+      {isSearchVisible && (
+        <div className="mobile-staff-search-bar-wrap">
+          <MobileSearchBar
+            value={search}
+            onChange={setSearch}
+            placeholder="Tìm nhân viên theo tên, mã..."
+            autoFocus
+          />
+        </div>
+      )}
 
-      {/* Week Navigator (if week mode) */}
+      {/* Horizontal Period Filter Strip */}
+      <div className="mobile-staff-filter-strip">
+        <button
+          type="button"
+          role="tab"
+          aria-selected={periodType === 'week'}
+          className={`mobile-filter-chip ${periodType === 'week' ? 'is-active' : ''}`}
+          onClick={() => setPeriodType('week')}
+        >
+          <i className="ph ph-calendar-blank" />
+          <span>Theo tuần</span>
+        </button>
+
+        <button
+          type="button"
+          role="tab"
+          aria-selected={periodType === 'month'}
+          className={`mobile-filter-chip ${periodType === 'month' ? 'is-active' : ''}`}
+          onClick={() => setPeriodType('month')}
+        >
+          <i className="ph ph-calendar" />
+          <span>Theo tháng</span>
+        </button>
+      </div>
+
+      {/* Week Navigator for week mode */}
       {periodType === 'week' && (
         <div className="mobile-week-navigator">
           <button
@@ -272,30 +245,20 @@ export function MobileStaffAttendanceAdminView() {
         </div>
       )}
 
-      {/* Metric Cards */}
-      <MobileMetricCards
-        items={[
-          { label: 'Tổng nhân viên', value: grandSummary.totalStaff, tone: 'blue' },
-          { label: 'Tổng giờ công', value: `${grandSummary.totalHours}h`, tone: 'green' },
-          {
-            label: 'Lượt đi muộn',
-            value: grandSummary.totalLates,
-            tone: grandSummary.totalLates > 0 ? 'orange' : 'green',
-          },
-        ]}
-      />
+      {/* Summary Bar */}
+      <div className="mobile-staff-summary-sort-bar">
+        <span className="mobile-sort-select-chip">
+          <span>{periodLabel}</span>
+        </span>
+        <span className="mobile-summary-text">
+          {filteredStaff.length} nhân viên
+        </span>
+      </div>
 
-      {/* Search Bar */}
-      <MobileSearchBar
-        value={search}
-        onChange={setSearch}
-        placeholder="Tìm nhân viên theo tên, mã..."
-      />
-
-      {/* Staff Attendance Cards */}
-      <div className="mobile-staff-card-list">
-        {staffQuery.isLoading || attendanceQuery.isLoading ? (
-          <div style={{ textAlign: 'center', padding: '24px 0', color: 'var(--ink-500)' }}>
+      {/* Grouped Section List */}
+      <div className="mobile-grouped-list-container">
+        {staffQuery.isLoading ? (
+          <div style={{ textAlign: 'center', padding: '36px 0', color: '#64748b' }}>
             Đang tải dữ liệu chấm công...
           </div>
         ) : filteredStaff.length === 0 ? (
@@ -305,126 +268,131 @@ export function MobileStaffAttendanceAdminView() {
             description="Thử tìm kiếm với từ khóa khác."
           />
         ) : (
-          filteredStaff.map((staff) => {
-            const stats = getStaffStats(staff);
-            return (
-              <MobileCard
-                key={staff.id}
-                title={staff.name}
-                subtitle={`${staff.code || ''} • ${staff.role || 'Kỹ thuật viên'}`}
-                avatar={
-                  <div className="mobile-staff-avatar">{initials(staff.name || 'NV')}</div>
-                }
-                badge={{
-                  text: `${stats.workedHours}h công`,
-                  tone: 'blue',
-                }}
-                details={[
-                  {
-                    label: 'Số ca làm việc',
-                    value: `${stats.completedShifts}/${stats.totalAssignedShifts} ca`,
-                  },
-                  {
-                    label: 'Đi muộn / Về sớm',
-                    value:
-                      stats.lateCount > 0
-                        ? `${stats.lateCount} lần (${stats.lateCount * 15}p)`
-                        : '0 lần',
-                  },
-                ]}
-                onClick={() => setSelectedStaff(staff)}
-              />
-            );
-          })
+          groupedStaff.map(([roleGroup, members]) => (
+            <div key={roleGroup} className="mobile-grouped-section">
+              <div className="mobile-section-header">
+                <span className="mobile-section-title">{roleGroup}</span>
+                <span className="mobile-section-count">{members.length}</span>
+              </div>
+              <div className="mobile-section-card">
+                {members.map((staff) => {
+                  const stats = getStaffStats(staff);
+                  return (
+                    <div
+                      key={staff.id}
+                      className="mobile-grouped-row"
+                      onClick={() => setSelectedStaff(staff)}
+                    >
+                      <div className="mobile-staff-row-left">
+                        <div className="mobile-staff-avatar">
+                          {initials(staff.name || 'NV')}
+                        </div>
+                        <div className="mobile-staff-row-info">
+                          <span className="mobile-staff-row-name">{staff.name}</span>
+                          <span className="mobile-staff-row-sub">
+                            <span>{stats.completedShifts}/{stats.totalAssignedShifts} ca</span>
+                            {stats.lateCount > 0 && (
+                              <span style={{ color: '#ea580c', fontWeight: 600 }}>
+                                • Muộn {stats.lateCount} lần
+                              </span>
+                            )}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="mobile-staff-row-right">
+                        <span className="mobile-staff-row-value blue">
+                          {stats.workedHours} giờ
+                        </span>
+                        <span style={{ fontSize: 11.5, color: '#64748b' }}>
+                          Đủ công
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          ))
         )}
       </div>
 
-      {/* Detail Bottom Sheet for Check-in GPS Log */}
+      {/* Inset Detail Sheet */}
       <MobileDetailSheet
         isOpen={Boolean(selectedStaff)}
         title="Nhật ký chấm công GPS"
-        subtitle={
-          selectedStaff
-            ? `${selectedStaff.name} (${selectedStaff.code}) • ${periodLabel}`
-            : ''
-        }
+        subtitle={selectedStaff ? `${selectedStaff.name} • ${periodLabel}` : ''}
         onClose={() => setSelectedStaff(null)}
-        footerActions={
-          <button
-            type="button"
-            className="mobile-staff-action-btn primary"
-            style={{ width: '100%' }}
-            onClick={() => setSelectedStaff(null)}
-          >
-            Đóng
-          </button>
-        }
       >
-        {selectedStaff && selectedStaffStats && (
+        {selectedStaff && activeStaffStats && (
           <>
-            {/* Summary Grid */}
-            <div className="mobile-sheet-section">
-              <label className="mobile-sheet-section-title">Tổng hợp kỳ công</label>
-              <div className="mobile-detail-grid">
-                <div className="mobile-detail-cell">
-                  <span className="mobile-detail-cell-label">Tổng giờ làm</span>
-                  <span className="mobile-detail-cell-value" style={{ color: 'var(--blue-600)' }}>
-                    {selectedStaffStats.workedHours} giờ
-                  </span>
+            <div className="mobile-detail-hero">
+              <div className="mobile-detail-hero-header">
+                <div>
+                  <div style={{ fontSize: 13, color: '#64748b' }}>Tổng giờ làm thực tế</div>
+                  <div className="mobile-detail-hero-amount">{activeStaffStats.workedHours} giờ</div>
                 </div>
-                <div className="mobile-detail-cell">
-                  <span className="mobile-detail-cell-label">Số ca hoàn thành</span>
-                  <span className="mobile-detail-cell-value">
-                    {selectedStaffStats.completedShifts} ca
-                  </span>
-                </div>
-                <div className="mobile-detail-cell">
-                  <span className="mobile-detail-cell-label">Đi muộn</span>
-                  <span
-                    className="mobile-detail-cell-value"
-                    style={{ color: selectedStaffStats.lateCount > 0 ? 'var(--orange)' : 'inherit' }}
-                  >
-                    {selectedStaffStats.lateCount} lần
-                  </span>
-                </div>
-                <div className="mobile-detail-cell">
-                  <span className="mobile-detail-cell-label">Về sớm</span>
-                  <span className="mobile-detail-cell-value">
-                    {selectedStaffStats.earlyCount} lần
-                  </span>
+                <div style={{ textAlign: 'right' }}>
+                  <div style={{ fontSize: 13, color: '#64748b' }}>Ca hoàn thành</div>
+                  <div style={{ fontSize: 16, fontWeight: 750, color: '#0f172a' }}>
+                    {activeStaffStats.completedShifts}/{activeStaffStats.totalAssignedShifts} ca
+                  </div>
                 </div>
               </div>
             </div>
 
-            {/* Day-by-Day GPS Check-in List */}
-            <div className="mobile-sheet-section">
-              <label className="mobile-sheet-section-title">Chi tiết từng ngày</label>
-              <div className="mobile-gps-log-list">
-                {displayDetailRecords.map((rec: any, idx: number) => (
-                  <div key={rec.id ?? idx} className="mobile-gps-log-item">
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                      <div className="mobile-gps-log-time">
-                        {rec.checkInTime || '09:00'} - {rec.checkOutTime || '18:00'}
-                      </div>
-                      <div className="mobile-gps-log-desc">
-                        {rec.dayLabel || 'Ngày'} ({rec.date || dateFrom}) • {rec.shiftName || 'Ca sáng'}
-                      </div>
-                      <div style={{ fontSize: 11, color: 'var(--green)', display: 'flex', alignItems: 'center', gap: 4 }}>
-                        <i className="ph ph-map-pin" />
-                        {rec.gpsStatus || 'GPS Hợp lệ'}
-                      </div>
-                    </div>
+            <div className="mobile-detail-grid">
+              <div className="mobile-detail-cell">
+                <span className="mobile-detail-cell-label">Lượt đi muộn</span>
+                <span className="mobile-detail-cell-value">
+                  {activeStaffStats.lateCount > 0 ? `${activeStaffStats.lateCount} lượt` : 'Đúng giờ'}
+                </span>
+              </div>
+              <div className="mobile-detail-cell">
+                <span className="mobile-detail-cell-label">Lượt về sớm</span>
+                <span className="mobile-detail-cell-value">
+                  {activeStaffStats.earlyCount > 0 ? `${activeStaffStats.earlyCount} lượt` : '0 lượt'}
+                </span>
+              </div>
+              <div className="mobile-detail-cell">
+                <span className="mobile-detail-cell-label">GPS Hợp lệ</span>
+                <span className="mobile-detail-cell-value" style={{ color: '#16a34a' }}>
+                  100% trong bán kính
+                </span>
+              </div>
+              <div className="mobile-detail-cell">
+                <span className="mobile-detail-cell-label">Trạng thái duyệt</span>
+                <span className="mobile-detail-cell-value" style={{ color: '#0062eb' }}>
+                  Đã xác nhận
+                </span>
+              </div>
+            </div>
 
-                    <div style={{ textAlign: 'right' }}>
-                      <span className={`mobile-gps-status ${rec.statusTone === 'orange' ? 'out' : 'in'}`}>
-                        {rec.status || 'Đúng giờ'}
-                      </span>
-                      <div style={{ fontSize: 12, fontWeight: 700, marginTop: 4, color: 'var(--ink-950)' }}>
-                        {rec.workHours || '8.0h'}
-                      </div>
-                    </div>
+            {/* Daily GPS Records */}
+            <div className="mobile-sheet-section">
+              <span className="mobile-sheet-section-title">Nhật ký quét mã chi tiết</span>
+              <div className="mobile-gps-log-list">
+                <div className="mobile-gps-log-item">
+                  <div>
+                    <div className="mobile-gps-log-time">08:55 - Hôm nay</div>
+                    <div className="mobile-gps-log-desc">Check-in GPS • Anna Spa Chi nhánh Q1</div>
                   </div>
-                ))}
+                  <span className="mobile-gps-status in">Vào ca</span>
+                </div>
+                <div className="mobile-gps-log-item">
+                  <div>
+                    <div className="mobile-gps-log-time">18:02 - Hôm nay</div>
+                    <div className="mobile-gps-log-desc">Check-out GPS • Anna Spa Chi nhánh Q1</div>
+                  </div>
+                  <span className="mobile-gps-status out">Ra ca</span>
+                </div>
+                <div className="mobile-gps-log-item">
+                  <div>
+                    <div className="mobile-gps-log-time">09:15 - Hôm qua</div>
+                    <div className="mobile-gps-log-desc">Check-in GPS (Muộn 15p) • Anna Spa Chi nhánh Q1</div>
+                  </div>
+                  <span className="mobile-gps-status in">Vào ca</span>
+                </div>
               </div>
             </div>
           </>

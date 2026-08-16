@@ -1,6 +1,8 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { ToastProvider } from '@/components/ui/Toast/ToastProvider';
 import { MobileStaffPayrollAdminView } from './MobileStaffPayrollAdminView';
 import * as staffApi from '@/features/staff/staff.api';
 
@@ -86,35 +88,38 @@ describe('MobileStaffPayrollAdminView Component', () => {
     vi.spyOn(staffApi, 'getPayrollDetail').mockResolvedValue(mockPayrollDetailResponse as any);
   });
 
-  it('renders title, summary metrics, period type switch, and staff payroll cards', async () => {
+  const renderComponent = () =>
     render(
       <QueryClientProvider client={queryClient}>
-        <MobileStaffPayrollAdminView />
+        <ToastProvider>
+          <MemoryRouter>
+            <MobileStaffPayrollAdminView />
+          </MemoryRouter>
+        </ToastProvider>
       </QueryClientProvider>
     );
 
-    expect(screen.getByText('Bảng tính lương nhân sự')).toBeInTheDocument();
-    expect(screen.getByText('Tổng thực lĩnh')).toBeInTheDocument();
-    expect(screen.getByText('Đã chi trả')).toBeInTheDocument();
-    expect(screen.getByText('Còn lại cần trả')).toBeInTheDocument();
+  it('renders title, summary text, and staff payroll rows without metric cards', async () => {
+    renderComponent();
+
+    expect(screen.getByText('Bảng lương')).toBeInTheDocument();
 
     await waitFor(() => {
       expect(screen.getByText('Thu Phương')).toBeInTheDocument();
-      expect(screen.getByText('NV000016 • Kỹ thuật viên chính')).toBeInTheDocument();
+      expect(screen.getByText('NV000016')).toBeInTheDocument();
       expect(screen.getByText('Đã chốt lương')).toBeInTheDocument();
     });
   });
 
   it('filters payroll records using search input', async () => {
-    render(
-      <QueryClientProvider client={queryClient}>
-        <MobileStaffPayrollAdminView />
-      </QueryClientProvider>
-    );
+    renderComponent();
 
     await waitFor(() => {
       expect(screen.getByText('Thu Phương')).toBeInTheDocument();
     });
+
+    const searchBtn = screen.getByLabelText('Tìm kiếm');
+    fireEvent.click(searchBtn);
 
     const searchInput = screen.getByPlaceholderText('Tìm phiếu lương theo tên, mã thợ...');
     fireEvent.change(searchInput, { target: { value: 'KhôngTồnTại' } });
@@ -124,19 +129,15 @@ describe('MobileStaffPayrollAdminView Component', () => {
     });
   });
 
-  it('opens payslip detail bottom sheet when clicking a payroll card', async () => {
-    render(
-      <QueryClientProvider client={queryClient}>
-        <MobileStaffPayrollAdminView />
-      </QueryClientProvider>
-    );
+  it('opens payslip detail bottom sheet when clicking a payroll row', async () => {
+    renderComponent();
 
     await waitFor(() => {
       expect(screen.getByText('Thu Phương')).toBeInTheDocument();
     });
 
-    const card = screen.getByText('Thu Phương').closest('.mobile-card');
-    fireEvent.click(card!);
+    const row = screen.getByText('Thu Phương').closest('.mobile-grouped-row');
+    fireEvent.click(row!);
 
     await waitFor(() => {
       expect(screen.getByText('Chi tiết phiếu lương')).toBeInTheDocument();

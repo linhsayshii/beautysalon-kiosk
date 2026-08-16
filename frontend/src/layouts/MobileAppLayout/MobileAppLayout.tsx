@@ -25,7 +25,9 @@ export function MobileAppLayout() {
           location.pathname.startsWith('/m/customers') ||
           location.pathname.startsWith('/m/customer-cards') ||
           location.pathname.startsWith('/m/purchase-orders') ||
-          location.pathname.startsWith('/m/pricebooks')
+          location.pathname.startsWith('/m/pricebooks') ||
+          location.pathname.startsWith('/m/staff') ||
+          location.pathname.startsWith('/m/attendance/qr')
             ? 'is-full-bleed'
             : ''
         }`}

@@ -1,4 +1,5 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { MobileStaffCommissionsAdminView } from './MobileStaffCommissionsAdminView';
@@ -58,35 +59,32 @@ describe('MobileStaffCommissionsAdminView Component', () => {
     vi.spyOn(staffApi, 'getCommissions').mockResolvedValue(mockCommissionsResponse as any);
   });
 
-  it('renders title, summary metrics, date pickers and staff commission cards', async () => {
+  const renderComponent = () =>
     render(
       <QueryClientProvider client={queryClient}>
-        <MobileStaffCommissionsAdminView />
+        <MemoryRouter>
+          <MobileStaffCommissionsAdminView />
+        </MemoryRouter>
       </QueryClientProvider>
     );
 
-    expect(screen.getByText('Bảng tính hoa hồng')).toBeInTheDocument();
-    expect(screen.getByText('Tổng hoa hồng')).toBeInTheDocument();
-    expect(screen.getByText('HH Thực hiện DV')).toBeInTheDocument();
-    expect(screen.getByText('HH Tư vấn bán hàng')).toBeInTheDocument();
-    expect(screen.getByText('Doanh thu phát sinh')).toBeInTheDocument();
+  it('renders title, summary text and staff commission rows without metric cards', async () => {
+    renderComponent();
 
-    // Segmented tab
+    expect(screen.getByText('Bảng hoa hồng')).toBeInTheDocument();
+
+    // Underline tabs
     expect(screen.getByRole('tab', { name: /Theo nhân viên/i })).toBeInTheDocument();
     expect(screen.getByRole('tab', { name: /Chi tiết giao dịch/i })).toBeInTheDocument();
 
     await waitFor(() => {
       expect(screen.getByText('Thu Phương')).toBeInTheDocument();
-      expect(screen.getByText(/NV000016 • Kỹ thuật viên chính/)).toBeInTheDocument();
+      expect(screen.getByText('NV000016')).toBeInTheDocument();
     });
   });
 
   it('switches to transaction details tab and displays invoice items', async () => {
-    render(
-      <QueryClientProvider client={queryClient}>
-        <MobileStaffCommissionsAdminView />
-      </QueryClientProvider>
-    );
+    renderComponent();
 
     const detailsTab = screen.getByRole('tab', { name: /Chi tiết giao dịch/i });
     fireEvent.click(detailsTab);
@@ -97,19 +95,15 @@ describe('MobileStaffCommissionsAdminView Component', () => {
     });
   });
 
-  it('opens staff summary bottom sheet on card click', async () => {
-    render(
-      <QueryClientProvider client={queryClient}>
-        <MobileStaffCommissionsAdminView />
-      </QueryClientProvider>
-    );
+  it('opens staff summary bottom sheet on row click', async () => {
+    renderComponent();
 
     await waitFor(() => {
       expect(screen.getByText('Thu Phương')).toBeInTheDocument();
     });
 
-    const staffCard = screen.getByText('Thu Phương').closest('.mobile-card');
-    fireEvent.click(staffCard!);
+    const staffRow = screen.getByText('Thu Phương').closest('.mobile-grouped-row');
+    fireEvent.click(staffRow!);
 
     await waitFor(() => {
       expect(screen.getByText('Tổng hợp hoa hồng nhân viên')).toBeInTheDocument();

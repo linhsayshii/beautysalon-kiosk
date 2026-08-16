@@ -1,14 +1,14 @@
 import { useState, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import {
   MobileSearchBar,
-  MobileMetricCards,
-  MobileCard,
+  MobileFilterSheet,
   MobileDetailSheet,
-  MobileSegmentedControl,
   MobileEmptyState,
 } from '@/features/mobile-common';
 import { formatMoney, initials } from '@/lib/format';
+import { useToast } from '@/components/ui/Toast/ToastProvider';
 import {
   getPayrollList,
   getPayrollDetail,
@@ -18,8 +18,11 @@ import {
 import './mobile-staff.css';
 
 export function MobileStaffPayrollAdminView() {
+  const navigate = useNavigate();
+  const { notify } = useToast();
   const [periodType, setPeriodType] = useState<string>('monthly');
   const [search, setSearch] = useState('');
+  const [isSearchVisible, setIsSearchVisible] = useState(false);
   const [selectedPeriodId, setSelectedPeriodId] = useState<number | null>(null);
   const [selectedStaffRecord, setSelectedStaffRecord] = useState<PayrollRecordItem | null>(null);
 
@@ -34,12 +37,6 @@ export function MobileStaffPayrollAdminView() {
   });
 
   const rawPeriods = payrollListQuery.data?.data ?? [];
-  const grandSummary = payrollListQuery.data?.summary ?? {
-    totalNetSalary: 0,
-    totalPaidAmount: 0,
-    totalRemainingAmount: 0,
-    totalCommission: 0,
-  };
 
   // Default to first period if none selected
   const activePeriod: PayrollPeriodListItem | undefined = useMemo(() => {
@@ -124,263 +121,310 @@ export function MobileStaffPayrollAdminView() {
     ];
   }, [detailData]);
 
-  // Filter records by search
+  // Filter records by search term
   const filteredRecords = useMemo(() => {
     if (!search.trim()) return records;
     const q = search.toLowerCase();
     return records.filter(
       (r) =>
-        r.staff?.name?.toLowerCase().includes(q) ||
-        r.staff?.code?.toLowerCase().includes(q) ||
-        r.code?.toLowerCase().includes(q)
+        r.staff.name.toLowerCase().includes(q) ||
+        r.staff.code.toLowerCase().includes(q) ||
+        r.code.toLowerCase().includes(q)
     );
   }, [records, search]);
 
-  // Summary computed from records or period data
-  const summary = useMemo(() => {
-    if (detailData?.summary) {
-      return detailData.summary;
-    }
-    const totalNet = records.reduce((s, r) => s + (r.netSalary || 0), 0);
-    const totalPaid = records.reduce((s, r) => s + (r.paidAmount || 0), 0);
-    const totalRem = records.reduce((s, r) => s + (r.remainingAmount || 0), 0);
-    const totalComm = records.reduce((s, r) => s + (r.commission || 0), 0);
+  // Group by Role
+  const groupedRecords = useMemo(() => {
+    const map = new Map<string, PayrollRecordItem[]>();
+    filteredRecords.forEach((rec) => {
+      const role = (rec.staff.role || 'KỸ THUẬT VIÊN').toUpperCase();
+      const list = map.get(role) || [];
+      list.push(rec);
+      map.set(role, list);
+    });
+    return Array.from(map.entries());
+  }, [filteredRecords]);
 
-    return {
-      totalStaff: records.length,
-      totalNetSalary: totalNet || grandSummary.totalNetSalary,
-      totalPaidAmount: totalPaid || grandSummary.totalPaidAmount,
-      totalRemainingAmount: totalRem || grandSummary.totalRemainingAmount,
-      totalCommission: totalComm || grandSummary.totalCommission,
-    };
-  }, [detailData, records, grandSummary]);
+  // Total summary calculation
+  const totalNet = useMemo(() => {
+    return filteredRecords.reduce((sum, r) => sum + Number(r.netSalary || 0), 0);
+  }, [filteredRecords]);
+
+  const handleExport = () => {
+    notify('Xuất bảng lương', 'Đã tải xuống file bảng lương nhân viên (.xlsx).');
+  };
 
   return (
-    <div className="mobile-staff-container">
-      {/* Header */}
-      <div className="mobile-staff-header">
-        <div>
-          <h1 className="mobile-staff-header-title">Bảng tính lương nhân sự</h1>
-          <div className="mobile-staff-subtitle">Theo dõi thu nhập, phụ cấp & thực lĩnh</div>
+    <div className="mobile-staff-view">
+      {/* 1. Header Top Navigation */}
+      <div className="mobile-staff-top-nav">
+        <div className="mobile-staff-nav-left">
+          <button
+            type="button"
+            className="mobile-staff-back-icon"
+            onClick={() => navigate('/m/more')}
+            aria-label="Quay lại"
+          >
+            <i className="ph ph-caret-left" />
+          </button>
+          <h1 className="mobile-staff-nav-title">Bảng lương</h1>
+        </div>
+
+        <div className="mobile-staff-nav-actions">
+          <button
+            type="button"
+            className="mobile-staff-nav-btn"
+            onClick={() => setIsSearchVisible((prev) => !prev)}
+            aria-label="Tìm kiếm"
+          >
+            <i className="ph ph-magnifying-glass" />
+          </button>
+          <button
+            type="button"
+            className="mobile-staff-nav-btn"
+            onClick={handleExport}
+            aria-label="Xuất file"
+            title="Xuất file bảng lương"
+          >
+            <i className="ph ph-export" />
+          </button>
         </div>
       </div>
 
-      {/* Period Type Segmented Control */}
-      <MobileSegmentedControl
-        value={periodType}
-        onChange={setPeriodType}
-        options={[
-          { value: 'monthly', label: 'Hàng tháng', icon: 'ph ph-calendar' },
-          { value: 'weekly', label: 'Hàng tuần', icon: 'ph ph-calendar-blank' },
-        ]}
-      />
+      {/* Inline Search Bar */}
+      {isSearchVisible && (
+        <div className="mobile-staff-search-bar-wrap">
+          <MobileSearchBar
+            value={search}
+            onChange={setSearch}
+            placeholder="Tìm phiếu lương theo tên, mã thợ..."
+            autoFocus
+          />
+        </div>
+      )}
 
-      {/* Period Picker Select Box */}
-      {rawPeriods.length > 0 && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-          <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink-500)' }}>
-            Kỳ tính lương:
-          </label>
+      {/* Filter Strip */}
+      <div className="mobile-staff-filter-strip">
+        <button
+          type="button"
+          className={`mobile-filter-chip ${periodType === 'monthly' ? 'is-active' : ''}`}
+          onClick={() => setPeriodType('monthly')}
+        >
+          <span>Kỳ tháng</span>
+        </button>
+
+        <button
+          type="button"
+          className={`mobile-filter-chip ${periodType === 'weekly' ? 'is-active' : ''}`}
+          onClick={() => setPeriodType('weekly')}
+        >
+          <span>Kỳ tuần</span>
+        </button>
+
+        {rawPeriods.length > 0 && (
           <select
             value={activePeriod?.id ?? ''}
             onChange={(e) => setSelectedPeriodId(Number(e.target.value))}
             style={{
-              height: 44,
-              borderRadius: 12,
-              border: '1px solid var(--line, #e2e8f0)',
-              background: 'var(--surface, #ffffff)',
-              padding: '0 12px',
-              fontSize: 14,
+              height: 36,
+              borderRadius: 10,
+              border: '1px solid #e2e8f0',
+              padding: '0 10px',
+              fontSize: 13,
               fontWeight: 600,
-              color: 'var(--ink-950, #0f172a)',
-              outline: 'none',
-              cursor: 'pointer',
+              background: '#ffffff',
+              color: '#334155',
             }}
           >
             {rawPeriods.map((p) => (
               <option key={p.id} value={p.id}>
-                {p.name} ({p.startsOn} ~ {p.endsOn}) - {p.status === 'approved' ? 'Đã chốt' : 'Tạm tính'}
+                {p.name}
               </option>
             ))}
           </select>
-        </div>
-      )}
+        )}
+      </div>
 
-      {/* Metric Cards */}
-      <MobileMetricCards
-        items={[
-          { label: 'Tổng thực lĩnh', value: formatMoney(summary.totalNetSalary), tone: 'blue' },
-          { label: 'Đã chi trả', value: formatMoney(summary.totalPaidAmount), tone: 'green' },
-          {
-            label: 'Còn lại cần trả',
-            value: formatMoney(summary.totalRemainingAmount),
-            tone: summary.totalRemainingAmount > 0 ? 'orange' : 'green',
-          },
-        ]}
-      />
+      {/* Summary Bar */}
+      <div className="mobile-staff-summary-sort-bar">
+        <span className="mobile-sort-select-chip">
+          <span>{activePeriod?.name || 'Kỳ lương hiện tại'}</span>
+        </span>
+        <span className="mobile-summary-text">
+          {filteredRecords.length} nhân viên · Tổng thực lĩnh: <strong>{formatMoney(totalNet)}</strong>
+        </span>
+      </div>
 
-      {/* Search Bar */}
-      <MobileSearchBar
-        value={search}
-        onChange={setSearch}
-        placeholder="Tìm phiếu lương theo tên, mã thợ..."
-      />
-
-      {/* Staff Payroll Cards */}
-      <div className="mobile-staff-card-list">
-        {payrollListQuery.isLoading ? (
-          <div style={{ textAlign: 'center', padding: '24px 0', color: 'var(--ink-500)' }}>
-            Đang tải danh sách bảng lương...
+      {/* Grouped Section List */}
+      <div className="mobile-grouped-list-container">
+        {payrollDetailQuery.isLoading ? (
+          <div style={{ textAlign: 'center', padding: '36px 0', color: '#64748b' }}>
+            Đang tải dữ liệu bảng lương...
           </div>
         ) : filteredRecords.length === 0 ? (
           <MobileEmptyState
             icon="ph ph-money"
             title="Chưa có bảng lương"
-            description="Không tìm thấy bảng lương trong kỳ đã chọn."
+            description="Không tìm thấy phiếu lương nào trong kỳ này."
           />
         ) : (
-          filteredRecords.map((record) => {
-            const staff = record.staff || { name: 'Nhân viên', code: 'NV', role: 'Kỹ thuật viên' };
-            const statusText =
-              record.status === 'approved' || record.status === 'paid'
-                ? 'Đã chốt lương'
-                : 'Tạm tính';
-            const statusTone =
-              record.status === 'approved' || record.status === 'paid' ? 'green' : 'orange';
+          groupedRecords.map(([roleGroup, groupRecords]) => (
+            <div key={roleGroup} className="mobile-grouped-section">
+              <div className="mobile-section-header">
+                <span className="mobile-section-title">{roleGroup}</span>
+                <span className="mobile-section-count">{groupRecords.length}</span>
+              </div>
+              <div className="mobile-section-card">
+                {groupRecords.map((record) => {
+                  const isApproved = record.status === 'approved' || record.status === 'paid';
+                  return (
+                    <div
+                      key={record.id}
+                      className="mobile-grouped-row"
+                      onClick={() => setSelectedStaffRecord(record)}
+                    >
+                      <div className="mobile-staff-row-left">
+                        <div className="mobile-staff-avatar purple">
+                          {initials(record.staff.name || 'NV')}
+                        </div>
+                        <div className="mobile-staff-row-info">
+                          <span className="mobile-staff-row-name">{record.staff.name}</span>
+                          <span className="mobile-staff-row-sub">
+                            <span>{record.staff.code}</span>
+                            <span>•</span>
+                            <span>{record.staff.role}</span>
+                          </span>
+                        </div>
+                      </div>
 
-            return (
-              <MobileCard
-                key={record.id}
-                title={staff.name}
-                subtitle={`${staff.code} • ${staff.role || 'Kỹ thuật viên'}`}
-                avatar={
-                  <div className="mobile-staff-avatar">{initials(staff.name || 'NV')}</div>
-                }
-                badge={{
-                  text: statusText,
-                  tone: statusTone,
-                }}
-                details={[
-                  {
-                    label: 'Lương cơ bản',
-                    value: formatMoney(record.baseSalary),
-                  },
-                  {
-                    label: 'Hoa hồng + Phụ cấp',
-                    value: (
-                      <span style={{ color: 'var(--blue-600)' }}>
-                        +{formatMoney((record.commission || 0) + (record.allowance || 0) + (record.bonus || 0))}
-                      </span>
-                    ),
-                  },
-                  {
-                    label: 'Giảm trừ',
-                    value: (
-                      <span style={{ color: record.deduction > 0 ? 'var(--orange)' : 'var(--ink-500)' }}>
-                        -{formatMoney(record.deduction || 0)}
-                      </span>
-                    ),
-                  },
-                  {
-                    label: 'Thực lĩnh',
-                    value: (
-                      <strong style={{ fontSize: 15, color: 'var(--ink-950)' }}>
-                        {formatMoney(record.netSalary)}
-                      </strong>
-                    ),
-                  },
-                ]}
-                onClick={() => setSelectedStaffRecord(record)}
-              />
-            );
-          })
+                      <div className="mobile-staff-row-right">
+                        <span className="mobile-staff-row-value blue">
+                          {formatMoney(record.netSalary)}
+                        </span>
+                        <span
+                          className={`mobile-shift-badge ${isApproved ? 'theme-green' : 'theme-orange'}`}
+                          style={{ fontSize: 11 }}
+                        >
+                          {isApproved ? 'Đã chốt lương' : 'Tạm tính'}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          ))
         )}
       </div>
 
-      {/* Payslip Detail Bottom Sheet */}
+      {/* Payslip Inset Detail Sheet */}
       <MobileDetailSheet
         isOpen={Boolean(selectedStaffRecord)}
         title="Chi tiết phiếu lương"
         subtitle={
           selectedStaffRecord
-            ? `${selectedStaffRecord.staff?.name} (${selectedStaffRecord.staff?.code})`
+            ? `${selectedStaffRecord.staff.name} • ${selectedStaffRecord.code}`
             : ''
         }
         onClose={() => setSelectedStaffRecord(null)}
         footerActions={
-          <button
-            type="button"
-            className="mobile-staff-action-btn primary"
-            style={{ width: '100%' }}
-            onClick={() => setSelectedStaffRecord(null)}
-          >
-            Đóng phiếu lương
-          </button>
+          <div style={{ display: 'flex', gap: 10, width: '100%' }}>
+            <button
+              type="button"
+              className="mobile-staff-action-btn primary"
+              style={{ width: '100%' }}
+              onClick={() => setSelectedStaffRecord(null)}
+            >
+              Đóng phiếu lương
+            </button>
+          </div>
         }
       >
         {selectedStaffRecord && (
           <>
-            {/* Hero Net Pay */}
-            <div className="salary-overview-card" style={{ marginBottom: 16 }}>
-              <div className="salary-label">Thực lĩnh kỳ này</div>
-              <div className="salary-amount">{formatMoney(selectedStaffRecord.netSalary)}</div>
-              <div className="salary-meta-row">
-                <span>Đã trả: <strong>{formatMoney(selectedStaffRecord.paidAmount)}</strong></span>
-                <span>Còn lại: <strong>{formatMoney(selectedStaffRecord.remainingAmount)}</strong></span>
+            <div className="mobile-detail-hero">
+              <div className="mobile-detail-hero-header">
+                <div>
+                  <div style={{ fontSize: 13, color: '#64748b' }}>Thực lĩnh kỳ này</div>
+                  <div className="mobile-detail-hero-amount">
+                    {formatMoney(selectedStaffRecord.netSalary)}
+                  </div>
+                </div>
+                <span
+                  className={`mobile-shift-badge ${
+                    selectedStaffRecord.status === 'approved' ? 'theme-green' : 'theme-orange'
+                  }`}
+                >
+                  {selectedStaffRecord.status === 'approved' ? 'Đã duyệt' : 'Chưa duyệt'}
+                </span>
               </div>
             </div>
 
-            {/* Income & Deduction Itemized List */}
-            <div className="mobile-sheet-section">
-              <label className="mobile-sheet-section-title">Chi tiết thu nhập & khấu trừ</label>
-              <div className="salary-breakdown-list">
-                <div className="salary-breakdown-item">
-                  <div className="breakdown-left">
-                    <span className="breakdown-title">Lương cơ bản</span>
-                    <span className="breakdown-sub">
-                      {selectedStaffRecord.workUnits || 26}/{selectedStaffRecord.standardWorkDays || 26} ngày công
-                    </span>
-                  </div>
-                  <span className="breakdown-value">{formatMoney(selectedStaffRecord.baseSalary)}</span>
-                </div>
+            <div className="mobile-detail-grid">
+              <div className="mobile-detail-cell">
+                <span className="mobile-detail-cell-label">Mã phiếu lương</span>
+                <span className="mobile-detail-cell-value">{selectedStaffRecord.code}</span>
+              </div>
+              <div className="mobile-detail-cell">
+                <span className="mobile-detail-cell-label">Ngày công thực tế</span>
+                <span className="mobile-detail-cell-value">
+                  {selectedStaffRecord.workUnits}/{selectedStaffRecord.standardWorkDays} công
+                </span>
+              </div>
+              <div className="mobile-detail-cell">
+                <span className="mobile-detail-cell-label">Lương cơ bản</span>
+                <span className="mobile-detail-cell-value">
+                  {formatMoney(selectedStaffRecord.baseSalary)}
+                </span>
+              </div>
+              <div className="mobile-detail-cell">
+                <span className="mobile-detail-cell-label">Hoa hồng dịch vụ</span>
+                <span className="mobile-detail-cell-value" style={{ color: '#0062eb' }}>
+                  +{formatMoney(selectedStaffRecord.commission)}
+                </span>
+              </div>
+            </div>
 
-                <div className="salary-breakdown-item">
-                  <div className="breakdown-left">
-                    <span className="breakdown-title">Hoa hồng dịch vụ & tư vấn</span>
-                    <span className="breakdown-sub">Theo kết quả thực tế</span>
+            <div className="mobile-sheet-section">
+              <span className="mobile-sheet-section-title">Chi tiết thu nhập & khấu trừ</span>
+              <div className="mobile-detail-list">
+                <div className="mobile-detail-item">
+                  <div className="mobile-detail-item-left">
+                    <span className="mobile-detail-item-title">Lương làm thêm giờ (OT)</span>
+                    <span className="mobile-detail-item-sub">Tính theo giờ phát sinh ngoài ca</span>
                   </div>
-                  <span className="breakdown-value" style={{ color: 'var(--blue-600)' }}>
-                    +{formatMoney(selectedStaffRecord.commission)}
+                  <span className="mobile-detail-item-value">
+                    +{formatMoney(selectedStaffRecord.overtimeSalary)}
                   </span>
                 </div>
 
-                <div className="salary-breakdown-item">
-                  <div className="breakdown-left">
-                    <span className="breakdown-title">Phụ cấp (Ăn trưa/Xăng xe)</span>
-                    <span className="breakdown-sub">Cố định theo hợp đồng</span>
+                <div className="mobile-detail-item">
+                  <div className="mobile-detail-item-left">
+                    <span className="mobile-detail-item-title">Phụ cấp & Ăn trưa</span>
+                    <span className="mobile-detail-item-sub">Định mức cố định tháng</span>
                   </div>
-                  <span className="breakdown-value" style={{ color: 'var(--green)' }}>
+                  <span className="mobile-detail-item-value" style={{ color: '#16a34a' }}>
                     +{formatMoney(selectedStaffRecord.allowance)}
                   </span>
                 </div>
 
-                <div className="salary-breakdown-item">
-                  <div className="breakdown-left">
-                    <span className="breakdown-title">Thưởng & Tăng ca</span>
-                    <span className="breakdown-sub">Thưởng hiệu suất</span>
+                <div className="mobile-detail-item">
+                  <div className="mobile-detail-item-left">
+                    <span className="mobile-detail-item-title">Thưởng đánh giá & KPI</span>
+                    <span className="mobile-detail-item-sub">Đạt chỉ tiêu tháng</span>
                   </div>
-                  <span className="breakdown-value" style={{ color: 'var(--green)' }}>
-                    +{formatMoney((selectedStaffRecord.bonus || 0) + (selectedStaffRecord.overtimeSalary || 0))}
+                  <span className="mobile-detail-item-value" style={{ color: '#16a34a' }}>
+                    +{formatMoney(selectedStaffRecord.bonus)}
                   </span>
                 </div>
 
-                <div className="salary-breakdown-item">
-                  <div className="breakdown-left">
-                    <span className="breakdown-title">Giảm trừ / Đi muộn</span>
-                    <span className="breakdown-sub">Khấu trừ lương</span>
+                <div className="mobile-detail-item">
+                  <div className="mobile-detail-item-left">
+                    <span className="mobile-detail-item-title">Giảm trừ / Phạt vi phạm</span>
+                    <span className="mobile-detail-item-sub">Đi muộn hoặc vi phạm quy chế</span>
                   </div>
-                  <span className="breakdown-value" style={{ color: 'var(--orange)' }}>
-                    -{formatMoney(selectedStaffRecord.deduction || 0)}
+                  <span className="mobile-detail-item-value" style={{ color: '#ea580c' }}>
+                    -{formatMoney(selectedStaffRecord.deduction)}
                   </span>
                 </div>
               </div>

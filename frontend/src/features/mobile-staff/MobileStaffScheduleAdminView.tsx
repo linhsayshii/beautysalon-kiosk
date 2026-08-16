@@ -1,11 +1,10 @@
 import { useState, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   MobileSearchBar,
-  MobileMetricCards,
-  MobileCard,
+  MobileFilterSheet,
   MobileDetailSheet,
-  MobileSegmentedControl,
   MobileEmptyState,
 } from '@/features/mobile-common';
 import { useToast } from '@/components/ui/Toast/ToastProvider';
@@ -28,6 +27,7 @@ function getShiftThemeClass(shiftName: string): string {
 }
 
 export function MobileStaffScheduleAdminView() {
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { notify } = useToast();
 
@@ -35,6 +35,7 @@ export function MobileStaffScheduleAdminView() {
   const [selectedDateIso, setSelectedDateIso] = useState(todayIso());
   const [viewMode, setViewMode] = useState<'by-staff' | 'by-shift'>('by-staff');
   const [search, setSearch] = useState('');
+  const [isSearchVisible, setIsSearchVisible] = useState(false);
 
   // Assign shift bottom sheet state
   const [assigningStaff, setAssigningStaff] = useState<ApiRecord | null>(null);
@@ -149,12 +150,17 @@ export function MobileStaffScheduleAdminView() {
     return null;
   };
 
-  // Compute metrics for the selected day
-  const assignedCount = useMemo(() => {
-    return staffList.filter((s) => Boolean(getStaffDayShift(s))).length;
-  }, [staffList, rawAssignments, selectedDateIso]);
-
-  const unassignedCount = Math.max(0, staffList.length - assignedCount);
+  // Group staff by Role for by-staff view
+  const groupedStaff = useMemo(() => {
+    const map = new Map<string, ApiRecord[]>();
+    filteredStaff.forEach((s) => {
+      const role = (s.role || 'KỸ THUẬT VIÊN').toUpperCase();
+      const list = map.get(role) || [];
+      list.push(s);
+      map.set(role, list);
+    });
+    return Array.from(map.entries());
+  }, [filteredStaff]);
 
   // Navigate previous / next week
   const handlePrevWeek = () => {
@@ -193,15 +199,60 @@ export function MobileStaffScheduleAdminView() {
     });
   };
 
+  const assignedCount = useMemo(() => {
+    return filteredStaff.filter((s) => Boolean(getStaffDayShift(s))).length;
+  }, [filteredStaff, selectedDateIso, rawAssignments]);
+
   return (
-    <div className="mobile-staff-container">
-      {/* Header */}
-      <div className="mobile-staff-header">
-        <div>
-          <h1 className="mobile-staff-header-title">Quản lý ca làm việc</h1>
-          <div className="mobile-staff-subtitle">Phân ca & điều phối nhân sự</div>
+    <div className="mobile-staff-view">
+      {/* 1. Header Top Navigation */}
+      <div className="mobile-staff-top-nav">
+        <div className="mobile-staff-nav-left">
+          <button
+            type="button"
+            className="mobile-staff-back-icon"
+            onClick={() => navigate('/m/more')}
+            aria-label="Quay lại"
+          >
+            <i className="ph ph-caret-left" />
+          </button>
+          <h1 className="mobile-staff-nav-title">Lịch làm việc</h1>
+        </div>
+
+        <div className="mobile-staff-nav-actions">
+          <button
+            type="button"
+            className="mobile-staff-nav-btn"
+            onClick={() => setIsSearchVisible((prev) => !prev)}
+            aria-label="Tìm kiếm"
+          >
+            <i className="ph ph-magnifying-glass" />
+          </button>
+          <button
+            type="button"
+            className="mobile-staff-nav-btn"
+            onClick={() => {
+              if (staffList.length > 0) handleOpenAssign(staffList[0]);
+            }}
+            aria-label="Phân ca nhanh"
+            title="Phân ca nhanh"
+          >
+            <i className="ph ph-calendar-plus" />
+          </button>
         </div>
       </div>
+
+      {/* Inline Search Bar */}
+      {isSearchVisible && (
+        <div className="mobile-staff-search-bar-wrap">
+          <MobileSearchBar
+            value={search}
+            onChange={setSearch}
+            placeholder="Tìm nhân viên theo tên, mã..."
+            autoFocus
+          />
+        </div>
+      )}
 
       {/* Week Navigator */}
       <div className="mobile-week-navigator">
@@ -246,37 +297,46 @@ export function MobileStaffScheduleAdminView() {
         ))}
       </div>
 
-      {/* Metric Cards */}
-      <MobileMetricCards
-        items={[
-          { label: 'Tổng nhân sự', value: staffList.length, tone: 'blue' },
-          { label: 'Đã xếp ca', value: assignedCount, tone: 'green' },
-          { label: 'Chưa xếp ca', value: unassignedCount, tone: 'orange' },
-        ]}
-      />
+      {/* Filter & View Switcher Strip */}
+      <div className="mobile-staff-filter-strip">
+        <button
+          type="button"
+          className={`mobile-filter-chip ${viewMode === 'by-staff' ? 'is-active' : ''}`}
+          onClick={() => setViewMode('by-staff')}
+          role="tab"
+          aria-selected={viewMode === 'by-staff'}
+        >
+          <i className="ph ph-user" />
+          <span>Theo nhân viên</span>
+        </button>
 
-      {/* View Toggle */}
-      <MobileSegmentedControl
-        value={viewMode}
-        onChange={setViewMode}
-        options={[
-          { value: 'by-staff', label: 'Theo nhân viên', icon: 'ph ph-user' },
-          { value: 'by-shift', label: 'Theo ca làm', icon: 'ph ph-clock' },
-        ]}
-      />
+        <button
+          type="button"
+          className={`mobile-filter-chip ${viewMode === 'by-shift' ? 'is-active' : ''}`}
+          onClick={() => setViewMode('by-shift')}
+          role="tab"
+          aria-selected={viewMode === 'by-shift'}
+        >
+          <i className="ph ph-clock" />
+          <span>Theo ca làm</span>
+        </button>
+      </div>
 
-      {/* Search Bar */}
-      <MobileSearchBar
-        value={search}
-        onChange={setSearch}
-        placeholder="Tìm nhân viên theo tên, mã..."
-      />
+      {/* Summary Bar */}
+      <div className="mobile-staff-summary-sort-bar">
+        <span className="mobile-sort-select-chip">
+          <span>{selectedDayInfo.fullLabel}</span>
+        </span>
+        <span className="mobile-summary-text">
+          {assignedCount}/{filteredStaff.length} nhân viên đã xếp ca
+        </span>
+      </div>
 
       {/* Content by Staff */}
       {viewMode === 'by-staff' && (
-        <div className="mobile-staff-card-list">
+        <div className="mobile-grouped-list-container">
           {staffQuery.isLoading ? (
-            <div style={{ textAlign: 'center', padding: '24px 0', color: 'var(--ink-500)' }}>
+            <div style={{ textAlign: 'center', padding: '36px 0', color: '#64748b' }}>
               Đang tải danh sách nhân viên...
             </div>
           ) : filteredStaff.length === 0 ? (
@@ -286,75 +346,145 @@ export function MobileStaffScheduleAdminView() {
               description="Thử tìm kiếm với từ khóa khác."
             />
           ) : (
-            filteredStaff.map((staff) => {
-              const shift = getStaffDayShift(staff);
-              return (
-                <MobileCard
-                  key={staff.id}
-                  title={staff.name}
-                  subtitle={`${staff.code || ''} • ${staff.role || 'Kỹ thuật viên'}`}
-                  avatar={
-                    <div className="mobile-staff-avatar">{initials(staff.name || 'NV')}</div>
-                  }
-                  badge={
-                    shift
-                      ? {
-                          text: `${shift.shiftName} (${shift.startsAt} - ${shift.endsAt})`,
-                          tone: getShiftThemeClass(shift.shiftName).replace('theme-', ''),
-                        }
-                      : { text: 'Chưa xếp ca', tone: 'orange' }
-                  }
-                  action={
-                    <button
-                      type="button"
-                      className="mobile-shift-assign-btn"
-                      onClick={() => handleOpenAssign(staff)}
-                    >
-                      <i className="ph ph-calendar-plus" />
-                      {shift ? 'Đổi ca' : 'Xếp ca'}
-                    </button>
-                  }
-                />
-              );
-            })
+            groupedStaff.map(([roleGroup, members]) => (
+              <div key={roleGroup} className="mobile-grouped-section">
+                <div className="mobile-section-header">
+                  <span className="mobile-section-title">{roleGroup}</span>
+                  <span className="mobile-section-count">{members.length}</span>
+                </div>
+                <div className="mobile-section-card">
+                  {members.map((staff) => {
+                    const shift = getStaffDayShift(staff);
+                    return (
+                      <div
+                        key={staff.id}
+                        className="mobile-grouped-row"
+                        onClick={() => handleOpenAssign(staff)}
+                      >
+                        <div className="mobile-staff-row-left">
+                          <div className="mobile-staff-avatar">
+                            {initials(staff.name || 'NV')}
+                          </div>
+                          <div className="mobile-staff-row-info">
+                            <span className="mobile-staff-row-name">{staff.name}</span>
+                            <span className="mobile-staff-row-sub">
+                              <span>{staff.code || ''}</span>
+                              {staff.role && <span>• {staff.role}</span>}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="mobile-staff-row-right">
+                          {shift ? (
+                            <div className="mobile-staff-row-right">
+                              <span
+                                className={`mobile-shift-badge ${getShiftThemeClass(
+                                  shift.shiftName
+                                )}`}
+                              >
+                                {shift.shiftName}
+                              </span>
+                              <span style={{ fontSize: 11.5, color: '#64748b' }}>
+                                {shift.startsAt} - {shift.endsAt}
+                              </span>
+                            </div>
+                          ) : (
+                            <button
+                              type="button"
+                              className="mobile-shift-assign-btn"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleOpenAssign(staff);
+                              }}
+                            >
+                              <i className="ph ph-plus" />
+                              Xếp ca
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            ))
           )}
         </div>
       )}
 
       {/* Content by Shift */}
       {viewMode === 'by-shift' && (
-        <div className="mobile-staff-card-list">
+        <div className="mobile-grouped-list-container">
           {workShifts.map((shift, idx) => {
-            const assignedMembers = staffList.filter((s) => {
+            const assignedMembers = filteredStaff.filter((s) => {
               const staffShift = getStaffDayShift(s);
               return staffShift && staffShift.shiftName === shift.name;
             });
 
             return (
-              <MobileCard
-                key={idx}
-                title={shift.name}
-                subtitle={`${shift.startsAt} - ${shift.endsAt}`}
-                badge={{
-                  text: `${assignedMembers.length} nhân viên`,
-                  tone: getShiftThemeClass(shift.name).replace('theme-', ''),
-                }}
-                details={[
-                  {
-                    label: 'Danh sách nhân viên',
-                    value:
-                      assignedMembers.length > 0
-                        ? assignedMembers.map((m) => m.name).join(', ')
-                        : 'Chưa có nhân viên nào trong ca này',
-                  },
-                ]}
-              />
+              <div key={idx} className="mobile-grouped-section">
+                <div className="mobile-section-header">
+                  <span className="mobile-section-title">
+                    {shift.name} ({shift.startsAt} - {shift.endsAt})
+                  </span>
+                  <span className="mobile-section-count">{assignedMembers.length} người</span>
+                </div>
+                <div className="mobile-section-card">
+                  {assignedMembers.length === 0 ? (
+                    <div style={{ padding: '16px 14px', fontSize: 13, color: '#94a3b8' }}>
+                      Chưa có nhân viên nào trong ca này.
+                    </div>
+                  ) : (
+                    assignedMembers.map((staff) => (
+                      <div
+                        key={staff.id}
+                        className="mobile-grouped-row"
+                        onClick={() => handleOpenAssign(staff)}
+                      >
+                        <div className="mobile-staff-row-left">
+                          <div className="mobile-staff-avatar">
+                            {initials(staff.name || 'NV')}
+                          </div>
+                          <div className="mobile-staff-row-info">
+                            <span className="mobile-staff-row-name">{staff.name}</span>
+                            <span className="mobile-staff-row-sub">{staff.role || 'Kỹ thuật viên'}</span>
+                          </div>
+                        </div>
+                        <div className="mobile-staff-row-right">
+                          <button
+                            type="button"
+                            className="mobile-shift-assign-btn"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleOpenAssign(staff);
+                            }}
+                          >
+                            Đổi ca
+                          </button>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
             );
           })}
         </div>
       )}
 
-      {/* Assign Shift Bottom Sheet */}
+      {/* Floating Action Button (FAB) */}
+      <button
+        type="button"
+        className="mobile-staff-fab"
+        onClick={() => {
+          if (staffList.length > 0) handleOpenAssign(staffList[0]);
+        }}
+        aria-label="Thêm ca làm việc"
+      >
+        <i className="ph ph-plus" />
+      </button>
+
+      {/* Assign Shift Inset Sheet */}
       <MobileDetailSheet
         isOpen={Boolean(assigningStaff)}
         title="Xếp ca làm việc"
@@ -400,17 +530,17 @@ export function MobileStaffScheduleAdminView() {
                   borderRadius: '12px',
                   border:
                     selectedShiftName === shift.name
-                      ? '2px solid var(--blue-600, #0284c7)'
-                      : '1px solid var(--line, #e2e8f0)',
+                      ? '2px solid #0062eb'
+                      : '1px solid #e2e8f0',
                   background:
-                    selectedShiftName === shift.name ? '#f0f9ff' : 'var(--surface, #ffffff)',
+                    selectedShiftName === shift.name ? '#eff6ff' : '#ffffff',
                   cursor: 'pointer',
                   minHeight: 44,
                 }}
               >
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                  <strong style={{ fontSize: 14, color: 'var(--ink-950)' }}>{shift.name}</strong>
-                  <span style={{ fontSize: 12, color: 'var(--ink-500)' }}>
+                  <strong style={{ fontSize: 14, color: '#0f172a' }}>{shift.name}</strong>
+                  <span style={{ fontSize: 12, color: '#64748b' }}>
                     {shift.startsAt} - {shift.endsAt}
                   </span>
                 </div>
