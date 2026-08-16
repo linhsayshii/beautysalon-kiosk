@@ -669,3 +669,332 @@
 .mobile-appointment-save-btn:not(:disabled):active {
   background: #059669;
 }
+
+/* =========================================================
+   Mobile Appointments List View Styles
+   ========================================================= */
+
+.mobile-appointments-list-container {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background-color: #f8fafc;
+  padding-bottom: 90px;
+  box-sizing: border-box;
+  font-family: inherit;
+  color: #1e293b;
+}
+
+/* Header */
+.mobile-appointments-list-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  background: #ffffff;
+  border-bottom: 1px solid #e2e8f0;
+  position: sticky;
+  top: 0;
+  z-index: 20;
+}
+
+.mobile-appointments-list-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.mobile-appointments-count-badge {
+  font-size: 12px;
+  font-weight: 600;
+  color: #2563eb;
+  background: #eff6ff;
+  padding: 2px 8px;
+  border-radius: 12px;
+  border: 1px solid #bfdbfe;
+}
+
+/* Date Selector Bar */
+.mobile-appointments-date-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  background: #ffffff;
+  border-bottom: 1px solid #f1f5f9;
+  overflow-x: auto;
+}
+
+.mobile-appointments-date-btn {
+  padding: 6px 12px;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
+  color: #475569;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+}
+
+.mobile-appointments-date-btn.is-active {
+  background: #0f172a;
+  color: #ffffff;
+  border-color: #0f172a;
+}
+
+.mobile-appointments-date-input-wrapper {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.mobile-appointments-date-input {
+  padding: 5px 8px;
+  border-radius: 8px;
+  border: 1px solid #cbd5e1;
+  font-size: 13px;
+  font-family: inherit;
+  color: #1e293b;
+  background: #ffffff;
+}
+
+/* Status Filter Tabs (Horizontal Scroll) */
+.mobile-appointments-status-bar {
+  display: flex;
+  gap: 8px;
+  padding: 10px 16px;
+  background: #ffffff;
+  border-bottom: 1px solid #e2e8f0;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.mobile-appointments-status-bar::-webkit-scrollbar {
+  display: none;
+}
+
+.mobile-appointments-status-chip {
+  padding: 6px 14px;
+  border-radius: 20px;
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
+  color: #64748b;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+}
+
+.mobile-appointments-status-chip.is-active {
+  background: #2563eb;
+  color: #ffffff;
+  border-color: #2563eb;
+  font-weight: 600;
+}
+
+/* Appointments List Cards */
+.mobile-appointments-list-body {
+  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.mobile-appointment-card-item {
+  background: #ffffff;
+  border-radius: 14px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.mobile-appointment-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.mobile-appointment-time-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #2563eb;
+  background: #eff6ff;
+  padding: 4px 10px;
+  border-radius: 8px;
+}
+
+.mobile-appointment-status-pill {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 6px;
+}
+
+.mobile-appointment-status-pill.status-pending {
+  background: #fef3c7;
+  color: #d97706;
+}
+
+.mobile-appointment-status-pill.status-confirmed {
+  background: #e0f2fe;
+  color: #0284c7;
+}
+
+.mobile-appointment-status-pill.status-waiting {
+  background: #fef9c3;
+  color: #ca8a04;
+}
+
+.mobile-appointment-status-pill.status-in_service {
+  background: #dbeafe;
+  color: #2563eb;
+}
+
+.mobile-appointment-status-pill.status-completed {
+  background: #dcfce7;
+  color: #16a34a;
+}
+
+.mobile-appointment-status-pill.status-cancelled {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+/* Card Customer & Service Info */
+.mobile-appointment-card-middle {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.mobile-appointment-cust-name {
+  font-size: 15px;
+  font-weight: 700;
+  color: #0f172a;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.mobile-appointment-service-name {
+  font-size: 13px;
+  color: #334155;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.mobile-appointment-staff-assigned {
+  font-size: 12px;
+  color: #64748b;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Card Bottom Actions */
+.mobile-appointment-card-bottom {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  padding-top: 8px;
+  border-top: 1px solid #f1f5f9;
+}
+
+.mobile-appointment-call-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 12px;
+  border-radius: 8px;
+  background: #ecfdf5;
+  color: #059669;
+  border: 1px solid #a7f3d0;
+  font-size: 12px;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.mobile-appointment-call-btn:active {
+  background: #d1fae5;
+}
+
+/* Floating Create Action Button */
+.mobile-appointments-fab {
+  position: fixed;
+  bottom: 84px;
+  right: 20px;
+  height: 48px;
+  padding: 0 18px;
+  border-radius: 24px;
+  background: #2563eb;
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.4);
+  text-decoration: none;
+  z-index: 40;
+  transition: transform 0.15s ease, background 0.15s ease;
+}
+
+.mobile-appointments-fab:active {
+  transform: scale(0.96);
+  background: #1d4ed8;
+}
+
+/* Empty State */
+.mobile-appointments-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  text-align: center;
+  gap: 12px;
+}
+
+.mobile-appointments-empty-icon {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: #e2e8f0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 32px;
+  color: #94a3b8;
+}
+
+.mobile-appointments-empty-text {
+  font-size: 15px;
+  font-weight: 600;
+  color: #64748b;
+  margin: 0;
+}
+
+.mobile-appointments-empty-subtext {
+  font-size: 13px;
+  color: #94a3b8;
+  margin: 0;
+}
+
