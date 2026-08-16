@@ -55,14 +55,10 @@ export function MobileTopBar() {
   const subPageInfo = SUBPAGE_CONFIG[pathname];
   const subPageTitle = subPageInfo?.title || 'Chi tiết';
 
-  if (subPageInfo?.hideTopBar) {
-    return null;
-  }
-
   const { data: branchesData } = useQuery({
     queryKey: ['branches-list'],
     queryFn: getBranches,
-    enabled: isDropdownOpen,
+    enabled: isDropdownOpen && !subPageInfo?.hideTopBar,
   });
 
   const branches = (branchesData?.data ?? []) as ApiRecord[];
@@ -81,6 +77,10 @@ export function MobileTopBar() {
       document.removeEventListener('click', handleClickOutside);
     };
   }, [isDropdownOpen]);
+
+  if (subPageInfo?.hideTopBar) {
+    return null;
+  }
 
   const handleSelectBranch = async (branchId: number) => {
     await switchBranch(branchId);
