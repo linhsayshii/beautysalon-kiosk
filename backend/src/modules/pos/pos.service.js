@@ -1,5 +1,6 @@
 import { pool } from '../../db.js';
 import { HttpError } from '../../lib/http.js';
+import { broadcastToBranch } from '../../lib/ws.js';
 
 const number = (value) => Number(value ?? 0);
 
@@ -340,7 +341,7 @@ export async function checkoutPosInvoice({
     const branchRes = await pool.query('SELECT name, address, phone FROM branches WHERE id = $1', [branchId]);
     const branchInfo = branchRes.rows[0] || {};
 
-    return {
+    const receipt = {
       id: invoiceId,
       code: invoice.code,
       status: invoice.status,
@@ -375,6 +376,16 @@ export async function checkoutPosInvoice({
         lineTotal: item.lineTotal,
       })),
     };
+
+    broadcastToBranch(branchId, 'pos:order_created', {
+      orderId: receipt.id,
+      code: receipt.code,
+      total: receipt.total,
+      customerName: receipt.customer.name,
+      issuedAt: receipt.issuedAt,
+    });
+
+    return receipt;
   } catch (error) {
     await client.query('ROLLBACK');
     throw error;
