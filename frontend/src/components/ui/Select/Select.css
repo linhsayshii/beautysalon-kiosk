@@ -1,0 +1,280 @@
+/* ==========================================================================
+   Custom Web Select Component (KiotViet / Modern SaaS Style)
+   ========================================================================== */
+
+.app-select-container {
+  position: relative;
+  display: inline-block;
+  vertical-align: middle;
+  font-family: inherit;
+}
+
+.app-select-container.full-width {
+  display: block;
+  width: 100%;
+}
+
+/* Trigger Button */
+.app-select-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  min-height: 38px;
+  padding: 0 12px;
+  border: 1px solid var(--line-strong, #cbd5e1);
+  border-radius: 9px;
+  background-color: var(--surface, #ffffff);
+  color: var(--ink-800, #1e293b);
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+  outline: none;
+  user-select: none;
+  transition: all 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  box-sizing: border-box;
+}
+
+.app-select-trigger:hover:not(:disabled) {
+  border-color: var(--blue-400, #3b8cf8);
+  background-color: #f8fafc;
+}
+
+.app-select-trigger:focus-visible {
+  border-color: var(--blue-500, #0d72ff);
+  box-shadow: 0 0 0 3px rgba(13, 114, 255, 0.15);
+}
+
+.app-select-container.is-open .app-select-trigger {
+  border-color: var(--blue-500, #0d72ff);
+  box-shadow: 0 0 0 3px rgba(13, 114, 255, 0.15);
+}
+
+.app-select-trigger:disabled {
+  opacity: 0.65;
+  background-color: #f1f5f9;
+  cursor: not-allowed;
+}
+
+/* Value & Placeholder */
+.app-select-value {
+  flex: 1 1 auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.app-select-placeholder {
+  color: var(--ink-400, #64748b);
+  font-weight: normal;
+}
+
+/* Icon */
+.app-select-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  color: var(--ink-500, #475569);
+  font-size: 14px;
+  transition: transform 150ms ease, color 150ms ease;
+}
+
+.app-select-container.is-open .app-select-icon {
+  color: var(--blue-600, #0062eb);
+}
+
+/* Popover / Dropdown Menu */
+.app-select-popover {
+  position: absolute;
+  left: 0;
+  z-index: 100;
+  min-width: 100%;
+  width: max-content;
+  max-width: min(92vw, 360px);
+  padding: 6px;
+  border: 1px solid var(--line, #cbd5e1);
+  border-radius: 12px;
+  background-color: #ffffff;
+  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.14), 0 2px 6px rgba(15, 23, 42, 0.04);
+  animation: appSelectFadeIn 120ms cubic-bezier(0.16, 1, 0.3, 1);
+  box-sizing: border-box;
+}
+
+.app-select-popover.placement-bottom {
+  top: calc(100% + 5px);
+}
+
+.app-select-popover.placement-top {
+  bottom: calc(100% + 5px);
+}
+
+.app-select-popover.align-right {
+  left: auto;
+  right: 0;
+}
+
+@keyframes appSelectFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.app-select-menu {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 260px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 transparent;
+}
+
+.app-select-menu::-webkit-scrollbar {
+  width: 5px;
+}
+
+.app-select-menu::-webkit-scrollbar-thumb {
+  background-color: #cbd5e1;
+  border-radius: 4px;
+}
+
+/* Menu Item */
+.app-select-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 9px 12px;
+  border-radius: 8px;
+  color: var(--ink-800, #1e293b);
+  font-size: 14px;
+  font-weight: 550;
+  cursor: pointer;
+  transition: background-color 100ms ease, color 100ms ease;
+  user-select: none;
+}
+
+.app-select-item:hover,
+.app-select-item.is-highlighted {
+  background-color: #f1f5f9;
+  color: var(--ink-950, #0f172a);
+}
+
+/* Selected item styling */
+.app-select-item.is-selected {
+  background-color: #eff6ff;
+  color: var(--blue-700, #004ecc);
+  font-weight: 650;
+}
+
+.app-select-item.is-selected:hover,
+.app-select-item.is-selected.is-highlighted {
+  background-color: #dbeafe;
+}
+
+.app-select-item.is-disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.app-select-item-content {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.app-select-item-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.app-select-item-desc {
+  font-size: 12px;
+  font-weight: normal;
+  color: var(--ink-500, #475569);
+}
+
+.app-select-check {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  color: var(--blue-600, #0062eb);
+  font-size: 15px;
+  font-weight: bold;
+}
+
+/* ==========================================================================
+   Variants
+   ========================================================================== */
+
+/* Chart variant */
+.app-select-container.variant-chart .app-select-trigger {
+  min-height: 38px;
+  padding: 0 14px;
+  border: 1px solid var(--line, #cbd5e1);
+  border-radius: 9px;
+  background-color: #f8fafc;
+  color: var(--ink-800, #1e293b);
+  font-size: 14px;
+  font-weight: 650;
+}
+
+.app-select-container.variant-chart .app-select-trigger:hover:not(:disabled) {
+  background-color: #f1f5f9;
+  border-color: var(--blue-400, #3b8cf8);
+}
+
+.app-select-container.variant-chart.is-open .app-select-trigger {
+  background-color: #ffffff;
+  border-color: var(--blue-500, #0d72ff);
+}
+
+/* Filter variant */
+.app-select-container.variant-filter {
+  width: 100%;
+}
+
+.app-select-container.variant-filter .app-select-trigger {
+  min-height: 38px;
+  padding: 0 11px;
+  border-radius: 9px;
+  border: 1px solid var(--line-strong, #94a3b8);
+}
+
+/* Bordered variant */
+.app-select-container.variant-bordered .app-select-trigger {
+  border-color: var(--blue-500, #0d72ff);
+}
+
+/* Sizes */
+.app-select-container.size-sm .app-select-trigger {
+  min-height: 34px;
+  padding: 0 9px;
+  font-size: 13px;
+  border-radius: 8px;
+}
+
+.app-select-container.size-sm .app-select-item {
+  padding: 7px 10px;
+  font-size: 13px;
+}
+
+.app-select-container.size-lg .app-select-trigger {
+  min-height: 44px;
+  padding: 0 16px;
+  font-size: 15px;
+  border-radius: 10px;
+}
