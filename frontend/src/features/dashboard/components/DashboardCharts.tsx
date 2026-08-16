@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { formatNumber } from '@/lib/format';
+import { formatMoney, formatNumber } from '@/lib/format';
 import { Select } from '@/components/ui/Select/Select';
 import type { ApiRecord } from '@/types/api';
 
@@ -73,7 +73,7 @@ function BarChart({ points, view }: { points: ApiRecord[]; view: ChartView }) {
   const maximum = niceMaximum(values);
   const slot = chartWidth / Math.max(points.length, 1);
   const barWidth = Math.min(34, slot * 0.66);
-  return <div className="standard-chart"><div className="chart-y-labels">{tickRates.map((rate) => <span key={rate}>{axisLabel(maximum * rate, true)}</span>)}</div><div className="standard-chart-plot"><svg viewBox={`0 0 ${chartWidth} ${chartHeight}`} preserveAspectRatio="none" role="img" aria-label={`Biểu đồ doanh thu ${views.find((item) => item.key === view)?.label.toLowerCase()}`}>{tickRates.map((rate) => <line className="chart-grid-line" x1="0" x2={chartWidth} y1={chartHeight * (1 - rate)} y2={chartHeight * (1 - rate)} key={rate} />)}{points.map((point, index) => { const value = Number(point.value ?? 0); const height = value / maximum * (chartHeight - 8); return <rect className="standard-bar" x={index * slot + (slot - barWidth) / 2} y={chartHeight - height} width={barWidth} height={height} rx="6" key={`${point.label}-${index}`}><title>{point.label}: {formatNumber(value)}đ</title></rect>; })}</svg><ChartLabels points={points} /></div></div>;
+  return <div className="standard-chart"><div className="chart-y-labels">{tickRates.map((rate) => <span key={rate}>{axisLabel(maximum * rate, true)}</span>)}</div><div className="standard-chart-plot"><svg viewBox={`0 0 ${chartWidth} ${chartHeight}`} preserveAspectRatio="none" role="img" aria-label={`Biểu đồ doanh thu ${views.find((item) => item.key === view)?.label.toLowerCase()}`}>{tickRates.map((rate) => <line className="chart-grid-line" x1="0" x2={chartWidth} y1={chartHeight * (1 - rate)} y2={chartHeight * (1 - rate)} key={rate} />)}{points.map((point, index) => { const value = Number(point.value ?? 0); const height = value / maximum * (chartHeight - 8); return <rect className="standard-bar" x={index * slot + (slot - barWidth) / 2} y={chartHeight - height} width={barWidth} height={height} rx="6" key={`${point.label}-${index}`}><title>{point.label}: {formatMoney(value)}</title></rect>; })}</svg><ChartLabels points={points} /></div></div>;
 }
 
 function ChartTabs({ value, onChange }: { value: ChartView; onChange: (view: ChartView) => void }) {
@@ -107,7 +107,7 @@ export function DashboardCharts({ dashboard, period, onPeriodChange }: { dashboa
       <LineChart points={customerPoints} view={customerView} />
     </article>
     <article className="card chart-card dashboard-chart-card revenue-card" data-chart="revenue">
-      <div className="chart-header dashboard-chart-header"><div><h2>Doanh thu thuần</h2><div className="badge-row"><span className="metric-badge blue">{formatNumber(dashboard.month.revenue)}đ</span><span className="metric-badge green">{formatNumber(dashboard.month.invoices)} hóa đơn</span><span className="metric-badge orange">{formatNumber(dashboard.month.returns)} trả hàng</span></div></div><PeriodSelect period={period} onChange={onPeriodChange} label="Kỳ xem doanh thu" /></div>
+      <div className="chart-header dashboard-chart-header"><div><h2>Doanh thu thuần</h2><div className="badge-row"><span className="metric-badge blue">{formatMoney(dashboard.month.revenue)}</span><span className="metric-badge green">{formatNumber(dashboard.month.invoices)} hóa đơn</span><span className="metric-badge orange">{formatNumber(dashboard.month.returns)} trả hàng</span></div></div><PeriodSelect period={period} onChange={onPeriodChange} label="Kỳ xem doanh thu" /></div>
       <ChartTabs value={revenueView} onChange={setRevenueView} />
       <BarChart points={revenuePoints} view={revenueView} />
     </article>

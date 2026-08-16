@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { FormEvent } from 'react';
 import { useMutation } from '@tanstack/react-query';
+import { MoneyInput } from '@/components/forms/MoneyInput';
 import { Select } from '@/components/ui/Select/Select';
 import { formatMoney, formatNumber } from '@/lib/format';
 import { useMetadata } from '@/services/metadata';
@@ -212,14 +213,22 @@ export function PosCheckoutModal({
                     </div>
                   </div>
                   <div className="discount-input-row">
-                    <input
-                      type="number"
-                      min={0}
-                      max={discountType === 'percent' ? 100 : subtotal}
-                      value={discountValue || ''}
-                      onChange={(e) => setDiscountValue(Number(e.target.value))}
-                      placeholder={discountType === 'percent' ? 'Nhập % giảm giá (VD: 10)' : 'Nhập số tiền giảm'}
-                    />
+                    {discountType === 'percent' ? (
+                      <input
+                        type="number"
+                        min={0}
+                        max={100}
+                        value={discountValue || ''}
+                        onChange={(e) => setDiscountValue(Number(e.target.value))}
+                        placeholder="Nhập % giảm giá (VD: 10)"
+                      />
+                    ) : (
+                      <MoneyInput
+                        value={discountValue || ''}
+                        onChange={setDiscountValue}
+                        placeholder="Nhập số tiền giảm"
+                      />
+                    )}
                     {calculatedDiscount > 0 && (
                       <span className="calculated-discount-text">
                         -{formatMoney(calculatedDiscount)}
@@ -314,13 +323,11 @@ export function PosCheckoutModal({
                 <div className="payment-cash-box">
                   <div className="cash-input-field">
                     <label htmlFor="amount-paid">Tiền khách đưa (VNĐ)</label>
-                    <input
+                    <MoneyInput
                       id="amount-paid"
-                      type="text"
-                      inputMode="numeric"
-                      value={amountPaidInput ? formatNumber(Number(amountPaidInput.replace(/\D/g, ''))) : ''}
+                      value={amountPaidInput}
                       placeholder={formatNumber(total)}
-                      onChange={(e) => setAmountPaidInput(e.target.value)}
+                      onChange={(val) => setAmountPaidInput(val ? String(val) : '')}
                     />
                   </div>
 

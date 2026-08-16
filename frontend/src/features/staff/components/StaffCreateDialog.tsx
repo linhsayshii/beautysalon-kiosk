@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { MoneyInput } from '@/components/forms/MoneyInput';
 import { Select } from '@/components/ui/Select/Select';
 import { useToast } from '@/components/ui/Toast/ToastProvider';
 import { getAccounts } from '@/features/accounts/accounts.api';
@@ -787,34 +788,24 @@ export function StaffCreateDialog({ onClose, staff, initialTab = 'info' }: Staff
                   {form.salaryType === 'monthly' ? (
                     <div style={{ display: 'grid', gridTemplateColumns: '120px 1fr', gap: '14px', alignItems: 'center' }}>
                       <label style={{ fontSize: '12px', fontWeight: 600, color: 'var(--ink-700)' }}>Mức lương tháng</label>
-                      <div className="input-suffix" style={{ width: '100%' }}>
-                        <input
-                          type="number"
-                          min="0"
-                          step="50000"
-                          value={form.baseSalary}
-                          onChange={(e) => update('baseSalary', e.target.value)}
-                          className="filter-control"
-                          style={{ width: '100%', height: '38px', borderRadius: '8px' }}
-                        />
-                        <span>đ</span>
-                      </div>
+                      <MoneyInput
+                        suffix="đ"
+                        value={form.baseSalary}
+                        onChange={(val) => update('baseSalary', String(val))}
+                        className="filter-control"
+                        style={{ width: '100%', height: '38px', borderRadius: '8px' }}
+                      />
                     </div>
                   ) : (
                     <div style={{ display: 'grid', gridTemplateColumns: '120px 1fr', gap: '14px', alignItems: 'center' }}>
                       <label style={{ fontSize: '12px', fontWeight: 600, color: 'var(--ink-700)' }}>Lương theo giờ</label>
-                      <div className="input-suffix" style={{ width: '100%' }}>
-                        <input
-                          type="number"
-                          min="0"
-                          step="1000"
-                          value={form.hourlyRate}
-                          onChange={(e) => update('hourlyRate', e.target.value)}
-                          className="filter-control"
-                          style={{ width: '100%', height: '38px', borderRadius: '8px' }}
-                        />
-                        <span>đ/giờ</span>
-                      </div>
+                      <MoneyInput
+                        suffix="đ/giờ"
+                        value={form.hourlyRate}
+                        onChange={(val) => update('hourlyRate', String(val))}
+                        className="filter-control"
+                        style={{ width: '100%', height: '38px', borderRadius: '8px' }}
+                      />
                     </div>
                   )}
 
@@ -927,12 +918,11 @@ export function StaffCreateDialog({ onClose, staff, initialTab = 'info' }: Staff
 
                           <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                             <span style={{ fontSize: '12px', color: 'var(--ink-500)' }}>Từ</span>
-                            <input
-                              type="number"
+                            <MoneyInput
                               value={item.minRevenue}
-                              onChange={(e) => {
+                              onChange={(val) => {
                                 setCommissions((prev) =>
-                                  prev.map((c) => (c.id === item.id ? { ...c, minRevenue: e.target.value } : c))
+                                  prev.map((c) => (c.id === item.id ? { ...c, minRevenue: String(val) } : c))
                                 );
                               }}
                               className="filter-control"
@@ -1081,12 +1071,11 @@ export function StaffCreateDialog({ onClose, staff, initialTab = 'info' }: Staff
                             ]}
                           />
 
-                          <input
-                            type="number"
+                          <MoneyInput
                             value={item.amount}
-                            onChange={(e) => {
+                            onChange={(val) => {
                               setAllowances((prev) =>
-                                prev.map((a) => (a.id === item.id ? { ...a, amount: e.target.value } : a))
+                                prev.map((a) => (a.id === item.id ? { ...a, amount: String(val) } : a))
                               );
                             }}
                             className="filter-control"
@@ -1228,12 +1217,11 @@ export function StaffCreateDialog({ onClose, staff, initialTab = 'info' }: Staff
                             ]}
                           />
 
-                          <input
-                            type="number"
+                          <MoneyInput
                             value={item.amount}
-                            onChange={(e) => {
+                            onChange={(val) => {
                               setDeductions((prev) =>
-                                prev.map((d) => (d.id === item.id ? { ...d, amount: e.target.value } : d))
+                                prev.map((d) => (d.id === item.id ? { ...d, amount: String(val) } : d))
                               );
                             }}
                             className="filter-control"

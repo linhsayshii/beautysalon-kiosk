@@ -1438,13 +1438,41 @@
   min-height: 180px;
 }
 
+.expandable-detail-row > td {
+  padding: 0 !important;
+  background: #ffffff !important;
+}
+
 .customer-detail,
 .staff-detail,
 .order-detail,
 .sold-card-detail,
 .purchase-detail {
+  width: 100% !important;
+  display: block !important;
   border-top: 2px solid #0052cc;
   background: #ffffff;
+}
+
+.customer-detail .table-scroll,
+.staff-detail .table-scroll,
+.order-detail .table-scroll,
+.sold-card-detail .table-scroll {
+  width: 100% !important;
+  padding: 0 !important;
+  overflow-x: auto;
+}
+
+.customer-detail .kiotviet-payroll-table,
+.staff-detail .kiotviet-payroll-table,
+.order-detail .kiotviet-payroll-table,
+.sold-card-detail .kiotviet-payroll-table,
+.customer-detail .inline-detail-table,
+.staff-detail .inline-detail-table,
+.order-detail .order-detail-table {
+  width: 100% !important;
+  min-width: 100% !important;
+  border-collapse: collapse !important;
 }
 
 .inline-detail-tabs {

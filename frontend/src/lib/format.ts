@@ -1,4 +1,4 @@
-const numberFormatter = new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 });
+const numberFormatter = new Intl.NumberFormat('vi-VN', { maximumFractionDigits: 0 });
 const dateFormatter = new Intl.DateTimeFormat('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' });
 const dateTimeFormatter = new Intl.DateTimeFormat('vi-VN', {
   day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false,
@@ -6,6 +6,11 @@ const dateTimeFormatter = new Intl.DateTimeFormat('vi-VN', {
 
 export const formatNumber = (value: unknown) => numberFormatter.format(Number(value ?? 0));
 export const formatMoney = (value: unknown) => `${formatNumber(value)}đ`;
+export const parseMoney = (value: unknown): number => {
+  if (typeof value === 'number') return isNaN(value) ? 0 : Math.max(0, value);
+  const cleaned = String(value ?? '').replace(/\D/g, '');
+  return cleaned ? parseInt(cleaned, 10) : 0;
+};
 export const formatPercent = (value: unknown) => `${Math.round(Number(value ?? 0) * 100)}%`;
 export const formatDate = (value: unknown) => value ? dateFormatter.format(new Date(String(value))) : 'Không giới hạn';
 export const formatDateTime = (value: unknown) => value ? dateTimeFormatter.format(new Date(String(value))) : '-';

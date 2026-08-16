@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { initials, relativeTime } from '@/lib/format';
+import { formatMoney, formatNumber, initials, relativeTime } from '@/lib/format';
 import { Select } from '@/components/ui/Select/Select';
 import type { ApiRecord } from '@/types/api';
 import { dashboardPeriods, type DashboardPeriod } from './DashboardCharts';
@@ -47,7 +47,7 @@ export function TopGoods({ rows, period, onPeriodChange }: { rows: ApiRecord[]; 
       </div>
     </div>
     <div className="top-goods-tabs" role="tablist" aria-label="Loại hàng hóa">{goodsTabs.map((tab) => <button type="button" role="tab" aria-selected={itemType === tab.key} className={itemType === tab.key ? 'is-active' : ''} onClick={() => setItemType(tab.key)} key={tab.key}>{tab.label}</button>)}</div>
-    <div className="top-goods-list">{visibleRows.length ? visibleRows.map((item, index) => <div className="top-goods-row" key={`${item.itemType}-${item.id}`}><strong>{index + 1}.</strong><span>{item.code}</span><span>{item.name}</span><strong>{metric === 'revenue' ? Number(item.revenue).toLocaleString('en-US') : Number(item.quantity).toLocaleString('vi-VN')}</strong></div>) : <div className="empty-inline top-goods-empty">Chưa có dữ liệu bán hàng trong tháng này.</div>}</div>
+    <div className="top-goods-list">{visibleRows.length ? visibleRows.map((item, index) => <div className="top-goods-row" key={`${item.itemType}-${item.id}`}><strong>{index + 1}.</strong><span>{item.code}</span><span>{item.name}</span><strong>{metric === 'revenue' ? formatMoney(item.revenue) : formatNumber(item.quantity)}</strong></div>) : <div className="empty-inline top-goods-empty">Chưa có dữ liệu bán hàng trong tháng này.</div>}</div>
   </article>;
 }
 

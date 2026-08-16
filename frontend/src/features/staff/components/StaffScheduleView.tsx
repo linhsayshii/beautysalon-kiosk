@@ -495,7 +495,7 @@ export function StaffScheduleView() {
                           {salData.expectedSalary !== null ? (
                             <div className="salary-calc-box">
                               <div className="salary-amount">
-                                {formatMoney(salData.expectedSalary).replace(' ₫', '')}
+                                {formatMoney(salData.expectedSalary)}
                               </div>
                               <div className="salary-shifts-count">
                                 {salData.totalShifts} ca

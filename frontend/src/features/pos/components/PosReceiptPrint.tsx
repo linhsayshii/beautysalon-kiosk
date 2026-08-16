@@ -1,5 +1,6 @@
 import { useRef } from 'react';
 import { formatDateTime, formatMoney, formatNumber } from '@/lib/format';
+import { useMetadata } from '@/services/metadata';
 import type { PosReceiptData } from '../pos.api';
 
 interface PosReceiptPrintProps {
@@ -9,6 +10,8 @@ interface PosReceiptPrintProps {
 
 export function PosReceiptPrint({ receipt, onClose }: PosReceiptPrintProps) {
   const printRef = useRef<HTMLDivElement>(null);
+  const { data: metadata } = useMetadata();
+  const storeName = metadata?.data?.system?.storeName || 'ANNA CHILL BEAUTY';
 
   const handlePrint = () => {
     window.print();
@@ -36,8 +39,8 @@ export function PosReceiptPrint({ receipt, onClose }: PosReceiptPrintProps) {
 
         <div className="receipt-paper" ref={printRef}>
           <header className="receipt-header">
-            <h1 className="receipt-brand">{receipt.branch.name || 'ANNA CHILL BEAUTY'}</h1>
-            <p className="receipt-branch-meta">{receipt.branch.address}</p>
+            <h1 className="receipt-brand">{storeName}</h1>
+            <p className="receipt-branch-meta">{receipt.branch.name} - {receipt.branch.address}</p>
             {receipt.branch.phone && <p className="receipt-branch-meta">Hotline: {receipt.branch.phone}</p>}
             <div className="receipt-divider" />
             <h2 id="receipt-title" className="receipt-title">HÓA ĐƠN THANH TOÁN</h2>

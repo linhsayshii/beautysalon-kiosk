@@ -1,8 +1,9 @@
 import { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { LoadingState } from '@/components/data-display/DataState';
+import { MoneyInput } from '@/components/forms/MoneyInput';
 import { useToast } from '@/components/ui/Toast/ToastProvider';
 import { formatMoney } from '@/lib/format';
-import { LoadingState } from '@/components/data-display/DataState';
 import {
   getPayrollDetail,
   updatePayroll,
@@ -378,11 +379,10 @@ export function StaffPayrollSheetView({ periodId, onBack }: StaffPayrollSheetVie
 
                     {/* Lương chính */}
                     <td style={{ padding: '6px 8px', textAlign: 'right' }}>
-                      <input
-                        type="number"
+                      <MoneyInput
                         disabled={isApproved}
                         value={r.baseSalary}
-                        onChange={(e) => handleRecordChange(r.id, 'baseSalary', Number(e.target.value))}
+                        onChange={(val) => handleRecordChange(r.id, 'baseSalary', val)}
                         style={{
                           width: '100%',
                           textAlign: 'right',
@@ -396,11 +396,10 @@ export function StaffPayrollSheetView({ periodId, onBack }: StaffPayrollSheetVie
 
                     {/* Làm thêm */}
                     <td style={{ padding: '6px 8px', textAlign: 'right' }}>
-                      <input
-                        type="number"
+                      <MoneyInput
                         disabled={isApproved}
                         value={r.overtimeSalary}
-                        onChange={(e) => handleRecordChange(r.id, 'overtimeSalary', Number(e.target.value))}
+                        onChange={(val) => handleRecordChange(r.id, 'overtimeSalary', val)}
                         style={{
                           width: '100%',
                           textAlign: 'right',
@@ -414,11 +413,10 @@ export function StaffPayrollSheetView({ periodId, onBack }: StaffPayrollSheetVie
 
                     {/* Hoa hồng */}
                     <td style={{ padding: '6px 8px', textAlign: 'right' }}>
-                      <input
-                        type="number"
+                      <MoneyInput
                         disabled={isApproved}
                         value={r.commission}
-                        onChange={(e) => handleRecordChange(r.id, 'commission', Number(e.target.value))}
+                        onChange={(val) => handleRecordChange(r.id, 'commission', val)}
                         style={{
                           width: '100%',
                           textAlign: 'right',
@@ -432,11 +430,10 @@ export function StaffPayrollSheetView({ periodId, onBack }: StaffPayrollSheetVie
 
                     {/* Phụ cấp */}
                     <td style={{ padding: '6px 8px', textAlign: 'right' }}>
-                      <input
-                        type="number"
+                      <MoneyInput
                         disabled={isApproved}
                         value={r.allowance}
-                        onChange={(e) => handleRecordChange(r.id, 'allowance', Number(e.target.value))}
+                        onChange={(val) => handleRecordChange(r.id, 'allowance', val)}
                         style={{
                           width: '100%',
                           textAlign: 'right',
@@ -450,11 +447,10 @@ export function StaffPayrollSheetView({ periodId, onBack }: StaffPayrollSheetVie
 
                     {/* Thưởng */}
                     <td style={{ padding: '6px 8px', textAlign: 'right' }}>
-                      <input
-                        type="number"
+                      <MoneyInput
                         disabled={isApproved}
                         value={r.bonus}
-                        onChange={(e) => handleRecordChange(r.id, 'bonus', Number(e.target.value))}
+                        onChange={(val) => handleRecordChange(r.id, 'bonus', val)}
                         style={{
                           width: '100%',
                           textAlign: 'right',
@@ -473,11 +469,10 @@ export function StaffPayrollSheetView({ periodId, onBack }: StaffPayrollSheetVie
 
                     {/* Giảm trừ */}
                     <td style={{ padding: '6px 8px', textAlign: 'right' }}>
-                      <input
-                        type="number"
+                      <MoneyInput
                         disabled={isApproved}
                         value={r.deduction}
-                        onChange={(e) => handleRecordChange(r.id, 'deduction', Number(e.target.value))}
+                        onChange={(val) => handleRecordChange(r.id, 'deduction', val)}
                         style={{
                           width: '100%',
                           textAlign: 'right',

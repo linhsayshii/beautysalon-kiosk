@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { MoneyInput } from '@/components/forms/MoneyInput';
 import { useToast } from '@/components/ui/Toast/ToastProvider';
 import { formatMoney } from '@/lib/format';
 import { payPayroll, type PayrollPeriodDetail } from '../staff.api';
@@ -121,10 +122,9 @@ export function StaffPayrollPaymentModal({ periodDetail, onClose }: StaffPayroll
                 <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#334155', marginBottom: 6 }}>
                   Số tiền thanh toán (VNĐ) <span style={{ color: '#ef4444' }}>*</span>
                 </label>
-                <input
-                  type="number"
+                <MoneyInput
                   value={amount}
-                  onChange={(e) => setAmount(Number(e.target.value))}
+                  onChange={setAmount}
                   style={{
                     width: '100%',
                     padding: '8px 12px',

@@ -852,7 +852,7 @@ function AppointmentDrawer({
                       )}
                       <div className="kv-service-meta">
                         <span className="kv-service-price">
-                          {selectedService.fromPackageId ? '0 ₫ (Theo gói)' : formatMoney(selectedService.salePrice)}
+                          {selectedService.fromPackageId ? '0đ (Theo gói)' : formatMoney(selectedService.salePrice)}
                         </span>
                         <span>{duration} phút</span>
                       </div>
