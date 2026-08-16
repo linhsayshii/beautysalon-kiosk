@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import {
   MobileSearchBar,
-  MobileFilterSheet,
   MobileDetailSheet,
   MobileEmptyState,
 } from '@/features/mobile-common';
@@ -19,7 +18,6 @@ export function MobileStaffAttendanceAdminView() {
   const [currentMonday, setCurrentMonday] = useState(weekStartIso());
   const [search, setSearch] = useState('');
   const [isSearchVisible, setIsSearchVisible] = useState(false);
-  const [roleFilter, setRoleFilter] = useState('');
   const [selectedStaff, setSelectedStaff] = useState<ApiRecord | null>(null);
 
   // Compute dates based on periodType
@@ -82,10 +80,9 @@ export function MobileStaffAttendanceAdminView() {
         const matchCode = s.code?.toLowerCase().includes(q);
         if (!matchName && !matchCode) return false;
       }
-      if (roleFilter && s.role !== roleFilter) return false;
       return true;
     });
-  }, [staffList, search, roleFilter]);
+  }, [staffList, search]);
 
   // Calculate stats for a given staff member
   const getStaffStats = (staff: ApiRecord) => {
@@ -192,7 +189,6 @@ export function MobileStaffAttendanceAdminView() {
             value={search}
             onChange={setSearch}
             placeholder="Tìm nhân viên theo tên, mã..."
-            autoFocus
           />
         </div>
       )}

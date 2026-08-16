@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { formatDateTime, formatDate, formatMoney, formatNumber } from '@/lib/format';
+import { formatDateTime, formatMoney, formatNumber } from '@/lib/format';
 import { toIsoDate, todayIso, monthStartIso } from '@/lib/date';
 import { StatusBadge } from '@/components/data-display/Badges';
 import { statusLabels, type ApiRecord } from '@/types/api';
@@ -112,7 +112,7 @@ export function MobileOrdersView() {
   }, [datePreset]);
 
   // Fetch Orders
-  const { data: ordersData, isLoading, refetch } = useQuery({
+  const { data: ordersData, isLoading } = useQuery({
     queryKey: [
       'mobile-orders',
       search,

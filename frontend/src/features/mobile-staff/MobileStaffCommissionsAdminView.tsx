@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import {
   MobileSearchBar,
-  MobileFilterSheet,
   MobileDetailSheet,
   MobileEmptyState,
 } from '@/features/mobile-common';
@@ -16,8 +15,8 @@ import './mobile-staff.css';
 export function MobileStaffCommissionsAdminView() {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<'by_staff' | 'details'>('by_staff');
-  const [dateFrom, setDateFrom] = useState(monthStartIso());
-  const [dateTo, setDateTo] = useState(todayIso());
+  const [dateFrom] = useState(monthStartIso());
+  const [dateTo] = useState(todayIso());
   const [search, setSearch] = useState('');
   const [isSearchVisible, setIsSearchVisible] = useState(false);
 
@@ -221,7 +220,6 @@ export function MobileStaffCommissionsAdminView() {
             value={search}
             onChange={setSearch}
             placeholder="Tìm theo nhân viên, dịch vụ, hóa đơn..."
-            autoFocus
           />
         </div>
       )}

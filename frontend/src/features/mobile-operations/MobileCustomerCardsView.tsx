@@ -4,7 +4,6 @@ import { useNavigate } from 'react-router-dom';
 import { formatDate, formatDateTime, formatMoney, formatNumber } from '@/lib/format';
 import { getCustomerCards, getCustomerCard } from '@/features/operations/operations.api';
 import { StatusBadge } from '@/components/data-display/Badges';
-import { statusLabels } from '@/types/api';
 import {
   MobileSearchBar,
   MobileFilterSheet,

@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import {
   MobileSearchBar,
-  MobileFilterSheet,
   MobileDetailSheet,
   MobileEmptyState,
 } from '@/features/mobile-common';
@@ -198,7 +197,6 @@ export function MobileStaffPayrollAdminView() {
             value={search}
             onChange={setSearch}
             placeholder="Tìm phiếu lương theo tên, mã thợ..."
-            autoFocus
           />
         </div>
       )}

@@ -557,10 +557,12 @@ export function MobileCustomersView() {
               />
 
               <div style={{ marginTop: '8px' }}>
-                <CustomerActivityList
-                  customerId={selectedCustomerId}
-                  kind={detailActivityTab}
-                />
+                {selectedCustomerId !== null && (
+                  <CustomerActivityList
+                    customerId={selectedCustomerId}
+                    kind={detailActivityTab}
+                  />
+                )}
               </div>
             </div>
           </div>

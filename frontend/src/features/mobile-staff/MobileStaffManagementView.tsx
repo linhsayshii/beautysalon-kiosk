@@ -244,7 +244,6 @@ export function MobileStaffManagementView() {
             value={search}
             onChange={setSearch}
             placeholder="Tìm tên nhân viên, mã, SĐT..."
-            autoFocus
           />
         </div>
       )}
@@ -393,7 +392,6 @@ export function MobileStaffManagementView() {
               className="mobile-staff-action-btn primary"
               style={{ width: '100%' }}
               onClick={() => {
-                const id = selectedStaff?.id;
                 setSelectedStaff(null);
                 navigate('/m/staff/schedule');
               }}

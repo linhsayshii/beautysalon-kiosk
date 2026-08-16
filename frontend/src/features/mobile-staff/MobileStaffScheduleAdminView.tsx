@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   MobileSearchBar,
-  MobileFilterSheet,
   MobileDetailSheet,
   MobileEmptyState,
 } from '@/features/mobile-common';
@@ -249,7 +248,6 @@ export function MobileStaffScheduleAdminView() {
             value={search}
             onChange={setSearch}
             placeholder="Tìm nhân viên theo tên, mã..."
-            autoFocus
           />
         </div>
       )}
