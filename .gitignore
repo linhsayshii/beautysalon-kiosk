@@ -1,5 +1,6 @@
 .agents/
 .claude/
+.superpowers/
 .env
 .env.local
 node_modules/
@@ -12,4 +13,4 @@ backend/node_modules/
 .DS_Store
 */.DS_Store
 data/
-# docs/
+docs/
