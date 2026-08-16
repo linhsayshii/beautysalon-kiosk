@@ -1,0 +1,503 @@
+/* Mobile POS Specific Styles */
+51	.mobile-pos-container {
+52	  display: flex;
+53	  flex-direction: column;
+54	  gap: 12px;
+55	  width: 100%;
+56	  max-width: 100%;
+57	  padding-bottom: 72px; /* space for sticky cart bar */
+58	  box-sizing: border-box;
+59	}
+60
+61	/* Top Search Header */
+62	.mobile-pos-header {
+63	  display: flex;
+64	  align-items: center;
+65	  gap: 8px;
+66	  position: sticky;
+67	  top: 0;
+68	  background: var(--canvas, #f8fafc);
+69	  z-index: 10;
+70	  padding: 4px 0 8px;
+71	}
+72
+73	.mobile-pos-search-wrapper {
+74	  flex: 1;
+75	  position: relative;
+76	  display: flex;
+77	  align-items: center;
+78	}
+79
+80	.mobile-pos-search-wrapper i.search-icon {
+81	  position: absolute;
+82	  left: 12px;
+83	  font-size: 18px;
+84	  color: var(--ink-400, #94a3b8);
+85	  pointer-events: none;
+86	}
+87
+88	.mobile-pos-search-input {
+89	  width: 100%;
+90	  height: 40px;
+91	  padding: 0 36px 0 38px;
+92	  border-radius: 20px;
+93	  border: 1px solid var(--line, #e2e8f0);
+94	  background: var(--surface, #ffffff);
+95	  font-size: 14px;
+96	  color: var(--ink-950, #0f172a);
+97	  outline: none;
+98	  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+99	  box-sizing: border-box;
+100	}
+101
+102	.mobile-pos-search-input:focus {
+103	  border-color: var(--blue-500, #3b82f6);
+104	  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+105	}
+106
+107	.mobile-pos-search-clear {
+108	  position: absolute;
+109	  right: 8px;
+110	  display: grid;
+111	  place-items: center;
+112	  width: 24px;
+113	  height: 24px;
+114	  border: none;
+115	  background: var(--ink-100, #f1f5f9);
+116	  color: var(--ink-500, #64748b);
+117	  border-radius: 50%;
+118	  font-size: 12px;
+119	  cursor: pointer;
+120	}
+121
+122	.mobile-pos-header-actions {
+123	  display: flex;
+124	  align-items: center;
+125	  gap: 6px;
+126	}
+127
+128	.mobile-pos-icon-btn {
+129	  display: grid;
+130	  place-items: center;
+131	  width: 38px;
+132	  height: 38px;
+133	  border-radius: 12px;
+134	  border: 1px solid var(--line, #e2e8f0);
+135	  background: var(--surface, #ffffff);
+136	  color: var(--ink-700, #334155);
+137	  font-size: 18px;
+138	  cursor: pointer;
+139	  transition: background-color 0.15s ease, border-color 0.15s ease;
+140	}
+141
+142	.mobile-pos-icon-btn:active {
+143	  background: var(--ink-50, #f8fafc);
+144	}
+145
+146	/* Horizontal Category Tabs */
+147	.mobile-pos-category-tabs {
+148	  display: flex;
+149	  align-items: center;
+150	  gap: 8px;
+151	  overflow-x: auto;
+152	  scrollbar-width: none;
+153	  -webkit-overflow-scrolling: touch;
+154	  padding-bottom: 4px;
+155	  margin: 0 -4px;
+156	  padding: 0 4px 4px;
+157	}
+158
+159	.mobile-pos-category-tabs::-webkit-scrollbar {
+160	  display: none;
+161	}
+162
+163	.mobile-pos-tab-pill {
+164	  flex: 0 0 auto;
+165	  padding: 8px 14px;
+166	  border-radius: 20px;
+167	  border: 1px solid transparent;
+168	  background: var(--surface, #ffffff);
+169	  color: var(--ink-600, #475569);
+170	  font-size: 13px;
+171	  font-weight: 600;
+172	  cursor: pointer;
+173	  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+174	  transition: all 0.15s ease;
+175	  white-space: nowrap;
+176	}
+177
+178	.mobile-pos-tab-pill.is-active {
+179	  background: var(--blue-600, #2563eb);
+180	  color: #ffffff;
+181	  font-weight: 700;
+182	  box-shadow: 0 3px 8px rgba(37, 99, 235, 0.25);
+183	}
+184
+185	/* Subcategory & Filter Row */
+186	.mobile-pos-filter-row {
+187	  display: flex;
+188	  align-items: center;
+189	  justify-content: space-between;
+190	  gap: 8px;
+191	  padding: 2px 0;
+192	}
+193
+194	.mobile-pos-subcat-select {
+195	  display: inline-flex;
+196	  align-items: center;
+197	  gap: 6px;
+198	  padding: 6px 12px;
+199	  border-radius: 16px;
+200	  background: #f1f5f9;
+201	  color: var(--ink-700, #334155);
+202	  font-size: 12.5px;
+203	  font-weight: 600;
+204	  border: none;
+205	  cursor: pointer;
+206	}
+207
+208	.mobile-pos-subcat-select select {
+209	  appearance: none;
+210	  background: transparent;
+211	  border: none;
+212	  color: inherit;
+213	  font: inherit;
+214	  font-weight: inherit;
+215	  outline: none;
+216	  cursor: pointer;
+217	  padding-right: 14px;
+218	}
+219
+220	/* Grouped Item List */
+221	.mobile-pos-group {
+222	  display: flex;
+223	  flex-direction: column;
+224	  gap: 8px;
+225	}
+226
+227	.mobile-pos-group-title {
+228	  font-size: 12px;
+229	  font-weight: 700;
+230	  text-transform: uppercase;
+231	  letter-spacing: 0.05em;
+232	  color: var(--ink-500, #64748b);
+233	  padding: 4px 4px 0;
+234	}
+235
+236	.mobile-pos-card {
+237	  display: flex;
+238	  align-items: center;
+239	  justify-content: space-between;
+240	  gap: 12px;
+241	  padding: 12px;
+242	  background: var(--surface, #ffffff);
+243	  border-radius: 16px;
+244	  border: 1px solid var(--line, #e2e8f0);
+245	  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+246	  cursor: pointer;
+247	  user-select: none;
+248	  -webkit-tap-highlight-color: transparent;
+249	  transition: transform 0.1s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+250	}
+251
+252	.mobile-pos-card:active {
+253	  transform: scale(0.985);
+254	  background: #f8fafc;
+255	}
+256
+257	.mobile-pos-card-left {
+258	  display: flex;
+259	  align-items: center;
+260	  gap: 12px;
+261	  min-width: 0;
+262	  flex: 1;
+263	}
+264
+265	.mobile-pos-card-icon {
+266	  display: grid;
+267	  place-items: center;
+268	  width: 44px;
+269	  height: 44px;
+270	  border-radius: 12px;
+271	  flex: 0 0 44px;
+272	  font-size: 22px;
+273	}
+274
+275	.mobile-pos-card-icon.is-service {
+276	  background: #eff6ff;
+277	  color: #2563eb;
+278	}
+279
+280	.mobile-pos-card-icon.is-package {
+281	  background: #faf5ff;
+282	  color: #9333ea;
+283	}
+284
+285	.mobile-pos-card-icon.is-account_card {
+286	  background: #ecfdf5;
+287	  color: #059669;
+288	}
+289
+290	.mobile-pos-card-icon.is-product {
+291	  background: #fff7ed;
+292	  color: #ea580c;
+293	}
+294
+295	.mobile-pos-card-info {
+296	  display: flex;
+297	  flex-direction: column;
+298	  gap: 3px;
+299	  min-width: 0;
+300	}
+301
+302	.mobile-pos-card-name {
+303	  font-size: 14px;
+304	  font-weight: 700;
+305	  color: var(--ink-950, #0f172a);
+306	  line-height: 1.3;
+307	  white-space: normal;
+308	  overflow: hidden;
+309	  text-overflow: ellipsis;
+310	  display: -webkit-box;
+311	  -webkit-line-clamp: 2;
+312	  -webkit-box-orient: vertical;
+313	}
+314
+315	.mobile-pos-card-subtitle {
+316	  font-size: 12px;
+317	  color: var(--ink-500, #64748b);
+318	  white-space: nowrap;
+319	  overflow: hidden;
+320	  text-overflow: ellipsis;
+321	}
+322
+323	.mobile-pos-card-right {
+324	  display: flex;
+325	  flex-direction: column;
+326	  align-items: flex-end;
+327	  gap: 4px;
+328	  flex: 0 0 auto;
+329	}
+330
+331	.mobile-pos-card-price {
+332	  font-size: 14px;
+333	  font-weight: 800;
+334	  color: var(--blue-700, #1d4ed8);
+335	}
+336
+337	.mobile-pos-card-badge {
+338	  font-size: 11px;
+339	  font-weight: 700;
+340	  color: #ffffff;
+341	  background: var(--blue-600, #2563eb);
+342	  width: 20px;
+343	  height: 20px;
+344	  border-radius: 50%;
+345	  display: grid;
+346	  place-items: center;
+347	}
+348
+349	/* Sticky Bottom Cart Bar */
+350	.mobile-pos-cart-bar {
+351	  position: fixed;
+352	  bottom: calc(var(--mobile-bottomnav-h, 60px) + var(--mobile-safe-bottom, 0px) + 10px);
+353	  left: 14px;
+354	  right: 14px;
+355	  z-index: 50;
+356	  display: flex;
+357	  align-items: center;
+358	  justify-content: space-between;
+359	  background: #0f172a;
+360	  color: #ffffff;
+361	  padding: 10px 14px;
+362	  border-radius: 18px;
+363	  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.35);
+364	  cursor: pointer;
+365	  animation: mobileSlideUp 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+366	}
+367
+368	.mobile-pos-cart-bar-left {
+369	  display: flex;
+370	  align-items: center;
+371	  gap: 10px;
+372	}
+373
+374	.mobile-pos-cart-bar-badge {
+375	  background: var(--blue-600, #2563eb);
+376	  color: #ffffff;
+377	  font-size: 12px;
+378	  font-weight: 750;
+379	  padding: 4px 10px;
+380	  border-radius: 12px;
+381	  display: inline-flex;
+382	  align-items: center;
+383	  gap: 4px;
+384	}
+385
+386	.mobile-pos-cart-bar-total {
+387	  font-size: 15px;
+388	  font-weight: 800;
+389	  color: #38bdf8;
+390	}
+391
+392	.mobile-pos-cart-bar-right {
+393	  display: flex;
+394	  align-items: center;
+395	  gap: 6px;
+396	  font-size: 13.5px;
+397	  font-weight: 700;
+398	  color: #ffffff;
+399	}
+400
+401	/* Bottom Sheet Checkout Content */
+402	.mobile-cart-sheet-content {
+403	  display: flex;
+404	  flex-direction: column;
+405	  gap: 14px;
+406	  overflow-y: auto;
+407	  max-height: 70dvh;
+408	  padding-right: 2px;
+409	}
+410
+411	.mobile-cart-sheet-header {
+412	  display: flex;
+413	  align-items: center;
+414	  justify-content: space-between;
+415	  border-bottom: 1px solid var(--line, #e2e8f0);
+416	  padding-bottom: 10px;
+417	}
+418
+419	.mobile-cart-sheet-title {
+420	  font-size: 16px;
+421	  font-weight: 800;
+422	  color: var(--ink-950, #0f172a);
+423	}
+424
+425	.mobile-cart-item-row {
+426	  display: flex;
+427	  align-items: center;
+428	  justify-content: space-between;
+429	  gap: 8px;
+430	  padding: 8px 0;
+431	  border-bottom: 1px dashed var(--line, #e2e8f0);
+432	}
+433
+434	.mobile-cart-item-title {
+435	  font-size: 13.5px;
+436	  font-weight: 700;
+437	  color: var(--ink-900, #0f172a);
+438	}
+439
+440	.mobile-cart-item-unitprice {
+441	  font-size: 12px;
+442	  color: var(--ink-500, #64748b);
+443	}
+444
+445	.mobile-cart-qty-ctrl {
+446	  display: inline-flex;
+447	  align-items: center;
+448	  border: 1px solid var(--line, #e2e8f0);
+449	  border-radius: 8px;
+450	  background: var(--surface, #ffffff);
+451	}
+452
+453	.mobile-cart-qty-btn {
+454	  display: grid;
+455	  place-items: center;
+456	  width: 28px;
+457	  height: 28px;
+458	  border: none;
+459	  background: transparent;
+460	  font-size: 14px;
+461	  cursor: pointer;
+462	  color: var(--ink-700, #334155);
+463	}
+464
+465	.mobile-cart-qty-val {
+466	  min-width: 24px;
+467	  text-align: center;
+468	  font-size: 13px;
+469	  font-weight: 700;
+470	}
+471
+472	/* Payment Methods Pills */
+473	.mobile-payment-methods {
+474	  display: grid;
+475	  grid-template-columns: repeat(4, 1fr);
+476	  gap: 6px;
+477	}
+478
+479	.mobile-pay-method-btn {
+480	  display: flex;
+481	  flex-direction: column;
+482	  align-items: center;
+483	  gap: 4px;
+484	  padding: 8px 4px;
+485	  border-radius: 12px;
+486	  border: 1px solid var(--line, #e2e8f0);
+487	  background: var(--surface, #ffffff);
+488	  color: var(--ink-600, #475569);
+489	  font-size: 11.5px;
+490	  font-weight: 600;
+491	  cursor: pointer;
+492	}
+493
+494	.mobile-pay-method-btn.is-active {
+495	  border-color: var(--blue-600, #2563eb);
+496	  background: #eff6ff;
+497	  color: var(--blue-700, #1d4ed8);
+498	  font-weight: 750;
+499	}
+500
+501	.mobile-pay-method-btn i {
+502	  font-size: 18px;
+503	}
+504
+505	/* Checkout Summary & Action */
+506	.mobile-checkout-summary {
+507	  display: flex;
+508	  flex-direction: column;
+509	  gap: 6px;
+510	  padding: 10px;
+511	  background: #f8fafc;
+512	  border-radius: 12px;
+513	  font-size: 13px;
+514	}
+515
+516	.mobile-summary-row {
+517	  display: flex;
+518	  justify-content: space-between;
+519	  align-items: center;
+520	}
+521
+522	.mobile-summary-row.total-row {
+523	  font-size: 15px;
+524	  font-weight: 800;
+525	  color: var(--ink-950, #0f172a);
+526	  border-top: 1px solid var(--line, #e2e8f0);
+527	  padding-top: 6px;
+528	  margin-top: 2px;
+529	}
+530
+531	.mobile-checkout-submit-btn {
+532	  width: 100%;
+533	  height: 48px;
+534	  border-radius: 14px;
+535	  background: var(--blue-600, #2563eb);
+536	  color: #ffffff;
+537	  border: none;
+538	  font-size: 15px;
+539	  font-weight: 800;
+540	  cursor: pointer;
+541	  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+542	  display: flex;
+543	  align-items: center;
+544	  justify-content: center;
+545	  gap: 8px;
+546	  transition: background-color 0.15s ease, transform 0.1s ease;
+547	}
+548
+549	.mobile-checkout-submit-btn:active {
+550	  transform: scale(0.985);
+551	}
+552
