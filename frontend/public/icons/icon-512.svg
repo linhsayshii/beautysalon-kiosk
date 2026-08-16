@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="gradient512" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0062eb" />
+      <stop offset="100%" stop-color="#0756cc" />
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="url(#gradient512)" />
+  <!-- Stylized Lotus / Spa Floral Logo -->
+  <path d="M256 96 C256 182 165 235 165 315 C165 363 208 405 256 405 C304 405 347 363 347 315 C347 235 256 182 256 96 Z" fill="#ffffff" opacity="0.95"/>
+  <path d="M256 198 C256 262 203 299 203 342 C203 374 230 395 256 395 C282 395 309 374 309 342 C309 299 256 262 256 198 Z" fill="#0062eb"/>
+  <circle cx="256" cy="310" r="22" fill="#ffffff"/>
+  <!-- Sparkles -->
+  <path d="M380 144 L388 171 L415 179 L388 187 L380 214 L372 187 L345 179 L372 171 Z" fill="#ffffff" opacity="0.9"/>
+  <path d="M133 182 L138 198 L154 203 L138 208 L133 224 L128 208 L112 203 L128 198 Z" fill="#ffffff" opacity="0.75"/>
+</svg>
