@@ -1,0 +1,288 @@
+/* Mobile Staff Styles */
+.mobile-staff-container {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  padding-bottom: 24px;
+}
+
+.mobile-staff-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.mobile-staff-header h1 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.mobile-staff-segmented-tabs {
+  display: flex;
+  background: var(--surface-subtle, #f1f5f9);
+  padding: 3px;
+  border-radius: 10px;
+  gap: 2px;
+}
+
+.mobile-staff-segmented-tabs button {
+  flex: 1;
+  border: none;
+  background: transparent;
+  padding: 8px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #475569;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.mobile-staff-segmented-tabs button.active {
+  background: #ffffff;
+  color: #0284c7;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+
+.staff-monitor-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.staff-monitor-stat {
+  background: #ffffff;
+  border: 1px solid var(--line, #e2e8f0);
+  border-radius: 10px;
+  padding: 10px 8px;
+  text-align: center;
+}
+
+.staff-monitor-stat .stat-num {
+  font-size: 18px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.staff-monitor-stat .stat-label {
+  font-size: 11px;
+  color: #64748b;
+  margin-top: 2px;
+}
+
+.mobile-staff-card-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.mobile-staff-card {
+  background: #ffffff;
+  border: 1px solid var(--line, #e2e8f0);
+  border-radius: 12px;
+  padding: 12px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.mobile-staff-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 14px;
+  background: #e0f2fe;
+  color: #0284c7;
+}
+
+.mobile-staff-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.mobile-staff-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.mobile-staff-role {
+  font-size: 12px;
+  color: #64748b;
+}
+
+.mobile-staff-status-pill {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 8px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.mobile-staff-status-pill.online {
+  background: #dcfce7;
+  color: #16a34a;
+}
+
+.mobile-staff-status-pill.offline {
+  background: #f1f5f9;
+  color: #94a3b8;
+}
+
+/* Schedule view */
+.schedule-week-strip {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+}
+
+.schedule-day-item {
+  background: #ffffff;
+  border: 1px solid var(--line, #e2e8f0);
+  border-radius: 8px;
+  padding: 6px 2px;
+  text-align: center;
+  cursor: pointer;
+}
+
+.schedule-day-item.selected {
+  border-color: #0284c7;
+  background: #f0f9ff;
+}
+
+.schedule-day-item.today {
+  font-weight: 700;
+}
+
+.schedule-day-name {
+  font-size: 10px;
+  color: #64748b;
+}
+
+.schedule-day-num {
+  font-size: 13px;
+  font-weight: 700;
+  margin-top: 2px;
+}
+
+.schedule-day-dot {
+  width: 4px;
+  height: 4px;
+  border-radius: 2px;
+  background: #0284c7;
+  margin: 3px auto 0;
+}
+
+.schedule-cards-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.shift-card {
+  background: #ffffff;
+  border-left: 4px solid #0284c7;
+  border-top: 1px solid var(--line, #e2e8f0);
+  border-right: 1px solid var(--line, #e2e8f0);
+  border-bottom: 1px solid var(--line, #e2e8f0);
+  border-radius: 8px;
+  padding: 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.shift-card.morning { border-left-color: #10b981; }
+.shift-card.evening { border-left-color: #8b5cf6; }
+
+.shift-time {
+  font-size: 14px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.shift-name {
+  font-size: 12px;
+  color: #64748b;
+}
+
+/* Salary Card */
+.salary-overview-card {
+  background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+  color: #ffffff;
+  border-radius: 14px;
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.salary-label {
+  font-size: 13px;
+  color: #94a3b8;
+}
+
+.salary-amount {
+  font-size: 28px;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+  color: #38bdf8;
+}
+
+.salary-meta-row {
+  display: flex;
+  justify-content: space-between;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  padding-top: 10px;
+  font-size: 12px;
+}
+
+.salary-breakdown-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.salary-breakdown-item {
+  background: #ffffff;
+  border: 1px solid var(--line, #e2e8f0);
+  border-radius: 10px;
+  padding: 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.breakdown-left {
+  display: flex;
+  flex-direction: column;
+}
+
+.breakdown-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.breakdown-sub {
+  font-size: 11px;
+  color: #64748b;
+}
+
+.breakdown-value {
+  font-size: 14px;
+  font-weight: 700;
+  color: #0f172a;
+}
