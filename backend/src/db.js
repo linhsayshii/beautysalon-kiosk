@@ -57,6 +57,9 @@ export async function runMigrations() {
       ALTER TABLE commission_records
         ADD COLUMN IF NOT EXISTS commission_type VARCHAR(30) DEFAULT 'service';
 
+      ALTER TABLE invoice_items
+        ADD COLUMN IF NOT EXISTS staff_id BIGINT REFERENCES staff(id) ON DELETE SET NULL;
+
       UPDATE user_accounts
       SET password_hash = 'scrypt$_6JsIiDp2GDJrZs1B2xKFg$VxLtnWDXsfk2UDdKRttaiphUquyvEja1Ew1KitMa3BCvoAekfQoLGfQBPVFUEgHWYEIyQO67dq2fzZ2DuvKWWQ'
       WHERE username IN ('admin', 'manager', 'cashier', 'staff', 'trangvu', 'hau', 'emhue');

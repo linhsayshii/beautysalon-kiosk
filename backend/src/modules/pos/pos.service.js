@@ -74,6 +74,17 @@ export async function checkoutPosInvoice({
       const itemType = String(line.itemType || '').trim();
       const itemId = Number(line.itemId);
       const quantity = Math.max(1, Math.floor(Number(line.quantity || 1)));
+      const lineStaffId = line.staffId ? Number(line.staffId) : null;
+
+      if (lineStaffId) {
+        const lineStaffResult = await client.query(
+          'SELECT id, name FROM staff WHERE id = $1 AND branch_id = $2 AND active = TRUE',
+          [lineStaffId, branchId],
+        );
+        if (!lineStaffResult.rows[0]) {
+          throw new HttpError(404, 'STAFF_NOT_FOUND', `Nhân viên #${lineStaffId} không tồn tại hoặc đã ngừng hoạt động`);
+        }
+      }
 
       if (!['service', 'product', 'package', 'account_card'].includes(itemType) || !itemId) {
         throw new HttpError(400, 'INVALID_ITEM', 'Hàng hóa hoặc dịch vụ không hợp lệ');
@@ -101,6 +112,7 @@ export async function checkoutPosInvoice({
           itemType: 'service',
           serviceId: itemId,
           productId: null,
+          staffId: lineStaffId || staffId || null,
           code,
           name,
           unit,
@@ -144,6 +156,7 @@ export async function checkoutPosInvoice({
           itemType: 'product',
           serviceId: null,
           productId: itemId,
+          staffId: lineStaffId || staffId || null,
           code,
           name,
           unit,
@@ -169,6 +182,7 @@ export async function checkoutPosInvoice({
           itemType: 'service',
           serviceId: null,
           productId: null,
+          staffId: lineStaffId || staffId || null,
           code,
           name: `[Gói] ${name}`,
           unit,
@@ -205,6 +219,7 @@ export async function checkoutPosInvoice({
           itemType: 'service',
           serviceId: null,
           productId: null,
+          staffId: lineStaffId || staffId || null,
           code,
           name: `[Thẻ] ${name}`,
           unit,
@@ -262,13 +277,14 @@ export async function checkoutPosInvoice({
     for (const item of validatedItems) {
       await client.query(
         `INSERT INTO invoice_items (
-           invoice_id, item_type, service_id, product_id, description, quantity, unit_price, line_total
-         ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+           invoice_id, item_type, service_id, product_id, staff_id, description, quantity, unit_price, line_total
+         ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
         [
           invoiceId,
           item.itemType,
           item.serviceId,
           item.productId,
+          item.staffId || null,
           item.name,
           item.quantity,
           item.unitPrice,
@@ -374,6 +390,7 @@ export async function checkoutPosInvoice({
         quantity: item.quantity,
         unitPrice: item.unitPrice,
         lineTotal: item.lineTotal,
+        staffId: item.staffId || null,
       })),
     };
 

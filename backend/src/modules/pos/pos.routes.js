@@ -196,6 +196,7 @@ router.post('/checkout', asyncRoute(async (request, response) => {
     itemType: parseEnum(line.itemType, 'itemType', itemTypes),
     itemId: parsePositiveInteger(line.itemId, 'itemId'),
     quantity: Math.max(1, Math.floor(Number(line.quantity || 1))),
+    staffId: line.staffId ? parsePositiveInteger(line.staffId, 'staffId') : null,
   }));
 
   const data = await checkoutPosInvoice({

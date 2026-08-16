@@ -19,6 +19,7 @@ export async function listCustomers({ branchId, search, group, debtStatus, page,
          COALESCE(sales.total_spent, 0) AS total_spent,
          visits.last_visit,
          COALESCE(packages.active_packages, 0) AS active_packages,
+         COALESCE(pkg_units.remaining_units, 0) AS remaining_units,
          COUNT(*) OVER() AS filtered_total
        FROM customers c
        LEFT JOIN LATERAL (
@@ -30,6 +31,13 @@ export async function listCustomers({ branchId, search, group, debtStatus, page,
        LEFT JOIN LATERAL (
          SELECT COUNT(*) AS active_packages FROM customer_packages cp WHERE cp.customer_id = c.id AND cp.status = 'active'
        ) packages ON TRUE
+       LEFT JOIN LATERAL (
+         SELECT COALESCE(SUM(cp.total_units - cp.used_units), 0) AS remaining_units
+         FROM customer_packages cp
+         WHERE cp.customer_id = c.id
+           AND cp.status = 'active'
+           AND (cp.expires_at IS NULL OR cp.expires_at > NOW())
+       ) pkg_units ON TRUE
        WHERE ${filters}
        ORDER BY c.created_at DESC, c.id DESC
        LIMIT $5 OFFSET $6`,
@@ -65,6 +73,7 @@ export async function listCustomers({ branchId, search, group, debtStatus, page,
       totalSpent: number(row.total_spent),
       lastVisit: row.last_visit,
       activePackages: number(row.active_packages),
+      remainingPackageUnits: number(row.remaining_units),
       createdAt: row.created_at,
     })),
     pagination: { page, pageSize, total, totalPages: Math.max(1, Math.ceil(total / pageSize)) },

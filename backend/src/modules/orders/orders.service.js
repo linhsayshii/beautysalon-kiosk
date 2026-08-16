@@ -99,12 +99,14 @@ export async function getOrder({ branchId, id }) {
   const itemsResult = await pool.query(
     `SELECT
        ii.id, ii.item_type, ii.description, ii.quantity, ii.unit_price, ii.line_total,
+       ii.staff_id, st.name AS line_staff_name,
        COALESCE(s.code, p.sku, '-') AS item_code,
        COALESCE(s.name, p.name, ii.description) AS item_name,
        CASE WHEN ii.item_type = 'service' THEN 'lần' ELSE COALESCE(p.unit, 'sản phẩm') END AS unit
      FROM invoice_items ii
      LEFT JOIN services s ON s.id = ii.service_id
      LEFT JOIN products p ON p.id = ii.product_id
+     LEFT JOIN staff st ON st.id = ii.staff_id
      WHERE ii.invoice_id = $1
      ORDER BY ii.id`,
     [id],
@@ -137,6 +139,8 @@ export async function getOrder({ branchId, id }) {
       code: item.item_code,
       name: item.item_name,
       description: item.description,
+      staffId: item.staff_id ? number(item.staff_id) : null,
+      staffName: item.line_staff_name || null,
       unit: item.unit,
       quantity: number(item.quantity),
       unitPrice: number(item.unit_price),
