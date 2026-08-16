@@ -1,13 +1,4 @@
 import { useState, useRef, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
-import { useAuth } from '@/features/auth/AuthProvider';
-import { useMetadata } from '@/services/metadata';
-import { usePosSocket } from '@/services/usePosSocket';
-import { getBranches } from '@/features/branches/branches.api';
-import type { ApiRecord } from '@/types/api';
-
-import { useState, useRef, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/features/auth/AuthProvider';
