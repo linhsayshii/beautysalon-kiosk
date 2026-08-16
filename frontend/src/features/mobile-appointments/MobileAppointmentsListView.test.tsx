@@ -59,26 +59,23 @@ describe('MobileAppointmentsListView Component', () => {
       </QueryClientProvider>
     );
 
-  it('renders header with title, date filter buttons, status chips, and appointment cards', async () => {
+  it('renders header with title, tabs, filter chips, and appointment cards', async () => {
     renderComponent();
 
     // Header
     expect(screen.getByRole('heading', { name: /Lịch dịch vụ/i })).toBeInTheDocument();
 
-    // Date filters
-    expect(screen.getByRole('button', { name: 'Hôm nay' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Ngày mai' })).toBeInTheDocument();
-    expect(screen.getByLabelText('Chọn ngày')).toBeInTheDocument();
+    // Tabs
+    expect(screen.getByRole('tab', { name: 'Danh sách' })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'Lưới thời gian' })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'Lưới nhân viên' })).toBeInTheDocument();
 
-    // Status chips
-    expect(screen.getByRole('button', { name: 'Tất cả' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Chờ phục vụ' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Đang làm' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Hoàn thành' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Đã hủy' })).toBeInTheDocument();
+    // Filter controls
+    expect(screen.getByLabelText('Chọn ngày')).toBeInTheDocument();
+    expect(screen.getByLabelText('Chọn nhân viên')).toBeInTheDocument();
 
     // Floating action button
-    const fab = screen.getByRole('link', { name: /Đặt lịch/i });
+    const fab = screen.getByRole('link', { name: /Tạo lịch hẹn mới/i });
     expect(fab).toBeInTheDocument();
     expect(fab).toHaveAttribute('href', '/m/appointments/new');
 
@@ -86,46 +83,42 @@ describe('MobileAppointmentsListView Component', () => {
     await waitFor(() => {
       expect(screen.getByText('Nguyễn Thị Hoa')).toBeInTheDocument();
       expect(screen.getByText('Chăm sóc da chuyên sâu')).toBeInTheDocument();
-      expect(screen.getByText('KTV: Trần Kỹ Thuật 1')).toBeInTheDocument();
+      expect(screen.getByText(/bởi Trần Kỹ Thuật 1/i)).toBeInTheDocument();
       expect(screen.getByText('Lê Văn Nam')).toBeInTheDocument();
       expect(screen.getByText('Phạm Thị Lan')).toBeInTheDocument();
     });
 
     // Quick call buttons for customers with phone
-    const callButtons = screen.getAllByRole('link', { name: /Gọi cho/i });
-    expect(callButtons).toHaveLength(2);
-    expect(callButtons[0]).toHaveAttribute('href', 'tel:0901234567');
+    const phoneLinks = screen.getAllByRole('link', { name: /09/ });
+    expect(phoneLinks).toHaveLength(2);
+    expect(phoneLinks[0]).toHaveAttribute('href', 'tel:0901234567');
   });
 
-  it('filters appointments by status when clicking status chips', async () => {
+  it('filters appointments by searching customer name or staff', async () => {
     renderComponent();
 
     await waitFor(() => {
       expect(screen.getByText('Nguyễn Thị Hoa')).toBeInTheDocument();
     });
 
-    // Filter by "Đang làm"
-    fireEvent.click(screen.getByRole('button', { name: 'Đang làm' }));
+    // Open search
+    const searchTrigger = screen.getByLabelText('Tìm kiếm');
+    fireEvent.click(searchTrigger);
+
+    const searchInput = screen.getByPlaceholderText(/Tìm khách hàng/i);
+    fireEvent.change(searchInput, { target: { value: 'Nam' } });
 
     expect(screen.getByText('Lê Văn Nam')).toBeInTheDocument();
     expect(screen.queryByText('Nguyễn Thị Hoa')).not.toBeInTheDocument();
     expect(screen.queryByText('Phạm Thị Lan')).not.toBeInTheDocument();
-
-    // Filter by "Hoàn thành"
-    fireEvent.click(screen.getByRole('button', { name: 'Hoàn thành' }));
-
-    expect(screen.getByText('Phạm Thị Lan')).toBeInTheDocument();
-    expect(screen.queryByText('Nguyễn Thị Hoa')).not.toBeInTheDocument();
-    expect(screen.queryByText('Lê Văn Nam')).not.toBeInTheDocument();
   });
 
-  it('switches date to Ngày mai and refetches appointments', async () => {
+  it('switches tabs smoothly', async () => {
     renderComponent();
 
-    const tomorrowBtn = screen.getByRole('button', { name: 'Ngày mai' });
-    fireEvent.click(tomorrowBtn);
+    const timelineTab = screen.getByRole('tab', { name: 'Lưới thời gian' });
+    fireEvent.click(timelineTab);
 
-    expect(tomorrowBtn).toHaveClass('is-active');
-    expect(posApi.getPosAppointments).toHaveBeenCalled();
+    expect(timelineTab).toHaveClass('is-active');
   });
 });

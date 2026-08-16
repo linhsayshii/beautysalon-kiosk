@@ -17,7 +17,13 @@ export function MobileAppLayout() {
   return (
     <div className="mobile-app-shell">
       <MobileTopBar />
-      <main className={`mobile-main-content ${location.pathname.startsWith('/m/products') ? 'is-full-bleed' : ''}`}>
+      <main
+        className={`mobile-main-content ${
+          location.pathname.startsWith('/m/products') || location.pathname.startsWith('/m/appointments')
+            ? 'is-full-bleed'
+            : ''
+        }`}
+      >
         <Outlet />
       </main>
       <MobileBottomNav />

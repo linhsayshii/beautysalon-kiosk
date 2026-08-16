@@ -10,6 +10,7 @@ import type { ApiRecord } from '@/types/api';
 // Sub-page titles and configuration
 const SUBPAGE_CONFIG: Record<string, { title: string; backTo?: string; hideTopBar?: boolean }> = {
   '/m/products': { title: 'Hàng hóa', backTo: '/m/more', hideTopBar: true },
+  '/m/appointments': { title: 'Lịch dịch vụ', hideTopBar: true },
   '/m/pricebooks': { title: 'Bảng giá', backTo: '/m/more' },
   '/m/purchase-orders': { title: 'Nhập hàng', backTo: '/m/more' },
   '/m/purchase-orders/new': { title: 'Tạo phiếu nhập', backTo: '/m/purchase-orders' },
@@ -58,7 +59,7 @@ export function MobileTopBar() {
   const { data: branchesData } = useQuery({
     queryKey: ['branches-list'],
     queryFn: getBranches,
-    enabled: isDropdownOpen && !subPageInfo?.hideTopBar,
+    enabled: isDropdownOpen && !subPageInfo?.hideTopBar && pathname !== '/m/appointments',
   });
 
   const branches = (branchesData?.data ?? []) as ApiRecord[];
@@ -78,7 +79,7 @@ export function MobileTopBar() {
     };
   }, [isDropdownOpen]);
 
-  if (subPageInfo?.hideTopBar) {
+  if (subPageInfo?.hideTopBar || pathname === '/m/appointments') {
     return null;
   }
 

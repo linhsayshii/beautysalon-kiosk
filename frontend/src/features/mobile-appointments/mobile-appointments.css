@@ -671,170 +671,385 @@
 }
 
 /* =========================================================
-   Mobile Appointments List View Styles
+   Mobile Appointments List View Styles (Matched Native UI)
    ========================================================= */
 
-.mobile-appointments-list-container {
+.mobile-appointments-view {
   display: flex;
   flex-direction: column;
   min-height: 100vh;
-  background-color: #f8fafc;
-  padding-bottom: 90px;
+  background-color: #f2f4f8;
+  padding-bottom: calc(var(--mobile-safe-bottom, 0px) + 90px);
   box-sizing: border-box;
   font-family: inherit;
-  color: #1e293b;
+  color: #0f172a;
 }
 
-/* Header */
-.mobile-appointments-list-header {
+/* 1. Header Toolbar */
+.mobile-appointments-top-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 14px 16px;
+  padding: 16px 16px 10px;
   background: #ffffff;
-  border-bottom: 1px solid #e2e8f0;
-  position: sticky;
-  top: 0;
-  z-index: 20;
 }
 
-.mobile-appointments-list-title {
-  font-size: 18px;
-  font-weight: 700;
+.mobile-appointments-main-title {
+  font-size: 22px;
+  font-weight: 800;
   color: #0f172a;
   margin: 0;
+  letter-spacing: -0.02em;
+}
+
+.mobile-appointments-search-trigger {
   display: flex;
   align-items: center;
-  gap: 8px;
-}
-
-.mobile-appointments-count-badge {
-  font-size: 12px;
-  font-weight: 600;
-  color: #2563eb;
-  background: #eff6ff;
-  padding: 2px 8px;
-  border-radius: 12px;
-  border: 1px solid #bfdbfe;
-}
-
-/* Date Selector Bar */
-.mobile-appointments-date-bar {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 16px;
-  background: #ffffff;
-  border-bottom: 1px solid #f1f5f9;
-  overflow-x: auto;
-}
-
-.mobile-appointments-date-btn {
-  padding: 6px 12px;
-  border-radius: 8px;
-  border: 1px solid #e2e8f0;
-  background: #f8fafc;
-  color: #475569;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  white-space: nowrap;
-  transition: all 0.15s ease;
-}
-
-.mobile-appointments-date-btn.is-active {
-  background: #0f172a;
-  color: #ffffff;
-  border-color: #0f172a;
-}
-
-.mobile-appointments-date-input-wrapper {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-}
-
-.mobile-appointments-date-input {
-  padding: 5px 8px;
-  border-radius: 8px;
-  border: 1px solid #cbd5e1;
-  font-size: 13px;
-  font-family: inherit;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  border: none;
+  background: transparent;
   color: #1e293b;
-  background: #ffffff;
+  font-size: 22px;
+  cursor: pointer;
+  transition: background 0.15s ease;
 }
 
-/* Status Filter Tabs (Horizontal Scroll) */
-.mobile-appointments-status-bar {
-  display: flex;
-  gap: 8px;
-  padding: 10px 16px;
+.mobile-appointments-search-trigger:active {
+  background: #f1f5f9;
+}
+
+/* Inline Search Box */
+.mobile-appointments-search-box {
   background: #ffffff;
-  border-bottom: 1px solid #e2e8f0;
+  padding: 0 16px 12px;
+}
+
+.mobile-appointments-search-input-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #f1f5f9;
+  border-radius: 12px;
+  padding: 8px 12px;
+}
+
+.mobile-appointments-search-input-wrap i {
+  font-size: 18px;
+  color: #64748b;
+}
+
+.mobile-appointments-search-input-wrap input {
+  flex: 1;
+  border: none;
+  background: transparent;
+  font-size: 14px;
+  color: #0f172a;
+  outline: none;
+}
+
+.mobile-appointments-search-input-wrap button {
+  border: none;
+  background: transparent;
+  color: #64748b;
+  cursor: pointer;
+  padding: 0;
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+}
+
+/* 2. Filter Strip */
+.mobile-appointments-filter-strip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 16px 12px;
+  background: #ffffff;
   overflow-x: auto;
   scrollbar-width: none;
 }
 
-.mobile-appointments-status-bar::-webkit-scrollbar {
+.mobile-appointments-filter-strip::-webkit-scrollbar {
   display: none;
 }
 
-.mobile-appointments-status-chip {
-  padding: 6px 14px;
-  border-radius: 20px;
-  border: 1px solid #e2e8f0;
-  background: #f8fafc;
-  color: #64748b;
-  font-size: 13px;
-  font-weight: 500;
+.mobile-appointments-filter-icon-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: #f1f5f9;
+  border: none;
+  color: #334155;
+  font-size: 18px;
+  flex-shrink: 0;
   cursor: pointer;
+}
+
+.mobile-appointments-chip-select-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.mobile-appointments-date-hidden-input,
+.mobile-appointments-staff-select {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  width: 100%;
+  height: 100%;
+  cursor: pointer;
+  z-index: 2;
+}
+
+.mobile-appointments-filter-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 14px;
+  height: 36px;
+  border-radius: 18px;
+  background: #f1f5f9;
+  border: 1px solid transparent;
+  color: #334155;
+  font-size: 13.5px;
+  font-weight: 600;
   white-space: nowrap;
+  cursor: pointer;
   transition: all 0.15s ease;
 }
 
-.mobile-appointments-status-chip.is-active {
-  background: #2563eb;
-  color: #ffffff;
-  border-color: #2563eb;
-  font-weight: 600;
+.mobile-appointments-filter-chip.is-active {
+  background: #eff6ff;
+  border-color: #93c5fd;
+  color: #0062eb;
 }
 
-/* Appointments List Cards */
-.mobile-appointments-list-body {
-  padding: 12px 16px;
+.mobile-appointments-filter-chip i {
+  font-size: 12px;
+  color: #64748b;
+}
+
+/* 3. Underline Tab Navigation */
+.mobile-appointments-tabs-nav {
+  display: flex;
+  align-items: center;
+  background: #ffffff;
+  padding: 0 16px;
+  border-bottom: 1px solid #e5e9f0;
+  gap: 24px;
+}
+
+.mobile-appointments-tab-item {
+  position: relative;
+  padding: 10px 0 12px;
+  background: transparent;
+  border: none;
+  font-size: 15px;
+  font-weight: 600;
+  color: #64748b;
+  cursor: pointer;
+  transition: color 0.15s ease;
+}
+
+.mobile-appointments-tab-item.is-active {
+  color: #0062eb;
+  font-weight: 750;
+}
+
+.mobile-appointments-tab-item.is-active::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 2.5px;
+  border-radius: 2px 2px 0 0;
+  background: #0062eb;
+}
+
+/* 4. Body and Cards */
+.mobile-appointments-content-body {
+  padding: 14px 16px;
   display: flex;
   flex-direction: column;
   gap: 12px;
 }
 
-.mobile-appointment-card-item {
+.mobile-appointments-section-header {
+  font-size: 12.5px;
+  font-weight: 750;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.mobile-appointments-cards-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.mobile-appointment-white-card {
   background: #ffffff;
-  border-radius: 14px;
-  border: 1px solid #e2e8f0;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
-  padding: 14px;
+  border-radius: 16px;
+  padding: 16px;
   display: flex;
   flex-direction: column;
   gap: 10px;
+  border: 1px solid #e5e9f0;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.03);
+  transition: transform 0.1s ease, box-shadow 0.1s ease;
 }
 
-.mobile-appointment-card-top {
+.mobile-appointment-white-card:active {
+  transform: scale(0.99);
+}
+
+.mobile-apt-card-top-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.mobile-apt-customer-block {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.mobile-apt-customer-name {
+  font-size: 16px;
+  font-weight: 750;
+  color: #0f172a;
+}
+
+.mobile-apt-phone-link {
+  font-size: 14.5px;
+  font-weight: 700;
+  color: #0062eb;
+  text-decoration: none;
+}
+
+.mobile-apt-time-capsule {
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 12px;
+  border-radius: 16px;
+  background: #e0f2fe;
+  color: #0284c7;
+  font-size: 13.5px;
+  font-weight: 750;
+  white-space: nowrap;
+}
+
+.mobile-apt-card-details {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.mobile-apt-service-text {
+  font-size: 14.5px;
+  color: #334155;
+  font-weight: 500;
+}
+
+.mobile-apt-staff-text {
+  font-size: 13.5px;
+  color: #64748b;
+}
+
+.mobile-apt-card-footer {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  padding-top: 10px;
+  border-top: 1px solid #f1f5f9;
+  font-size: 13px;
 }
 
-.mobile-appointment-time-badge {
-  display: inline-flex;
+.mobile-apt-status-indicator {
+  display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 13px;
+  font-weight: 600;
+  color: #475569;
+}
+
+.mobile-apt-status-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #94a3b8;
+}
+
+.mobile-apt-status-dot.is-completed {
+  background: #64748b;
+}
+
+.mobile-apt-status-dot.is-in_service {
+  background: #0284c7;
+}
+
+.mobile-apt-status-dot.is-confirmed,
+.mobile-apt-status-dot.is-pending {
+  background: #16a34a;
+}
+
+.mobile-apt-status-dot.is-cancelled {
+  background: #dc2626;
+}
+
+.mobile-apt-payment-state {
+  color: #64748b;
+  font-weight: 500;
+}
+
+/* Empty State */
+.mobile-appointments-empty-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 16px;
+  text-align: center;
+  background: #ffffff;
+  border-radius: 16px;
+  border: 1px solid #e5e9f0;
+}
+
+.mobile-appointments-empty-circle {
+  width: 56px;
+  height: 56px;
+  border-radius: 28px;
+  background: #f1f5f9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 26px;
+  color: #94a3b8;
+  margin-bottom: 12px;
+}
+
+.mobile-appointments-empty-msg {
+  margin: 0 0 4px;
+  font-size: 15px;
   font-weight: 700;
-  color: #2563eb;
-  background: #eff6ff;
-  padding: 4px 10px;
-  border-radius: 8px;
+  color: #0f172a;
+}
+
+.mobile-appointments-empty-hint {
+  font-size: 13px;
+  color: #64748b;
 }
 
 .mobile-appointment-status-pill {
