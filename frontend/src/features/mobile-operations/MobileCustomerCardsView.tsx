@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
 import { formatDate, formatDateTime, formatMoney, formatNumber } from '@/lib/format';
 import { getCustomerCards, getCustomerCard } from '@/features/operations/operations.api';
 import { StatusBadge } from '@/components/data-display/Badges';
@@ -7,21 +8,20 @@ import { statusLabels } from '@/types/api';
 import {
   MobileSearchBar,
   MobileFilterSheet,
-  MobileMetricCards,
-  MobileCard,
   MobileDetailSheet,
-  MobileSegmentedControl,
   MobileEmptyState,
 } from '@/features/mobile-common';
 import type { ApiRecord } from '@/types/api';
 import './mobile-operations.css';
 
-type CardDetailTab = 'info' | 'history';
-
 export function MobileCustomerCardsView() {
+  const navigate = useNavigate();
   const [search, setSearch] = useState('');
+  const [isSearchVisible, setIsSearchVisible] = useState(false);
   const [itemTypeFilter, setItemTypeFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
+  const [sortBy, setSortBy] = useState<'soldAt' | 'name' | 'price'>('soldAt');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
 
   // Draft filters for filter sheet
   const [draftItemType, setDraftItemType] = useState('');
@@ -30,26 +30,19 @@ export function MobileCustomerCardsView() {
 
   const [selectedCardId, setSelectedCardId] = useState<number | null>(null);
   const [selectedCardType, setSelectedCardType] = useState<string>('package');
-  const [detailTab, setDetailTab] = useState<CardDetailTab>('info');
-
-  const activeFilterCount = (itemTypeFilter ? 1 : 0) + (statusFilter ? 1 : 0);
 
   const { data: cardsData, isLoading } = useQuery({
     queryKey: ['mobile-customer-cards', search, itemTypeFilter, statusFilter],
-    queryFn: () => getCustomerCards({
-      search,
-      itemType: itemTypeFilter,
-      status: statusFilter,
-      pageSize: 50,
-    }),
+    queryFn: () =>
+      getCustomerCards({
+        search,
+        itemType: itemTypeFilter,
+        status: statusFilter,
+        pageSize: 100,
+      }),
   });
 
-  const rows = (cardsData?.data ?? []) as ApiRecord[];
-  const summary = cardsData?.meta?.summary;
-  const totalCards = cardsData?.meta?.pagination?.total ?? rows.length;
-  const activeCount = rows.filter((r) => r.status === 'active').length;
-  const totalUsed = summary?.totalUsed ?? rows.reduce((sum, r) => sum + Number(r.usedUnits || 0), 0);
-  const totalBalance = summary?.totalBalance ?? rows.reduce((sum, r) => sum + Number(r.currentBalance || 0), 0);
+  const rawRows = (cardsData?.data ?? []) as ApiRecord[];
 
   const { data: cardDetailData, isLoading: isDetailLoading } = useQuery({
     queryKey: ['mobile-customer-card-detail', selectedCardType, selectedCardId],
@@ -58,6 +51,40 @@ export function MobileCustomerCardsView() {
   });
 
   const activeCard = cardDetailData?.data as ApiRecord | undefined;
+
+  // Sort rows
+  const sortedRows = useMemo(() => {
+    return [...rawRows].sort((a, b) => {
+      if (sortBy === 'soldAt') {
+        const tA = a.soldAt ? new Date(a.soldAt).getTime() : 0;
+        const tB = b.soldAt ? new Date(b.soldAt).getTime() : 0;
+        return sortOrder === 'desc' ? tB - tA : tA - tB;
+      }
+      if (sortBy === 'name') {
+        return sortOrder === 'desc'
+          ? String(b.itemName || '').localeCompare(String(a.itemName || ''))
+          : String(a.itemName || '').localeCompare(String(b.itemName || ''));
+      }
+      if (sortBy === 'price') {
+        const pA = Number(a.salePrice || 0);
+        const pB = Number(b.salePrice || 0);
+        return sortOrder === 'desc' ? pB - pA : pA - pB;
+      }
+      return 0;
+    });
+  }, [rawRows, sortBy, sortOrder]);
+
+  // Group by item type: GÓI DỊCH VỤ and THẺ TÀI KHOẢN
+  const groupedSections = useMemo(() => {
+    const map = new Map<string, ApiRecord[]>();
+    sortedRows.forEach((row) => {
+      const sectionName = row.itemType === 'package' ? 'GÓI DỊCH VỤ' : 'THẺ TÀI KHOẢN';
+      const list = map.get(sectionName) || [];
+      list.push(row);
+      map.set(sectionName, list);
+    });
+    return Array.from(map.entries());
+  }, [sortedRows]);
 
   const handleApplyFilter = () => {
     setItemTypeFilter(draftItemType);
@@ -79,119 +106,237 @@ export function MobileCustomerCardsView() {
     setIsFilterOpen(true);
   };
 
+  const toggleSort = () => {
+    if (sortBy === 'soldAt') {
+      if (sortOrder === 'desc') {
+        setSortOrder('asc');
+      } else {
+        setSortBy('name');
+        setSortOrder('asc');
+      }
+    } else if (sortBy === 'name') {
+      if (sortOrder === 'asc') {
+        setSortOrder('desc');
+      } else {
+        setSortBy('price');
+        setSortOrder('desc');
+      }
+    } else {
+      setSortBy('soldAt');
+      setSortOrder('desc');
+    }
+  };
+
   return (
     <div className="mobile-operations-view">
-      {/* Header & Metrics */}
-      <div className="mobile-operations-header">
-        <div className="mobile-operations-header-top">
-          <h2 className="mobile-operations-title">Gói, thẻ đã bán</h2>
+      {/* 1. Header Top Navigation */}
+      <div className="mobile-operations-top-nav">
+        <div className="mobile-operations-nav-left">
+          <button
+            type="button"
+            className="mobile-operations-back-icon"
+            onClick={() => navigate('/m/more')}
+            aria-label="Quay lại"
+          >
+            <i className="ph ph-caret-left" />
+          </button>
+          <h1 className="mobile-operations-nav-title">Gói & Thẻ đã bán</h1>
         </div>
 
-        {/* Metric Cards */}
-        <MobileMetricCards
-          items={[
-            { label: 'Tổng gói/thẻ đã bán', value: formatNumber(totalCards), tone: 'blue' },
-            { label: 'Đang sử dụng', value: formatNumber(activeCount), tone: 'green' },
-            { label: 'Lượt đã dùng', value: formatNumber(totalUsed), tone: 'violet' },
-            { label: 'Số dư thẻ', value: formatMoney(totalBalance), tone: 'orange' },
-          ]}
-        />
-
-        {/* Search Bar with Filter Sheet trigger */}
-        <MobileSearchBar
-          value={search}
-          placeholder="Tìm mã, tên gói/thẻ, khách hàng..."
-          onChange={setSearch}
-          onFilterClick={openFilterSheet}
-          activeFilterCount={activeFilterCount}
-        />
+        <div className="mobile-operations-nav-actions">
+          <button
+            type="button"
+            className="mobile-operations-nav-btn"
+            onClick={() => setIsSearchVisible((prev) => !prev)}
+            aria-label="Tìm kiếm"
+          >
+            <i className="ph ph-magnifying-glass" />
+          </button>
+          <button
+            type="button"
+            className="mobile-operations-nav-btn"
+            onClick={toggleSort}
+            aria-label="Sắp xếp"
+            title={`Sắp xếp theo: ${
+              sortBy === 'soldAt' ? 'Thời gian bán' : sortBy === 'name' ? 'Tên gói/thẻ' : 'Giá bán'
+            }`}
+          >
+            <i className="ph ph-arrows-down-up" />
+          </button>
+        </div>
       </div>
 
-      {/* Cards List */}
-      <div className="mobile-operations-list">
-        {isLoading ? (
-          <div style={{ padding: '32px 0', textAlign: 'center', color: 'var(--ink-500)' }}>Đang tải danh sách gói thẻ...</div>
-        ) : rows.length === 0 ? (
-          <MobileEmptyState
-            title="Chưa có gói dịch vụ hoặc thẻ tài khoản nào"
-            description="Thử tìm kiếm với từ khóa khác hoặc thay đổi bộ lọc."
+      {/* Inline Search Bar */}
+      {isSearchVisible && (
+        <div className="mobile-operations-search-bar-wrap">
+          <MobileSearchBar
+            value={search}
+            placeholder="Tìm mã, tên gói/thẻ, khách hàng..."
+            onChange={setSearch}
           />
-        ) : (
-          rows.map((row) => {
-            const isPkg = row.itemType === 'package';
-            const usedUnits = Number(row.usedUnits || 0);
-            const totalUnits = Number(row.totalUnits || 1);
-            const progressPercent = Math.min(100, Math.round((usedUnits / totalUnits) * 100));
+        </div>
+      )}
 
-            return (
-              <MobileCard
-                key={`${row.itemType}-${row.id}`}
-                title={row.itemName}
-                subtitle={`${row.code} • ${statusLabels[row.itemType] ?? row.itemType}`}
-                badge={{
-                  text: statusLabels[row.status] ?? row.status,
-                  tone: row.status === 'active' ? 'green' : row.status === 'expired' ? 'red' : 'gray',
-                }}
-                details={[
-                  {
-                    label: 'Khách hàng',
-                    value: (
-                      <div>
-                        <strong>{row.customer?.name}</strong>
-                        {row.customer?.phone && (
-                          <div style={{ fontSize: '11.5px', color: 'var(--ink-500)' }}>{row.customer.phone}</div>
+      {/* 2. Horizontal Filter Chips Strip */}
+      <div className="mobile-operations-filter-strip">
+        <button
+          type="button"
+          className="mobile-filter-icon-btn"
+          onClick={openFilterSheet}
+          aria-label="Mở bộ lọc"
+        >
+          <i className="ph ph-faders" />
+        </button>
+
+        <button
+          type="button"
+          className={`mobile-filter-chip ${itemTypeFilter ? 'is-active' : ''}`}
+          onClick={openFilterSheet}
+        >
+          <span>
+            {itemTypeFilter === 'package'
+              ? 'Gói dịch vụ'
+              : itemTypeFilter === 'account_card'
+              ? 'Thẻ tài khoản'
+              : 'Tất cả loại thẻ'}
+          </span>
+          <i className="ph ph-caret-down" />
+        </button>
+
+        <button
+          type="button"
+          className={`mobile-filter-chip ${statusFilter ? 'is-active' : ''}`}
+          onClick={openFilterSheet}
+        >
+          <span>
+            {statusFilter === 'active'
+              ? 'Đang sử dụng'
+              : statusFilter === 'completed'
+              ? 'Đã dùng hết'
+              : statusFilter === 'expired'
+              ? 'Hết hạn'
+              : 'Trạng thái'}
+          </span>
+          <i className="ph ph-caret-down" />
+        </button>
+      </div>
+
+      {/* 3. Summary & Sort Indicator Bar */}
+      <div className="mobile-operations-summary-bar">
+        <button type="button" className="mobile-operations-sort-selector" onClick={toggleSort}>
+          <span>
+            {sortBy === 'soldAt'
+              ? `Bán: ${sortOrder === 'desc' ? 'Mới nhất' : 'Cũ nhất'}`
+              : sortBy === 'name'
+              ? `Tên ${sortOrder === 'asc' ? 'A → Z' : 'Z → A'}`
+              : `Giá bán ${sortOrder === 'desc' ? 'cao → thấp' : 'thấp → cao'}`}
+          </span>
+          <i className="ph ph-caret-down" />
+        </button>
+
+        <div className="mobile-operations-count-summary">
+          {rawRows.length} gói, thẻ đã bán
+        </div>
+      </div>
+
+      {/* 4. Grouped Section List */}
+      <div className="mobile-operations-sections-wrapper">
+        {isLoading ? (
+          <div style={{ padding: '40px 16px', textAlign: 'center', color: '#64748b' }}>
+            Đang tải danh sách gói thẻ...
+          </div>
+        ) : rawRows.length === 0 ? (
+          <div style={{ padding: '24px 16px' }}>
+            <MobileEmptyState
+              title="Chưa có gói dịch vụ hoặc thẻ tài khoản nào"
+              description="Thử tìm kiếm với từ khóa khác hoặc thay đổi bộ lọc."
+            />
+          </div>
+        ) : (
+          groupedSections.map(([sectionName, items]) => (
+            <div key={sectionName} className="mobile-operations-section">
+              <div className="mobile-operations-section-title">{sectionName}</div>
+              <div className="mobile-operations-section-card">
+                {items.map((row) => {
+                  const isPkg = row.itemType === 'package';
+                  const usedUnits = Number(row.usedUnits || 0);
+                  const totalUnits = Number(row.totalUnits || 1);
+                  const progressPercent = Math.min(100, Math.round((usedUnits / totalUnits) * 100));
+
+                  return (
+                    <div
+                      key={`${row.itemType}-${row.id}`}
+                      className="mobile-operations-row-item"
+                      onClick={() => {
+                        setSelectedCardId(row.id);
+                        setSelectedCardType(row.itemType);
+                      }}
+                      role="button"
+                      tabIndex={0}
+                    >
+                      {/* Square rounded avatar */}
+                      <div className={`mobile-card-square-avatar is-${row.itemType}`}>
+                        <i className={isPkg ? 'ph ph-stack' : 'ph ph-credit-card'} />
+                      </div>
+
+                      {/* Info */}
+                      <div className="mobile-row-info">
+                        <div className="mobile-row-name">{row.itemName}</div>
+                        <div className="mobile-row-sub">
+                          <span>{row.customer?.name}</span>
+                          {row.customer?.phone && (
+                            <a
+                              href={`tel:${row.customer.phone}`}
+                              className="mobile-customer-phone-link"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              • {row.customer.phone}
+                            </a>
+                          )}
+                        </div>
+
+                        {/* Progress or Balance preview */}
+                        {isPkg ? (
+                          <div className="mobile-package-progress-wrap" style={{ marginTop: '2px' }}>
+                            <div className="mobile-package-progress-bar">
+                              <div
+                                className="mobile-package-progress-fill"
+                                style={{ width: `${progressPercent}%` }}
+                              />
+                            </div>
+                            <div className="mobile-package-progress-text">
+                              <span>
+                                {usedUnits}/{totalUnits} lượt
+                              </span>
+                              <span style={{ fontWeight: 700, color: '#0062eb' }}>
+                                Còn {row.remainingUnits} lượt
+                              </span>
+                            </div>
+                          </div>
+                        ) : (
+                          <div style={{ fontSize: '12px', color: '#10b981', fontWeight: 700 }}>
+                            Số dư: {formatMoney(row.currentBalance || 0)}
+                          </div>
                         )}
                       </div>
-                    ),
-                  },
-                  {
-                    label: 'Hạn sử dụng',
-                    value: formatDate(row.expiresAt),
-                  },
-                  {
-                    label: isPkg ? 'Tiến độ sử dụng' : 'Số dư ban đầu',
-                    value: isPkg ? (
-                      <div className="mobile-package-progress-wrap">
-                        <div className="mobile-package-progress-bar">
-                          <div
-                            className="mobile-package-progress-fill"
-                            style={{ width: `${progressPercent}%` }}
-                          />
-                        </div>
-                        <div className="mobile-package-progress-text">
-                          <span>{usedUnits}/{totalUnits} lượt</span>
-                          <span style={{ fontWeight: 700, color: 'var(--blue-600)' }}>
-                            Còn {row.remainingUnits} lượt
-                          </span>
-                        </div>
+
+                      {/* Right: Status badge & Price */}
+                      <div className="mobile-row-right">
+                        <StatusBadge status={row.status} />
+                        <span style={{ fontSize: '13px', fontWeight: 650, color: '#0f172a' }}>
+                          {formatMoney(row.salePrice || 0)}
+                        </span>
                       </div>
-                    ) : (
-                      formatMoney(row.openingBalance || 0)
-                    ),
-                  },
-                  {
-                    label: isPkg ? 'Giá bán' : 'Số dư hiện tại',
-                    value: isPkg ? (
-                      formatMoney(row.salePrice || 0)
-                    ) : (
-                      <span style={{ color: 'var(--green)', fontWeight: 800 }}>
-                        {formatMoney(row.currentBalance || 0)}
-                      </span>
-                    ),
-                  },
-                ]}
-                onClick={() => {
-                  setSelectedCardId(row.id);
-                  setSelectedCardType(row.itemType);
-                  setDetailTab('info');
-                }}
-              />
-            );
-          })
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          ))
         )}
       </div>
 
-      {/* Filter Sheet */}
+      {/* Filter Bottom Sheet */}
       <MobileFilterSheet
         isOpen={isFilterOpen}
         title="Bộ lọc gói thẻ"
@@ -206,7 +351,7 @@ export function MobileCustomerCardsView() {
             value={draftItemType}
             onChange={(e) => setDraftItemType(e.target.value)}
           >
-            <option value="">Tất cả loại</option>
+            <option value="">Tất cả loại thẻ</option>
             <option value="package">Gói dịch vụ</option>
             <option value="account_card">Thẻ tài khoản</option>
           </select>
@@ -227,133 +372,172 @@ export function MobileCustomerCardsView() {
         </div>
       </MobileFilterSheet>
 
-      {/* Detail Bottom Sheet */}
+      {/* 5. Inset Detail Sheet */}
       <MobileDetailSheet
         isOpen={selectedCardId !== null}
-        title={activeCard?.itemName || 'Chi tiết gói/thẻ'}
-        subtitle={activeCard ? `${activeCard.code} • ${activeCard.customer?.name}` : undefined}
+        title="Thông tin chi tiết gói/thẻ"
         onClose={() => setSelectedCardId(null)}
       >
         {isDetailLoading ? (
-          <div style={{ padding: '24px', textAlign: 'center', color: 'var(--ink-500)' }}>Đang tải thông tin...</div>
+          <div style={{ padding: '24px', textAlign: 'center', color: '#64748b' }}>
+            Đang tải thông tin...
+          </div>
         ) : activeCard ? (
-          <div className="mobile-customer-detail-content">
-            {/* Quick 4-fact Strip */}
-            <div className="mobile-customer-detail-facts-grid">
-              <div className="mobile-customer-fact-box">
-                <span className="mobile-customer-fact-label">Giá bán</span>
-                <span className="mobile-customer-fact-val" style={{ color: 'var(--blue-600)' }}>
-                  {formatMoney(activeCard.salePrice)}
+          <div className="mobile-detail-page-container" style={{ padding: '4px 0 24px' }}>
+            {/* Header Card */}
+            <div className="mobile-detail-section-card">
+              <div className="mobile-detail-card-header">
+                <span className="mobile-detail-card-title">
+                  {activeCard.itemType === 'package' ? 'Gói dịch vụ' : 'Thẻ tài khoản'}
                 </span>
+                <button
+                  type="button"
+                  className="mobile-detail-edit-link"
+                  onClick={() => alert('Chức năng sửa thông tin gói/thẻ')}
+                >
+                  Sửa
+                </button>
               </div>
-              <div className="mobile-customer-fact-box">
-                <span className="mobile-customer-fact-label">
-                  {activeCard.itemType === 'package' ? 'Còn lại' : 'Số dư còn'}
+
+              <h2 className="mobile-detail-main-name">{activeCard.itemName}</h2>
+
+              <div className="mobile-detail-status-pills">
+                <span className="mobile-detail-pill is-code">
+                  <i className="ph ph-identification-card" /> {activeCard.code}
                 </span>
-                <span className="mobile-customer-fact-val" style={{ color: 'var(--green)' }}>
-                  {activeCard.itemType === 'package'
-                    ? `${formatNumber(activeCard.remainingUnits)} lượt`
-                    : formatMoney(activeCard.currentBalance)}
-                </span>
+                <StatusBadge status={activeCard.status} />
               </div>
-              <div className="mobile-customer-fact-box">
-                <span className="mobile-customer-fact-label">Thời gian bán</span>
-                <span className="mobile-customer-fact-val">
-                  {formatDate(activeCard.soldAt)}
-                </span>
-              </div>
-              <div className="mobile-customer-fact-box">
-                <span className="mobile-customer-fact-label">Hạn sử dụng</span>
-                <span className="mobile-customer-fact-val">
-                  {formatDate(activeCard.expiresAt)}
-                </span>
+
+              {/* 2x2 grid */}
+              <div className="mobile-detail-grid-2col">
+                <div className="mobile-detail-grid-item">
+                  <span className="mobile-detail-grid-label">Khách hàng</span>
+                  <span className="mobile-detail-grid-value">{activeCard.customer?.name}</span>
+                </div>
+
+                <div className="mobile-detail-grid-item">
+                  <span className="mobile-detail-grid-label">Số điện thoại</span>
+                  <span className="mobile-detail-grid-value">
+                    {activeCard.customer?.phone ? (
+                      <a href={`tel:${activeCard.customer.phone}`} style={{ color: '#0062eb' }}>
+                        {activeCard.customer.phone}
+                      </a>
+                    ) : (
+                      'Chưa có'
+                    )}
+                  </span>
+                </div>
+
+                <div className="mobile-detail-grid-item">
+                  <span className="mobile-detail-grid-label">Giá bán</span>
+                  <span className="mobile-detail-grid-value" style={{ color: '#0062eb' }}>
+                    {formatMoney(activeCard.salePrice)}
+                  </span>
+                </div>
+
+                <div className="mobile-detail-grid-item">
+                  <span className="mobile-detail-grid-label">
+                    {activeCard.itemType === 'package' ? 'Còn lại' : 'Số dư hiện tại'}
+                  </span>
+                  <span className="mobile-detail-grid-value" style={{ color: '#10b981' }}>
+                    {activeCard.itemType === 'package'
+                      ? `${formatNumber(activeCard.remainingUnits)} lượt`
+                      : formatMoney(activeCard.currentBalance)}
+                  </span>
+                </div>
+
+                <div className="mobile-detail-grid-item">
+                  <span className="mobile-detail-grid-label">Ngày bán</span>
+                  <span className="mobile-detail-grid-value">{formatDate(activeCard.soldAt)}</span>
+                </div>
+
+                <div className="mobile-detail-grid-item">
+                  <span className="mobile-detail-grid-label">Hạn sử dụng</span>
+                  <span className="mobile-detail-grid-value">{formatDate(activeCard.expiresAt)}</span>
+                </div>
               </div>
             </div>
 
-            {/* Segmented Control */}
-            <MobileSegmentedControl<CardDetailTab>
-              value={detailTab}
-              onChange={setDetailTab}
-              options={[
-                { value: 'info', label: 'Thông tin' },
-                { value: 'history', label: 'Lịch sử sử dụng' },
-              ]}
-            />
-
-            {/* Tab 1: Thông tin */}
-            {detailTab === 'info' && (
+            {/* Dịch vụ trong gói / Cấu hình thẻ */}
+            {activeCard.itemType === 'package' ? (
               <div className="mobile-detail-section-card">
-                <h4>Khách hàng & Cấu hình</h4>
-                <div className="mobile-detail-info-row">
-                  <span className="mobile-detail-info-label">Khách hàng:</span>
-                  <span className="mobile-detail-info-val">{activeCard.customer?.name}</span>
+                <div className="mobile-detail-card-header">
+                  <span className="mobile-detail-card-title">Dịch vụ trong gói</span>
                 </div>
-                <div className="mobile-detail-info-row">
-                  <span className="mobile-detail-info-label">Mã khách:</span>
-                  <span className="mobile-detail-info-val">{activeCard.customer?.code}</span>
-                </div>
-                <div className="mobile-detail-info-row">
-                  <span className="mobile-detail-info-label">Trạng thái:</span>
-                  <StatusBadge status={activeCard.status} />
-                </div>
-
-                {activeCard.itemType === 'package' ? (
-                  <div style={{ marginTop: '10px' }}>
-                    <div style={{ fontWeight: 700, fontSize: '13px', marginBottom: '6px' }}>Dịch vụ trong gói</div>
-                    {(activeCard.services || []).map((srv: ApiRecord) => (
-                      <div key={srv.id} className="mobile-detail-info-row">
-                        <span>{srv.name} ({srv.code})</span>
-                        <span>Đã dùng: {activeCard.usedUnits}/{activeCard.totalUnits}</span>
-                      </div>
-                    ))}
+                {(activeCard.services || []).map((srv: ApiRecord) => (
+                  <div key={srv.id} className="mobile-detail-nav-row">
+                    <span style={{ fontSize: '13.5px', fontWeight: 600 }}>
+                      {srv.name} ({srv.code})
+                    </span>
+                    <span style={{ fontSize: '13px', color: '#64748b' }}>
+                      Đã dùng: {activeCard.usedUnits}/{activeCard.totalUnits}
+                    </span>
                   </div>
-                ) : (
-                  <div style={{ marginTop: '10px' }}>
-                    <div className="mobile-detail-info-row">
-                      <span className="mobile-detail-info-label">Số dư ban đầu:</span>
-                      <span className="mobile-detail-info-val">{formatMoney(activeCard.openingBalance)}</span>
-                    </div>
-                    <div className="mobile-detail-info-row">
-                      <span className="mobile-detail-info-label">Đã sử dụng:</span>
-                      <span className="mobile-detail-info-val">
-                        {formatMoney(Number(activeCard.openingBalance || 0) - Number(activeCard.currentBalance || 0))}
-                      </span>
-                    </div>
-                    <div className="mobile-detail-info-row">
-                      <span className="mobile-detail-info-label">Còn lại:</span>
-                      <span className="mobile-detail-info-val" style={{ color: 'var(--green)' }}>
-                        {formatMoney(activeCard.currentBalance)}
-                      </span>
-                    </div>
-                  </div>
-                )}
+                ))}
+              </div>
+            ) : (
+              <div className="mobile-detail-section-card">
+                <div className="mobile-detail-card-header">
+                  <span className="mobile-detail-card-title">Số dư thẻ</span>
+                </div>
+                <div className="mobile-detail-nav-row">
+                  <span style={{ fontSize: '13.5px', color: '#64748b' }}>Số dư ban đầu:</span>
+                  <span style={{ fontSize: '14px', fontWeight: 700 }}>
+                    {formatMoney(activeCard.openingBalance)}
+                  </span>
+                </div>
+                <div className="mobile-detail-nav-row">
+                  <span style={{ fontSize: '13.5px', color: '#64748b' }}>Đã sử dụng:</span>
+                  <span style={{ fontSize: '14px', fontWeight: 700, color: '#e11d48' }}>
+                    {formatMoney(
+                      Number(activeCard.openingBalance || 0) - Number(activeCard.currentBalance || 0)
+                    )}
+                  </span>
+                </div>
+                <div className="mobile-detail-nav-row">
+                  <span style={{ fontSize: '13.5px', color: '#64748b' }}>Còn lại:</span>
+                  <span style={{ fontSize: '15px', fontWeight: 800, color: '#10b981' }}>
+                    {formatMoney(activeCard.currentBalance)}
+                  </span>
+                </div>
               </div>
             )}
 
-            {/* Tab 2: Lịch sử sử dụng */}
-            {detailTab === 'history' && (
-              <div className="mobile-activity-list">
-                {(!activeCard.usages || activeCard.usages.length === 0) ? (
-                  <MobileEmptyState title="Chưa có lịch sử sử dụng nào" />
-                ) : (
-                  activeCard.usages.map((u: ApiRecord) => (
+            {/* Lịch sử sử dụng card */}
+            <div className="mobile-detail-section-card">
+              <div className="mobile-detail-card-header">
+                <span className="mobile-detail-card-title">Lịch sử sử dụng</span>
+              </div>
+              {!activeCard.usages || activeCard.usages.length === 0 ? (
+                <MobileEmptyState title="Chưa có lịch sử sử dụng nào" />
+              ) : (
+                <div className="mobile-activity-list">
+                  {activeCard.usages.map((u: ApiRecord) => (
                     <div key={u.id} className="mobile-activity-item">
                       <div className="mobile-activity-item-top">
-                        <span className="mobile-activity-item-code">{u.serviceName ?? 'Sử dụng gói'}</span>
-                        <span className="mobile-activity-item-date">{formatDateTime(u.occurredAt)}</span>
+                        <span className="mobile-activity-item-code">
+                          {u.serviceName ?? 'Sử dụng dịch vụ'}
+                        </span>
+                        <span className="mobile-activity-item-date">
+                          {formatDateTime(u.occurredAt)}
+                        </span>
                       </div>
                       <div className="mobile-activity-item-bottom">
-                        <span style={{ color: 'var(--ink-500)' }}>Hóa đơn: {u.invoiceCode || '-'}</span>
-                        <strong style={{ color: 'var(--blue-600)' }}>-{formatNumber(u.unitsUsed)} lượt</strong>
+                        <span style={{ color: '#64748b' }}>
+                          Hóa đơn: {u.invoiceCode || '-'}
+                        </span>
+                        <strong style={{ color: '#0062eb' }}>
+                          -{formatNumber(u.unitsUsed)} lượt
+                        </strong>
                       </div>
                       {u.note && (
-                        <small style={{ color: 'var(--ink-400)' }}>Ghi chú: {u.note}</small>
+                        <small style={{ color: '#94a3b8' }}>Ghi chú: {u.note}</small>
                       )}
                     </div>
-                  ))
-                )}
-              </div>
-            )}
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         ) : null}
       </MobileDetailSheet>

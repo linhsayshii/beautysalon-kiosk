@@ -11,10 +11,11 @@ import type { ApiRecord } from '@/types/api';
 const SUBPAGE_CONFIG: Record<string, { title: string; backTo?: string; hideTopBar?: boolean }> = {
   '/m/products': { title: 'Hàng hóa', backTo: '/m/more', hideTopBar: true },
   '/m/appointments': { title: 'Lịch dịch vụ', hideTopBar: true },
+  '/m/customers': { title: 'Khách hàng', backTo: '/m/more', hideTopBar: true },
+  '/m/customer-cards': { title: 'Gói & Thẻ khách hàng', backTo: '/m/more', hideTopBar: true },
   '/m/pricebooks': { title: 'Bảng giá', backTo: '/m/more' },
   '/m/purchase-orders': { title: 'Nhập hàng', backTo: '/m/more' },
   '/m/purchase-orders/new': { title: 'Tạo phiếu nhập', backTo: '/m/purchase-orders' },
-  '/m/customer-cards': { title: 'Gói & Thẻ khách hàng', backTo: '/m/more' },
   '/m/staff/schedule': { title: 'Lịch làm việc', backTo: '/m/more' },
   '/m/staff/attendance': { title: 'Bảng chấm công', backTo: '/m/more' },
   '/m/staff/payroll': { title: 'Bảng lương & Hoa hồng', backTo: '/m/more' },

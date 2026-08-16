@@ -97,7 +97,6 @@ describe('MobileTopBar Component', () => {
       { path: '/m/pricebooks', expectedTitle: 'Bảng giá' },
       { path: '/m/purchase-orders', expectedTitle: 'Nhập hàng' },
       { path: '/m/purchase-orders/new', expectedTitle: 'Tạo phiếu nhập' },
-      { path: '/m/customer-cards', expectedTitle: 'Gói & Thẻ khách hàng' },
       { path: '/m/staff/schedule', expectedTitle: 'Lịch làm việc' },
       { path: '/m/staff/attendance', expectedTitle: 'Bảng chấm công' },
       { path: '/m/staff/payroll', expectedTitle: 'Bảng lương & Hoa hồng' },

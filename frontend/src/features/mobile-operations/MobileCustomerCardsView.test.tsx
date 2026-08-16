@@ -1,5 +1,6 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { MemoryRouter } from 'react-router-dom';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { MobileCustomerCardsView } from './MobileCustomerCardsView';
 import * as opsApi from '@/features/operations/operations.api';
@@ -82,22 +83,26 @@ describe('MobileCustomerCardsView Component', () => {
     vi.spyOn(opsApi, 'getCustomerCard').mockResolvedValue(mockCardDetail as any);
   });
 
-  it('renders title, metric cards, search bar and customer cards list', async () => {
+  it('renders header title, search/sort triggers, summary bar and grouped card list without metric boxes', async () => {
     render(
-      <QueryClientProvider client={queryClient}>
-        <MobileCustomerCardsView />
-      </QueryClientProvider>
+      <MemoryRouter>
+        <QueryClientProvider client={queryClient}>
+          <MobileCustomerCardsView />
+        </QueryClientProvider>
+      </MemoryRouter>
     );
 
-    expect(screen.getByText('Gói, thẻ đã bán')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 1, name: 'Gói & Thẻ đã bán' })).toBeInTheDocument();
 
-    // Metrics
-    expect(screen.getByText('Tổng gói/thẻ đã bán')).toBeInTheDocument();
-    expect(screen.getByText('Đang sử dụng')).toBeInTheDocument();
-    expect(screen.getByText('Lượt đã dùng')).toBeInTheDocument();
-    expect(screen.getByText('Số dư thẻ')).toBeInTheDocument();
+    // Ensure NO metric cards exist
+    expect(screen.queryByText('Tổng gói/thẻ đã bán')).not.toBeInTheDocument();
+    expect(screen.queryByText('Lượt đã dùng')).not.toBeInTheDocument();
+    expect(screen.queryByText('Số dư thẻ')).not.toBeInTheDocument();
 
     await waitFor(() => {
+      expect(screen.getByText('2 gói, thẻ đã bán')).toBeInTheDocument();
+      expect(screen.getByText('GÓI DỊCH VỤ')).toBeInTheDocument();
+      expect(screen.getByText('THẺ TÀI KHOẢN')).toBeInTheDocument();
       expect(screen.getByText('Combo Gội Đầu Dưỡng Sinh 10 Buổi')).toBeInTheDocument();
       expect(screen.getByText('Thẻ VIP Trả Trước 5 Triệu')).toBeInTheDocument();
       expect(screen.getByText('4/10 lượt')).toBeInTheDocument();
@@ -107,9 +112,11 @@ describe('MobileCustomerCardsView Component', () => {
 
   it('opens and applies filter sheet for card types and status', async () => {
     render(
-      <QueryClientProvider client={queryClient}>
-        <MobileCustomerCardsView />
-      </QueryClientProvider>
+      <MemoryRouter>
+        <QueryClientProvider client={queryClient}>
+          <MobileCustomerCardsView />
+        </QueryClientProvider>
+      </MemoryRouter>
     );
 
     const filterBtn = screen.getByLabelText('Mở bộ lọc');
@@ -117,7 +124,7 @@ describe('MobileCustomerCardsView Component', () => {
 
     expect(screen.getByText('Bộ lọc gói thẻ')).toBeInTheDocument();
     expect(screen.getByText('Loại hàng')).toBeInTheDocument();
-    expect(screen.getByText('Trạng thái')).toBeInTheDocument();
+    expect(screen.getAllByText('Trạng thái').length).toBeGreaterThan(0);
 
     const applyBtn = screen.getByRole('button', { name: 'Áp dụng' });
     fireEvent.click(applyBtn);
@@ -127,29 +134,27 @@ describe('MobileCustomerCardsView Component', () => {
     });
   });
 
-  it('opens detail sheet with package information and usage history tabs', async () => {
+  it('opens detail sheet with package information and usage history when card item is clicked', async () => {
     render(
-      <QueryClientProvider client={queryClient}>
-        <MobileCustomerCardsView />
-      </QueryClientProvider>
+      <MemoryRouter>
+        <QueryClientProvider client={queryClient}>
+          <MobileCustomerCardsView />
+        </QueryClientProvider>
+      </MemoryRouter>
     );
 
     await waitFor(() => {
       expect(screen.getByText('Combo Gội Đầu Dưỡng Sinh 10 Buổi')).toBeInTheDocument();
     });
 
-    const card = screen.getByText('Combo Gội Đầu Dưỡng Sinh 10 Buổi').closest('.mobile-card');
-    fireEvent.click(card!);
+    const cardRow = screen.getByText('Combo Gội Đầu Dưỡng Sinh 10 Buổi').closest('.mobile-operations-row-item');
+    fireEvent.click(cardRow!);
 
     await waitFor(() => {
-      expect(screen.getByRole('tab', { name: 'Thông tin' })).toBeInTheDocument();
-      expect(screen.getByRole('tab', { name: 'Lịch sử sử dụng' })).toBeInTheDocument();
-      expect(screen.getByText('Khách hàng & Cấu hình')).toBeInTheDocument();
       expect(screen.getByText('Dịch vụ trong gói')).toBeInTheDocument();
+      expect(screen.getByText('Lịch sử sử dụng')).toBeInTheDocument();
     });
 
-    // Switch to history tab
-    fireEvent.click(screen.getByRole('tab', { name: 'Lịch sử sử dụng' }));
     await waitFor(() => {
       expect(screen.getByText(/HD001/)).toBeInTheDocument();
       expect(screen.getByText('-1 lượt')).toBeInTheDocument();

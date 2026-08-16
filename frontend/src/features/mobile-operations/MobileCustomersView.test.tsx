@@ -1,5 +1,6 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { MemoryRouter } from 'react-router-dom';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { MobileCustomersView } from './MobileCustomersView';
 import * as opsApi from '@/features/operations/operations.api';
@@ -82,36 +83,42 @@ describe('MobileCustomersView Component', () => {
     vi.spyOn(opsApi, 'getCustomerActivity').mockResolvedValue(mockOrdersActivity as any);
   });
 
-  it('renders title, metric cards, search bar and customer list cards', async () => {
+  it('renders header title, search/sort triggers, summary bar and grouped customer rows without metric boxes', async () => {
     render(
-      <QueryClientProvider client={queryClient}>
-        <MobileCustomersView />
-      </QueryClientProvider>
+      <MemoryRouter>
+        <QueryClientProvider client={queryClient}>
+          <MobileCustomersView />
+        </QueryClientProvider>
+      </MemoryRouter>
     );
 
-    expect(screen.getByText('Khách hàng')).toBeInTheDocument();
-    expect(screen.getByText('Thêm khách')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 1, name: 'Khách hàng' })).toBeInTheDocument();
 
-    // Metric cards
-    expect(screen.getByText('Tổng khách hàng')).toBeInTheDocument();
-    expect(screen.getByText('Khách đang nợ')).toBeInTheDocument();
-    expect(screen.getByText('Tổng công nợ')).toBeInTheDocument();
-    expect(screen.getByText('Gói đang dùng')).toBeInTheDocument();
+    // Ensure NO metric cards/summary boxes exist
+    expect(screen.queryByText('Tổng khách hàng')).not.toBeInTheDocument();
+    expect(screen.queryByText('Khách đang nợ')).not.toBeInTheDocument();
+    expect(screen.queryByText('Tổng công nợ')).not.toBeInTheDocument();
+
+    // Summary bar & FAB
+    expect(screen.getByLabelText('Thêm khách hàng')).toBeInTheDocument();
 
     await waitFor(() => {
+      expect(screen.getByText(/2 khách hàng/)).toBeInTheDocument();
       // Customer items
       expect(screen.getByText('Nguyễn Văn A')).toBeInTheDocument();
-      expect(screen.getByText('KH001')).toBeInTheDocument();
       expect(screen.getByText('Công ty TNHH B')).toBeInTheDocument();
-      expect(screen.getByText('KH002')).toBeInTheDocument();
+      expect(screen.getByText('CÁ NHÂN')).toBeInTheDocument();
+      expect(screen.getByText('CÔNG TY')).toBeInTheDocument();
     });
   });
 
   it('opens and applies filter sheet', async () => {
     render(
-      <QueryClientProvider client={queryClient}>
-        <MobileCustomersView />
-      </QueryClientProvider>
+      <MemoryRouter>
+        <QueryClientProvider client={queryClient}>
+          <MobileCustomersView />
+        </QueryClientProvider>
+      </MemoryRouter>
     );
 
     const filterBtn = screen.getByLabelText('Mở bộ lọc');
@@ -130,42 +137,32 @@ describe('MobileCustomersView Component', () => {
     });
   });
 
-  it('opens customer detail sheet with tabs when customer card is clicked', async () => {
+  it('opens customer detail sheet when customer row is clicked', async () => {
     render(
-      <QueryClientProvider client={queryClient}>
-        <MobileCustomersView />
-      </QueryClientProvider>
+      <MemoryRouter>
+        <QueryClientProvider client={queryClient}>
+          <MobileCustomersView />
+        </QueryClientProvider>
+      </MemoryRouter>
     );
 
     await waitFor(() => {
       expect(screen.getByText('Nguyễn Văn A')).toBeInTheDocument();
     });
 
-    const customerCard = screen.getByText('Nguyễn Văn A').closest('.mobile-card');
-    fireEvent.click(customerCard!);
+    const customerRow = screen.getByText('Nguyễn Văn A').closest('.mobile-operations-row-item');
+    fireEvent.click(customerRow!);
 
     await waitFor(() => {
-      // Tabs
-      expect(screen.getByRole('tab', { name: 'Thông tin' })).toBeInTheDocument();
-      expect(screen.getByRole('tab', { name: 'Lịch sử' })).toBeInTheDocument();
-      expect(screen.getByRole('tab', { name: 'Gói thẻ' })).toBeInTheDocument();
-      expect(screen.getByRole('tab', { name: 'Công nợ' })).toBeInTheDocument();
-
-      // Info content
+      expect(screen.getByText('Hồ sơ khách hàng')).toBeInTheDocument();
+      expect(screen.getByText('Sổ công nợ')).toBeInTheDocument();
+      expect(screen.getByText('Lịch sử & Gói dịch vụ')).toBeInTheDocument();
       expect(screen.getByText('nguyenvana@gmail.com')).toBeInTheDocument();
-      expect(screen.getByText('123 Đường ABC, Quận 1')).toBeInTheDocument();
     });
 
-    // Switch to Lịch sử tab
-    fireEvent.click(screen.getByRole('tab', { name: 'Lịch sử' }));
+    // Verify activity list in detail sheet
     await waitFor(() => {
       expect(screen.getByText('HD001')).toBeInTheDocument();
-    });
-
-    // Switch to Công nợ tab
-    fireEvent.click(screen.getByRole('tab', { name: 'Công nợ' }));
-    await waitFor(() => {
-      expect(screen.getByText('Tình trạng công nợ hiện tại')).toBeInTheDocument();
     });
   });
 });
