@@ -112,10 +112,9 @@ export function MobileStaffAttendanceAdminView() {
       (s) => Number(s.staffId) === Number(staff.id) || s.staffCode === staff.code
     );
 
-    // Mock fallback when API returns empty
-    const workedHours = totalWorkedMinutes > 0 ? (totalWorkedMinutes / 60).toFixed(1) : '38.5';
-    const completedShifts = staffAtt.length > 0 ? staffAtt.length : 26;
-    const totalAssignedShifts = staffShifts.length > 0 ? staffShifts.length : 26;
+    const workedHours = (totalWorkedMinutes / 60).toFixed(1);
+    const completedShifts = staffAtt.length;
+    const totalAssignedShifts = staffShifts.length;
 
     return {
       workedHours: Number(workedHours),
@@ -364,32 +363,32 @@ export function MobileStaffAttendanceAdminView() {
               </div>
             </div>
 
-            {/* Daily GPS Records */}
+            {/* Daily Records List */}
             <div className="mobile-sheet-section">
-              <span className="mobile-sheet-section-title">Nhật ký quét mã chi tiết</span>
-              <div className="mobile-gps-log-list">
-                <div className="mobile-gps-log-item">
-                  <div>
-                    <div className="mobile-gps-log-time">08:55 - Hôm nay</div>
-                    <div className="mobile-gps-log-desc">Check-in GPS • Anna Spa Chi nhánh Q1</div>
-                  </div>
-                  <span className="mobile-gps-status in">Vào ca</span>
+              <span className="mobile-sheet-section-title">Nhật ký chấm công</span>
+              {activeStaffStats.records.length === 0 ? (
+                <div style={{ padding: '16px', textAlign: 'center', color: '#94a3b8', fontSize: 13 }}>
+                  Chưa có lượt chấm công nào trong kỳ này.
                 </div>
-                <div className="mobile-gps-log-item">
-                  <div>
-                    <div className="mobile-gps-log-time">18:02 - Hôm nay</div>
-                    <div className="mobile-gps-log-desc">Check-out GPS • Anna Spa Chi nhánh Q1</div>
-                  </div>
-                  <span className="mobile-gps-status out">Ra ca</span>
+              ) : (
+                <div className="mobile-gps-log-list">
+                  {activeStaffStats.records.map((rec, idx) => (
+                    <div key={rec.id ?? idx} className="mobile-gps-log-item">
+                      <div>
+                        <div className="mobile-gps-log-time">
+                          {rec.date || rec.createdAt} ({rec.checkInTime || '--:--'} - {rec.checkOutTime || '--:--'})
+                        </div>
+                        <div className="mobile-gps-log-desc">
+                          {rec.branchName || 'Chi nhánh hệ thống'} • {rec.workMinutes ? `${(rec.workMinutes / 60).toFixed(1)} giờ` : 'Đang làm việc'}
+                        </div>
+                      </div>
+                      <span className={`mobile-gps-status ${rec.checkOutTime ? 'out' : 'in'}`}>
+                        {rec.checkOutTime ? 'Đã ra ca' : 'Đang trong ca'}
+                      </span>
+                    </div>
+                  ))}
                 </div>
-                <div className="mobile-gps-log-item">
-                  <div>
-                    <div className="mobile-gps-log-time">09:15 - Hôm qua</div>
-                    <div className="mobile-gps-log-desc">Check-in GPS (Muộn 15p) • Anna Spa Chi nhánh Q1</div>
-                  </div>
-                  <span className="mobile-gps-status in">Vào ca</span>
-                </div>
-              </div>
+              )}
             </div>
           </>
         )}

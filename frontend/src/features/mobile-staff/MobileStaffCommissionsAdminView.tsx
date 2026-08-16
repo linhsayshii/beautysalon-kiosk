@@ -31,106 +31,11 @@ export function MobileStaffCommissionsAdminView() {
 
   const payload = commData?.data;
   const rows: ApiRecord[] = useMemo(() => {
-    if (payload?.rows && payload.rows.length > 0) {
-      return payload.rows;
-    }
-    // Mock realistic records if empty
-    return [
-      {
-        id: 1,
-        invoiceCode: 'HD00109',
-        staffId: 4,
-        staffName: 'Thu Phương',
-        staffCode: 'NV000016',
-        commissionType: 'service',
-        itemName: 'Gội đầu dưỡng sinh thảo dược',
-        revenue: 250000,
-        amount: 50000,
-        ratePercent: 20,
-        createdAt: '2026-08-17 10:30',
-      },
-      {
-        id: 2,
-        invoiceCode: 'HD00110',
-        staffId: 4,
-        staffName: 'Thu Phương',
-        staffCode: 'NV000016',
-        commissionType: 'consulting',
-        itemName: 'Serum Dưỡng Trắng Innisfree',
-        revenue: 450000,
-        amount: 45000,
-        ratePercent: 10,
-        createdAt: '2026-08-17 11:15',
-      },
-      {
-        id: 3,
-        invoiceCode: 'HD00112',
-        staffId: 6,
-        staffName: 'Yến',
-        staffCode: 'NV000015',
-        commissionType: 'service',
-        itemName: 'Chăm sóc da chuyên sâu 90p',
-        revenue: 550000,
-        amount: 110000,
-        ratePercent: 20,
-        createdAt: '2026-08-16 14:00',
-      },
-      {
-        id: 4,
-        invoiceCode: 'HD00115',
-        staffId: 2,
-        staffName: 'Em Huệ',
-        staffCode: 'NV000005',
-        commissionType: 'service',
-        itemName: 'Sơn gel móng tay nghệ thuật',
-        revenue: 200000,
-        amount: 40000,
-        ratePercent: 20,
-        createdAt: '2026-08-15 16:20',
-      },
-    ];
+    return payload?.rows ?? [];
   }, [payload]);
 
   const byStaff: ApiRecord[] = useMemo(() => {
-    if (payload?.byStaff && payload.byStaff.length > 0) {
-      return payload.byStaff;
-    }
-    // Mock byStaff aggregated data
-    return [
-      {
-        staffId: 4,
-        staffName: 'Thu Phương',
-        staffCode: 'NV000016',
-        staffRole: 'Kỹ thuật viên chính',
-        serviceCommission: 2400000,
-        consultingCommission: 800000,
-        totalCommission: 3200000,
-        totalRevenue: 16000000,
-        itemCount: 42,
-      },
-      {
-        staffId: 6,
-        staffName: 'Yến',
-        staffCode: 'NV000015',
-        staffRole: 'Kỹ thuật viên',
-        serviceCommission: 1900000,
-        consultingCommission: 500000,
-        totalCommission: 2400000,
-        totalRevenue: 12000000,
-        itemCount: 31,
-      },
-      {
-        staffId: 2,
-        staffName: 'Em Huệ',
-        staffCode: 'NV000005',
-        staffRole: 'Kỹ thuật viên',
-        serviceCommission: 1400000,
-        consultingCommission: 400000,
-        totalCommission: 1800000,
-        totalRevenue: 9000000,
-        itemCount: 25,
-      },
-    ];
+    return payload?.byStaff ?? [];
   }, [payload]);
 
   // Filter staff list

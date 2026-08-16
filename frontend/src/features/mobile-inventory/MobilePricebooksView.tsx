@@ -530,9 +530,11 @@ export function MobilePricebooksView() {
                 <button
                   type="button"
                   className="mobile-pricebook-action-edit-btn"
-                  onClick={() => alert(`Chỉnh sửa thiết lập hàng hóa ${selectedItem.name}`)}
+                  onClick={() => {
+                    notify('Thông tin hàng hóa', `Mặt hàng: ${selectedItem.name} (${formatMoney(book)})`);
+                  }}
                 >
-                  Sửa chi tiết hàng hóa
+                  Xem chi tiết hàng hóa
                 </button>
               </div>
             </div>

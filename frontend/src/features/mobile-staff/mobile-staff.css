@@ -513,7 +513,172 @@
 .mobile-shift-badge.theme-green { background: #f0fdf4; color: #16a34a; border: 1px solid #bbf7d0; }
 .mobile-shift-badge.theme-purple { background: #faf5ff; color: #9333ea; border: 1px solid #e9d5ff; }
 .mobile-shift-badge.theme-blue { background: #f0f9ff; color: #0284c7; border: 1px solid #bae6fd; }
-.mobile-shift-badge.unassigned { background: #f8fafc; color: #94a3b8; border: 1px dashed #cbd5e1; }
+/* Non-Admin Employee Personal Views */
+.mobile-staff-container {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background-color: #f2f4f8;
+  padding: 16px;
+  padding-bottom: calc(var(--mobile-safe-bottom, 0px) + 90px);
+  box-sizing: border-box;
+}
+
+.mobile-staff-header h1 {
+  margin: 0 0 16px 0;
+  font-size: 20px;
+  font-weight: 750;
+  color: #0f172a;
+}
+
+.schedule-week-strip {
+  display: flex;
+  justify-content: space-between;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 8px 6px;
+  margin-bottom: 16px;
+}
+
+.schedule-day-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 6px;
+  border-radius: 10px;
+  flex: 1;
+  cursor: pointer;
+  position: relative;
+}
+
+.schedule-day-item.selected {
+  background: #0062eb;
+  color: #ffffff;
+}
+
+.schedule-day-name {
+  font-size: 11px;
+  font-weight: 600;
+  color: inherit;
+}
+
+.schedule-day-num {
+  font-size: 14px;
+  font-weight: 700;
+  color: inherit;
+}
+
+.schedule-day-dot {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: #22c55e;
+  position: absolute;
+  bottom: 4px;
+}
+
+.schedule-day-item.selected .schedule-day-dot {
+  background: #ffffff;
+}
+
+.schedule-cards-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.shift-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 14px 16px;
+}
+
+.shift-time {
+  font-size: 15px;
+  font-weight: 750;
+  color: #0f172a;
+}
+
+.shift-name {
+  font-size: 12.5px;
+  color: #64748b;
+  margin-top: 2px;
+}
+
+.salary-overview-card {
+  background: linear-gradient(135deg, #0062eb 0%, #004dc7 100%);
+  border-radius: 18px;
+  padding: 20px;
+  color: #ffffff;
+  margin-bottom: 16px;
+  box-shadow: 0 4px 14px rgba(0, 98, 235, 0.25);
+}
+
+.salary-label {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.85);
+  font-weight: 600;
+}
+
+.salary-amount {
+  font-size: 28px;
+  font-weight: 800;
+  margin: 6px 0 12px;
+}
+
+.salary-meta-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12.5px;
+  color: rgba(255, 255, 255, 0.9);
+  padding-top: 10px;
+  border-top: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.salary-breakdown-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.salary-breakdown-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 14px 16px;
+}
+
+.breakdown-left {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.breakdown-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.breakdown-sub {
+  font-size: 12px;
+  color: #64748b;
+}
+
+.breakdown-value {
+  font-size: 15px;
+  font-weight: 750;
+  color: #0f172a;
+}
 
 .mobile-shift-assign-btn {
   display: inline-flex;

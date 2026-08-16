@@ -93,14 +93,7 @@ export function MobileStaffScheduleAdminView() {
     },
   });
 
-  const staffList = (staffQuery.data?.data ?? [
-    { id: 1, name: 'AnnaChillBeauty', code: 'NV000009', role: 'Quản trị viên' },
-    { id: 2, name: 'Em Huệ', code: 'NV000005', role: 'Kỹ thuật viên' },
-    { id: 3, name: 'Hậu', code: 'NV000010', role: 'Nhân viên bán thời gian' },
-    { id: 4, name: 'Thu Phương', code: 'NV000016', role: 'Kỹ thuật viên chính' },
-    { id: 5, name: 'Trang Vũ', code: 'NV000012', role: 'Lễ tân' },
-    { id: 6, name: 'Yến', code: 'NV000015', role: 'Kỹ thuật viên' },
-  ]) as ApiRecord[];
+  const staffList = (staffQuery.data?.data ?? []) as ApiRecord[];
 
   const workShifts = (shiftsQuery.data?.data ?? [
     { name: 'Ca Partime', startsAt: '18:00', endsAt: '22:00' },
@@ -130,23 +123,7 @@ export function MobileStaffScheduleAdminView() {
         (Number(s.staffId) === Number(staff.id) || s.staffCode === staff.code) &&
         (s.shiftDate === selectedDateIso || s.date === selectedDateIso)
     );
-    if (matched) return matched;
-
-    // Fallbacks for preview
-    const dateObj = new Date(`${selectedDateIso}T00:00:00`);
-    const dayOfWeek = dateObj.getDay();
-    if (staff.code === 'NV000010' || staff.name === 'Hậu') {
-      if (dayOfWeek >= 1 && dayOfWeek <= 5) {
-        return { shiftName: 'Ca Partime', startsAt: '18:00', endsAt: '22:00', status: 'scheduled' };
-      }
-    }
-    if (staff.code === 'NV000016' || staff.name === 'Thu Phương') {
-      return { shiftName: 'Ca Full', startsAt: '09:00', endsAt: '21:00', status: 'scheduled' };
-    }
-    if (staff.code === 'NV000015' || staff.name === 'Yến') {
-      return { shiftName: 'Ca sáng chuẩn', startsAt: '09:00', endsAt: '20:00', status: 'scheduled' };
-    }
-    return null;
+    return matched || null;
   };
 
   // Group staff by Role for by-staff view
@@ -374,7 +351,7 @@ export function MobileStaffScheduleAdminView() {
 
                         <div className="mobile-staff-row-right">
                           {shift ? (
-                            <div className="mobile-staff-row-right">
+                            <>
                               <span
                                 className={`mobile-shift-badge ${getShiftThemeClass(
                                   shift.shiftName
@@ -385,7 +362,7 @@ export function MobileStaffScheduleAdminView() {
                               <span style={{ fontSize: 11.5, color: '#64748b' }}>
                                 {shift.startsAt} - {shift.endsAt}
                               </span>
-                            </div>
+                            </>
                           ) : (
                             <button
                               type="button"

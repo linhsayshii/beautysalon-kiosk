@@ -55,14 +55,7 @@ export function MobileStaffManagementView() {
     queryFn: () => getAttendance(today, today),
   });
 
-  const staffList = (staffData?.data ?? [
-    { id: 1, name: 'AnnaChillBeauty', code: 'NV000009', role: 'Quản trị viên', phone: '0901234567', branch: 'Chi nhánh Quận 1' },
-    { id: 2, name: 'Em Huệ', code: 'NV000005', role: 'Kỹ thuật viên', phone: '0987654321', branch: 'Chi nhánh Quận 1' },
-    { id: 3, name: 'Thu Phương', code: 'NV000016', role: 'Kỹ thuật viên', phone: '0912345678', branch: 'Chi nhánh Quận 1' },
-    { id: 4, name: 'Trang Vũ', code: 'NV000012', role: 'Thu ngân', phone: '0934567890', branch: 'Chi nhánh Quận 1' },
-    { id: 5, name: 'Yến', code: 'NV000015', role: 'Kỹ thuật viên', phone: '0945678901', branch: 'Chi nhánh Quận 1' },
-  ]) as ApiRecord[];
-
+  const staffList = (staffData?.data ?? []) as ApiRecord[];
   const attendanceList = (attendanceData?.data ?? []) as ApiRecord[];
 
   const checkedInStaffIds = useMemo(() => {
@@ -72,13 +65,8 @@ export function MobileStaffManagementView() {
         set.add(Number(att.staffId));
       }
     });
-    // Fallback: mark some active if mock is empty
-    if (set.size === 0 && staffList.length > 0) {
-      set.add(Number(staffList[0].id));
-      if (staffList.length > 1) set.add(Number(staffList[1].id));
-    }
     return set;
-  }, [attendanceList, staffList]);
+  }, [attendanceList]);
 
   // Create Staff Mutation
   const createMutation = useMutation({

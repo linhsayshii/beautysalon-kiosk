@@ -106,7 +106,7 @@ describe('MobileStaffAttendanceAdminView Component', () => {
     await waitFor(() => {
       expect(screen.getByText('Nhật ký chấm công GPS')).toBeInTheDocument();
       expect(screen.getByText('Tổng giờ làm thực tế')).toBeInTheDocument();
-      expect(screen.getByText('Nhật ký quét mã chi tiết')).toBeInTheDocument();
+      expect(screen.getByText('Nhật ký chấm công')).toBeInTheDocument();
     });
   });
 });

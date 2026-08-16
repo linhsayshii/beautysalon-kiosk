@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
-import { formatDateTime, formatDate, formatMoney, formatNumber } from '@/lib/format';
+import { formatDateTime, formatDate, formatMoney, formatNumber, initials } from '@/lib/format';
 import { getCustomers, getCustomer, getCustomerActivity } from '@/features/operations/operations.api';
 import { CustomerCreateDialog } from '@/features/operations/components/CustomerCreateDialog';
 import { StatusBadge } from '@/components/data-display/Badges';
@@ -17,13 +17,6 @@ import type { ApiRecord } from '@/types/api';
 import './mobile-operations.css';
 
 type CustomerTab = 'orders' | 'packages';
-
-function getInitials(name: string) {
-  if (!name) return 'KH';
-  const parts = name.trim().split(' ');
-  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
-  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
-}
 
 function CustomerActivityList({ customerId, kind }: { customerId: number; kind: 'orders' | 'packages' }) {
   const query = useQuery({
@@ -336,7 +329,7 @@ export function MobileCustomersView() {
                     >
                       {/* Round Avatar */}
                       <div className={`mobile-customer-round-avatar ${isCompany ? 'is-company' : ''}`}>
-                        {getInitials(row.name)}
+                        {initials(row.name)}
                       </div>
 
                       {/* Info */}

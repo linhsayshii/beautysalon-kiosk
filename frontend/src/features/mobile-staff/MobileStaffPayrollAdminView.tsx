@@ -55,69 +55,7 @@ export function MobileStaffPayrollAdminView() {
 
   const detailData = payrollDetailQuery.data?.data;
   const records: PayrollRecordItem[] = useMemo(() => {
-    if (detailData?.records && detailData.records.length > 0) {
-      return detailData.records;
-    }
-    // Fallback mock records if API returns empty
-    return [
-      {
-        id: 1,
-        code: 'PL001',
-        staff: { id: 4, code: 'NV000016', name: 'Thu Phương', role: 'Kỹ thuật viên chính' },
-        baseSalary: 6000000,
-        overtimeSalary: 500000,
-        allowance: 1000000,
-        bonus: 500000,
-        commission: 3200000,
-        deduction: 0,
-        totalIncome: 11200000,
-        netSalary: 11200000,
-        paidAmount: 11200000,
-        remainingAmount: 0,
-        workUnits: 26,
-        standardWorkDays: 26,
-        hourlyRate: 45000,
-        status: 'approved',
-      },
-      {
-        id: 2,
-        code: 'PL002',
-        staff: { id: 6, code: 'NV000015', name: 'Yến', role: 'Kỹ thuật viên' },
-        baseSalary: 5000000,
-        overtimeSalary: 300000,
-        allowance: 800000,
-        bonus: 300000,
-        commission: 2400000,
-        deduction: 100000,
-        totalIncome: 8700000,
-        netSalary: 8700000,
-        paidAmount: 5000000,
-        remainingAmount: 3700000,
-        workUnits: 25,
-        standardWorkDays: 26,
-        hourlyRate: 40000,
-        status: 'approved',
-      },
-      {
-        id: 3,
-        code: 'PL003',
-        staff: { id: 2, code: 'NV000005', name: 'Em Huệ', role: 'Kỹ thuật viên' },
-        baseSalary: 5000000,
-        overtimeSalary: 0,
-        allowance: 800000,
-        bonus: 0,
-        commission: 1800000,
-        deduction: 0,
-        totalIncome: 7600000,
-        netSalary: 7600000,
-        paidAmount: 0,
-        remainingAmount: 7600000,
-        workUnits: 24,
-        standardWorkDays: 26,
-        hourlyRate: 40000,
-        status: 'draft',
-      },
-    ];
+    return detailData?.records ?? [];
   }, [detailData]);
 
   // Filter records by search term

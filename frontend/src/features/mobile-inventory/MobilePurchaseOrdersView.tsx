@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate, Link } from 'react-router-dom';
 import { StatusBadge } from '@/components/data-display/Badges';
-import { monthStartIso, todayIso, toIsoDate } from '@/lib/date';
+import { monthStartIso, todayIso, toIsoDate, COMMON_DATE_PRESETS } from '@/lib/date';
 import { formatDateTime, formatDate, formatMoney, formatNumber } from '@/lib/format';
 import { statusLabels, type ApiRecord } from '@/types/api';
 import { getPurchaseOrders, getPurchaseOrder } from '@/features/inventory/inventory.api';
@@ -14,13 +14,7 @@ import {
 } from '@/features/mobile-common';
 import './mobile-inventory.css';
 
-const datePresets = [
-  { value: 'all', label: 'Tất cả ngày' },
-  { value: 'today', label: 'Hôm nay' },
-  { value: 'yesterday', label: 'Hôm qua' },
-  { value: '7days', label: '7 ngày qua' },
-  { value: 'this_month', label: 'Tháng này' },
-];
+const datePresets = COMMON_DATE_PRESETS;
 
 function formatMonthHeader(dateStr: string): string {
   try {
@@ -31,16 +25,6 @@ function formatMonthHeader(dateStr: string): string {
     return `THÁNG ${month}/${year}`;
   } catch {
     return dateStr;
-  }
-}
-
-function formatShortDate(isoString: string): string {
-  try {
-    const d = new Date(isoString);
-    if (isNaN(d.getTime())) return '--/--';
-    return formatDate(isoString);
-  } catch {
-    return '--/--';
   }
 }
 
@@ -333,7 +317,7 @@ export function MobilePurchaseOrdersView() {
                 {items.map((row) => {
                   const supplierName = row.supplier?.name || 'Nhà cung cấp';
                   const supplierPhone = row.supplier?.phone || '';
-                  const receivedDate = formatShortDate(row.receivedAt || row.createdAt);
+                  const receivedDate = formatDate(row.receivedAt || row.createdAt);
                   const itemCount = Number(row.itemCount || (row.items ? row.items.length : 0));
 
                   return (
