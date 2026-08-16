@@ -347,7 +347,7 @@ export function StaffPayrollDetailAccordion({ periodId, onOpenSheetView }: Staff
       {activeTab === 'records' && (
         <div>
           <div style={{ overflowX: 'auto', maxHeight: 320 }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+            <table className="kiotviet-payroll-table">
               <thead>
                 <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569' }}>
                   <th style={{ padding: '8px 12px', textAlign: 'left' }}>Mã phiếu</th>
@@ -420,7 +420,7 @@ export function StaffPayrollDetailAccordion({ periodId, onOpenSheetView }: Staff
               Chưa có giao dịch thanh toán nào trong kỳ lương này.
             </div>
           ) : (
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+            <table className="kiotviet-payroll-table">
               <thead>
                 <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569' }}>
                   <th style={{ padding: '8px 12px', textAlign: 'left' }}>Thời gian</th>

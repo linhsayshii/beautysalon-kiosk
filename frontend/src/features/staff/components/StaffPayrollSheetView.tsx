@@ -317,7 +317,7 @@ export function StaffPayrollSheetView({ periodId, onBack }: StaffPayrollSheetVie
           }}
         >
           <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+            <table className="kiotviet-payroll-table">
               <thead>
                 <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569' }}>
                   <th style={{ width: 40, padding: '10px 8px', textAlign: 'center' }}>

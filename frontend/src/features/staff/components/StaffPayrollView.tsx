@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, Fragment } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { EmptyState, ErrorState, LoadingState } from '@/components/data-display/DataState';
 import { formatMoney } from '@/lib/format';
@@ -282,7 +282,7 @@ export function StaffPayrollView() {
               </div>
             ) : (
               <div style={{ overflowX: 'auto' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                <table className="kiotviet-payroll-table">
                   <thead>
                     <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569' }}>
                       <th style={{ width: 40, padding: '10px 12px', textAlign: 'center' }}>
@@ -316,8 +316,9 @@ export function StaffPayrollView() {
                     {filteredRows.map((row: PayrollPeriodListItem) => {
                       const isExpanded = expandedPeriodId === row.id;
                       return (
-                        <tbody key={row.id}>
+                        <Fragment key={row.id}>
                           <tr
+                            className="payroll-row"
                             onClick={() => setExpandedPeriodId(isExpanded ? null : row.id)}
                             style={{
                               borderBottom: isExpanded ? 'none' : '1px solid #f1f5f9',
@@ -408,7 +409,7 @@ export function StaffPayrollView() {
                               </td>
                             </tr>
                           )}
-                        </tbody>
+                        </Fragment>
                       );
                     })}
                   </tbody>
