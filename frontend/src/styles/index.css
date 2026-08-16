@@ -7,6 +7,7 @@
 @import '../features/mobile-appointments/mobile-appointments.css';
 @import '../features/mobile-pos/mobile-pos.css';
 @import '../features/mobile-operations/mobile-operations.css';
+@import '../features/mobile-inventory/mobile-inventory.css';
 
 #root {
 
