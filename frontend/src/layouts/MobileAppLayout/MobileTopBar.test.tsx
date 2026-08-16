@@ -40,13 +40,13 @@ describe('MobileTopBar Component', () => {
     expect(screen.queryByTestId('mobile-topbar-back-btn')).not.toBeInTheDocument();
   });
 
-  it('renders sub-page title and back button on subpage /m/products', () => {
+  it('hides topbar for full-bleed subpages like /m/products that have their own embedded header', () => {
     vi.spyOn(auth, 'useAuth').mockReturnValue({
       account: { id: 1, role: 'manager', displayName: 'Hằng', branchId: 1, branchName: 'Chi nhánh Quận 1', staffId: null, staffCode: null, phone: '', email: '', username: 'hang' },
       loading: false, login: vi.fn(), logout: vi.fn(), updateLocalAccount: vi.fn(), switchBranch: vi.fn(),
     });
 
-    render(
+    const { container } = render(
       <QueryClientProvider client={queryClient}>
         <ToastProvider>
           <MemoryRouter initialEntries={['/m/products']}>
@@ -59,12 +59,7 @@ describe('MobileTopBar Component', () => {
       </QueryClientProvider>
     );
 
-    expect(screen.getByTestId('mobile-topbar-title')).toHaveTextContent('Hàng hóa & Kho');
-    const backBtn = screen.getByTestId('mobile-topbar-back-btn');
-    expect(backBtn).toBeInTheDocument();
-
-    fireEvent.click(backBtn);
-    expect(screen.getByText('More Page')).toBeInTheDocument();
+    expect(screen.queryByTestId('mobile-topbar-title')).not.toBeInTheDocument();
   });
 
   it('renders sub-page title for appointments/new and navs back', () => {

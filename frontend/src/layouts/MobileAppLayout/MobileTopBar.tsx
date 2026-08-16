@@ -8,8 +8,8 @@ import { getBranches } from '@/features/branches/branches.api';
 import type { ApiRecord } from '@/types/api';
 
 // Sub-page titles and configuration
-const SUBPAGE_CONFIG: Record<string, { title: string; backTo?: string }> = {
-  '/m/products': { title: 'Hàng hóa & Kho', backTo: '/m/more' },
+const SUBPAGE_CONFIG: Record<string, { title: string; backTo?: string; hideTopBar?: boolean }> = {
+  '/m/products': { title: 'Hàng hóa', backTo: '/m/more', hideTopBar: true },
   '/m/pricebooks': { title: 'Bảng giá', backTo: '/m/more' },
   '/m/purchase-orders': { title: 'Nhập hàng', backTo: '/m/more' },
   '/m/purchase-orders/new': { title: 'Tạo phiếu nhập', backTo: '/m/purchase-orders' },
@@ -54,6 +54,10 @@ export function MobileTopBar() {
   const isSubPage = !ROOT_TAB_ROUTES.has(pathname);
   const subPageInfo = SUBPAGE_CONFIG[pathname];
   const subPageTitle = subPageInfo?.title || 'Chi tiết';
+
+  if (subPageInfo?.hideTopBar) {
+    return null;
+  }
 
   const { data: branchesData } = useQuery({
     queryKey: ['branches-list'],
