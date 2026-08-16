@@ -1,5 +1,6 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { MemoryRouter } from 'react-router-dom';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { ToastProvider } from '@/components/ui/Toast/ToastProvider';
 import { MobilePricebooksView } from './MobilePricebooksView';
@@ -52,20 +53,24 @@ describe('MobilePricebooksView Component', () => {
 
   const renderComponent = () =>
     render(
-      <QueryClientProvider client={queryClient}>
-        <ToastProvider>
-          <MobilePricebooksView />
-        </ToastProvider>
-      </QueryClientProvider>
+      <MemoryRouter>
+        <QueryClientProvider client={queryClient}>
+          <ToastProvider>
+            <MobilePricebooksView />
+          </ToastProvider>
+        </QueryClientProvider>
+      </MemoryRouter>
     );
 
-  it('renders pricebook selector, items with cost comparison and quick money input', async () => {
+  it('renders header, filter strip, grouped categories, and quick money input', async () => {
     renderComponent();
 
-    expect(screen.getByText('Thiết lập giá')).toBeInTheDocument();
-    expect(screen.getByLabelText('Chọn bảng giá')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 1, name: 'Thiết lập giá' })).toBeInTheDocument();
+    expect(screen.getByText(/Bảng giá: Bảng giá chung/)).toBeInTheDocument();
 
     await waitFor(() => {
+      expect(screen.getByText('Mỹ phẩm (1)')).toBeInTheDocument();
+      expect(screen.getByText('Dịch vụ tóc (1)')).toBeInTheDocument();
       expect(screen.getByText('Serum Dưỡng Trắng Da')).toBeInTheDocument();
       expect(screen.getByText('Gội Đầu Dưỡng Sinh 60p')).toBeInTheDocument();
       expect(screen.getByLabelText('Giá bán Serum Dưỡng Trắng Da')).toBeInTheDocument();
@@ -85,6 +90,23 @@ describe('MobilePricebooksView Component', () => {
 
     await waitFor(() => {
       expect(inventoryApi.updatePrice).toHaveBeenCalledWith(1, 'product', 1, 480000);
+    });
+  });
+
+  it('opens detail bottom sheet with price comparison and margin', async () => {
+    renderComponent();
+
+    await waitFor(() => {
+      expect(screen.getByText('Serum Dưỡng Trắng Da')).toBeInTheDocument();
+    });
+
+    const rowTop = screen.getByText('Serum Dưỡng Trắng Da').closest('.mobile-pricebook-row-top');
+    fireEvent.click(rowTop!);
+
+    await waitFor(() => {
+      expect(screen.getByText('SO SÁNH BẢNG GIÁ')).toBeInTheDocument();
+      expect(screen.getByText('Biên lợi nhuận ước tính:')).toBeInTheDocument();
+      expect(screen.getByText('Sửa chi tiết hàng hóa')).toBeInTheDocument();
     });
   });
 });

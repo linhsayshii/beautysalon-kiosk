@@ -94,8 +94,6 @@ describe('MobileTopBar Component', () => {
     });
 
     const subpageTestCases = [
-      { path: '/m/pricebooks', expectedTitle: 'Bảng giá' },
-      { path: '/m/purchase-orders', expectedTitle: 'Nhập hàng' },
       { path: '/m/purchase-orders/new', expectedTitle: 'Tạo phiếu nhập' },
       { path: '/m/staff/schedule', expectedTitle: 'Lịch làm việc' },
       { path: '/m/staff/attendance', expectedTitle: 'Bảng chấm công' },

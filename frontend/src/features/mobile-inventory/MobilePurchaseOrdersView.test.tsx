@@ -90,7 +90,7 @@ describe('MobilePurchaseOrdersView Component', () => {
     vi.spyOn(inventoryApi, 'getPurchaseOrder').mockResolvedValue(mockOrderDetail as any);
   });
 
-  it('renders title, metrics, and purchase order list cards', async () => {
+  it('renders header, filter strip, summary bar, and grouped purchase order list without metric boxes', async () => {
     render(
       <MemoryRouter>
         <QueryClientProvider client={queryClient}>
@@ -99,21 +99,23 @@ describe('MobilePurchaseOrdersView Component', () => {
       </MemoryRouter>
     );
 
-    expect(screen.getByRole('heading', { level: 2, name: 'Nhập hàng' })).toBeInTheDocument();
-    expect(screen.getByText('Tổng phiếu')).toBeInTheDocument();
-    expect(screen.getByText('Giá trị nhập')).toBeInTheDocument();
-    expect(screen.getByText('Còn nợ NCC')).toBeInTheDocument();
-    expect(screen.getByText('Phiếu tạm')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 1, name: 'Nhập hàng' })).toBeInTheDocument();
+    expect(screen.queryByText('Tổng phiếu')).not.toBeInTheDocument();
+    expect(screen.queryByText('Giá trị nhập')).not.toBeInTheDocument();
+
+    expect(screen.getByText(/Khoảng ngày:/)).toBeInTheDocument();
+    expect(screen.getByText(/Trạng thái:/)).toBeInTheDocument();
 
     await waitFor(() => {
       expect(screen.getByText('PN001')).toBeInTheDocument();
       expect(screen.getByText('Công ty Mỹ Phẩm Hàn Quốc')).toBeInTheDocument();
       expect(screen.getByText('PN002')).toBeInTheDocument();
       expect(screen.getByText('Nhà phân phối Tinh Dầu')).toBeInTheDocument();
+      expect(screen.getByText(/THÁNG 08\/2026/)).toBeInTheDocument();
     });
   });
 
-  it('opens detail bottom sheet with items breakdown and debt calculation', async () => {
+  it('opens detail bottom sheet with items breakdown and financial details', async () => {
     render(
       <MemoryRouter>
         <QueryClientProvider client={queryClient}>
@@ -126,14 +128,16 @@ describe('MobilePurchaseOrdersView Component', () => {
       expect(screen.getByText('PN001')).toBeInTheDocument();
     });
 
-    const card = screen.getByText('PN001').closest('.mobile-card');
+    const card = screen.getByText('PN001').closest('.mobile-inventory-row-item');
     fireEvent.click(card!);
 
     await waitFor(() => {
-      expect(screen.getByText('Thông tin giao dịch')).toBeInTheDocument();
-      expect(screen.getByText('Danh sách mặt hàng nhập (1)')).toBeInTheDocument();
+      expect(screen.getByText('DANH SÁCH MẶT HÀNG NHẬP (1)')).toBeInTheDocument();
+      expect(screen.getByText('CHI TIẾT TÀI CHÍNH')).toBeInTheDocument();
       expect(screen.getByText('Serum Dưỡng Trắng Da')).toBeInTheDocument();
       expect(screen.getByText('0909123456')).toBeInTheDocument();
+      expect(screen.getByText('In phiếu nhập')).toBeInTheDocument();
+      expect(screen.getByText('Sửa phiếu')).toBeInTheDocument();
     });
   });
 });
