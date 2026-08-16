@@ -36,22 +36,36 @@
   - 🌙 Ca tối: `19:00 - 22:00`
 - Nút cố định ở đáy: `"Tiếp tục"` / `"Áp dụng"`.
 
-### 1.4. Màn Hình Tạo Lịch Hẹn (`MobileAppointmentCreateView`) - *Khớp Ảnh 2*
+### 1.4. Màn Hình Chi Tiết Dịch Vụ / Phân Công KTV (`MobileServiceItemDetailSheet`) - *Khớp Ảnh 5*
+Sau khi chọn một dịch vụ/sản phẩm từ catalog hàng hóa (hoặc khi bấm chỉnh sửa một món trong lịch hẹn/hóa đơn), màn hình **"Chi tiết lịch dịch vụ"** sẽ mở ra:
+- **Header:** `< Chi tiết lịch dịch vụ`.
+- **Thẻ thông tin dịch vụ phía trên:**
+  - Icon dịch vụ nền xanh nhạt + Tên dịch vụ in đậm (vd: `RF Needle Skinlip 1 buổi`) + Thời lượng (`Thời lượng: 1h30'`).
+- **Bộ đếm số lượng & Thành tiền:**
+  - `Số lượng`: Bộ nút `[ -  1  + ]` bo tròn tinh tế.
+  - `Thành tiền`: Khung hiển thị giá tiền nổi bật màu xanh (`2,500,000`).
+- **Khối `LỊCH LÀM DỊCH VỤ`:**
+  - Hai ô Ngày & Khung giờ: `Thứ 3, 18/08 📅` và `14:30 - 16:00 🕒` (tự động cộng thời lượng dịch vụ từ giờ bắt đầu).
+  - Ô **Chọn nhân viên >**: Chạm vào mở danh sách nhân viên để gán KTV thực hiện dịch vụ này.
+  - Ô **Chọn vị trí >**: Chạm vào chọn giường / phòng / vị trí làm dịch vụ (hoặc ghi chú vị trí).
+- **Nút hành động cố định ở đáy:** `[ Xong ]` (lưu món kèm KTV và thời gian vào danh sách của lịch hẹn / hóa đơn).
+
+### 1.5. Màn Hình Tạo Lịch Hẹn (`MobileAppointmentCreateView`) - *Khớp Ảnh 2*
 - **Card 1 (Khách hàng & Thời gian):**
   - Hàng chọn khách hàng (`👤 Thêm khách hàng`).
   - Hàng chọn thời gian (`📅 Bắt đầu làm 14:30 - Thứ ba, 18/08`).
 - **Card 2 (Dịch vụ & Kỹ thuật viên):**
-  - Nút `"Thêm dịch vụ, sản phẩm"` -> Mở Catalog hàng hóa dạng Grouped Card List.
-  - **Phân công Nhân viên / Kỹ thuật viên riêng cho từng dịch vụ:** Cho phép chọn KTV phụ trách riêng từng dịch vụ đã chọn (vd: Dịch vụ A -> KTV 1, Dịch vụ B -> KTV 2).
+  - Danh sách các dịch vụ đã chọn (hiển thị tên, thời lượng, giá và KTV thực hiện).
+  - Chạm vào món để mở lại `MobileServiceItemDetailSheet` chỉnh sửa KTV / số lượng.
+  - Nút `"Thêm dịch vụ, sản phẩm"`.
 - **Card 3 (Trạng thái & Lưu):**
   - Bộ chọn trạng thái: `Chờ xác nhận` | `Chưa tới` | `Đang chờ` | `Đang làm` | `Hoàn thành`.
   - Nút `"Lưu"` màu xanh ở đáy.
 
-### 1.5. Màn Hình Tạo Hóa Đơn Bán Hàng (`MobileInvoiceCreateView`)
-- Các bước tương tự như tạo lịch hẹn:
+### 1.6. Màn Hình Tạo Hóa Đơn Bán Hàng (`MobileInvoiceCreateView`)
+- Các bước tương tự:
   - Chọn Khách hàng (hoặc Khách vãng lai).
-  - Chọn Dịch vụ / Sản phẩm từ Catalog.
-  - **Phân công Nhân viên / KTV riêng cho từng món**.
+  - Chọn Dịch vụ / Sản phẩm từ Catalog -> Mở `MobileServiceItemDetailSheet` để chọn số lượng & gán Nhân viên bán/thực hiện.
   - *Bỏ qua bước chọn thời gian lịch hẹn* (lấy thời gian hiện tại).
   - Nhập chiết khấu / giảm giá.
   - Chọn phương thức thanh toán (`Tiền mặt`, `VietQR`, `Thẻ`, `Thẻ tài khoản`).

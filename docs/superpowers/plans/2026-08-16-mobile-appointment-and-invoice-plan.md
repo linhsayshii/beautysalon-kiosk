@@ -2,11 +2,11 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Implement the center `(+)` action button in the mobile BottomNav, an appointment creation flow matching reference UI with interactive 14-day & time-slot selection, a customer selection sheet with total remaining package units, and support per-line staff assignment for both appointment and invoice checkout.
+**Goal:** Implement the center `(+)` action button in the mobile BottomNav, an appointment creation flow matching reference UI with interactive 14-day & time-slot selection, a customer selection sheet with total remaining package units, a service item detail sheet (matching reference Image 5) with quantity, price, shift times, and per-item staff assignment for both appointments and invoices.
 
 **Architecture:** 
 - Backend: Update customer queries to calculate total remaining package service units across active packages, and update POS checkout & appointment endpoints to accept and persist per-line technician/staff assignment.
-- Frontend: Replace the static POS bottom tab with a floating Center Action `(+)` FAB that opens a quick creation sheet (Appointment, Invoice, Customer). Build reusable mobile sheets: `MobileCustomerSelectSheet` (with remaining package units badge), `MobileTimePickerSheet` (14-day strip + shift slot grid + exact roller picker), `MobileAppointmentCreateView`, and `MobileInvoiceCreateView` (with per-line staff selector).
+- Frontend: Replace the static POS bottom tab with a floating Center Action `(+)` FAB that opens a quick creation sheet (Appointment, Invoice, Customer). Build reusable mobile sheets: `MobileCustomerSelectSheet` (with remaining package units badge), `MobileTimePickerSheet` (14-day strip + shift slot grid + exact roller picker), `MobileServiceItemDetailSheet` (matching Image 5 with item name, quantity, price, slot time, staff picker, and position), `MobileAppointmentCreateView`, and `MobileInvoiceCreateView`.
 
 **Tech Stack:** React 19, React Router v7, TanStack Query v5, Node.js Express, PostgreSQL, Vitest.
 
@@ -19,6 +19,7 @@
 - Time format on mobile should use 24h `HH:mm` format with Vietnamese day labels (Thứ 2, Thứ 3, ..., CN).
 - Date format must follow `DD/MM/YYYY`.
 - Every customer in `MobileCustomerSelectSheet` must display total remaining units of purchased packages if > 0 (e.g. `Còn: 18 Buổi DV`).
+- After selecting any service item, `MobileServiceItemDetailSheet` (Image 5) must open to configure quantity, amount, execution time, staff, and room/bed position before adding to the appointment or invoice.
 - All tests must pass cleanly (`npm test` in frontend and `node --test` in backend).
 
 ---
@@ -214,7 +215,49 @@ git commit -m "feat(mobile): add mobile time and shift slot picker sheet matchin
 
 ---
 
-### Task 5: Mobile Appointment Creation View & Page
+### Task 5: Mobile Service Item Detail Sheet (Matching Image 5)
+
+**Files:**
+- Create: `frontend/src/features/mobile-common/MobileServiceItemDetailSheet.tsx`
+- Test: `frontend/src/features/mobile-common/MobileServiceItemDetailSheet.test.tsx`
+
+**Interfaces:**
+- Consumes: Selected item data, staff list from `getPosStaff`.
+- Produces: `MobileServiceItemDetailSheet` modal sheet displaying:
+  - Header `< Chi tiết lịch dịch vụ`
+  - Item info card: Icon, Title, Duration subtitle
+  - Quantity counter `[- 1 +]` and Total amount pill (`2,500,000`)
+  - `LỊCH LÀM DỊCH VỤ` section: Date pill (`Thứ 3, 18/08 📅`), Time range pill (`14:30 - 16:00 🕒`), `"Chọn nhân viên >"` picker, `"Chọn vị trí >"` picker
+  - Fixed bottom `[ Xong ]` action button.
+
+- [ ] **Step 1: Write the failing test**
+
+Create `frontend/src/features/mobile-common/MobileServiceItemDetailSheet.test.tsx` asserting quantity increment/decrement, staff assignment, time range calculation, and saving configured line item.
+
+- [ ] **Step 2: Run test to verify failure**
+
+Run: `cd frontend && npm test src/features/mobile-common/MobileServiceItemDetailSheet.test.tsx`
+Expected: FAIL
+
+- [ ] **Step 3: Implement `MobileServiceItemDetailSheet.tsx`**
+
+Implement component and styling matching reference Image 5.
+
+- [ ] **Step 4: Run test to verify it passes**
+
+Run: `cd frontend && npm test src/features/mobile-common/MobileServiceItemDetailSheet.test.tsx`
+Expected: PASS
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add frontend/src/features/mobile-common/MobileServiceItemDetailSheet.tsx frontend/src/features/mobile-common/MobileServiceItemDetailSheet.test.tsx
+git commit -m "feat(mobile): add mobile service item detail sheet matching reference ui"
+```
+
+---
+
+### Task 6: Mobile Appointment Creation View & Page
 
 **Files:**
 - Create: `frontend/src/features/mobile-appointments/MobileAppointmentCreateView.tsx`
@@ -223,12 +266,12 @@ git commit -m "feat(mobile): add mobile time and shift slot picker sheet matchin
 - Test: `frontend/src/features/mobile-appointments/MobileAppointmentCreateView.test.tsx`
 
 **Interfaces:**
-- Consumes: `createPosAppointment` API, `getPosStaff` API, `getPosCatalog` API.
-- Produces: `/m/appointments/new` route view matching reference Image 2 with Customer card, Time card, Service items with per-service staff assignment, status pills, and submit mutation.
+- Consumes: `createPosAppointment` API, `getPosStaff` API, `getPosCatalog` API, `MobileCustomerSelectSheet`, `MobileTimePickerSheet`, `MobileServiceItemDetailSheet`.
+- Produces: `/m/appointments/new` route view matching reference Image 2 with Customer card, Time card, Service items configured via `MobileServiceItemDetailSheet`, status pills, and submit mutation.
 
 - [ ] **Step 1: Write the failing test**
 
-Create `frontend/src/features/mobile-appointments/MobileAppointmentCreateView.test.tsx` asserting rendering of Customer selection, Time selection, Item catalog picker, individual staff assignment per line, status selection, and appointment creation.
+Create `frontend/src/features/mobile-appointments/MobileAppointmentCreateView.test.tsx` asserting rendering of Customer selection, Time selection, Item catalog picker, individual staff assignment per line via detail sheet, status selection, and appointment creation.
 
 - [ ] **Step 2: Run test to verify failure**
 
@@ -237,12 +280,7 @@ Expected: FAIL
 
 - [ ] **Step 3: Implement `MobileAppointmentCreateView.tsx` & Page**
 
-Implement matching reference Image 2:
-- Header `< Tạo lịch` with note icon.
-- Card 1: Customer row + Time row.
-- Card 2: Services/products list with per-item technician dropdown selector (`👤 KTV thực hiện:`), quantity, price, and add service button.
-- Card 3: Status pills (`Chờ xác nhận`, `Chưa tới`, `Đang chờ`, `Đang làm`, `Hoàn thành`).
-- Sticky bottom `"Lưu"` button.
+Implement matching reference Image 2.
 
 - [ ] **Step 4: Run test to verify it passes**
 
@@ -258,7 +296,7 @@ git commit -m "feat(mobile): add mobile appointment create screen with per-servi
 
 ---
 
-### Task 6: Mobile Quick Invoice Creation View (Immediate Checkout with Per-Line Staff)
+### Task 7: Mobile Quick Invoice Creation View (Immediate Checkout with Per-Line Staff)
 
 **Files:**
 - Create: `frontend/src/features/mobile-pos/MobileInvoiceCreateView.tsx`
@@ -267,8 +305,8 @@ git commit -m "feat(mobile): add mobile appointment create screen with per-servi
 - Test: `frontend/src/features/mobile-pos/MobileInvoiceCreateView.test.tsx`
 
 **Interfaces:**
-- Consumes: `checkoutPosInvoice` API, `getPosCatalog` API, `getPosStaff` API.
-- Produces: `/m/invoices/new` route view allowing direct item selection from grouped catalog, per-item staff assignment, customer select, discount, payment method, and instant checkout.
+- Consumes: `checkoutPosInvoice` API, `getPosCatalog` API, `getPosStaff` API, `MobileCustomerSelectSheet`, `MobileServiceItemDetailSheet`.
+- Produces: `/m/invoices/new` route view allowing direct item selection from grouped catalog, per-item staff assignment via `MobileServiceItemDetailSheet`, customer select, discount, payment method, and instant checkout.
 
 - [ ] **Step 1: Write the failing test**
 
@@ -281,9 +319,7 @@ Expected: FAIL
 
 - [ ] **Step 3: Implement `MobileInvoiceCreateView.tsx` & update `MobileCartBottomSheet.tsx`**
 
-1. In `MobileCartBottomSheet.tsx` and `MobileInvoiceCreateView.tsx`, allow specifying `staffId` on each individual line item.
-2. Provide method selector: Cash, VietQR (with live QR code rendering), Bank Card, Account Card balance.
-3. Add instant submit button `[ Thanh toán & In hóa đơn ]`.
+Implement instant invoice creation with per-line staff and payment methods.
 
 - [ ] **Step 4: Run test to verify it passes**
 
@@ -299,7 +335,7 @@ git commit -m "feat(mobile): add quick invoice create screen with per-line techn
 
 ---
 
-### Task 7: Route Integration & Full Regression Testing
+### Task 8: Route Integration & Full Regression Testing
 
 **Files:**
 - Modify: `frontend/src/app/router.tsx`
