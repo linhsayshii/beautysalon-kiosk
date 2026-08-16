@@ -46,7 +46,7 @@ describe('MobileTopBar Component', () => {
       loading: false, login: vi.fn(), logout: vi.fn(), updateLocalAccount: vi.fn(), switchBranch: vi.fn(),
     });
 
-    const { container } = render(
+    render(
       <QueryClientProvider client={queryClient}>
         <ToastProvider>
           <MemoryRouter initialEntries={['/m/products']}>
