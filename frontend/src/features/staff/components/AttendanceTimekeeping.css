@@ -25,64 +25,6 @@
 }
 
 /* ==========================================================================
-   KIOTVIET PAYROLL TABLE STYLING
-   ========================================================================== */
-.kiotviet-payroll-table {
-  width: 100% !important;
-  border-collapse: collapse !important;
-  display: table !important;
-  font-size: 14.5px !important;
-  color: var(--ink-800) !important;
-}
-
-.kiotviet-payroll-table thead {
-  display: table-header-group !important;
-}
-
-.kiotviet-payroll-table thead th {
-  font-size: 13.5px !important;
-  font-weight: 750 !important;
-  padding: 12px 14px !important;
-  color: var(--ink-600) !important;
-}
-
-.kiotviet-payroll-table tbody {
-  display: table-row-group !important;
-  padding: 0 !important;
-}
-
-.kiotviet-payroll-table tr {
-  display: table-row !important;
-  width: 100% !important;
-}
-
-.kiotviet-payroll-table th,
-.kiotviet-payroll-table td {
-  display: table-cell !important;
-  vertical-align: middle !important;
-  padding: 12px 14px !important;
-  font-size: 14.5px !important;
-}
-
-.kiotviet-payroll-table td::before {
-  display: none !important;
-}
-
-.kiotviet-payroll-table tbody tr.payroll-row:hover {
-  background-color: #f0fdf4 !important;
-}
-
-.payroll-text-code {
-  font-size: 14.5px !important;
-  font-weight: 650 !important;
-}
-
-.payroll-text-name {
-  font-size: 14.5px !important;
-  font-weight: 600 !important;
-}
-
-/* ==========================================================================
    TOPBAR TOOLBAR
    ========================================================================== */
 .attendance-toolbar-card {
@@ -195,200 +137,643 @@
 .week-picker-container {
   position: relative;
   display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  user-select: none;
 }
 
-.week-picker-btn {
+.week-navigator {
+  display: flex;
+  align-items: center;
+  height: 36px;
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+}
+
+.week-nav-btn {
+  height: 100%;
+  width: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  color: #64748b;
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.week-nav-btn:hover {
+  background-color: #f1f5f9;
+  color: #1e293b;
+}
+
+.week-label-display {
+  padding: 0 12px;
+  font-weight: 600;
+  color: #334155;
+  white-space: nowrap;
+  min-width: 150px;
+  text-align: center;
+}
+
+.week-btn-choose {
   height: 36px;
   padding: 0 14px;
   background: #ffffff;
   border: 1px solid #cbd5e1;
   border-radius: 8px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
   font-size: 13px;
-  font-weight: 600;
-  color: #1e293b;
+  font-weight: 500;
+  color: #334155;
   cursor: pointer;
-  transition: border-color 0.15s ease, background 0.15s ease;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+  transition: all 0.15s ease;
 }
 
-.week-picker-btn:hover {
-  background: #f8fafc;
+.week-btn-choose:hover {
+  background-color: #f8fafc;
   border-color: #94a3b8;
 }
 
-.week-picker-btn i {
-  color: #0284c7;
-  font-size: 16px;
-}
-
-.week-picker-dropdown {
+/* Week Picker Calendar Popover */
+.week-popover {
   position: absolute;
   top: calc(100% + 6px);
   left: 0;
   z-index: 100;
+  width: 320px;
   background: #ffffff;
   border: 1px solid #cbd5e1;
-  border-radius: 10px;
-  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
-  width: 280px;
-  overflow: hidden;
+  border-radius: 12px;
+  padding: 14px;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.06);
 }
 
-.week-picker-header {
+.week-popover-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 10px 12px;
-  background: #f8fafc;
-  border-bottom: 1px solid #e2e8f0;
+  padding-bottom: 8px;
+  margin-bottom: 8px;
+  border-bottom: 1px solid #f1f5f9;
 }
 
-.week-picker-title {
-  font-size: 13px;
+.week-popover-month {
+  font-size: 14px;
   font-weight: 700;
   color: #1e293b;
 }
 
-.week-picker-nav-btn {
-  width: 28px;
-  height: 28px;
+.week-popover-nav {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: transparent;
-  border: 1px solid transparent;
+  width: 28px;
+  height: 28px;
   border-radius: 6px;
-  color: #475569;
-  cursor: pointer;
-}
-
-.week-picker-nav-btn:hover {
-  background: #e2e8f0;
-  color: #0f172a;
-}
-
-.week-picker-list {
-  max-height: 220px;
-  overflow-y: auto;
-  padding: 6px;
-}
-
-.week-picker-item {
-  width: 100%;
-  padding: 8px 10px;
-  text-align: left;
-  background: transparent;
   border: none;
-  border-radius: 6px;
-  font-size: 13px;
-  color: #334155;
+  background: transparent;
+  color: #64748b;
   cursor: pointer;
+}
+
+.week-popover-nav:hover {
+  background: #f1f5f9;
+  color: #1e293b;
+}
+
+.week-popover-weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  text-align: center;
+  font-size: 12px;
+  font-weight: 600;
+  color: #64748b;
+  margin-bottom: 6px;
+}
+
+.week-popover-weekdays span.is-sunday {
+  color: #ef4444;
+}
+
+.week-popover-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  row-gap: 3px;
+}
+
+.calendar-day-slot {
+  height: 36px;
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: center;
+  cursor: pointer;
+  position: relative;
 }
 
-.week-picker-item:hover {
-  background: #f1f5f9;
-  color: #0f172a;
+.calendar-day-slot.is-in-week {
+  background-color: #e0f2fe;
 }
 
-.week-picker-item.is-selected {
-  background: #eff6ff;
-  color: #2563eb;
+.calendar-day-slot.is-week-start {
+  border-top-left-radius: 9999px;
+  border-bottom-left-radius: 9999px;
+}
+
+.calendar-day-slot.is-week-end {
+  border-top-right-radius: 9999px;
+  border-bottom-right-radius: 9999px;
+}
+
+.calendar-day-badge {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  font-size: 12px;
+  font-weight: 500;
+  color: #334155;
+}
+
+.calendar-day-badge.is-endpoint {
+  background-color: #0284c7;
+  color: #ffffff;
+  font-weight: 700;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.calendar-day-badge.is-mid-week {
+  color: #0369a1;
   font-weight: 600;
 }
 
-/* Toolbar Buttons */
+.calendar-day-badge.is-muted {
+  color: #cbd5e1;
+}
+
+.calendar-day-slot:hover .calendar-day-badge:not(.is-endpoint) {
+  background-color: #f1f5f9;
+}
+
+/* ==========================================================================
+   TOOLBAR RIGHT BUTTONS
+   ========================================================================== */
 .attendance-toolbar-right {
   display: flex;
   align-items: center;
   gap: 8px;
 }
 
-.btn-primary {
+.attendance-action-btn {
   height: 36px;
   padding: 0 14px;
-  background: #2563eb;
-  border: 1px solid #2563eb;
-  border-radius: 8px;
-  color: #ffffff;
-  font-size: 13px;
-  font-weight: 600;
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: 6px;
-  cursor: pointer;
-  transition: background 0.15s ease, border-color 0.15s ease;
-  box-shadow: 0 1px 2px rgba(37, 99, 235, 0.2);
-}
-
-.btn-primary:hover {
-  background: #1d4ed8;
-  border-color: #1d4ed8;
-}
-
-.btn-secondary {
-  height: 36px;
-  padding: 0 14px;
   background: #ffffff;
   border: 1px solid #cbd5e1;
   border-radius: 8px;
-  color: #334155;
   font-size: 13px;
-  font-weight: 600;
-  display: flex;
-  align-items: center;
-  gap: 6px;
+  font-weight: 500;
+  color: #334155;
   cursor: pointer;
-  transition: background 0.15s ease, border-color 0.15s ease;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+  transition: all 0.15s ease;
 }
 
-.btn-secondary:hover {
+.attendance-action-btn:hover {
   background: #f8fafc;
   border-color: #94a3b8;
-  color: #0f172a;
 }
 
-.btn-icon {
+.attendance-action-btn.icon-only {
   width: 36px;
-  height: 36px;
   padding: 0;
   justify-content: center;
 }
 
-/* Modals */
-.modal-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(15, 23, 42, 0.5);
-  backdrop-filter: blur(2px);
+.attendance-action-btn i.primary-icon {
+  color: #0284c7;
+  font-size: 16px;
+}
+
+/* ==========================================================================
+   ATTENDANCE MATRIX GRID (VIEW BY SHIFT)
+   ========================================================================== */
+.attendance-table-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.attendance-table-wrap {
+  overflow-x: auto;
+  width: 100%;
+}
+
+.attendance-matrix-table {
+  width: 100%;
+  min-width: 1200px;
+  border-collapse: collapse;
+  text-align: left;
+  table-layout: fixed;
+}
+
+/* Header */
+.attendance-matrix-table thead tr {
+  background-color: #f8fafc;
+  border-bottom: 1px solid #cbd5e1;
+}
+
+.attendance-matrix-table th {
+  padding: 10px 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #334155;
+  border-right: 1px solid #e2e8f0;
+  width: calc((100% - 170px) / 7);
+}
+
+.attendance-matrix-table th:last-child {
+  border-right: none;
+}
+
+.shift-col-header {
+  width: 170px !important;
+}
+
+.shift-col-header-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.btn-add-shift-plus {
+  width: 26px;
+  height: 26px;
   display: flex;
   align-items: center;
   justify-content: center;
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  color: #475569;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-add-shift-plus:hover {
+  background-color: #0284c7;
+  border-color: #0284c7;
+  color: #ffffff;
+}
+
+.day-col-header-inner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.day-col-title {
+  font-weight: 600;
+  color: #475569;
+}
+
+.day-col-title.is-today {
+  color: #0284c7;
+  font-weight: 700;
+}
+
+.day-badge-num {
+  font-size: 12px;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.day-badge-num.is-today-circle {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background-color: #0284c7;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+}
+
+/* Body Rows */
+.attendance-matrix-table tbody tr {
+  border-bottom: 1px solid #e2e8f0;
+  transition: background-color 0.15s ease;
+}
+
+.attendance-matrix-table tbody tr:hover {
+  background-color: #fafbfd;
+}
+
+.shift-info-cell {
+  padding: 12px 10px;
+  border-right: 1px solid #e2e8f0;
+  background-color: #f8fafc;
+  vertical-align: top;
+  width: 170px !important;
+}
+
+.shift-name-text {
+  font-size: 13px;
+  font-weight: 700;
+  color: #1e293b;
+  line-height: 1.3;
+}
+
+.shift-time-text {
+  font-size: 12px;
+  color: #64748b;
+  margin-top: 4px;
+}
+
+.day-slot-cell {
+  padding: 6px;
+  border-right: 1px solid #e2e8f0;
+  vertical-align: top;
+  min-height: 110px;
+  width: calc((100% - 170px) / 7) !important;
+}
+
+.day-slot-cell:last-child {
+  border-right: none;
+}
+
+/* Empty Slot placeholder */
+.empty-slot-btn {
+  height: 100%;
+  min-height: 90px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px;
+  border-radius: 8px;
+  border: 1px dashed transparent;
+  color: #94a3b8;
+  font-size: 11px;
+  text-align: center;
+  line-height: 1.4;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.empty-slot-btn:hover {
+  background-color: #f0f9ff;
+  border-color: #bae6fd;
+  color: #0284c7;
+}
+
+/* Assigned Staff Card */
+.slot-staff-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.staff-shift-card {
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  font-size: 11px;
+  line-height: 1.3;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+  transition: transform 0.1s ease, box-shadow 0.1s ease;
+  cursor: pointer;
+}
+
+.staff-shift-card:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.06);
+}
+
+.card-staff-name {
+  font-weight: 700;
+  font-size: 12px;
+}
+
+.card-staff-detail {
+  font-size: 11px;
+  font-weight: 500;
+  margin-top: 3px;
+}
+
+.card-staff-sub {
+  font-size: 10px;
+  font-weight: 500;
+  margin-top: 2px;
+}
+
+/* 5 KiotViet Status Themes */
+/* 1. Đúng giờ (Blue) */
+.staff-shift-card.status-ontime {
+  background-color: #e0f2fe;
+  border-color: #bae6fd;
+  color: #0369a1;
+}
+.staff-shift-card.status-ontime .card-staff-name { color: #075985; }
+.staff-shift-card.status-ontime .card-staff-sub { color: #0284c7; }
+
+/* 2. Đi muộn / Về sớm (Purple) */
+.staff-shift-card.status-late {
+  background-color: #f3e8ff;
+  border-color: #e9d5ff;
+  color: #6b21a8;
+}
+.staff-shift-card.status-late .card-staff-name { color: #581c87; }
+.staff-shift-card.status-late .card-staff-sub { color: #7e22ce; }
+
+/* 3. Chấm công thiếu (Red) */
+.staff-shift-card.status-missing {
+  background-color: #ffe4e6;
+  border-color: #fecdd3;
+  color: #be123c;
+}
+.staff-shift-card.status-missing .card-staff-name { color: #9f1239; }
+.staff-shift-card.status-missing .card-staff-sub { color: #e11d48; }
+
+/* 4. Chưa chấm công (Orange / Amber) */
+.staff-shift-card.status-unclocked {
+  background-color: #ffedd5;
+  border-color: #fed7aa;
+  color: #c2410c;
+}
+.staff-shift-card.status-unclocked .card-staff-name { color: #9a3412; }
+.staff-shift-card.status-unclocked .card-staff-sub { color: #ea580c; }
+
+/* 5. Nghỉ làm (Gray) */
+.staff-shift-card.status-leave {
+  background-color: #f1f5f9;
+  border-color: #e2e8f0;
+  color: #64748b;
+}
+.staff-shift-card.status-leave .card-staff-name { color: #475569; }
+
+.btn-slot-add-more {
+  width: 100%;
+  padding: 4px 0;
+  font-size: 11px;
+  color: #64748b;
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-slot-add-more:hover {
+  background-color: #f1f5f9;
+  color: #0284c7;
+}
+
+/* ==========================================================================
+   LEGEND BOTTOM BAR
+   ========================================================================== */
+.attendance-legend-bar {
+  padding: 12px 18px;
+  background-color: #f8fafc;
+  border-top: 1px solid #e2e8f0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+  font-size: 12px;
+  font-weight: 500;
+  color: #475569;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.legend-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.legend-dot.dot-ontime { background-color: #0284c7; box-shadow: 0 0 0 2px #bae6fd; }
+.legend-dot.dot-late { background-color: #a855f7; box-shadow: 0 0 0 2px #e9d5ff; }
+.legend-dot.dot-missing { background-color: #f43f5e; box-shadow: 0 0 0 2px #fecdd3; }
+.legend-dot.dot-unclocked { background-color: #f97316; box-shadow: 0 0 0 2px #fed7aa; }
+.legend-dot.dot-leave { background-color: #94a3b8; box-shadow: 0 0 0 2px #e2e8f0; }
+
+/* ==========================================================================
+   VIEW BY STAFF TABLE (SUMMARY)
+   ========================================================================== */
+.attendance-summary-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.attendance-summary-table thead tr {
+  background-color: #f8fafc;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.attendance-summary-table th {
+  padding: 12px 16px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.attendance-summary-table tbody tr {
+  border-bottom: 1px solid #f1f5f9;
+  transition: background-color 0.15s ease;
+}
+
+.attendance-summary-table tbody tr:hover {
+  background-color: #f8fafc;
+}
+
+.attendance-summary-table td {
+  padding: 14px 16px;
+  font-size: 13px;
+  color: #334155;
+  vertical-align: middle;
+}
+
+.summary-staff-name {
+  font-weight: 700;
+  color: #1e293b;
+  font-size: 14px;
+}
+
+.summary-staff-code {
+  font-size: 12px;
+  color: #94a3b8;
+  margin-top: 2px;
+}
+
+.summary-stat-bold {
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.summary-stat-sub {
+  font-size: 11px;
+  color: #64748b;
+  margin-top: 2px;
+}
+
+/* ==========================================================================
+   MODAL DIALOGS
+   ========================================================================== */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
   z-index: 1000;
+  background-color: rgba(15, 23, 42, 0.45);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
   padding: 16px;
 }
 
 .modal-dialog {
   background: #ffffff;
-  border-radius: 12px;
+  border-radius: 14px;
   box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
   width: 100%;
-  max-width: 540px;
+  max-width: 500px;
   overflow: hidden;
-  display: flex;
-  flex-direction: column;
-  max-height: 90vh;
+  border: 1px solid #e2e8f0;
 }
 
 .modal-header {
-  padding: 16px 20px;
-  border-bottom: 1px solid #e2e8f0;
+  padding: 14px 20px;
+  border-bottom: 1px solid #f1f5f9;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -397,7 +782,7 @@
 .modal-title {
   font-size: 16px;
   font-weight: 700;
-  color: #0f172a;
+  color: #1e293b;
   margin: 0;
 }
 
@@ -408,24 +793,672 @@
 }
 
 .modal-close-btn {
-  background: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
   border: none;
-  font-size: 18px;
+  background: transparent;
   color: #94a3b8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
   cursor: pointer;
-  padding: 4px;
 }
 
 .modal-close-btn:hover {
+  background-color: #f1f5f9;
   color: #334155;
 }
 
+.modal-body {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.form-group-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.form-label-col {
+  width: 130px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #334155;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.form-control-col {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.form-input-text,
+.form-input-time {
+  width: 100%;
+  height: 38px;
+  padding: 0 12px;
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  font-size: 13px;
+  color: #1e293b;
+  outline: none;
+  transition: all 0.15s ease;
+}
+
+.form-input-text:focus,
+.form-input-time:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.duration-tag {
+  font-size: 12px;
+  font-weight: 600;
+  color: #475569;
+  background: #f1f5f9;
+  padding: 4px 8px;
+  border-radius: 6px;
+  white-space: nowrap;
+}
+
 .modal-footer {
-  padding: 14px 20px;
-  border-top: 1px solid #e2e8f0;
+  padding: 12px 20px;
+  background-color: #f8fafc;
+  border-top: 1px solid #f1f5f9;
   display: flex;
   align-items: center;
   justify-content: flex-end;
   gap: 10px;
-  background: #f8fafc;
 }
+
+.btn-secondary {
+  height: 36px;
+  padding: 0 16px;
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #334155;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-secondary:hover {
+  background: #f1f5f9;
+}
+
+.btn-primary {
+  height: 36px;
+  padding: 0 20px;
+  background: #0284c7;
+  border: 1px solid #0284c7;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #ffffff;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-primary:hover {
+  background: #0369a1;
+}
+
+/* Modal Assign Staff List */
+.modal-staff-search {
+  padding: 12px 16px;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.modal-staff-list {
+  max-height: 280px;
+  overflow-y: auto;
+  padding: 8px;
+}
+
+.modal-staff-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  border-radius: 8px;
+  transition: background-color 0.15s ease;
+}
+
+.modal-staff-item:hover {
+  background-color: #f8fafc;
+}
+
+.btn-assign-select {
+  height: 28px;
+  padding: 0 12px;
+  background-color: #e0f2fe;
+  color: #0284c7;
+  font-size: 12px;
+  font-weight: 600;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-assign-select:hover {
+  background-color: #0284c7;
+  color: #ffffff;
+}
+
+.badge-assigned {
+  font-size: 12px;
+  font-weight: 600;
+  color: #059669;
+  background-color: #d1fae5;
+  padding: 4px 10px;
+  border-radius: 9999px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* ==========================================================================
+   VIEW BY STAFF SCHEDULE TABLE (EXACT KIOTVIET SCREENSHOT MATCH)
+   ========================================================================== */
+.staff-schedule-table {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.schedule-header-row {
+  background-color: #ffffff;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+/* Header Columns */
+.col-staff-header {
+  width: 160px;
+  padding: 12px 14px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #1e293b;
+  border-right: 1px solid #e2e8f0;
+  vertical-align: middle;
+}
+
+.col-day-header {
+  width: calc((100% - 160px - 150px) / 7);
+  padding: 10px 8px;
+  text-align: center;
+  border-right: 1px solid #e2e8f0;
+  vertical-align: middle;
+}
+
+.day-header-content {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.day-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #475569;
+}
+
+.day-title.is-today-text {
+  color: #0284c7;
+  font-weight: 700;
+}
+
+.day-number {
+  font-size: 13px;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.day-number.is-today-badge {
+  background-color: #0284c7;
+  color: #ffffff;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+}
+
+.col-salary-header {
+  width: 150px;
+  padding: 10px 14px;
+  text-align: right;
+  vertical-align: middle;
+}
+
+.salary-header-top {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.salary-header-top i {
+  color: #94a3b8;
+  font-size: 13px;
+  cursor: help;
+}
+
+.salary-header-total {
+  font-size: 15px;
+  font-weight: 800;
+  color: #1e293b;
+  margin-top: 4px;
+}
+
+/* Body Rows */
+.staff-schedule-row {
+  border-bottom: 1px solid #e2e8f0;
+  height: 64px;
+  transition: background-color 0.15s ease;
+}
+
+.staff-schedule-row:hover {
+  background-color: #fcfdfe;
+}
+
+.cell-staff-info {
+  width: 160px;
+  padding: 12px 14px;
+  border-right: 1px solid #e2e8f0;
+  vertical-align: middle;
+}
+
+.staff-name-bold {
+  font-weight: 700;
+  font-size: 13px;
+  color: #1e293b;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.staff-code-sub {
+  font-size: 11px;
+  color: #64748b;
+  margin-top: 2px;
+}
+
+/* 7 Equal Day Slot Cells */
+.cell-day-slot {
+  width: calc((100% - 160px - 150px) / 7);
+  padding: 8px;
+  border-right: 1px solid #e2e8f0;
+  vertical-align: middle;
+  text-align: center;
+  cursor: pointer;
+  position: relative;
+}
+
+.cell-empty-hover {
+  height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  transition: all 0.15s ease;
+}
+
+.btn-add-schedule-text {
+  font-size: 11px;
+  font-weight: 500;
+  color: #0284c7;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+
+.cell-day-slot:hover .cell-empty-hover {
+  background-color: #f0f9ff;
+  border: 1px dashed #bae6fd;
+}
+
+.cell-day-slot:hover .btn-add-schedule-text {
+  opacity: 1;
+}
+
+/* Shift Pills with Exact KiotViet Theme Colors */
+.staff-pill-card {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 34px;
+  padding: 0 8px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1;
+  text-align: center;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+  transition: transform 0.1s ease, box-shadow 0.1s ease;
+}
+
+.staff-pill-card:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.08);
+}
+
+/* Orange (Ca Partime) */
+.staff-pill-card.theme-orange {
+  background-color: #ffedd5;
+  color: #c2410c;
+  border: 1px solid #fed7aa;
+}
+
+/* Pink / Light Red (Ca Full) */
+.staff-pill-card.theme-pink {
+  background-color: #ffe4e6;
+  color: #e11d48;
+  border: 1px solid #fecdd3;
+}
+
+/* Green (Ca sáng chuẩn / Sáng Smile) */
+.staff-pill-card.theme-green {
+  background-color: #dcfce7;
+  color: #15803d;
+  border: 1px solid #bbf7d0;
+}
+
+/* Purple */
+.staff-pill-card.theme-purple {
+  background-color: #f3e8ff;
+  color: #7e22ce;
+  border: 1px solid #e9d5ff;
+}
+
+/* Blue */
+.staff-pill-card.theme-blue {
+  background-color: #e0f2fe;
+  color: #0369a1;
+  border: 1px solid #bae6fd;
+}
+
+/* Salary Cell */
+.cell-salary-value {
+  width: 150px;
+  padding: 10px 14px;
+  text-align: right;
+  vertical-align: middle;
+}
+
+.salary-calc-box {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.salary-amount {
+  font-size: 13px;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.salary-shifts-count {
+  font-size: 11px;
+  color: #64748b;
+  margin-top: 2px;
+}
+
+.salary-unconfigured {
+  font-size: 11px;
+  color: #94a3b8;
+  font-style: normal;
+}
+
+/* Legend Bar for Staff Schedule */
+.schedule-legend-bar {
+  padding: 12px 18px;
+  background-color: #f8fafc;
+  border-top: 1px solid #e2e8f0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 20px;
+  font-size: 12px;
+  color: #475569;
+}
+
+.legend-chip {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.legend-chip.chip-orange {
+  background-color: #ffedd5;
+  color: #c2410c;
+}
+
+.legend-chip.chip-pink {
+  background-color: #ffe4e6;
+  color: #e11d48;
+}
+
+.legend-chip.chip-green {
+  background-color: #dcfce7;
+  color: #15803d;
+}
+
+/* ==========================================================================
+   KIOTVIET WORK DAYS & HOLIDAYS SETTINGS MODAL
+   ========================================================================== */
+.work-settings-modal-dialog {
+  max-width: 860px !important;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.work-settings-modal-body {
+  overflow-y: auto;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.work-settings-section {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.work-settings-section-header {
+  padding: 12px 16px;
+  background-color: #f8fafc;
+  border-bottom: 1px solid #e2e8f0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.work-settings-section-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #1e293b;
+  margin: 0;
+}
+
+.work-settings-section-sub {
+  font-size: 12px;
+  color: #64748b;
+  margin: 2px 0 0;
+}
+
+.work-days-checkboxes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 16px;
+}
+
+.weekday-check-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  border-radius: 8px;
+  border: 1px solid #cbd5e1;
+  background-color: #ffffff;
+  font-size: 13px;
+  font-weight: 600;
+  color: #334155;
+  cursor: pointer;
+  user-select: none;
+  transition: all 0.15s ease;
+}
+
+.weekday-check-label.is-checked {
+  background-color: #e0f2fe;
+  border-color: #0284c7;
+  color: #0369a1;
+}
+
+.weekday-check-label input {
+  cursor: pointer;
+}
+
+.holidays-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 13px;
+}
+
+.holidays-table th {
+  padding: 10px 14px;
+  background-color: #f8fafc;
+  color: #475569;
+  font-weight: 600;
+  border-bottom: 1px solid #e2e8f0;
+  font-size: 12px;
+}
+
+.holidays-table td {
+  padding: 10px 14px;
+  border-bottom: 1px solid #f1f5f9;
+  color: #334155;
+  vertical-align: middle;
+}
+
+.holidays-table tbody tr:hover {
+  background-color: #fafbfd;
+}
+
+.btn-icon-action {
+  background: transparent;
+  border: none;
+  color: #64748b;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  font-size: 15px;
+  transition: color 0.15s ease;
+}
+
+.btn-icon-action:hover {
+  color: #0284c7;
+}
+
+.btn-icon-action.danger:hover {
+  color: #ef4444;
+}
+
+.btn-add-holiday {
+  height: 32px;
+  padding: 0 12px;
+  background-color: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #334155;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-add-holiday:hover {
+  border-color: #0284c7;
+  color: #0284c7;
+}
+
+/* ==========================================================================
+   KIOTVIET PAYROLL TABLE STYLING
+   ========================================================================== */
+.kiotviet-payroll-table {
+  width: 100% !important;
+  border-collapse: collapse !important;
+  display: table !important;
+  font-size: 14px !important;
+  color: var(--ink-800) !important;
+}
+
+.kiotviet-payroll-table thead {
+  display: table-header-group !important;
+}
+
+.kiotviet-payroll-table thead th {
+  font-size: 13px !important;
+  font-weight: 750 !important;
+  padding: 11px 14px !important;
+  color: var(--ink-600) !important;
+}
+
+.kiotviet-payroll-table tbody {
+  display: table-row-group !important;
+  padding: 0 !important;
+}
+
+.kiotviet-payroll-table tr {
+  display: table-row !important;
+  width: 100% !important;
+}
+
+.kiotviet-payroll-table th,
+.kiotviet-payroll-table td {
+  display: table-cell !important;
+  vertical-align: middle !important;
+  padding: 11px 14px !important;
+  font-size: 14px !important;
+}
+
+.kiotviet-payroll-table td::before {
+  display: none !important;
+}
+
+.kiotviet-payroll-table tbody tr.payroll-row:hover {
+  background-color: #f0fdf4 !important;
+}
+
+
