@@ -3,6 +3,7 @@
 @import '../../styles.css';
 @import '../components/ui/Select/Select.css';
 @import './mobile.css';
+@import '../features/mobile-common/mobile-common.css';
 
 #root {
   min-height: 100vh;

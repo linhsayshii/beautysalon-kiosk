@@ -1,0 +1,258 @@
+/* Mobile Common Components Styles (Customer Select Sheet, Slot Pickers, Sheets) */
+
+.mobile-customer-sheet {
+  display: flex;
+  flex-direction: column;
+  height: 100dvh;
+  max-height: 100dvh;
+  background: var(--canvas, #f8fafc);
+  color: var(--ink-950, #0f172a);
+  position: relative;
+  overflow: hidden;
+}
+
+/* Header with Search and Cancel */
+.mobile-customer-sheet-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: calc(var(--mobile-safe-top, 0px) + 12px) 14px 12px;
+  background: var(--surface, #ffffff);
+  border-bottom: 1px solid var(--line, #e2e8f0);
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+}
+
+.mobile-customer-search-box {
+  flex: 1;
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.mobile-customer-search-box .search-icon {
+  position: absolute;
+  left: 12px;
+  font-size: 18px;
+  color: var(--ink-400, #94a3b8);
+  pointer-events: none;
+}
+
+.mobile-customer-search-input {
+  width: 100%;
+  height: 42px;
+  padding: 0 42px 0 38px;
+  border-radius: 21px;
+  border: 1px solid var(--line, #e2e8f0);
+  background: #f1f5f9;
+  font-size: 14.5px;
+  color: var(--ink-950, #0f172a);
+  outline: none;
+  transition: all 0.15s ease;
+  box-sizing: border-box;
+}
+
+.mobile-customer-search-input:focus {
+  background: #ffffff;
+  border-color: var(--blue-500, #3b82f6);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+}
+
+.mobile-customer-barcode-btn {
+  position: absolute;
+  right: 10px;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  background: transparent;
+  color: var(--ink-500, #64748b);
+  font-size: 20px;
+  cursor: pointer;
+}
+
+.mobile-customer-cancel-btn {
+  padding: 8px 6px;
+  border: none;
+  background: transparent;
+  color: var(--blue-600, #2563eb);
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+/* Customer List */
+.mobile-customer-list {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 12px 14px 90px; /* Space for FAB */
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.mobile-customer-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  background: var(--surface, #ffffff);
+  border-radius: 16px;
+  border: 1px solid var(--line, #e2e8f0);
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.03);
+  cursor: pointer;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  transition: all 0.15s ease;
+}
+
+.mobile-customer-card:active {
+  transform: scale(0.985);
+  background: #f8fafc;
+}
+
+.mobile-customer-card.is-selected {
+  border-color: var(--blue-500, #3b82f6);
+  background: #eff6ff;
+}
+
+.mobile-customer-avatar {
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+  color: #1d4ed8;
+  font-weight: 750;
+  font-size: 15px;
+  flex: 0 0 46px;
+}
+
+.mobile-customer-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.mobile-customer-name-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.mobile-customer-name {
+  font-size: 14.5px;
+  font-weight: 750;
+  color: var(--ink-950, #0f172a);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.mobile-customer-code {
+  font-size: 11.5px;
+  color: var(--ink-500, #64748b);
+  background: #f1f5f9;
+  padding: 1px 6px;
+  border-radius: 6px;
+  font-weight: 600;
+}
+
+.mobile-customer-phone {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12.5px;
+  color: var(--ink-600, #475569);
+}
+
+.mobile-customer-badges {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-top: 2px;
+}
+
+.mobile-customer-pkg-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #7e22ce;
+  background: #f3e8ff;
+  padding: 3px 8px;
+  border-radius: 8px;
+}
+
+.mobile-customer-debt-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #be123c;
+  background: #ffe4e6;
+  padding: 3px 8px;
+  border-radius: 8px;
+}
+
+.mobile-customer-card-action {
+  color: var(--ink-400, #94a3b8);
+  font-size: 18px;
+  display: grid;
+  place-items: center;
+}
+
+.mobile-customer-card.is-selected .mobile-customer-card-action {
+  color: var(--blue-600, #2563eb);
+}
+
+/* Floating Action Button (Add Customer) */
+.mobile-customer-fab {
+  position: fixed;
+  right: 20px;
+  bottom: calc(var(--mobile-safe-bottom, 0px) + 24px);
+  z-index: 70;
+  display: grid;
+  place-items: center;
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  background: var(--blue-600, #2563eb);
+  color: #ffffff;
+  border: none;
+  font-size: 24px;
+  box-shadow: 0 6px 18px rgba(37, 99, 235, 0.4);
+  cursor: pointer;
+  transition: transform 0.15s ease, background-color 0.15s ease;
+}
+
+.mobile-customer-fab:active {
+  transform: scale(0.92);
+  background: var(--blue-700, #1d4ed8);
+}
+
+/* Empty & Loading states */
+.mobile-customer-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 16px;
+  color: var(--ink-500, #64748b);
+  gap: 12px;
+  text-align: center;
+}
+
+.mobile-customer-state i {
+  font-size: 40px;
+  color: var(--ink-300, #cbd5e1);
+}
