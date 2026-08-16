@@ -9,13 +9,10 @@ import {
   MobileEmptyState,
 } from '@/features/mobile-common';
 import { getStaff, getAttendance, getSchedule } from '@/features/staff/staff.api';
-import { weekStartIso, monthStartIso, toIsoDate, todayIso } from '@/lib/date';
+import { weekStartIso, monthStartIso, todayIso, toIsoDate } from '@/lib/date';
 import { initials } from '@/lib/format';
 import type { ApiRecord } from '@/types/api';
 import './mobile-staff.css';
-
-const weekdayShorts = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'];
-const weekdayFullLabels = ['Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7', 'Chủ nhật'];
 
 export function MobileStaffAttendanceAdminView() {
   const [periodType, setPeriodType] = useState<'week' | 'month'>('week');

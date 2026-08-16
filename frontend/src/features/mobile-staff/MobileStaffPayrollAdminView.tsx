@@ -15,7 +15,6 @@ import {
   type PayrollPeriodListItem,
   type PayrollRecordItem,
 } from '@/features/staff/staff.api';
-import type { ApiRecord } from '@/types/api';
 import './mobile-staff.css';
 
 export function MobileStaffPayrollAdminView() {

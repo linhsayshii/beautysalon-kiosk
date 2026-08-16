@@ -10,7 +10,7 @@ import {
 } from '@/features/mobile-common';
 import { getCommissions } from '@/features/staff/staff.api';
 import { monthStartIso, todayIso } from '@/lib/date';
-import { formatMoney, initials, formatDate } from '@/lib/format';
+import { formatMoney, initials } from '@/lib/format';
 import type { ApiRecord } from '@/types/api';
 import './mobile-staff.css';
 

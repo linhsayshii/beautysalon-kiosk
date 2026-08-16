@@ -91,6 +91,44 @@ describe('MobileTopBar Component', () => {
     fireEvent.click(backBtn);
     expect(screen.getByText('Appointments List')).toBeInTheDocument();
   });
+
+  it('renders sub-page title and navigation for all configured subpages', () => {
+    vi.spyOn(auth, 'useAuth').mockReturnValue({
+      account: { id: 1, role: 'manager', displayName: 'Hằng', branchId: 1, branchName: 'Chi nhánh Quận 1', staffId: null, staffCode: null, phone: '', email: '', username: 'hang' },
+      loading: false, login: vi.fn(), logout: vi.fn(), updateLocalAccount: vi.fn(), switchBranch: vi.fn(),
+    });
+
+    const subpageTestCases = [
+      { path: '/m/pricebooks', expectedTitle: 'Bảng giá' },
+      { path: '/m/purchase-orders', expectedTitle: 'Nhập hàng' },
+      { path: '/m/purchase-orders/new', expectedTitle: 'Tạo phiếu nhập' },
+      { path: '/m/customer-cards', expectedTitle: 'Gói & Thẻ khách hàng' },
+      { path: '/m/staff/schedule', expectedTitle: 'Lịch làm việc' },
+      { path: '/m/staff/attendance', expectedTitle: 'Bảng chấm công' },
+      { path: '/m/staff/payroll', expectedTitle: 'Bảng lương & Hoa hồng' },
+      { path: '/m/staff/commissions', expectedTitle: 'Hoa hồng nhân viên' },
+      { path: '/m/attendance/qr', expectedTitle: 'Mã QR Chấm công' },
+      { path: '/m/invoices/new', expectedTitle: 'Tạo hóa đơn' },
+    ];
+
+    for (const { path, expectedTitle } of subpageTestCases) {
+      const { unmount } = render(
+        <QueryClientProvider client={queryClient}>
+          <ToastProvider>
+            <MemoryRouter initialEntries={[path]}>
+              <Routes>
+                <Route path={path} element={<MobileTopBar />} />
+              </Routes>
+            </MemoryRouter>
+          </ToastProvider>
+        </QueryClientProvider>
+      );
+
+      expect(screen.getByTestId('mobile-topbar-title')).toHaveTextContent(expectedTitle);
+      expect(screen.getByTestId('mobile-topbar-back-btn')).toBeInTheDocument();
+      unmount();
+    }
+  });
 });
 
 
