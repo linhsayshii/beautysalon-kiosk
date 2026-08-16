@@ -2,6 +2,7 @@
 @import './global.css';
 @import '../../styles.css';
 @import '../components/ui/Select/Select.css';
+@import './mobile.css';
 
 #root {
   min-height: 100vh;
