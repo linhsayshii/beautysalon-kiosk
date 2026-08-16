@@ -256,3 +256,419 @@
   font-size: 40px;
   color: var(--ink-300, #cbd5e1);
 }
+
+/* =========================================================
+   Mobile Time Picker Sheet (Matching Reference UI 3 & 4)
+   ========================================================= */
+
+.mobile-time-picker-sheet {
+  display: flex;
+  flex-direction: column;
+  height: 100dvh;
+  max-height: 100dvh;
+  background: var(--canvas, #f8fafc);
+  color: var(--ink-950, #0f172a);
+  position: relative;
+  overflow: hidden;
+}
+
+.mobile-time-picker-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: calc(var(--mobile-safe-top, 0px) + 12px) 14px 12px;
+  background: var(--surface, #ffffff);
+  border-bottom: 1px solid var(--line, #e2e8f0);
+}
+
+.mobile-time-picker-back-btn,
+.mobile-time-picker-settings-btn {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: none;
+  background: transparent;
+  color: var(--ink-700, #334155);
+  font-size: 20px;
+  cursor: pointer;
+}
+
+.mobile-time-picker-back-btn:active,
+.mobile-time-picker-settings-btn:active {
+  background: #f1f5f9;
+}
+
+.mobile-time-picker-title {
+  font-size: 16.5px;
+  font-weight: 750;
+  color: var(--ink-950, #0f172a);
+  margin: 0;
+}
+
+/* Horizontal 14-Day Date Strip */
+.mobile-date-strip-container {
+  background: var(--surface, #ffffff);
+  padding: 10px 0;
+  border-bottom: 1px solid var(--line, #e2e8f0);
+}
+
+.mobile-date-strip {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 0 14px;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+
+.mobile-date-strip::-webkit-scrollbar {
+  display: none;
+}
+
+.mobile-date-pill {
+  flex: 0 0 72px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 4px;
+  border-radius: 12px;
+  border: 1px solid var(--line, #e2e8f0);
+  background: #ffffff;
+  color: var(--ink-700, #334155);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.mobile-date-pill-weekday {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--ink-500, #64748b);
+}
+
+.mobile-date-pill-day {
+  font-size: 13.5px;
+  font-weight: 750;
+  margin-top: 2px;
+}
+
+.mobile-date-pill.is-active {
+  background: var(--blue-600, #2563eb);
+  border-color: var(--blue-600, #2563eb);
+  color: #ffffff;
+}
+
+.mobile-date-pill.is-active .mobile-date-pill-weekday {
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.mobile-date-pill.is-active .mobile-date-pill-day {
+  color: #ffffff;
+}
+
+/* Custom Exact Time Trigger */
+.mobile-custom-time-trigger-section {
+  padding: 12px 14px 6px;
+}
+
+.mobile-custom-time-trigger-box {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 11px 14px;
+  background: var(--surface, #ffffff);
+  border: 1px solid var(--line, #e2e8f0);
+  border-radius: 14px;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.03);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.mobile-custom-time-trigger-box:active {
+  background: #f8fafc;
+}
+
+.mobile-custom-time-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  text-align: left;
+}
+
+.mobile-custom-time-left i {
+  font-size: 22px;
+  color: var(--blue-600, #2563eb);
+}
+
+.mobile-custom-time-text {
+  display: flex;
+  flex-direction: column;
+}
+
+.mobile-custom-time-label {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--ink-950, #0f172a);
+}
+
+.mobile-custom-time-sub {
+  font-size: 12px;
+  color: var(--ink-500, #64748b);
+  margin-top: 2px;
+}
+
+/* Time Slots Body */
+.mobile-time-slots-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px 14px 100px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  -webkit-overflow-scrolling: touch;
+}
+
+.mobile-shift-section {
+  background: var(--surface, #ffffff);
+  border-radius: 16px;
+  border: 1px solid var(--line, #e2e8f0);
+  padding: 14px;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.03);
+}
+
+.mobile-shift-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.mobile-shift-icon {
+  font-size: 16px;
+}
+
+.mobile-shift-name {
+  font-size: 14px;
+  font-weight: 750;
+  color: var(--ink-950, #0f172a);
+}
+
+.mobile-shift-hours {
+  font-size: 12px;
+  color: var(--ink-400, #94a3b8);
+  margin-left: auto;
+}
+
+.mobile-slot-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+
+.mobile-slot-btn {
+  padding: 9px 4px;
+  border-radius: 10px;
+  border: 1px solid var(--line, #e2e8f0);
+  background: #f8fafc;
+  color: var(--ink-800, #1e293b);
+  font-size: 13.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.mobile-slot-btn:active {
+  transform: scale(0.96);
+}
+
+.mobile-slot-btn.is-selected {
+  background: #eff6ff;
+  border-color: var(--blue-600, #2563eb);
+  color: var(--blue-600, #2563eb);
+  box-shadow: 0 0 0 1.5px var(--blue-600, #2563eb);
+}
+
+/* Footer Summary & Action */
+.mobile-time-picker-footer {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: var(--surface, #ffffff);
+  border-top: 1px solid var(--line, #e2e8f0);
+  padding: 12px 16px calc(var(--mobile-safe-bottom, 0px) + 12px);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  box-shadow: 0 -4px 12px rgba(15, 23, 42, 0.05);
+  z-index: 50;
+}
+
+.mobile-time-picker-summary {
+  display: flex;
+  flex-direction: column;
+}
+
+.mobile-time-picker-summary-label {
+  font-size: 11.5px;
+  color: var(--ink-400, #94a3b8);
+}
+
+.mobile-time-picker-summary-val {
+  font-size: 14.5px;
+  font-weight: 750;
+  color: var(--blue-600, #2563eb);
+}
+
+.mobile-time-picker-confirm-btn {
+  flex: 1;
+  max-width: 180px;
+  height: 44px;
+  background: var(--blue-600, #2563eb);
+  color: #ffffff;
+  border: none;
+  border-radius: 12px;
+  font-size: 15px;
+  font-weight: 750;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.mobile-time-picker-confirm-btn:active {
+  background: var(--blue-700, #1d4ed8);
+  transform: scale(0.98);
+}
+
+/* Exact Time Roller Modal */
+.mobile-time-wheel-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.6);
+  backdrop-filter: blur(4px);
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+.mobile-time-wheel-dialog {
+  background: #ffffff;
+  border-radius: 20px;
+  width: 100%;
+  max-width: 340px;
+  overflow: hidden;
+  box-shadow: 0 16px 40px rgba(15, 23, 42, 0.2);
+  display: flex;
+  flex-direction: column;
+}
+
+.mobile-time-wheel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 18px 12px;
+  border-bottom: 1px solid var(--line, #e2e8f0);
+}
+
+.mobile-time-wheel-header h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 750;
+  color: var(--ink-950, #0f172a);
+}
+
+.mobile-time-wheel-close {
+  background: transparent;
+  border: none;
+  color: var(--ink-400, #94a3b8);
+  font-size: 20px;
+  cursor: pointer;
+}
+
+.mobile-time-wheel-content {
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.mobile-wheel-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+}
+
+.mobile-wheel-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--ink-600, #475569);
+}
+
+.mobile-wheel-select {
+  height: 42px;
+  border-radius: 10px;
+  border: 1px solid var(--line, #e2e8f0);
+  background: #f8fafc;
+  padding: 0 10px;
+  font-size: 14.5px;
+  font-weight: 600;
+  color: var(--ink-950, #0f172a);
+  outline: none;
+}
+
+.mobile-wheel-select:focus {
+  border-color: var(--blue-500, #3b82f6);
+  background: #ffffff;
+}
+
+.mobile-wheel-time-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+}
+
+.mobile-wheel-separator {
+  font-size: 22px;
+  font-weight: 750;
+  color: var(--ink-400, #94a3b8);
+  margin-bottom: 6px;
+}
+
+.mobile-time-wheel-footer {
+  display: flex;
+  gap: 10px;
+  padding: 12px 18px 18px;
+}
+
+.mobile-wheel-cancel-btn {
+  flex: 1;
+  height: 42px;
+  background: #f1f5f9;
+  color: var(--ink-700, #334155);
+  border: none;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.mobile-wheel-apply-btn {
+  flex: 1;
+  height: 42px;
+  background: var(--blue-600, #2563eb);
+  color: #ffffff;
+  border: none;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 750;
+  cursor: pointer;
+}
+
