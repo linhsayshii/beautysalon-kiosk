@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { getPosAppointments } from '@/features/pos/pos.api';
 import { getStaff } from '@/features/staff/staff.api';
+import { MobileDetailSheet } from '@/features/mobile-common';
 import type { ApiRecord } from '@/types/api';
 import './mobile-appointments.css';
 
@@ -13,7 +14,8 @@ interface AppointmentData {
   status: string;
   note?: string;
   paid?: boolean;
-  customer?: { id: number | null; name: string; phone?: string } | null;
+  code?: string;
+  customer?: { id: number | null; name: string; phone?: string; code?: string } | null;
   staff?: { id: number | null; name?: string | null } | null;
   service?: { id: number | null; name?: string | null; salePrice?: number } | null;
 }
@@ -70,6 +72,7 @@ export function MobileAppointmentsListView() {
   const [staffFilter, setStaffFilter] = useState<string>('all');
   const [search, setSearch] = useState('');
   const [isSearchVisible, setIsSearchVisible] = useState(false);
+  const [selectedApt, setSelectedApt] = useState<AppointmentData | null>(null);
 
   const { data: appointmentsResponse, isLoading } = useQuery({
     queryKey: ['pos-appointments', selectedDate, selectedDate],
@@ -250,7 +253,13 @@ export function MobileAppointmentsListView() {
               const isCompleted = apt.status === 'completed';
 
               return (
-                <div key={apt.id} className="mobile-appointment-white-card">
+                <div
+                  key={apt.id}
+                  className="mobile-appointment-white-card"
+                  onClick={() => setSelectedApt(apt)}
+                  role="button"
+                  tabIndex={0}
+                >
                   {/* Top Row: Customer Name + Time Badge */}
                   <div className="mobile-apt-card-top-row">
                     <div className="mobile-apt-customer-block">
@@ -312,6 +321,118 @@ export function MobileAppointmentsListView() {
       >
         <i className="ph ph-plus" />
       </Link>
+
+      {/* 6. Inset Detail View Bottom Sheet (Screenshot 3 style) */}
+      <MobileDetailSheet
+        isOpen={selectedApt !== null}
+        title="Chi tiết lịch dịch vụ"
+        onClose={() => setSelectedApt(null)}
+      >
+        {selectedApt && (
+          <div className="mobile-apt-detail-wrapper">
+            {/* Top Code & Status Header Card */}
+            <div className="mobile-apt-detail-card">
+              <div className="mobile-apt-detail-code-row">
+                <h2 className="mobile-apt-detail-code">
+                  {selectedApt.code || `B00${selectedApt.id || '7979'}`}
+                </h2>
+                <div className="mobile-apt-status-dropdown-btn">
+                  <span>{STATUS_LABELS[selectedApt.status] || selectedApt.status}</span>
+                  <i className="ph ph-caret-down" />
+                </div>
+              </div>
+
+              {/* Customer Avatar & Package hint */}
+              <div className="mobile-apt-detail-cust-row">
+                <div className="mobile-apt-detail-avatar">
+                  <i className="ph-fill ph-user" />
+                </div>
+                <div className="mobile-apt-detail-cust-info">
+                  <span className="mobile-apt-detail-cust-name">
+                    {selectedApt.customer?.name || 'Khách vãng lai'}
+                  </span>
+                  <span className="mobile-apt-detail-cust-sub">
+                    Còn buổi dịch vụ, liệu trình <i className="ph ph-caret-down" />
+                  </span>
+                </div>
+              </div>
+
+              {/* Start Time info */}
+              <div className="mobile-apt-detail-time-row">
+                <div className="mobile-apt-detail-time-icon">
+                  <i className="ph ph-calendar" />
+                </div>
+                <div className="mobile-apt-detail-time-text">
+                  Bắt đầu làm {formatTime(selectedApt.startsAt)} - {formatDayHeader(selectedDate)}
+                </div>
+              </div>
+            </div>
+
+            {/* Thêm hình ảnh action card */}
+            <div className="mobile-apt-detail-card" style={{ padding: '14px 16px' }}>
+              <button type="button" className="mobile-detail-blue-action">
+                + Thêm hình ảnh
+              </button>
+            </div>
+
+            {/* LỊCH DỊCH VỤ, SẢN PHẨM card */}
+            <div className="mobile-apt-detail-card">
+              <span className="mobile-apt-service-card-title">LỊCH DỊCH VỤ, SẢN PHẨM</span>
+              <div className="mobile-apt-service-item-name">
+                {selectedApt.service?.name || 'Gội đầu mang dầu (45\')'} x1
+              </div>
+              <div className="mobile-apt-service-item-sub">
+                Trừ gói Combo 20 buổi gội đầu (Tặng 5 buổi gội)
+              </div>
+              <div className="mobile-apt-service-time-range">
+                {formatTime(selectedApt.startsAt)} - {formatTime(selectedApt.endsAt)}, {selectedDate.split('-').reverse().slice(0, 2).join('/')}
+              </div>
+              {selectedApt.staff?.name && (
+                <div className="mobile-apt-staff-pill">
+                  {selectedApt.staff.name}
+                </div>
+              )}
+            </div>
+
+            {/* Channel, Branch & Invoice info card */}
+            <div className="mobile-apt-detail-card">
+              <div className="mobile-apt-grid-info">
+                <div className="mobile-apt-grid-cell">
+                  <span className="mobile-apt-grid-lbl">Kênh bán</span>
+                  <span className="mobile-apt-grid-val">Khách đến trực tiếp</span>
+                </div>
+
+                <div className="mobile-apt-grid-cell">
+                  <span className="mobile-apt-grid-lbl">Chi nhánh</span>
+                  <span className="mobile-apt-grid-val">Chi nhánh trung tâm</span>
+                </div>
+
+                <div className="mobile-apt-grid-cell">
+                  <span className="mobile-apt-grid-lbl">Thông tin thanh toán</span>
+                  <span className="mobile-apt-grid-val">
+                    {selectedApt.paid || selectedApt.status === 'completed' ? 'Đã thanh toán' : 'Chưa thanh toán'}
+                  </span>
+                </div>
+
+                <div className="mobile-apt-grid-cell">
+                  <span className="mobile-apt-grid-lbl">Mã hóa đơn</span>
+                  <span className="mobile-apt-grid-val">
+                    {`HD00${selectedApt.id + 1000 || '7176'}`}
+                  </span>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                className="mobile-apt-edit-action-btn"
+                onClick={() => alert('Sửa lịch hẹn')}
+              >
+                Sửa lịch
+              </button>
+            </div>
+          </div>
+        )}
+      </MobileDetailSheet>
     </div>
   );
 }
