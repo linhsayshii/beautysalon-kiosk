@@ -65,9 +65,8 @@ describe('MobileDashboardView Component', () => {
     );
 
     await waitFor(() => {
-      // 1. Header & Branch
+      // 1. Header & Title
       expect(screen.getByText('Tổng quan hoạt động')).toBeInTheDocument();
-      expect(screen.getByText('Chi nhánh Quận 1')).toBeInTheDocument();
 
       // 2. Stats cards: Lịch hẹn, Khách hàng, Thu chi
       expect(screen.getByText('Lịch hẹn')).toBeInTheDocument();

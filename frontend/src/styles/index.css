@@ -2664,6 +2664,15 @@
   }
 
   .ranking-controls {
-    flex-direction: column;
+    display: flex;
+    flex-direction: row;
+    gap: 8px;
+    width: 100%;
+  }
+
+  .ranking-controls .app-select-container {
+    flex: 1 1 50%;
+    min-width: 0;
   }
 }
+

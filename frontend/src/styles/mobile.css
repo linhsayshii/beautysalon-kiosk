@@ -104,18 +104,26 @@
   box-shadow: 0 0 0 3px var(--red-soft);
 }
 
-.mobile-branch-tag {
-  font-size: 11px;
-  font-weight: 700;
-  color: var(--blue-700);
-  background: var(--blue-50);
-  border: 1px solid var(--blue-200);
-  padding: 3px 8px;
-  border-radius: 999px;
-  max-width: 110px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+.mobile-shop-button {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  border: 1px solid var(--line, #e2e8f0);
+  background: var(--surface, #ffffff);
+  color: var(--blue-700, #0284c7);
+  font-size: 18px;
+  cursor: pointer;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  transition: all 0.15s ease;
+  padding: 0;
+}
+
+.mobile-shop-button:active {
+  background: var(--blue-50, #f0f9ff);
+  border-color: var(--blue-300, #93c5fd);
+  transform: scale(0.95);
 }
 
 .mobile-avatar-pill {

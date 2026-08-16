@@ -45,18 +45,11 @@ export function MobileDashboardView() {
 
   return (
     <div className="mobile-dashboard-container">
-      {/* 1. Header with Branch & Date */}
+      {/* 1. Header with Date & Title */}
       <div className="mobile-dashboard-page-header">
         <div>
           <p className="mobile-welcome-date">{currentDate}</p>
           <h1 className="mobile-dashboard-heading">Tổng quan hoạt động</h1>
-        </div>
-        <div className="mobile-branch-tag">
-          <span className="mobile-branch-pin"><i className="ph ph-map-pin" /></span>
-          <span className="mobile-branch-info">
-            <small>Chi nhánh</small>
-            <strong>{dashboard.meta?.branch?.name ?? 'Chi nhánh chính'}</strong>
-          </span>
         </div>
       </div>
 
