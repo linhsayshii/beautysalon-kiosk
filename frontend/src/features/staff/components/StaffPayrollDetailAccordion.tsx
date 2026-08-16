@@ -153,7 +153,7 @@ export function StaffPayrollDetailAccordion({ periodId, onOpenSheetView }: Staff
               display: 'grid',
               gridTemplateColumns: 'repeat(4, 1fr)',
               gap: '16px 24px',
-              fontSize: 13,
+              fontSize: 14.5,
               color: '#334155',
               paddingBottom: 16,
             }}
