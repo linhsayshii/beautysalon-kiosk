@@ -116,15 +116,15 @@ export function MobileBottomNav() {
             <NavLink to="/m/dashboard" className={({ isActive }) => `mobile-nav-item ${isActive ? 'is-active' : ''}`}>
               <i className="ph ph-squares-four" /><span>Tổng quan</span>
             </NavLink>
-            <NavLink to="/m/orders" className={({ isActive }) => `mobile-nav-item ${isActive ? 'is-active' : ''}`}>
-              <i className="ph ph-receipt" /><span>Đơn hàng</span>
+            <NavLink to="/m/appointments" className={({ isActive }) => `mobile-nav-item ${isActive ? 'is-active' : ''}`}>
+              <i className="ph ph-calendar-blank" /><span>Lịch dịch vụ</span>
             </NavLink>
             {renderCenterButton()}
-            <NavLink to="/m/staff" className={({ isActive }) => `mobile-nav-item ${isActive ? 'is-active' : ''}`}>
-              <i className="ph ph-users-three" /><span>Nhân sự</span>
+            <NavLink to="/m/notifications" className={({ isActive }) => `mobile-nav-item ${isActive ? 'is-active' : ''}`}>
+              <i className="ph ph-bell" /><span>Thông báo</span>
             </NavLink>
-            <NavLink to="/m/account" className={({ isActive }) => `mobile-nav-item ${isActive ? 'is-active' : ''}`}>
-              <i className="ph ph-gear" /><span>Cài đặt</span>
+            <NavLink to="/m/more" className={({ isActive }) => `mobile-nav-item ${isActive ? 'is-active' : ''}`}>
+              <i className="ph ph-list" /><span>Nhiều hơn</span>
             </NavLink>
           </>
         )}

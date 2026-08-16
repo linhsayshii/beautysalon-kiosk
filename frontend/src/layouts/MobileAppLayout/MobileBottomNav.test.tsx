@@ -13,10 +13,20 @@ describe('MobileBottomNav Component', () => {
 
     render(<MemoryRouter><MobileBottomNav /></MemoryRouter>);
     expect(screen.getByText('Tổng quan')).toBeInTheDocument();
-    expect(screen.getByText('Đơn hàng')).toBeInTheDocument();
-    expect(screen.getByText('Nhân sự')).toBeInTheDocument();
-    expect(screen.getByText('Cài đặt')).toBeInTheDocument();
+    expect(screen.getByText('Lịch dịch vụ')).toBeInTheDocument();
+    expect(screen.getByText('Thông báo')).toBeInTheDocument();
+    expect(screen.getByText('Nhiều hơn')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /tạo mới|action|quick action/i })).toBeInTheDocument();
+
+    const overviewLink = screen.getByText('Tổng quan').closest('a');
+    const appointmentsLink = screen.getByText('Lịch dịch vụ').closest('a');
+    const notificationsLink = screen.getByText('Thông báo').closest('a');
+    const moreLink = screen.getByText('Nhiều hơn').closest('a');
+
+    expect(overviewLink).toHaveAttribute('href', '/m/dashboard');
+    expect(appointmentsLink).toHaveAttribute('href', '/m/appointments');
+    expect(notificationsLink).toHaveAttribute('href', '/m/notifications');
+    expect(moreLink).toHaveAttribute('href', '/m/more');
   });
 
   it('renders correct navigation tabs for cashier role', () => {
