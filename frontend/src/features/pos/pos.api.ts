@@ -68,6 +68,7 @@ export interface PosCheckoutPayload {
     itemType: 'product' | 'service' | 'package' | 'account_card';
     itemId: number;
     quantity: number;
+    staffId?: number | null;
   }>;
 }
 

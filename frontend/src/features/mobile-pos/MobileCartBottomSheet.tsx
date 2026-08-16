@@ -12,6 +12,7 @@ interface PosLine {
   unit: string;
   salePrice: number;
   quantity: number;
+  staffId?: number | null;
 }
 
 interface PosCustomer {
@@ -84,6 +85,7 @@ export function MobileCartBottomSheet({
         itemId: l.itemId,
         itemType: l.itemType,
         quantity: l.quantity,
+        staffId: l.staffId || (selectedStaffId ? Number(selectedStaffId) : null),
       })),
     });
   };
