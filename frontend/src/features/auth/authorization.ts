@@ -36,12 +36,12 @@ export function hasPermission(role: AccountRole, permission: AppPermission) {
 
 export function permissionForPath(pathname: string): AppPermission | null {
   // Desktop and mobile paths
-  if (pathname === '/pos' || pathname === '/m/pos') return 'pos:use';
+  if (pathname === '/pos' || pathname === '/m/pos' || pathname === '/m/invoices/new') return 'pos:use';
   if (pathname === '/attendance/qr') return 'attendance:manage';
   if (pathname === '/attendance' || pathname === '/m/attendance') return 'attendance:self';
   if (pathname === '/dashboard' || pathname === '/m/dashboard') return 'dashboard:read';
   if (pathname === '/orders' || pathname === '/m/orders') return 'orders:read';
-  if (pathname === '/customers' || pathname === '/customer-cards' || pathname === '/m/customers') return 'customers:manage';
+  if (pathname === '/customers' || pathname === '/customer-cards' || pathname === '/m/customers' || pathname === '/m/customers/new') return 'customers:manage';
   if (pathname === '/products' || pathname === '/pricebooks' || pathname.startsWith('/purchase-orders')) return 'inventory:manage';
   if (pathname === '/staff' || pathname.startsWith('/staff/') || pathname === '/m/staff') return 'staff:manage';
   if (pathname === '/m/schedule' || pathname === '/m/salary') return 'attendance:self';
