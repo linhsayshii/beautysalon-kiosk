@@ -1441,14 +1441,17 @@
 .expandable-detail-row > td {
   padding: 0 !important;
   background: #ffffff !important;
+  width: 100% !important;
 }
 
 .customer-detail,
 .staff-detail,
 .order-detail,
 .sold-card-detail,
-.purchase-detail {
+.purchase-detail,
+.payroll-accordion-container {
   width: 100% !important;
+  box-sizing: border-box !important;
   display: block !important;
   border-top: 2px solid #0052cc;
   background: #ffffff;
@@ -1457,21 +1460,29 @@
 .customer-detail .table-scroll,
 .staff-detail .table-scroll,
 .order-detail .table-scroll,
-.sold-card-detail .table-scroll {
+.sold-card-detail .table-scroll,
+.payroll-accordion-container .table-scroll {
   width: 100% !important;
   padding: 0 !important;
   overflow-x: auto;
 }
 
+.customer-detail table,
+.staff-detail table,
+.order-detail table,
+.sold-card-detail table,
+.payroll-accordion-container table,
 .customer-detail .kiotviet-payroll-table,
 .staff-detail .kiotviet-payroll-table,
 .order-detail .kiotviet-payroll-table,
 .sold-card-detail .kiotviet-payroll-table,
 .customer-detail .inline-detail-table,
 .staff-detail .inline-detail-table,
-.order-detail .order-detail-table {
+.order-detail .order-detail-table,
+.kiotviet-payroll-table {
   width: 100% !important;
   min-width: 100% !important;
+  table-layout: auto !important;
   border-collapse: collapse !important;
 }
 

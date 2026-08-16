@@ -345,9 +345,9 @@ export function StaffPayrollDetailAccordion({ periodId, onOpenSheetView }: Staff
 
       {/* TAB 2: PHIẾU LƯƠNG NHÂN VIÊN */}
       {activeTab === 'records' && (
-        <div>
-          <div style={{ overflowX: 'auto', maxHeight: 320 }}>
-            <table className="kiotviet-payroll-table">
+        <div style={{ width: '100%' }}>
+          <div className="table-scroll" style={{ width: '100%', overflowX: 'auto', maxHeight: 360 }}>
+            <table className="kiotviet-payroll-table" style={{ width: '100%' }}>
               <thead>
                 <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569' }}>
                   <th style={{ padding: '8px 12px', textAlign: 'left' }}>Mã phiếu</th>
@@ -360,9 +360,9 @@ export function StaffPayrollDetailAccordion({ periodId, onOpenSheetView }: Staff
               <tbody>
                 {records.map((rec) => (
                   <tr key={rec.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                    <td style={{ padding: '8px 12px', color: '#0284c7', fontWeight: 600 }}>{rec.code}</td>
+                    <td style={{ padding: '8px 12px', color: '#0052cc', fontWeight: 600 }}>{rec.code}</td>
                     <td style={{ padding: '8px 12px' }}>
-                      <span style={{ fontWeight: 600, color: '#0284c7' }}>{rec.staff.name}</span>
+                      <span style={{ fontWeight: 600, color: '#0052cc' }}>{rec.staff.name}</span>
                     </td>
                     <td style={{ padding: '8px 12px', textAlign: 'right', fontWeight: 600 }}>
                       {formatMoney(rec.netSalary)}
@@ -414,13 +414,13 @@ export function StaffPayrollDetailAccordion({ periodId, onOpenSheetView }: Staff
 
       {/* TAB 3: LỊCH SỬ THANH TOÁN */}
       {activeTab === 'payments' && (
-        <div style={{ overflowX: 'auto' }}>
+        <div style={{ width: '100%', overflowX: 'auto' }}>
           {!payments.length ? (
             <div style={{ padding: '24px 0', textAlign: 'center', color: '#64748b', fontSize: 13 }}>
               Chưa có giao dịch thanh toán nào trong kỳ lương này.
             </div>
           ) : (
-            <table className="kiotviet-payroll-table">
+            <table className="kiotviet-payroll-table" style={{ width: '100%' }}>
               <thead>
                 <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569' }}>
                   <th style={{ padding: '8px 12px', textAlign: 'left' }}>Thời gian</th>
@@ -435,7 +435,7 @@ export function StaffPayrollDetailAccordion({ periodId, onOpenSheetView }: Staff
                 {payments.map((p) => (
                   <tr key={p.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
                     <td style={{ padding: '8px 12px' }}>{formatDateTime(p.paidAt)}</td>
-                    <td style={{ padding: '8px 12px', fontWeight: 600, color: '#0284c7' }}>{p.staff.name}</td>
+                    <td style={{ padding: '8px 12px', fontWeight: 600, color: '#0052cc' }}>{p.staff.name}</td>
                     <td style={{ padding: '8px 12px', textAlign: 'right', fontWeight: 600, color: '#059669' }}>
                       {formatMoney(p.amount)}
                     </td>
