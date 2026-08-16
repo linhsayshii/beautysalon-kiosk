@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
-import { Link, NavLink, useLocation } from 'react-router-dom';
+import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { navigation } from './navigation.config';
 import { homeForRole, useAuth } from '@/features/auth/AuthProvider';
 import { useMetadata } from '@/services/metadata';
+import { setPreferredUiMode } from '@/pwa/device-detect';
 
 export function Header() {
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -10,6 +11,7 @@ export function Header() {
   const [accountOpen, setAccountOpen] = useState(false);
   const headerRef = useRef<HTMLElement>(null);
   const location = useLocation();
+  const navigate = useNavigate();
   const { account, logout } = useAuth();
   const { data: metadata } = useMetadata();
   const storeName = metadata?.data?.system?.storeName || 'AnnaChill Beauty';
@@ -20,6 +22,15 @@ export function Header() {
     document.addEventListener('click', close);
     return () => document.removeEventListener('click', close);
   }, []);
+
+  const handleSwitchToMobile = () => {
+    setPreferredUiMode('mobile');
+    if (account) {
+      navigate(homeForRole(account.role, true));
+    } else {
+      navigate('/m/dashboard');
+    }
+  };
 
   const activeSection = location.pathname.startsWith('/staff') ? 'staff'
     : location.pathname.startsWith('/customer') ? 'customers'
@@ -54,6 +65,15 @@ export function Header() {
         ))}
       </nav>}
       <div className="top-actions">
+        <button
+          type="button"
+          className="action-pill mobile-switch-pill"
+          onClick={handleSwitchToMobile}
+          aria-label="Chuyển sang giao diện di động"
+        >
+          <i className="ph ph-device-mobile" aria-hidden="true" />
+          <span>Bản di động</span>
+        </button>
         {account?.role === 'manager' && <NavLink className={({ isActive }) => `action-pill attendance-qr-button ${isActive ? 'is-active' : ''}`} to="/attendance/qr" aria-label="Mở QR chấm công">
           <i className="ph ph-qr-code" aria-hidden="true" /><span>QR chấm công</span>
         </NavLink>}
@@ -63,7 +83,14 @@ export function Header() {
         </NavLink>}
         <div className={`account-menu ${accountOpen ? 'is-open' : ''}`}>
           <button className="account-trigger" type="button" aria-expanded={accountOpen} onClick={() => setAccountOpen((value) => !value)}><span>{account?.displayName?.charAt(0).toUpperCase()}</span><i className="ph ph-caret-down" /></button>
-          <div className="account-popover"><div><strong>{account?.displayName}</strong><span>{account?.role === 'manager' ? 'Quản lý' : account?.role === 'cashier' ? 'Thu ngân' : 'Nhân viên'} · {account?.branchName}</span></div><Link to="/account/settings"><i className="ph ph-gear-six" />Cài đặt tài khoản</Link><button type="button" onClick={() => logout()}><i className="ph ph-sign-out" />Đăng xuất</button></div>
+          <div className="account-popover">
+            <div><strong>{account?.displayName}</strong><span>{account?.role === 'manager' ? 'Quản lý' : account?.role === 'cashier' ? 'Thu ngân' : 'Nhân viên'} · {account?.branchName}</span></div>
+            <button type="button" className="switch-mobile-menu-item" onClick={handleSwitchToMobile}>
+              <i className="ph ph-device-mobile" />Giao diện di động
+            </button>
+            <Link to="/account/settings"><i className="ph ph-gear-six" />Cài đặt tài khoản</Link>
+            <button type="button" onClick={() => logout()}><i className="ph ph-sign-out" />Đăng xuất</button>
+          </div>
         </div>
       </div>
     </header>
