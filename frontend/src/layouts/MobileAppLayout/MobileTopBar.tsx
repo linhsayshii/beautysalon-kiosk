@@ -9,6 +9,7 @@ import type { ApiRecord } from '@/types/api';
 
 // Sub-page titles and configuration
 const SUBPAGE_CONFIG: Record<string, { title: string; backTo?: string; hideTopBar?: boolean }> = {
+  '/m/orders': { title: 'Đơn hàng', hideTopBar: true },
   '/m/products': { title: 'Hàng hóa', backTo: '/m/more', hideTopBar: true },
   '/m/appointments': { title: 'Lịch dịch vụ', hideTopBar: true },
   '/m/customers': { title: 'Khách hàng', backTo: '/m/more', hideTopBar: true },

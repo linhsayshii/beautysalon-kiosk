@@ -19,6 +19,7 @@ export function MobileAppLayout() {
       <MobileTopBar />
       <main
         className={`mobile-main-content ${
+          location.pathname.startsWith('/m/orders') ||
           location.pathname.startsWith('/m/products') ||
           location.pathname.startsWith('/m/appointments') ||
           location.pathname.startsWith('/m/customers') ||
