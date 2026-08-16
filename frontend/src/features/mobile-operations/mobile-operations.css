@@ -1,0 +1,351 @@
+/* Mobile Operations CSS - Customers & Customer Cards Views */
+
+.mobile-operations-view {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background-color: var(--canvas, #f8fafc);
+  padding: 12px 14px calc(var(--mobile-safe-bottom, 0px) + 84px);
+  gap: 12px;
+  box-sizing: border-box;
+}
+
+.mobile-operations-header {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.mobile-operations-header-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.mobile-operations-title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--ink-950, #0f172a);
+  letter-spacing: -0.02em;
+}
+
+.mobile-operations-add-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: 12px;
+  background: var(--blue-600, #0062eb);
+  color: #ffffff;
+  border: none;
+  font-size: 13.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  min-height: 40px;
+}
+
+.mobile-operations-add-btn:active {
+  background: var(--blue-700, #004ecc);
+  transform: scale(0.97);
+}
+
+.mobile-operations-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* Customer Avatar Circle */
+.mobile-customer-avatar-initials {
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+  color: var(--blue-700, #1d4ed8);
+  font-size: 15px;
+  font-weight: 800;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+
+/* Phone link styling */
+.mobile-customer-phone-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--blue-600, #0062eb);
+  font-size: 12.5px;
+  font-weight: 600;
+  text-decoration: none;
+  min-height: 24px;
+}
+
+.mobile-customer-phone-link:hover {
+  text-decoration: underline;
+}
+
+/* Filter Fields in MobileFilterSheet */
+.mobile-filter-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.mobile-filter-field-label {
+  font-size: 13px;
+  font-weight: 750;
+  color: var(--ink-800, #1e293b);
+}
+
+.mobile-filter-select,
+.mobile-filter-input {
+  width: 100%;
+  height: 42px;
+  padding: 0 12px;
+  border-radius: 12px;
+  border: 1px solid var(--line, #e2e8f0);
+  background: var(--surface, #ffffff);
+  font-size: 14px;
+  color: var(--ink-950, #0f172a);
+  outline: none;
+  box-sizing: border-box;
+}
+
+.mobile-filter-select:focus,
+.mobile-filter-input:focus {
+  border-color: var(--blue-500, #0d72ff);
+}
+
+/* Customer Detail Sheet Content */
+.mobile-customer-detail-content {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.mobile-customer-detail-header-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  background: var(--surface, #ffffff);
+  border-radius: 14px;
+  border: 1px solid var(--line, #e2e8f0);
+}
+
+.mobile-customer-detail-avatar {
+  width: 50px;
+  height: 50px;
+  border-radius: 16px;
+  background: linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%);
+  color: var(--blue-600, #0062eb);
+  font-size: 24px;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+
+.mobile-customer-detail-main-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+
+.mobile-customer-detail-name {
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--ink-950, #0f172a);
+}
+
+.mobile-customer-detail-tags {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-top: 2px;
+}
+
+.mobile-customer-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  background: #f1f5f9;
+  color: var(--ink-600, #475569);
+}
+
+.mobile-customer-tag.is-code {
+  background: #eff6ff;
+  color: var(--blue-600, #0062eb);
+}
+
+.mobile-customer-detail-facts-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+}
+
+.mobile-customer-fact-box {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 10px 12px;
+  background: var(--surface, #ffffff);
+  border: 1px solid var(--line, #e2e8f0);
+  border-radius: 12px;
+}
+
+.mobile-customer-fact-label {
+  font-size: 11.5px;
+  color: var(--ink-500, #64748b);
+}
+
+.mobile-customer-fact-val {
+  font-size: 14px;
+  font-weight: 750;
+  color: var(--ink-950, #0f172a);
+}
+
+/* Detail Section Cards */
+.mobile-detail-section-card {
+  background: var(--surface, #ffffff);
+  border: 1px solid var(--line, #e2e8f0);
+  border-radius: 14px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.mobile-detail-section-card h4 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 750;
+  color: var(--ink-950, #0f172a);
+}
+
+.mobile-detail-info-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 13.5px;
+  padding: 6px 0;
+  border-bottom: 1px dashed var(--line, #e2e8f0);
+}
+
+.mobile-detail-info-row:last-child {
+  border-bottom: none;
+}
+
+.mobile-detail-info-label {
+  color: var(--ink-500, #64748b);
+}
+
+.mobile-detail-info-val {
+  font-weight: 650;
+  color: var(--ink-900, #0f172a);
+  text-align: right;
+}
+
+/* Activity Items List */
+.mobile-activity-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.mobile-activity-item {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 12px;
+  background: #f8fafc;
+  border: 1px solid var(--line, #e2e8f0);
+  border-radius: 10px;
+}
+
+.mobile-activity-item-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.mobile-activity-item-code {
+  font-size: 13px;
+  font-weight: 750;
+  color: var(--blue-600, #0062eb);
+}
+
+.mobile-activity-item-date {
+  font-size: 11.5px;
+  color: var(--ink-400, #64748b);
+}
+
+.mobile-activity-item-bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 13px;
+}
+
+/* Progress bar for card usage */
+.mobile-package-progress-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+}
+
+.mobile-package-progress-bar {
+  width: 100%;
+  height: 6px;
+  border-radius: 3px;
+  background: #e2e8f0;
+  overflow: hidden;
+}
+
+.mobile-package-progress-fill {
+  height: 100%;
+  border-radius: 3px;
+  background: var(--blue-600, #0062eb);
+  transition: width 0.3s ease;
+}
+
+.mobile-package-progress-text {
+  font-size: 11.5px;
+  color: var(--ink-500, #64748b);
+  display: flex;
+  justify-content: space-between;
+}
+
+/* Quick Action Call Link in Card Footer */
+.mobile-card-call-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: #ecfdf5;
+  color: var(--green, #16a34a);
+  border: 1px solid #a7f3d0;
+  font-size: 13px;
+  font-weight: 700;
+  text-decoration: none;
+  min-height: 40px;
+  box-sizing: border-box;
+}
+
+.mobile-card-call-btn:active {
+  background: #d1fae5;
+}
