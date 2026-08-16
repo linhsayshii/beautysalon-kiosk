@@ -7,13 +7,62 @@ import { usePosSocket } from '@/services/usePosSocket';
 import { getBranches } from '@/features/branches/branches.api';
 import type { ApiRecord } from '@/types/api';
 
+import { useState, useRef, useEffect } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
+import { useAuth } from '@/features/auth/AuthProvider';
+import { useMetadata } from '@/services/metadata';
+import { usePosSocket } from '@/services/usePosSocket';
+import { getBranches } from '@/features/branches/branches.api';
+import type { ApiRecord } from '@/types/api';
+
+// Sub-page titles and configuration
+const SUBPAGE_CONFIG: Record<string, { title: string; backTo?: string }> = {
+  '/m/products': { title: 'Hàng hóa & Kho', backTo: '/m/more' },
+  '/m/pricebooks': { title: 'Bảng giá', backTo: '/m/more' },
+  '/m/purchase-orders': { title: 'Nhập hàng', backTo: '/m/more' },
+  '/m/purchase-orders/new': { title: 'Tạo phiếu nhập', backTo: '/m/purchase-orders' },
+  '/m/customer-cards': { title: 'Gói & Thẻ khách hàng', backTo: '/m/more' },
+  '/m/staff/schedule': { title: 'Lịch làm việc', backTo: '/m/more' },
+  '/m/staff/attendance': { title: 'Bảng chấm công', backTo: '/m/more' },
+  '/m/staff/payroll': { title: 'Bảng lương & Hoa hồng', backTo: '/m/more' },
+  '/m/staff/commissions': { title: 'Hoa hồng nhân viên', backTo: '/m/more' },
+  '/m/attendance/qr': { title: 'Mã QR Chấm công', backTo: '/m/more' },
+  '/m/invoices/new': { title: 'Tạo hóa đơn', backTo: '/m/pos' },
+  '/m/appointments/new': { title: 'Đặt lịch hẹn', backTo: '/m/appointments' },
+};
+
+// Map of top-level tab routes
+const ROOT_TAB_ROUTES = new Set([
+  '/m',
+  '/m/dashboard',
+  '/m/appointments',
+  '/m/notifications',
+  '/m/more',
+  '/m/pos',
+  '/m/orders',
+  '/m/customers',
+  '/m/staff',
+  '/m/schedule',
+  '/m/salary',
+  '/m/attendance',
+  '/m/account',
+]);
+
 export function MobileTopBar() {
+  const location = useLocation();
+  const navigate = useNavigate();
   const { account, switchBranch } = useAuth();
   const { data: meta } = useMetadata();
   const { isOnline } = usePosSocket();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const storeName = meta?.data?.system?.storeName || 'AnnaChill';
+
+  const pathname = location.pathname.replace(/\/$/, '') || '/m';
+  const isSubPage = !ROOT_TAB_ROUTES.has(pathname);
+  const subPageInfo = SUBPAGE_CONFIG[pathname];
+  const subPageTitle = subPageInfo?.title || 'Chi tiết';
 
   const { data: branchesData } = useQuery({
     queryKey: ['branches-list'],
@@ -43,12 +92,39 @@ export function MobileTopBar() {
     setIsDropdownOpen(false);
   };
 
+  const handleBack = () => {
+    if (subPageInfo?.backTo) {
+      navigate(subPageInfo.backTo);
+    } else if (window.history.length > 2) {
+      navigate(-1);
+    } else {
+      navigate('/m/more');
+    }
+  };
+
   return (
     <header className="mobile-topbar">
-      <Link to="/m" className="mobile-brand">
-        <span className="brand-mark"><span /><span /></span>
-        <span className="mobile-store-title">{storeName}</span>
-      </Link>
+      {isSubPage ? (
+        <div className="mobile-topbar-subpage-left">
+          <button
+            type="button"
+            className="mobile-topbar-back-btn"
+            onClick={handleBack}
+            aria-label="Quay lại"
+            data-testid="mobile-topbar-back-btn"
+          >
+            <i className="ph ph-arrow-left" />
+          </button>
+          <h1 className="mobile-topbar-subpage-title" data-testid="mobile-topbar-title">
+            {subPageTitle}
+          </h1>
+        </div>
+      ) : (
+        <Link to="/m" className="mobile-brand">
+          <span className="brand-mark"><span /><span /></span>
+          <span className="mobile-store-title">{storeName}</span>
+        </Link>
+      )}
 
       <div className="mobile-top-right">
         <span className={`mobile-status-dot ${isOnline ? 'online' : 'offline'}`} title={isOnline ? 'Realtime Online' : 'Offline'} />
@@ -113,5 +189,6 @@ export function MobileTopBar() {
     </header>
   );
 }
+
 
 
