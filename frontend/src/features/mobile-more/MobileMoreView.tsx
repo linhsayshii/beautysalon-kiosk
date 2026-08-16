@@ -79,53 +79,58 @@ export function MobileMoreView() {
         </div>
       </Link>
 
-      {/* Bento Grid Categories */}
-      <div className="mobile-more-category-grid">
-        {/* Category: Đơn hàng */}
+      {/* 1-Column Bento Categories (Aligned with Desktop navigation) */}
+      <div className="mobile-more-category-list">
+        {/* Category: Đơn hàng & Bán hàng */}
         <div className="mobile-more-bento-card">
-          <div className="more-category-title">Đơn hàng</div>
+          <div className="more-category-title">Đơn hàng & Bán hàng</div>
           <div className="more-item-list">
             <Link to="/m/orders" className="more-nav-item">
-              <span className="more-item-badge sky"><i className="ph ph-file-text" /></span>
-              <span className="more-item-label">Hóa đơn</span>
+              <span className="more-item-badge sky"><i className="ph ph-receipt" /></span>
+              <div className="more-item-info">
+                <span className="more-item-label">Danh sách đơn hàng</span>
+                <span className="more-item-desc">Tra cứu hóa đơn & trạng thái thanh toán</span>
+              </div>
+              <i className="ph ph-caret-right more-item-arrow" />
             </Link>
-            <Link to="/m/orders" className="more-nav-item">
-              <span className="more-item-badge rose"><i className="ph ph-arrow-u-up-left" /></span>
-              <span className="more-item-label">Trả hàng</span>
+            <Link to="/m/pos" className="more-nav-item">
+              <span className="more-item-badge emerald"><i className="ph ph-shopping-cart" /></span>
+              <div className="more-item-info">
+                <span className="more-item-label">Bán hàng POS</span>
+                <span className="more-item-desc">Tạo hóa đơn, thanh toán & in bill</span>
+              </div>
+              <i className="ph ph-caret-right more-item-arrow" />
             </Link>
           </div>
         </div>
 
-        {/* Category: Báo cáo */}
+        {/* Category: Hàng hóa */}
         <div className="mobile-more-bento-card">
-          <div className="more-category-title">Báo cáo</div>
+          <div className="more-category-title">Hàng hóa & Bảng giá</div>
           <div className="more-item-list">
-            <Link to="/m/dashboard" className="more-nav-item">
-              <span className="more-item-badge blue"><i className="ph ph-chart-bar" /></span>
-              <span className="more-item-label">Báo cáo</span>
+            <Link to="/m/products" className="more-nav-item">
+              <span className="more-item-badge blue"><i className="ph ph-package" /></span>
+              <div className="more-item-info">
+                <span className="more-item-label">Danh sách hàng hóa</span>
+                <span className="more-item-desc">Quản lý sản phẩm, dịch vụ & tồn kho</span>
+              </div>
+              <i className="ph ph-caret-right more-item-arrow" />
             </Link>
-            <Link to="/m/dashboard" className="more-nav-item">
-              <span className="more-item-badge violet"><i className="ph ph-chart-line-up" /></span>
-              <span className="more-item-label">Phân tích</span>
+            <Link to="/m/pricebooks" className="more-nav-item">
+              <span className="more-item-badge violet"><i className="ph ph-tag" /></span>
+              <div className="more-item-info">
+                <span className="more-item-label">Thiết lập giá</span>
+                <span className="more-item-desc">Bảng giá theo từng chi nhánh & nhóm khách</span>
+              </div>
+              <i className="ph ph-caret-right more-item-arrow" />
             </Link>
-            <Link to="/m/dashboard" className="more-nav-item">
-              <span className="more-item-badge emerald"><i className="ph ph-wallet" /></span>
-              <span className="more-item-label">Sổ quỹ</span>
-            </Link>
-          </div>
-        </div>
-
-        {/* Category: Thuế & Kế toán */}
-        <div className="mobile-more-bento-card">
-          <div className="more-category-title">Thuế & Kế toán</div>
-          <div className="more-item-list">
-            <Link to="/m/orders" className="more-nav-item">
-              <span className="more-item-badge amber"><i className="ph ph-calculator" /></span>
-              <span className="more-item-label">Thuế & Kế toán</span>
-            </Link>
-            <Link to="/m/orders" className="more-nav-item">
-              <span className="more-item-badge teal"><i className="ph ph-receipt" /></span>
-              <span className="more-item-label">Hóa đơn điện tử</span>
+            <Link to="/m/purchase-orders" className="more-nav-item">
+              <span className="more-item-badge green"><i className="ph ph-truck" /></span>
+              <div className="more-item-info">
+                <span className="more-item-label">Nhập hàng</span>
+                <span className="more-item-desc">Đơn đặt hàng nhà cung cấp & nhập kho</span>
+              </div>
+              <i className="ph ph-caret-right more-item-arrow" />
             </Link>
           </div>
         </div>
@@ -135,81 +140,106 @@ export function MobileMoreView() {
           <div className="more-category-title">Khách hàng</div>
           <div className="more-item-list">
             <Link to="/m/customers" className="more-nav-item">
-              <span className="more-item-badge violet"><i className="ph ph-users" /></span>
-              <span className="more-item-label">Khách hàng</span>
+              <span className="more-item-badge blue"><i className="ph ph-users" /></span>
+              <div className="more-item-info">
+                <span className="more-item-label">Danh sách khách hàng</span>
+                <span className="more-item-desc">Hồ sơ khách hàng, số điện thoại & công nợ</span>
+              </div>
+              <i className="ph ph-caret-right more-item-arrow" />
             </Link>
             <Link to="/m/customer-cards" className="more-nav-item">
-              <span className="more-item-badge indigo"><i className="ph ph-cards" /></span>
-              <span className="more-item-label">Gói thẻ đã bán</span>
+              <span className="more-item-badge violet"><i className="ph ph-cards-three" /></span>
+              <div className="more-item-info">
+                <span className="more-item-label">Gói, thẻ đã bán</span>
+                <span className="more-item-desc">Thẻ liệu trình spa, buổi điều trị & số dư thẻ</span>
+              </div>
+              <i className="ph ph-caret-right more-item-arrow" />
             </Link>
           </div>
         </div>
 
-        {/* Category: Hàng hóa & Kho */}
+        {/* Category: Nhân viên */}
         <div className="mobile-more-bento-card">
-          <div className="more-category-title">Hàng hóa & Kho</div>
-          <div className="more-item-list">
-            <Link to="/m/products" className="more-nav-item">
-              <span className="more-item-badge emerald"><i className="ph ph-package" /></span>
-              <span className="more-item-label">Hàng hóa</span>
-            </Link>
-            <Link to="/m/pricebooks" className="more-nav-item">
-              <span className="more-item-badge amber"><i className="ph ph-tag" /></span>
-              <span className="more-item-label">Bảng giá</span>
-            </Link>
-            <Link to="/m/purchase-orders" className="more-nav-item">
-              <span className="more-item-badge blue"><i className="ph ph-truck" /></span>
-              <span className="more-item-label">Nhập hàng</span>
-            </Link>
-          </div>
-        </div>
-
-        {/* Category: Nhân sự */}
-        <div className="mobile-more-bento-card">
-          <div className="more-category-title">Nhân sự</div>
+          <div className="more-category-title">Nhân viên & Lương thưởng</div>
           <div className="more-item-list">
             <Link to="/m/staff" className="more-nav-item">
-              <span className="more-item-badge purple"><i className="ph ph-identification-card" /></span>
-              <span className="more-item-label">Danh sách NV</span>
+              <span className="more-item-badge blue"><i className="ph ph-identification-card" /></span>
+              <div className="more-item-info">
+                <span className="more-item-label">Danh sách nhân viên</span>
+                <span className="more-item-desc">Hồ sơ, vai trò thợ & tài khoản đăng nhập</span>
+              </div>
+              <i className="ph ph-caret-right more-item-arrow" />
             </Link>
             <Link to="/m/staff/schedule" className="more-nav-item">
-              <span className="more-item-badge sky"><i className="ph ph-calendar" /></span>
-              <span className="more-item-label">Lịch làm việc</span>
+              <span className="more-item-badge sky"><i className="ph ph-calendar-dots" /></span>
+              <div className="more-item-info">
+                <span className="more-item-label">Lịch làm việc</span>
+                <span className="more-item-desc">Phân ca làm việc tuần/tháng</span>
+              </div>
+              <i className="ph ph-caret-right more-item-arrow" />
             </Link>
             <Link to="/m/staff/attendance" className="more-nav-item">
-              <span className="more-item-badge orange"><i className="ph ph-clock" /></span>
-              <span className="more-item-label">Chấm công</span>
+              <span className="more-item-badge emerald"><i className="ph ph-clock-user" /></span>
+              <div className="more-item-info">
+                <span className="more-item-label">Bảng chấm công</span>
+                <span className="more-item-desc">Thời gian vào ca, ra ca & duyệt công</span>
+              </div>
+              <i className="ph ph-caret-right more-item-arrow" />
             </Link>
             <Link to="/m/staff/payroll" className="more-nav-item">
-              <span className="more-item-badge green"><i className="ph ph-money" /></span>
-              <span className="more-item-label">Lương & HH</span>
+              <span className="more-item-badge orange"><i className="ph ph-money" /></span>
+              <div className="more-item-info">
+                <span className="more-item-label">Bảng lương</span>
+                <span className="more-item-desc">Lương cứng, phụ cấp, giảm trừ & thực lĩnh</span>
+              </div>
+              <i className="ph ph-caret-right more-item-arrow" />
+            </Link>
+            <Link to="/m/staff/commissions" className="more-nav-item">
+              <span className="more-item-badge rose"><i className="ph ph-chart-line-up" /></span>
+              <div className="more-item-info">
+                <span className="more-item-label">Bảng hoa hồng</span>
+                <span className="more-item-desc">Chiết khấu dịch vụ, bán mỹ phẩm & làm móng/gội</span>
+              </div>
+              <i className="ph ph-caret-right more-item-arrow" />
             </Link>
           </div>
         </div>
-      </div>
 
-      {/* Category: Hệ thống & Tiện ích (Single row bento full-width) */}
-      <div className="mobile-more-bento-card">
-        <div className="more-category-title">Hệ thống & Tiện ích</div>
-        <div className="mobile-more-category-grid" style={{ marginTop: 4 }}>
+        {/* Category: Hệ thống & Tiện ích */}
+        <div className="mobile-more-bento-card">
+          <div className="more-category-title">Hệ thống & Tiện ích</div>
           <div className="more-item-list">
             <Link to="/m/attendance" className="more-nav-item">
               <span className="more-item-badge emerald"><i className="ph ph-qr-code" /></span>
-              <span className="more-item-label">Quét chấm công</span>
+              <div className="more-item-info">
+                <span className="more-item-label">Quét mã chấm công</span>
+                <span className="more-item-desc">Chấm công GPS vào ca / ra ca</span>
+              </div>
+              <i className="ph ph-caret-right more-item-arrow" />
             </Link>
             <Link to="/m/attendance/qr" className="more-nav-item">
               <span className="more-item-badge purple"><i className="ph ph-qr-code" /></span>
-              <span className="more-item-label">Mã QR chấm công</span>
+              <div className="more-item-info">
+                <span className="more-item-label">Mã QR chấm công cửa hàng</span>
+                <span className="more-item-desc">Tạo mã QR cho nhân viên quét</span>
+              </div>
+              <i className="ph ph-caret-right more-item-arrow" />
             </Link>
-          </div>
-          <div className="more-item-list">
             <button type="button" className="more-nav-item" onClick={handleToggleDesktop} data-testid="desktop-mode-btn">
               <span className="more-item-badge blue"><i className="ph ph-desktop" /></span>
-              <span className="more-item-label">Giao diện PC</span>
+              <div className="more-item-info">
+                <span className="more-item-label">Giao diện máy tính</span>
+                <span className="more-item-desc">Chuyển sang bản quản trị desktop đầy đủ</span>
+              </div>
+              <i className="ph ph-caret-right more-item-arrow" />
             </button>
-            <button type="button" className="more-nav-item" onClick={handleLogout} data-testid="logout-btn">
+            <button type="button" className="more-nav-item logout" onClick={handleLogout} data-testid="logout-btn">
               <span className="more-item-badge rose"><i className="ph ph-sign-out" /></span>
-              <span className="more-item-label" style={{ color: '#e11d48' }}>Đăng xuất</span>
+              <div className="more-item-info">
+                <span className="more-item-label" style={{ color: '#e11d48', fontWeight: 600 }}>Đăng xuất tài khoản</span>
+                <span className="more-item-desc">Thoát phiên làm việc trên thiết bị này</span>
+              </div>
+              <i className="ph ph-caret-right more-item-arrow" />
             </button>
           </div>
         </div>

@@ -85,33 +85,31 @@ describe('MobileMoreView', () => {
     expect(settingsLink.getAttribute('href')).toBe('/settings');
   });
 
-  it('renders all bento category sections and navigation links', () => {
+  it('renders all bento category sections and navigation links matching desktop config', () => {
     renderComponent();
 
     // Check Category Headers
-    expect(screen.getByText('Đơn hàng')).toBeInTheDocument();
-    expect(screen.getAllByText('Báo cáo').length).toBeGreaterThan(0);
-    expect(screen.getAllByText('Thuế & Kế toán').length).toBeGreaterThan(0);
-    expect(screen.getAllByText('Khách hàng').length).toBeGreaterThan(0);
-    expect(screen.getByText('Hàng hóa & Kho')).toBeInTheDocument();
-    expect(screen.getByText('Nhân sự')).toBeInTheDocument();
+    expect(screen.getByText('Đơn hàng & Bán hàng')).toBeInTheDocument();
+    expect(screen.getByText('Hàng hóa & Bảng giá')).toBeInTheDocument();
+    expect(screen.getByText('Khách hàng')).toBeInTheDocument();
+    expect(screen.getByText('Nhân viên & Lương thưởng')).toBeInTheDocument();
     expect(screen.getByText('Hệ thống & Tiện ích')).toBeInTheDocument();
 
     // Check specific navigation items
-    expect(screen.getByText('Hóa đơn').closest('a')?.getAttribute('href')).toBe('/m/orders');
-    expect(screen.getByText('Phân tích').closest('a')?.getAttribute('href')).toBe('/m/dashboard');
-    expect(screen.getByText('Sổ quỹ').closest('a')?.getAttribute('href')).toBe('/m/dashboard');
-    expect(screen.getByText('Hóa đơn điện tử').closest('a')?.getAttribute('href')).toBe('/m/orders');
-    expect(screen.getByText('Gói thẻ đã bán').closest('a')?.getAttribute('href')).toBe('/m/customer-cards');
-    expect(screen.getByText('Hàng hóa').closest('a')?.getAttribute('href')).toBe('/m/products');
-    expect(screen.getByText('Bảng giá').closest('a')?.getAttribute('href')).toBe('/m/pricebooks');
+    expect(screen.getByText('Danh sách đơn hàng').closest('a')?.getAttribute('href')).toBe('/m/orders');
+    expect(screen.getByText('Bán hàng POS').closest('a')?.getAttribute('href')).toBe('/m/pos');
+    expect(screen.getByText('Danh sách hàng hóa').closest('a')?.getAttribute('href')).toBe('/m/products');
+    expect(screen.getByText('Thiết lập giá').closest('a')?.getAttribute('href')).toBe('/m/pricebooks');
     expect(screen.getByText('Nhập hàng').closest('a')?.getAttribute('href')).toBe('/m/purchase-orders');
-    expect(screen.getByText('Danh sách NV').closest('a')?.getAttribute('href')).toBe('/m/staff');
+    expect(screen.getByText('Danh sách khách hàng').closest('a')?.getAttribute('href')).toBe('/m/customers');
+    expect(screen.getByText('Gói, thẻ đã bán').closest('a')?.getAttribute('href')).toBe('/m/customer-cards');
+    expect(screen.getByText('Danh sách nhân viên').closest('a')?.getAttribute('href')).toBe('/m/staff');
     expect(screen.getByText('Lịch làm việc').closest('a')?.getAttribute('href')).toBe('/m/staff/schedule');
-    expect(screen.getByText('Chấm công').closest('a')?.getAttribute('href')).toBe('/m/staff/attendance');
-    expect(screen.getByText('Lương & HH').closest('a')?.getAttribute('href')).toBe('/m/staff/payroll');
-    expect(screen.getByText('Quét chấm công').closest('a')?.getAttribute('href')).toBe('/m/attendance');
-    expect(screen.getByText('Mã QR chấm công').closest('a')?.getAttribute('href')).toBe('/m/attendance/qr');
+    expect(screen.getByText('Bảng chấm công').closest('a')?.getAttribute('href')).toBe('/m/staff/attendance');
+    expect(screen.getByText('Bảng lương').closest('a')?.getAttribute('href')).toBe('/m/staff/payroll');
+    expect(screen.getByText('Bảng hoa hồng').closest('a')?.getAttribute('href')).toBe('/m/staff/commissions');
+    expect(screen.getByText('Quét mã chấm công').closest('a')?.getAttribute('href')).toBe('/m/attendance');
+    expect(screen.getByText('Mã QR chấm công cửa hàng').closest('a')?.getAttribute('href')).toBe('/m/attendance/qr');
   });
 
   it('opens branch switcher modal and switches branch on click', async () => {
