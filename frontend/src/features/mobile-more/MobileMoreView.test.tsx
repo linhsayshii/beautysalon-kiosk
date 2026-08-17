@@ -77,12 +77,12 @@ describe('MobileMoreView', () => {
     expect(screen.getByTestId('user-avatar')).toHaveTextContent('QL');
   });
 
-  it('renders store settings link pointing to /settings', () => {
+  it('renders store settings link pointing to /m/account', () => {
     renderComponent();
 
     const settingsLink = screen.getByTestId('store-settings-link');
     expect(settingsLink).toBeInTheDocument();
-    expect(settingsLink.getAttribute('href')).toBe('/settings');
+    expect(settingsLink.getAttribute('href')).toBe('/m/account');
   });
 
   it('renders all bento category sections and navigation links matching desktop config', () => {

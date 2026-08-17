@@ -43,7 +43,7 @@ export function MobileQuickActionSheet({ isOpen, onClose }: QuickActionSheetProp
             <i className="ph ph-caret-right mobile-quick-action-arrow" />
           </Link>
 
-          <Link to="/m/customers/new" className="mobile-quick-action-item" onClick={onClose}>
+          <Link to="/m/customers?create=1" className="mobile-quick-action-item" onClick={onClose}>
             <div className="mobile-quick-action-icon action-customer">
               <i className="ph ph-user-plus" />
             </div>

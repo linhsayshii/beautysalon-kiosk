@@ -9,6 +9,7 @@ import {
   MobileFilterSheet,
   MobileDetailSheet,
   MobileEmptyState,
+  MobileSortDropdown,
 } from '@/features/mobile-common';
 import type { ApiRecord } from '@/types/api';
 import './mobile-operations.css';
@@ -19,8 +20,16 @@ export function MobileCustomerCardsView() {
   const [isSearchVisible, setIsSearchVisible] = useState(false);
   const [itemTypeFilter, setItemTypeFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
-  const [sortBy, setSortBy] = useState<'soldAt' | 'name' | 'price'>('soldAt');
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+  const [sortValue, setSortValue] = useState<string>('soldAt_desc');
+
+  const sortOptions = [
+    { value: 'soldAt_desc', label: 'Bán: Mới nhất' },
+    { value: 'soldAt_asc', label: 'Bán: Cũ nhất' },
+    { value: 'name_asc', label: 'Tên gói/thẻ: A → Z' },
+    { value: 'name_desc', label: 'Tên gói/thẻ: Z → A' },
+    { value: 'price_desc', label: 'Giá bán: Cao → thấp' },
+    { value: 'price_asc', label: 'Giá bán: Thấp → cao' },
+  ];
 
   // Draft filters for filter sheet
   const [draftItemType, setDraftItemType] = useState('');
@@ -54,24 +63,31 @@ export function MobileCustomerCardsView() {
   // Sort rows
   const sortedRows = useMemo(() => {
     return [...rawRows].sort((a, b) => {
-      if (sortBy === 'soldAt') {
+      if (sortValue === 'soldAt_desc') {
         const tA = a.soldAt ? new Date(a.soldAt).getTime() : 0;
         const tB = b.soldAt ? new Date(b.soldAt).getTime() : 0;
-        return sortOrder === 'desc' ? tB - tA : tA - tB;
+        return tB - tA;
       }
-      if (sortBy === 'name') {
-        return sortOrder === 'desc'
-          ? String(b.itemName || '').localeCompare(String(a.itemName || ''))
-          : String(a.itemName || '').localeCompare(String(b.itemName || ''));
+      if (sortValue === 'soldAt_asc') {
+        const tA = a.soldAt ? new Date(a.soldAt).getTime() : 0;
+        const tB = b.soldAt ? new Date(b.soldAt).getTime() : 0;
+        return tA - tB;
       }
-      if (sortBy === 'price') {
-        const pA = Number(a.salePrice || 0);
-        const pB = Number(b.salePrice || 0);
-        return sortOrder === 'desc' ? pB - pA : pA - pB;
+      if (sortValue === 'name_asc') {
+        return String(a.itemName || '').localeCompare(String(b.itemName || ''));
+      }
+      if (sortValue === 'name_desc') {
+        return String(b.itemName || '').localeCompare(String(a.itemName || ''));
+      }
+      if (sortValue === 'price_desc') {
+        return Number(b.salePrice || 0) - Number(a.salePrice || 0);
+      }
+      if (sortValue === 'price_asc') {
+        return Number(a.salePrice || 0) - Number(b.salePrice || 0);
       }
       return 0;
     });
-  }, [rawRows, sortBy, sortOrder]);
+  }, [rawRows, sortValue]);
 
   // Group by item type: GÓI DỊCH VỤ and THẺ TÀI KHOẢN
   const groupedSections = useMemo(() => {
@@ -105,136 +121,102 @@ export function MobileCustomerCardsView() {
     setIsFilterOpen(true);
   };
 
-  const toggleSort = () => {
-    if (sortBy === 'soldAt') {
-      if (sortOrder === 'desc') {
-        setSortOrder('asc');
-      } else {
-        setSortBy('name');
-        setSortOrder('asc');
-      }
-    } else if (sortBy === 'name') {
-      if (sortOrder === 'asc') {
-        setSortOrder('desc');
-      } else {
-        setSortBy('price');
-        setSortOrder('desc');
-      }
-    } else {
-      setSortBy('soldAt');
-      setSortOrder('desc');
-    }
-  };
-
   return (
     <div className="mobile-operations-view">
-      {/* 1. Header Top Navigation */}
-      <div className="mobile-operations-top-nav">
-        <div className="mobile-operations-nav-left">
-          <button
-            type="button"
-            className="mobile-operations-back-icon"
-            onClick={() => navigate('/m/more')}
-            aria-label="Quay lại"
-          >
-            <i className="ph ph-caret-left" />
-          </button>
-          <h1 className="mobile-operations-nav-title">Gói & Thẻ đã bán</h1>
+      {/* Sticky Top Cluster */}
+      <div className="mobile-operations-sticky-header-cluster">
+        {/* 1. Header Top Navigation */}
+        <div className="mobile-operations-top-nav">
+          <div className="mobile-operations-nav-left">
+            <button
+              type="button"
+              className="mobile-operations-back-icon"
+              onClick={() => navigate('/m/more')}
+              aria-label="Quay lại"
+            >
+              <i className="ph ph-caret-left" />
+            </button>
+            <h1 className="mobile-operations-nav-title">Gói & Thẻ đã bán</h1>
+          </div>
+
+          <div className="mobile-operations-nav-actions">
+            <button
+              type="button"
+              className={`mobile-operations-nav-btn ${isSearchVisible ? 'is-active' : ''}`}
+              onClick={() => setIsSearchVisible((prev) => !prev)}
+              aria-label="Tìm kiếm"
+            >
+              <i className="ph ph-magnifying-glass" />
+            </button>
+          </div>
         </div>
 
-        <div className="mobile-operations-nav-actions">
+        {/* Inline Search Bar */}
+        {isSearchVisible && (
+          <div className="mobile-operations-search-bar-wrap">
+            <MobileSearchBar
+              value={search}
+              placeholder="Tìm mã, tên gói/thẻ, khách hàng..."
+              onChange={setSearch}
+            />
+          </div>
+        )}
+
+        {/* 2. Horizontal Filter Chips Strip */}
+        <div className="mobile-operations-filter-strip">
           <button
             type="button"
-            className="mobile-operations-nav-btn"
-            onClick={() => setIsSearchVisible((prev) => !prev)}
-            aria-label="Tìm kiếm"
+            className="mobile-filter-icon-btn"
+            onClick={openFilterSheet}
+            aria-label="Mở bộ lọc"
           >
-            <i className="ph ph-magnifying-glass" />
+            <i className="ph ph-faders" />
           </button>
+
           <button
             type="button"
-            className="mobile-operations-nav-btn"
-            onClick={toggleSort}
-            aria-label="Sắp xếp"
-            title={`Sắp xếp theo: ${
-              sortBy === 'soldAt' ? 'Thời gian bán' : sortBy === 'name' ? 'Tên gói/thẻ' : 'Giá bán'
-            }`}
+            className={`mobile-filter-chip ${itemTypeFilter ? 'is-active' : ''}`}
+            onClick={openFilterSheet}
           >
-            <i className="ph ph-arrows-down-up" />
+            <span>
+              {itemTypeFilter === 'package'
+                ? 'Gói dịch vụ'
+                : itemTypeFilter === 'account_card'
+                ? 'Thẻ tài khoản'
+                : 'Tất cả loại thẻ'}
+            </span>
+            <i className="ph ph-caret-down" />
+          </button>
+
+          <button
+            type="button"
+            className={`mobile-filter-chip ${statusFilter ? 'is-active' : ''}`}
+            onClick={openFilterSheet}
+          >
+            <span>
+              {statusFilter === 'active'
+                ? 'Đang sử dụng'
+                : statusFilter === 'completed'
+                ? 'Đã dùng hết'
+                : statusFilter === 'expired'
+                ? 'Hết hạn'
+                : 'Trạng thái'}
+            </span>
+            <i className="ph ph-caret-down" />
           </button>
         </div>
-      </div>
 
-      {/* Inline Search Bar */}
-      {isSearchVisible && (
-        <div className="mobile-operations-search-bar-wrap">
-          <MobileSearchBar
-            value={search}
-            placeholder="Tìm mã, tên gói/thẻ, khách hàng..."
-            onChange={setSearch}
+        {/* 3. Summary & Sort Dropdown Bar */}
+        <div className="mobile-operations-summary-bar">
+          <MobileSortDropdown
+            value={sortValue}
+            options={sortOptions}
+            onChange={setSortValue}
           />
-        </div>
-      )}
 
-      {/* 2. Horizontal Filter Chips Strip */}
-      <div className="mobile-operations-filter-strip">
-        <button
-          type="button"
-          className="mobile-filter-icon-btn"
-          onClick={openFilterSheet}
-          aria-label="Mở bộ lọc"
-        >
-          <i className="ph ph-faders" />
-        </button>
-
-        <button
-          type="button"
-          className={`mobile-filter-chip ${itemTypeFilter ? 'is-active' : ''}`}
-          onClick={openFilterSheet}
-        >
-          <span>
-            {itemTypeFilter === 'package'
-              ? 'Gói dịch vụ'
-              : itemTypeFilter === 'account_card'
-              ? 'Thẻ tài khoản'
-              : 'Tất cả loại thẻ'}
-          </span>
-          <i className="ph ph-caret-down" />
-        </button>
-
-        <button
-          type="button"
-          className={`mobile-filter-chip ${statusFilter ? 'is-active' : ''}`}
-          onClick={openFilterSheet}
-        >
-          <span>
-            {statusFilter === 'active'
-              ? 'Đang sử dụng'
-              : statusFilter === 'completed'
-              ? 'Đã dùng hết'
-              : statusFilter === 'expired'
-              ? 'Hết hạn'
-              : 'Trạng thái'}
-          </span>
-          <i className="ph ph-caret-down" />
-        </button>
-      </div>
-
-      {/* 3. Summary & Sort Indicator Bar */}
-      <div className="mobile-operations-summary-bar">
-        <button type="button" className="mobile-operations-sort-selector" onClick={toggleSort}>
-          <span>
-            {sortBy === 'soldAt'
-              ? `Bán: ${sortOrder === 'desc' ? 'Mới nhất' : 'Cũ nhất'}`
-              : sortBy === 'name'
-              ? `Tên ${sortOrder === 'asc' ? 'A → Z' : 'Z → A'}`
-              : `Giá bán ${sortOrder === 'desc' ? 'cao → thấp' : 'thấp → cao'}`}
-          </span>
-          <i className="ph ph-caret-down" />
-        </button>
-
-        <div className="mobile-operations-count-summary">
-          {rawRows.length} gói, thẻ đã bán
+          <div className="mobile-operations-count-summary">
+            {rawRows.length} gói, thẻ đã bán
+          </div>
         </div>
       </div>
 

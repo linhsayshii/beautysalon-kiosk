@@ -67,7 +67,7 @@ export function MobileMoreView() {
       </div>
 
       {/* Store Settings Link */}
-      <Link to="/settings" className="mobile-more-store-settings" data-testid="store-settings-link">
+      <Link to="/m/account" className="mobile-more-store-settings" data-testid="store-settings-link">
         <div className="store-settings-left">
           <div className="store-settings-icon">
             <i className="ph ph-gear-six" />

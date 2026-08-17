@@ -1,5 +1,5 @@
 :root {
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-family: var(--font-sans, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif);
   color: var(--ink-950);
   background: var(--canvas);
   font-synthesis: none;
@@ -18,3 +18,9 @@ button:focus-visible, a:focus-visible { outline: 3px solid rgba(0, 98, 235, 0.5)
 .dashboard button:focus-visible, .dashboard a:focus-visible, .toast button:focus-visible, .floating-actions button:focus-visible { outline-color: rgba(0, 98, 235, 0.4); }
 a { color: inherit; text-decoration: none; }
 h1, h2, h3, p { margin: 0; }
+
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+}
+

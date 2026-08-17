@@ -164,9 +164,6 @@ export function MobilePosView() {
           </div>
 
           <div className="mobile-pos-header-actions">
-            <button type="button" className="mobile-pos-icon-btn" title="Sắp xếp" aria-label="Sắp xếp">
-              <i className="ph ph-arrows-down-up" />
-            </button>
             <button type="button" className="mobile-pos-icon-btn" title="Chuyển đổi giao diện" aria-label="Chuyển đổi giao diện">
               <i className="ph ph-squares-four" />
             </button>

@@ -1,26 +1,191 @@
-/* Mobile Account Styles */
-.mobile-account-container {
+/* Mobile Account Settings Styles - Conforming to docs/mobile-ui-header-template.md */
+
+.mobile-account-view {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background-color: #f2f4f8;
+  padding-bottom: calc(var(--mobile-safe-bottom, 0px) + 90px);
+  box-sizing: border-box;
+}
+
+/* Sticky Top Header Cluster */
+.mobile-account-sticky-header-cluster {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  background: #ffffff;
+  margin: 0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+/* 1. Header Top Navigation */
+.mobile-account-top-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  background: #ffffff;
+  border-bottom: 1px solid #e5e9f0;
+}
+
+.mobile-account-nav-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.mobile-account-back-icon {
+  font-size: 22px;
+  color: #1e293b;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  transition: background 0.15s ease;
+}
+
+.mobile-account-back-icon:active {
+  background: #f1f5f9;
+}
+
+.mobile-account-nav-title-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.mobile-account-nav-title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 750;
+  color: #0f172a;
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+}
+
+.mobile-account-nav-subtitle {
+  font-size: 11px;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.mobile-account-nav-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.mobile-account-nav-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  color: #1e293b;
+  font-size: 20px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.mobile-account-nav-btn.is-action {
+  background: #eff6ff;
+  color: #0284c7;
+}
+
+.mobile-account-nav-btn:active {
+  background: #e2e8f0;
+}
+
+.mobile-account-search-wrap {
+  padding: 8px 12px 10px;
+  background: #ffffff;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+/* 2. Dải Tabs phân quyền (Horizontal Segmented Strip) */
+.mobile-account-tabs-strip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  background: #ffffff;
+  border-bottom: 1px solid #e2e8f0;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.mobile-account-tabs-strip::-webkit-scrollbar {
+  display: none;
+}
+
+.mobile-account-tab-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  background: #f1f5f9;
+  color: #475569;
+  font-size: 13px;
+  font-weight: 650;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+}
+
+.mobile-account-tab-btn i {
+  font-size: 16px;
+  color: #64748b;
+}
+
+.mobile-account-tab-btn.is-active {
+  background: #eff6ff;
+  border-color: #bae6fd;
+  color: #0284c7;
+}
+
+.mobile-account-tab-btn.is-active i {
+  color: #0284c7;
+}
+
+/* 3. Content Body */
+.mobile-account-content-body {
+  padding: 14px 14px 20px;
   display: flex;
   flex-direction: column;
   gap: 16px;
-  width: 100%;
-  max-width: 100%;
-  box-sizing: border-box;
-  padding-bottom: 24px;
 }
 
-.mobile-account-profile-card {
-  background: #ffffff;
-  border: 1px solid var(--line, #e2e8f0);
-  border-radius: 14px;
-  padding: 16px;
+/* Profile overview card */
+.mobile-profile-container {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.mobile-profile-overview-card {
   display: flex;
   align-items: center;
   gap: 14px;
+  padding: 16px;
+  background: #ffffff;
+  border-radius: 14px;
+  border: 1px solid #e2e8f0;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
 }
 
-.account-avatar {
+.profile-overview-avatar {
   width: 52px;
   height: 52px;
   border-radius: 26px;
@@ -29,68 +194,460 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 18px;
-  font-weight: 700;
+  font-size: 20px;
+  font-weight: 800;
+  flex-shrink: 0;
+  box-shadow: 0 2px 8px rgba(2, 132, 199, 0.25);
 }
 
-.account-info {
+.profile-overview-info {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 3px;
+  min-width: 0;
 }
 
-.account-name {
+.profile-overview-name {
   font-size: 16px;
-  font-weight: 700;
+  font-weight: 750;
   color: #0f172a;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.account-role-tag {
+.profile-overview-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   font-size: 12px;
+  font-weight: 600;
   color: #64748b;
 }
 
-.mobile-account-menu-group {
+.profile-overview-badge i {
+  font-size: 14px;
+  color: #0284c7;
+}
+
+.profile-overview-branch {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: #0284c7;
+  font-weight: 600;
+}
+
+/* Settings Card and Form */
+.mobile-settings-card {
   background: #ffffff;
-  border: 1px solid var(--line, #e2e8f0);
+  border: 1px solid #e2e8f0;
   border-radius: 14px;
-  overflow: hidden;
+  padding: 16px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+}
+
+.mobile-settings-card-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.mobile-settings-icon {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  flex-shrink: 0;
+}
+
+.mobile-settings-icon.blue {
+  background: #e0f2fe;
+  color: #0284c7;
+}
+
+.mobile-settings-icon.purple {
+  background: #f3e8ff;
+  color: #9333ea;
+}
+
+.mobile-settings-card-header h2 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 750;
+  color: #0f172a;
+}
+
+.mobile-settings-card-header p {
+  margin: 2px 0 0;
+  font-size: 11px;
+  color: #64748b;
+}
+
+.mobile-settings-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.mobile-form-group {
   display: flex;
   flex-direction: column;
 }
 
-.mobile-account-menu-item {
+.mobile-form-group label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.mobile-form-group label > span {
+  font-size: 12px;
+  font-weight: 650;
+  color: #334155;
+}
+
+.mobile-form-group input {
+  width: 100%;
+  box-sizing: border-box;
+  height: 42px;
+  padding: 0 12px;
+  border-radius: 10px;
+  border: 1px solid #cbd5e1;
+  background: #f8fafc;
+  font-size: 14px;
+  color: #0f172a;
+  font-family: inherit;
+  transition: all 0.15s ease;
+}
+
+.mobile-form-group input:focus {
+  outline: none;
+  border-color: #0284c7;
+  background: #ffffff;
+  box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.12);
+}
+
+.mobile-security-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: #f5f3ff;
+  color: #6b21a8;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.mobile-security-note i {
+  font-size: 16px;
+  color: #9333ea;
+  margin-top: 1px;
+  flex-shrink: 0;
+}
+
+.mobile-form-error {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 14px 16px;
-  border-bottom: 1px solid var(--line, #f1f5f9);
-  cursor: pointer;
-  background: #ffffff;
-  border-left: none;
-  border-right: none;
-  border-top: none;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: #fee2e2;
+  color: #b91c1c;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.mobile-form-footer {
+  margin-top: 8px;
+}
+
+.mobile-primary-btn {
   width: 100%;
-  text-align: left;
-  font-family: inherit;
-  transition: background 0.1s ease;
+  height: 44px;
+  border-radius: 10px;
+  border: none;
+  background: #0284c7;
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
 }
 
-.mobile-account-menu-item:last-child {
-  border-bottom: none;
+.mobile-primary-btn:active {
+  background: #0369a1;
 }
 
-.mobile-account-menu-item:active {
-  background: #f8fafc;
+.mobile-primary-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
-.menu-item-left {
+/* Floating Action Button (FAB) */
+.mobile-account-fab-btn {
+  position: fixed;
+  right: 18px;
+  bottom: calc(var(--mobile-safe-bottom, 0px) + 72px);
+  width: 52px;
+  height: 52px;
+  border-radius: 26px;
+  background: #0284c7;
+  color: #ffffff;
+  border: none;
+  font-size: 24px;
+  box-shadow: 0 4px 14px rgba(2, 132, 199, 0.38);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 40;
+  transition: transform 0.15s ease, background 0.15s ease;
+}
+
+.mobile-account-fab-btn:active {
+  transform: scale(0.94);
+  background: #0369a1;
+}
+
+.mobile-account-loading {
+  text-align: center;
+  padding: 24px 16px;
+  color: #64748b;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+/* ==========================================================================
+   TAB 2: QUẢN LÝ CHI NHÁNH (NATIVE MOBILE CARDS)
+   ========================================================================== */
+.mobile-branches-native-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.mobile-branch-card {
+  background: #ffffff;
+  border-radius: 14px;
+  border: 1px solid #e2e8f0;
+  padding: 16px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.mobile-branch-card.is-inactive {
+  opacity: 0.75;
+  background: #fafafa;
+}
+
+.mobile-branch-card-header {
   display: flex;
   align-items: center;
   gap: 12px;
 }
 
-.menu-item-icon {
+.branch-card-icon-pill {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: #e0f2fe;
+  color: #0284c7;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  flex-shrink: 0;
+}
+
+.branch-card-title-group {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+  flex: 1;
+}
+
+.branch-card-code-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.branch-code-badge {
+  font-size: 11px;
+  font-weight: 750;
+  font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+  color: #0284c7;
+  background: #f0f9ff;
+  padding: 2px 6px;
+  border-radius: 6px;
+}
+
+.branch-status-badge {
+  font-size: 11px;
+  font-weight: 650;
+  padding: 2px 8px;
+  border-radius: 999px;
+}
+
+.branch-status-badge.active {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.branch-status-badge.inactive {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.branch-name {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 750;
+  color: #0f172a;
+}
+
+.mobile-branch-details-box {
+  background: #f8fafc;
+  border-radius: 10px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.branch-detail-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: #475569;
+}
+
+.branch-detail-row i {
+  font-size: 15px;
+  color: #64748b;
+  flex-shrink: 0;
+}
+
+.mobile-branch-metrics-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  text-align: center;
+  padding: 6px 0;
+  border-top: 1px dashed #e2e8f0;
+  border-bottom: 1px dashed #e2e8f0;
+}
+
+.metric-col {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.metric-col strong {
+  font-size: 14px;
+  color: #0f172a;
+  font-weight: 750;
+}
+
+.metric-col span {
+  font-size: 10px;
+  color: #64748b;
+}
+
+.mobile-branch-actions-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.mobile-branch-action-btn {
+  flex: 1;
+  min-height: 36px;
+  border-radius: 8px;
+  border: 1px solid #cbd5e1;
+  background: #ffffff;
+  color: #334155;
+  font-size: 12px;
+  font-weight: 650;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.mobile-branch-action-btn:active {
+  background: #f1f5f9;
+}
+
+.mobile-branch-action-btn.switch-btn {
+  background: #eff6ff;
+  border-color: #bae6fd;
+  color: #0284c7;
+}
+
+.mobile-branch-action-btn.danger-btn {
+  color: #dc2626;
+  border-color: #fecaca;
+  background: #fff5f5;
+}
+
+.mobile-branch-action-btn.activate-btn {
+  color: #16a34a;
+  border-color: #bbf7d0;
+  background: #f0fdf4;
+}
+
+/* ==========================================================================
+   TAB 3: TÀI KHOẢN & PHÂN QUYỀN (NATIVE MOBILE CARDS)
+   ========================================================================== */
+.mobile-accounts-native-container {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* Role Summary Strip */
+.mobile-accounts-role-summary {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.role-summary-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 10px 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 6px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+}
+
+.role-summary-icon {
   width: 32px;
   height: 32px;
   border-radius: 8px;
@@ -100,52 +657,217 @@
   font-size: 16px;
 }
 
-.menu-item-icon.blue { background: #e0f2fe; color: #0284c7; }
-.menu-item-icon.green { background: #dcfce7; color: #16a34a; }
-.menu-item-icon.purple { background: #f3e8ff; color: #9333ea; }
-.menu-item-icon.orange { background: #ffedd5; color: #ea580c; }
-.menu-item-icon.red { background: #fee2e2; color: #ef4444; }
-
-.menu-item-text {
-  display: flex;
-  flex-direction: column;
+.role-summary-card.is-manager .role-summary-icon {
+  background: #f3e8ff;
+  color: #9333ea;
 }
 
-.menu-item-title {
+.role-summary-card.is-cashier .role-summary-icon {
+  background: #dcfce7;
+  color: #16a34a;
+}
+
+.role-summary-card.is-staff .role-summary-icon {
+  background: #e0f2fe;
+  color: #0284c7;
+}
+
+.role-summary-text {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.role-summary-text strong {
+  font-size: 12px;
+  color: #0f172a;
+  font-weight: 700;
+}
+
+.role-count {
+  font-size: 10px;
+  color: #64748b;
+  font-weight: 500;
+}
+
+/* Account Cards List */
+.mobile-accounts-card-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.mobile-account-item-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 14px 16px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.mobile-account-item-card.is-locked {
+  background: #f8fafc;
+  opacity: 0.8;
+}
+
+.mobile-acc-card-main {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.mobile-acc-avatar {
+  width: 42px;
+  height: 42px;
+  border-radius: 21px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  font-weight: 750;
+  color: #ffffff;
+  flex-shrink: 0;
+}
+
+.mobile-acc-avatar.is-manager {
+  background: linear-gradient(135deg, #9333ea 0%, #7e22ce 100%);
+}
+
+.mobile-acc-avatar.is-cashier {
+  background: linear-gradient(135deg, #16a34a 0%, #15803d 100%);
+}
+
+.mobile-acc-avatar.is-staff {
+  background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+}
+
+.mobile-acc-info {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  flex: 1;
+  min-width: 0;
+}
+
+.acc-name-line {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.acc-display-name {
   font-size: 14px;
-  font-weight: 600;
+  font-weight: 750;
   color: #0f172a;
 }
 
-.menu-item-desc {
+.acc-role-pill {
+  font-size: 10px;
+  font-weight: 750;
+  padding: 2px 7px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.acc-role-pill.is-manager {
+  background: #f3e8ff;
+  color: #7e22ce;
+}
+
+.acc-role-pill.is-cashier {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.acc-role-pill.is-staff {
+  background: #e0f2fe;
+  color: #0369a1;
+}
+
+.acc-meta-line {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+}
+
+.acc-username {
+  color: #0284c7;
+  font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+  font-weight: 700;
+}
+
+.acc-staff-code {
+  color: #64748b;
+  font-weight: 500;
+}
+
+.acc-submeta-line {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   font-size: 11px;
   color: #64748b;
 }
 
-.menu-item-right {
+.acc-last-login {
+  color: #94a3b8;
+}
+
+/* Card actions & Toggle button */
+.mobile-acc-card-actions {
   display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  border-top: 1px solid #f1f5f9;
+  padding-top: 10px;
+}
+
+.mobile-acc-toggle-btn {
+  display: inline-flex;
   align-items: center;
   gap: 6px;
-  color: #94a3b8;
-  font-size: 13px;
-}
-
-.logout-button {
-  background: #fee2e2;
-  color: #b91c1c;
-  border: 1px solid #fca5a5;
-  border-radius: 12px;
-  padding: 12px;
-  font-size: 14px;
-  font-weight: 600;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
+  padding: 6px 12px;
+  border-radius: 20px;
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
   cursor: pointer;
-  margin-top: 8px;
+  font-family: inherit;
+  transition: all 0.15s ease;
 }
 
-.logout-button:active {
-  background: #fecaca;
+.mobile-acc-toggle-btn:active {
+  background: #f1f5f9;
+}
+
+.mobile-acc-toggle-btn .toggle-indicator {
+  width: 8px;
+  height: 8px;
+  border-radius: 4px;
+  background: #94a3b8;
+  transition: background 0.15s ease;
+}
+
+.mobile-acc-toggle-btn.is-active .toggle-indicator {
+  background: #16a34a;
+  box-shadow: 0 0 0 3px #dcfce7;
+}
+
+.mobile-acc-toggle-btn .toggle-text {
+  font-size: 11px;
+  font-weight: 650;
+  color: #64748b;
+}
+
+.mobile-acc-toggle-btn.is-active .toggle-text {
+  color: #15803d;
+}
+
+.mobile-acc-toggle-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }

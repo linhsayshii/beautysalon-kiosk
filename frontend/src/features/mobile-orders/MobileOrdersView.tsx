@@ -11,6 +11,7 @@ import {
   MobileFilterSheet,
   MobileDetailSheet,
   MobileEmptyState,
+  MobileSortDropdown,
 } from '@/features/mobile-common';
 import './mobile-orders.css';
 
@@ -43,8 +44,16 @@ export function MobileOrdersView() {
   const [isFilterOpen, setIsFilterOpen] = useState(false);
 
   // Sorting
-  const [sortBy, setSortBy] = useState<'date' | 'total' | 'code'>('date');
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+  const [sortValue, setSortValue] = useState<string>('date_desc');
+
+  const sortOptions = [
+    { value: 'date_desc', label: 'Thời gian: Mới nhất' },
+    { value: 'date_asc', label: 'Thời gian: Cũ nhất' },
+    { value: 'total_desc', label: 'Giá trị: Cao → thấp' },
+    { value: 'total_asc', label: 'Giá trị: Thấp → cao' },
+    { value: 'code_asc', label: 'Mã đơn: A → Z' },
+    { value: 'code_desc', label: 'Mã đơn: Z → A' },
+  ];
 
   // Detail Sheet
   const [selectedOrderId, setSelectedOrderId] = useState<number | null>(null);
@@ -129,24 +138,31 @@ export function MobileOrdersView() {
   // Filter and Sort Rows
   const sortedRows = useMemo(() => {
     return [...filteredRows].sort((a, b) => {
-      if (sortBy === 'date') {
+      if (sortValue === 'date_desc') {
         const tA = a.issuedAt || a.createdAt ? new Date(a.issuedAt || a.createdAt).getTime() : 0;
         const tB = b.issuedAt || b.createdAt ? new Date(b.issuedAt || b.createdAt).getTime() : 0;
-        return sortOrder === 'desc' ? tB - tA : tA - tB;
+        return tB - tA;
       }
-      if (sortBy === 'total') {
-        const valA = Number(a.total || 0);
-        const valB = Number(b.total || 0);
-        return sortOrder === 'desc' ? valB - valA : valA - valB;
+      if (sortValue === 'date_asc') {
+        const tA = a.issuedAt || a.createdAt ? new Date(a.issuedAt || a.createdAt).getTime() : 0;
+        const tB = b.issuedAt || b.createdAt ? new Date(b.issuedAt || b.createdAt).getTime() : 0;
+        return tA - tB;
       }
-      if (sortBy === 'code') {
-        return sortOrder === 'desc'
-          ? String(b.code || '').localeCompare(String(a.code || ''))
-          : String(a.code || '').localeCompare(String(b.code || ''));
+      if (sortValue === 'total_desc') {
+        return Number(b.total || 0) - Number(a.total || 0);
+      }
+      if (sortValue === 'total_asc') {
+        return Number(a.total || 0) - Number(b.total || 0);
+      }
+      if (sortValue === 'code_asc') {
+        return String(a.code || '').localeCompare(String(b.code || ''));
+      }
+      if (sortValue === 'code_desc') {
+        return String(b.code || '').localeCompare(String(a.code || ''));
       }
       return 0;
     });
-  }, [filteredRows, sortBy, sortOrder]);
+  }, [filteredRows, sortValue]);
 
   // Group orders by date (e.g. YYYY-MM-DD)
   const groupedSections = useMemo(() => {
@@ -170,28 +186,6 @@ export function MobileOrdersView() {
       return sum + Number(r.total || 0);
     }, 0);
   }, [filteredRows]);
-
-  // Handle Sort Toggle
-  const toggleSort = () => {
-    if (sortBy === 'date') {
-      if (sortOrder === 'desc') {
-        setSortOrder('asc');
-      } else {
-        setSortBy('total');
-        setSortOrder('desc');
-      }
-    } else if (sortBy === 'total') {
-      if (sortOrder === 'desc') {
-        setSortOrder('asc');
-      } else {
-        setSortBy('code');
-        setSortOrder('asc');
-      }
-    } else {
-      setSortBy('date');
-      setSortOrder('desc');
-    }
-  };
 
   const openFilterSheet = () => {
     setDraftDatePreset(datePreset);
@@ -247,26 +241,11 @@ export function MobileOrdersView() {
           <div className="mobile-orders-nav-actions">
             <button
               type="button"
-              className="mobile-orders-nav-btn"
+              className={`mobile-orders-nav-btn ${isSearchVisible ? 'is-active' : ''}`}
               onClick={() => setIsSearchVisible((prev) => !prev)}
               aria-label="Tìm kiếm"
             >
               <i className="ph ph-magnifying-glass" />
-            </button>
-            <button
-              type="button"
-              className="mobile-orders-nav-btn"
-              onClick={toggleSort}
-              aria-label="Sắp xếp"
-              title={`Sắp xếp: ${
-                sortBy === 'date'
-                  ? `Thời gian ${sortOrder === 'desc' ? 'mới nhất' : 'cũ nhất'}`
-                  : sortBy === 'total'
-                  ? `Giá trị ${sortOrder === 'desc' ? 'cao → thấp' : 'thấp → cao'}`
-                  : `Mã đơn ${sortOrder === 'asc' ? 'A → Z' : 'Z → A'}`
-              }`}
-            >
-              <i className="ph ph-arrows-down-up" />
             </button>
           </div>
         </div>
@@ -324,18 +303,13 @@ export function MobileOrdersView() {
           </button>
         </div>
 
-        {/* 3. Summary & Sort Bar */}
+        {/* 3. Summary & Sort Dropdown Bar */}
         <div className="mobile-orders-summary-bar">
-          <button type="button" className="mobile-orders-sort-selector" onClick={toggleSort}>
-            <span>
-              {sortBy === 'date'
-                ? `Thời gian: ${sortOrder === 'desc' ? 'Mới nhất' : 'Cũ nhất'}`
-                : sortBy === 'total'
-                ? `Giá trị: ${sortOrder === 'desc' ? 'Cao → thấp' : 'Thấp → cao'}`
-                : `Mã đơn: ${sortOrder === 'asc' ? 'A → Z' : 'Z → A'}`}
-            </span>
-            <i className="ph ph-caret-down" />
-          </button>
+          <MobileSortDropdown
+            value={sortValue}
+            options={sortOptions}
+            onChange={setSortValue}
+          />
 
           <div className="mobile-orders-count-summary">
             {rawRows.length} đơn hàng · Doanh thu: {formatMoney(totalRevenueSum)}

@@ -9,6 +9,7 @@ import {
   listProducts,
   listPurchaseOrders,
   listSuppliers,
+  updateInventoryItem,
   updatePricebookItem,
 } from './inventory.service.js';
 
@@ -29,6 +30,73 @@ const positive = (value, field) => {
 };
 const optionalPositive = (value, field) => (value === undefined || value === null || value === '' ? null : positive(value, field));
 const boolean = (value, fallback = true) => (typeof value === 'boolean' ? value : fallback);
+
+router.put('/items/:itemType/:itemId', asyncRoute(async (request, response) => {
+  const type = parseEnum(request.params.itemType, 'itemType', itemTypes);
+  const id = parsePositiveInteger(request.params.itemId, 'itemId');
+  const name = text(request.body.name, 220);
+  if (!name) throw new HttpError(400, 'NAME_REQUIRED', 'Tên hàng là bắt buộc');
+  const code = text(request.body.code, 40).toUpperCase();
+  if (code && !/^[A-Z0-9._-]+$/.test(code)) throw new HttpError(400, 'INVALID_CODE', 'Mã hàng chỉ gồm chữ, số, dấu chấm, gạch ngang hoặc gạch dưới');
+
+  const packageItems = Array.isArray(request.body.packageItems)
+    ? request.body.packageItems.slice(0, 50).map((item, index) => {
+      if (!item || typeof item !== 'object' || Array.isArray(item)) throw new HttpError(400, 'INVALID_ITEMS', `packageItems[${index}] phải là một object`);
+      return ({
+        serviceId: parsePositiveInteger(item.serviceId, `packageItems[${index}].serviceId`),
+        units: parsePositiveInteger(item.units, `packageItems[${index}].units`),
+      });
+    })
+    : undefined;
+
+  const allowedTypes = Array.isArray(request.body.allowedTypes)
+    ? [...new Set(request.body.allowedTypes.filter((value) => ['product', 'service', 'package'].includes(value)))]
+    : undefined;
+
+  const scopeItems = Array.isArray(request.body.scopeItems)
+    ? request.body.scopeItems.slice(0, 100).map((item, index) => {
+      if (!item || typeof item !== 'object' || Array.isArray(item)) throw new HttpError(400, 'INVALID_ITEMS', `scopeItems[${index}] phải là một object`);
+      return ({
+        itemType: parseEnum(item.itemType, `scopeItems[${index}].itemType`, ['product', 'service', 'package']),
+        itemId: parsePositiveInteger(item.itemId, `scopeItems[${index}].itemId`),
+      });
+    })
+    : undefined;
+
+  const minStock = request.body.minStock !== undefined ? nonNegative(request.body.minStock, 'minStock') : 0;
+  const maxStock = optionalPositive(request.body.maxStock, 'maxStock');
+  if (maxStock !== null && maxStock < minStock) {
+    throw new HttpError(400, 'INVALID_STOCK_RANGE', 'Tồn tối đa phải lớn hơn hoặc bằng tồn tối thiểu');
+  }
+
+  const data = await updateInventoryItem({
+    branchId: request.account.branchId,
+    type,
+    id,
+    name,
+    code,
+    category: text(request.body.category, 100) || ({ product: 'Sản phẩm', service: 'Dịch vụ', package: 'Gói dịch vụ', account_card: 'Thẻ tài khoản' })[type],
+    brand: text(request.body.brand, 100),
+    salePrice: nonNegative(request.body.salePrice, 'salePrice'),
+    costPrice: nonNegative(request.body.costPrice, 'costPrice'),
+    active: boolean(request.body.active),
+    imageUrl: parseOptionalHttpUrl(request.body.imageUrl, 'imageUrl'),
+    description: text(request.body.description, 3000),
+    note: text(request.body.note, 3000),
+    barcode: text(request.body.barcode, 80),
+    unit: text(request.body.unit, 30) || 'cái',
+    minStock,
+    maxStock,
+    durationMinutes: type === 'service' ? positive(request.body.durationMinutes, 'durationMinutes') : null,
+    validityDays: optionalPositive(request.body.validityDays, 'validityDays'),
+    usageSchedule: parseEnum(request.body.usageSchedule, 'usageSchedule', ['flexible', 'scheduled'], 'flexible'),
+    packageItems,
+    faceValue: type === 'account_card' ? positive(request.body.faceValue, 'faceValue') : 0,
+    allowedTypes,
+    scopeItems,
+  });
+  response.json({ data });
+}));
 
 router.post('/items', asyncRoute(async (request, response) => {
   const type = parseEnum(request.body.type, 'type', itemTypes);

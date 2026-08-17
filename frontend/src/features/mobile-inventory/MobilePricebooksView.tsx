@@ -10,6 +10,7 @@ import {
   MobileFilterSheet,
   MobileDetailSheet,
   MobileEmptyState,
+  MobileSortDropdown,
 } from '@/features/mobile-common';
 import type { ApiRecord } from '@/types/api';
 import './mobile-inventory.css';
@@ -44,8 +45,16 @@ export function MobilePricebooksView() {
   const [isFilterOpen, setIsFilterOpen] = useState(false);
 
   // Sorting
-  const [sortBy, setSortBy] = useState<'price' | 'name' | 'cost'>('price');
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+  const [sortValue, setSortValue] = useState<string>('price_desc');
+
+  const sortOptions = [
+    { value: 'price_desc', label: 'Giá bán: Cao → thấp' },
+    { value: 'price_asc', label: 'Giá bán: Thấp → cao' },
+    { value: 'name_asc', label: 'Tên hàng: A → Z' },
+    { value: 'name_desc', label: 'Tên hàng: Z → A' },
+    { value: 'cost_desc', label: 'Giá vốn: Cao → thấp' },
+    { value: 'cost_asc', label: 'Giá vốn: Thấp → cao' },
+  ];
 
   // Detail Sheet
   const [selectedItem, setSelectedItem] = useState<ApiRecord | null>(null);
@@ -94,24 +103,35 @@ export function MobilePricebooksView() {
   // Sort rows
   const sortedRows = useMemo(() => {
     return [...rawRows].sort((a, b) => {
-      if (sortBy === 'price') {
+      if (sortValue === 'price_desc') {
         const pA = Number(a.bookPrice ?? a.salePrice ?? 0);
         const pB = Number(b.bookPrice ?? b.salePrice ?? 0);
-        return sortOrder === 'desc' ? pB - pA : pA - pB;
+        return pB - pA;
       }
-      if (sortBy === 'name') {
-        return sortOrder === 'desc'
-          ? String(b.name).localeCompare(String(a.name))
-          : String(a.name).localeCompare(String(b.name));
+      if (sortValue === 'price_asc') {
+        const pA = Number(a.bookPrice ?? a.salePrice ?? 0);
+        const pB = Number(b.bookPrice ?? b.salePrice ?? 0);
+        return pA - pB;
       }
-      if (sortBy === 'cost') {
+      if (sortValue === 'name_asc') {
+        return String(a.name || '').localeCompare(String(b.name || ''));
+      }
+      if (sortValue === 'name_desc') {
+        return String(b.name || '').localeCompare(String(a.name || ''));
+      }
+      if (sortValue === 'cost_desc') {
         const cA = Number(a.costPrice ?? 0);
         const cB = Number(b.costPrice ?? 0);
-        return sortOrder === 'desc' ? cB - cA : cA - cB;
+        return cB - cA;
+      }
+      if (sortValue === 'cost_asc') {
+        const cA = Number(a.costPrice ?? 0);
+        const cB = Number(b.costPrice ?? 0);
+        return cA - cB;
       }
       return 0;
     });
-  }, [rawRows, sortBy, sortOrder]);
+  }, [rawRows, sortValue]);
 
   // Group by category
   const groupedCategories = useMemo(() => {
@@ -149,22 +169,6 @@ export function MobilePricebooksView() {
     setIsFilterOpen(true);
   };
 
-  const toggleSort = () => {
-    if (sortBy === 'price') {
-      if (sortOrder === 'desc') setSortOrder('asc');
-      else {
-        setSortBy('name');
-        setSortOrder('asc');
-      }
-    } else if (sortBy === 'name') {
-      setSortBy('cost');
-      setSortOrder('desc');
-    } else {
-      setSortBy('price');
-      setSortOrder('desc');
-    }
-  };
-
   const activeBookName = useMemo(() => {
     if (!pricebookId) return currentBook.name || 'Bảng giá chung';
     const found = pricebooksList.find((b) => String(b.id) === String(pricebookId));
@@ -173,125 +177,108 @@ export function MobilePricebooksView() {
 
   return (
     <div className="mobile-inventory-view">
-      {/* 1. Header Top Navigation */}
-      <div className="mobile-inventory-top-nav">
-        <div className="mobile-inventory-nav-left">
-          <button
-            type="button"
-            className="mobile-inventory-back-icon"
-            onClick={() => navigate('/m/more')}
-            aria-label="Quay lại"
-          >
-            <i className="ph ph-caret-left" />
-          </button>
-          <h1 className="mobile-inventory-nav-title">Thiết lập giá</h1>
+      {/* Sticky Top Cluster */}
+      <div className="mobile-inventory-sticky-header-cluster">
+        {/* 1. Header Top Navigation */}
+        <div className="mobile-inventory-top-nav">
+          <div className="mobile-inventory-nav-left">
+            <button
+              type="button"
+              className="mobile-inventory-back-icon"
+              onClick={() => navigate('/m/more')}
+              aria-label="Quay lại"
+            >
+              <i className="ph ph-caret-left" />
+            </button>
+            <h1 className="mobile-inventory-nav-title">Thiết lập giá</h1>
+          </div>
+
+          <div className="mobile-inventory-nav-actions">
+            <button
+              type="button"
+              className={`mobile-inventory-nav-btn ${isSearchVisible ? 'is-active' : ''}`}
+              onClick={() => setIsSearchVisible((prev) => !prev)}
+              aria-label="Tìm kiếm"
+            >
+              <i className="ph ph-magnifying-glass" />
+            </button>
+          </div>
         </div>
 
-        <div className="mobile-inventory-nav-actions">
+        {/* Inline Search Bar */}
+        {isSearchVisible && (
+          <div className="mobile-inventory-search-bar-wrap">
+            <MobileSearchBar
+              value={search}
+              placeholder="Tìm theo tên, mã hàng..."
+              onChange={setSearch}
+            />
+          </div>
+        )}
+
+        {/* 2. Filter Strip */}
+        <div className="mobile-inventory-filter-strip">
           <button
             type="button"
-            className="mobile-inventory-nav-btn"
-            onClick={() => setIsSearchVisible((prev) => !prev)}
-            aria-label="Tìm kiếm"
+            className="mobile-filter-icon-btn"
+            onClick={openFilterSheet}
+            aria-label="Mở bộ lọc"
           >
-            <i className="ph ph-magnifying-glass" />
+            <i className="ph ph-faders" />
           </button>
+
+          {/* Pricebook Chip */}
           <button
             type="button"
-            className="mobile-inventory-nav-btn"
-            onClick={toggleSort}
-            aria-label="Sắp xếp"
-            title={`Sắp xếp: ${
-              sortBy === 'price'
-                ? `Giá bán ${sortOrder === 'desc' ? 'cao → thấp' : 'thấp → cao'}`
-                : sortBy === 'name'
-                ? `Tên hàng ${sortOrder === 'asc' ? 'A → Z' : 'Z → A'}`
-                : `Giá vốn ${sortOrder === 'desc' ? 'cao → thấp' : 'thấp → cao'}`
-            }`}
+            className={`mobile-filter-chip ${pricebookId ? 'is-active' : ''}`}
+            onClick={openFilterSheet}
           >
-            <i className="ph ph-arrows-down-up" />
+            <span>Bảng giá: {activeBookName}</span>
+            <i className="ph ph-caret-down" />
+          </button>
+
+          {/* Category Chip */}
+          <button
+            type="button"
+            className={`mobile-filter-chip ${categoryFilter ? 'is-active' : ''}`}
+            onClick={openFilterSheet}
+          >
+            <span>{categoryFilter ? categoryFilter : 'Tất cả nhóm'}</span>
+            <i className="ph ph-caret-down" />
+          </button>
+
+          {/* Type Chip */}
+          <button
+            type="button"
+            className={`mobile-filter-chip ${typeFilter ? 'is-active' : ''}`}
+            onClick={openFilterSheet}
+          >
+            <span>
+              {typeFilter === 'product'
+                ? 'Sản phẩm'
+                : typeFilter === 'service'
+                ? 'Dịch vụ'
+                : typeFilter === 'package'
+                ? 'Gói dịch vụ'
+                : typeFilter === 'account_card'
+                ? 'Thẻ tài khoản'
+                : 'Tất cả loại'}
+            </span>
+            <i className="ph ph-caret-down" />
           </button>
         </div>
-      </div>
 
-      {/* Inline Search Bar */}
-      {isSearchVisible && (
-        <div className="mobile-inventory-search-bar-wrap">
-          <MobileSearchBar
-            value={search}
-            placeholder="Tìm theo tên, mã hàng..."
-            onChange={setSearch}
+        {/* 3. Summary & Sort Dropdown Bar */}
+        <div className="mobile-inventory-summary-bar">
+          <MobileSortDropdown
+            value={sortValue}
+            options={sortOptions}
+            onChange={setSortValue}
           />
-        </div>
-      )}
 
-      {/* 2. Filter Strip */}
-      <div className="mobile-inventory-filter-strip">
-        <button
-          type="button"
-          className="mobile-filter-icon-btn"
-          onClick={openFilterSheet}
-          aria-label="Mở bộ lọc"
-        >
-          <i className="ph ph-faders" />
-        </button>
-
-        {/* Pricebook Chip */}
-        <button
-          type="button"
-          className={`mobile-filter-chip ${pricebookId ? 'is-active' : ''}`}
-          onClick={openFilterSheet}
-        >
-          <span>Bảng giá: {activeBookName}</span>
-          <i className="ph ph-caret-down" />
-        </button>
-
-        {/* Category Chip */}
-        <button
-          type="button"
-          className={`mobile-filter-chip ${categoryFilter ? 'is-active' : ''}`}
-          onClick={openFilterSheet}
-        >
-          <span>{categoryFilter ? categoryFilter : 'Tất cả nhóm'}</span>
-          <i className="ph ph-caret-down" />
-        </button>
-
-        {/* Type Chip */}
-        <button
-          type="button"
-          className={`mobile-filter-chip ${typeFilter ? 'is-active' : ''}`}
-          onClick={openFilterSheet}
-        >
-          <span>
-            {typeFilter === 'product'
-              ? 'Sản phẩm'
-              : typeFilter === 'service'
-              ? 'Dịch vụ'
-              : typeFilter === 'package'
-              ? 'Gói dịch vụ'
-              : typeFilter === 'account_card'
-              ? 'Thẻ tài khoản'
-              : 'Tất cả loại'}
-          </span>
-          <i className="ph ph-caret-down" />
-        </button>
-      </div>
-
-      {/* 3. Summary & Sort Bar */}
-      <div className="mobile-inventory-summary-bar">
-        <button type="button" className="mobile-inventory-sort-selector" onClick={toggleSort}>
-          <span>
-            {sortBy === 'price'
-              ? `Giá bán ${sortOrder === 'desc' ? 'cao → thấp' : 'thấp → cao'}`
-              : sortBy === 'name'
-              ? 'Tên hàng'
-              : 'Giá vốn'}
-          </span>
-          <i className="ph ph-caret-down" />
-        </button>
-
-        <div className="mobile-inventory-count-summary">
-          {rawRows.length} mặt hàng
+          <div className="mobile-inventory-count-summary">
+            {rawRows.length} mặt hàng
+          </div>
         </div>
       </div>
 

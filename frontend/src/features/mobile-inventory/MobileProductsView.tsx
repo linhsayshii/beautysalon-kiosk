@@ -10,6 +10,7 @@ import {
   MobileFilterSheet,
   MobileDetailSheet,
   MobileEmptyState,
+  MobileSortDropdown,
 } from '@/features/mobile-common';
 import type { ApiRecord } from '@/types/api';
 import './mobile-inventory.css';
@@ -36,8 +37,16 @@ export function MobileProductsView() {
   const [typeFilter, setTypeFilter] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('');
   const [stockStatusFilter, setStockStatusFilter] = useState('');
-  const [sortBy, setSortBy] = useState<'price' | 'name' | 'stock'>('price');
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+  const [sortValue, setSortValue] = useState<string>('price_desc');
+
+  const sortOptions = [
+    { value: 'price_desc', label: 'Giá bán: Cao → thấp' },
+    { value: 'price_asc', label: 'Giá bán: Thấp → cao' },
+    { value: 'name_asc', label: 'Tên hàng: A → Z' },
+    { value: 'name_desc', label: 'Tên hàng: Z → A' },
+    { value: 'stock_desc', label: 'Tồn kho: Nhiều → ít' },
+    { value: 'stock_asc', label: 'Tồn kho: Ít → nhiều' },
+  ];
 
   // Draft filters for bottom sheet
   const [draftType, setDraftType] = useState('');
@@ -69,24 +78,27 @@ export function MobileProductsView() {
   // Sort and group by category
   const sortedRows = useMemo(() => {
     return [...rawRows].sort((a, b) => {
-      if (sortBy === 'price') {
-        const pA = Number(a.salePrice || 0);
-        const pB = Number(b.salePrice || 0);
-        return sortOrder === 'desc' ? pB - pA : pA - pB;
+      if (sortValue === 'price_desc') {
+        return Number(b.salePrice || 0) - Number(a.salePrice || 0);
       }
-      if (sortBy === 'name') {
-        return sortOrder === 'desc'
-          ? String(b.name).localeCompare(String(a.name))
-          : String(a.name).localeCompare(String(b.name));
+      if (sortValue === 'price_asc') {
+        return Number(a.salePrice || 0) - Number(b.salePrice || 0);
       }
-      if (sortBy === 'stock') {
-        const sA = Number(a.stockQuantity ?? -1);
-        const sB = Number(b.stockQuantity ?? -1);
-        return sortOrder === 'desc' ? sB - sA : sA - sB;
+      if (sortValue === 'name_asc') {
+        return String(a.name || '').localeCompare(String(b.name || ''));
+      }
+      if (sortValue === 'name_desc') {
+        return String(b.name || '').localeCompare(String(a.name || ''));
+      }
+      if (sortValue === 'stock_desc') {
+        return Number(b.stockQuantity ?? -1) - Number(a.stockQuantity ?? -1);
+      }
+      if (sortValue === 'stock_asc') {
+        return Number(a.stockQuantity ?? -1) - Number(b.stockQuantity ?? -1);
       }
       return 0;
     });
-  }, [rawRows, sortBy, sortOrder]);
+  }, [rawRows, sortValue]);
 
   const groupedCategories = useMemo(() => {
     const map = new Map<string, ApiRecord[]>();
@@ -127,22 +139,6 @@ export function MobileProductsView() {
     setIsFilterOpen(true);
   };
 
-  const toggleSort = () => {
-    if (sortBy === 'price') {
-      if (sortOrder === 'desc') setSortOrder('asc');
-      else {
-        setSortBy('name');
-        setSortOrder('asc');
-      }
-    } else if (sortBy === 'name') {
-      setSortBy('stock');
-      setSortOrder('desc');
-    } else {
-      setSortBy('price');
-      setSortOrder('desc');
-    }
-  };
-
   return (
     <div className="mobile-inventory-view">
       {/* Sticky Top Cluster */}
@@ -164,7 +160,7 @@ export function MobileProductsView() {
           <div className="mobile-inventory-nav-actions">
             <button
               type="button"
-              className="mobile-inventory-nav-btn"
+              className={`mobile-inventory-nav-btn ${isSearchVisible ? 'is-active' : ''}`}
               onClick={() => setIsSearchVisible((prev) => !prev)}
               aria-label="Tìm kiếm"
             >
@@ -233,18 +229,13 @@ export function MobileProductsView() {
           </button>
         </div>
 
-        {/* 3. Summary & Sort Indicator Bar */}
+        {/* 3. Summary & Sort Dropdown Bar */}
         <div className="mobile-inventory-summary-bar">
-          <button type="button" className="mobile-inventory-sort-selector" onClick={toggleSort}>
-            <span>
-              {sortBy === 'price'
-                ? `Giá ${sortOrder === 'desc' ? 'cao → thấp' : 'thấp → cao'}`
-                : sortBy === 'name'
-                ? `Tên ${sortOrder === 'asc' ? 'A → Z' : 'Z → A'}`
-                : `Tồn kho ${sortOrder === 'desc' ? 'nhiều → ít' : 'ít → nhiều'}`}
-            </span>
-            <i className="ph ph-caret-down" />
-          </button>
+          <MobileSortDropdown
+            value={sortValue}
+            options={sortOptions}
+            onChange={setSortValue}
+          />
 
           <div className="mobile-inventory-count-summary">
             {rawRows.length} hàng hóa · Tồn: {formatNumber(totalStockCount)}

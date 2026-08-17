@@ -327,25 +327,25 @@
 .mobile-form-view-container {
   display: flex;
   flex-direction: column;
-  min-height: calc(100vh - var(--mobile-topbar-h));
-  background-color: #f8fafc;
-  padding-bottom: 90px;
+  min-height: 100vh;
+  background-color: #f2f4f8;
+  padding-bottom: calc(var(--mobile-safe-bottom, 0px) + 90px);
   box-sizing: border-box;
   font-family: inherit;
   color: #1e293b;
-  margin: -12px -14px;
 }
 
 .mobile-form-header {
+  position: sticky;
+  top: 0;
+  z-index: 30;
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 12px 16px;
   background: #ffffff;
-  border-bottom: 1px solid #e2e8f0;
-  position: sticky;
-  top: 0;
-  z-index: 20;
+  border-bottom: 1px solid #e5e9f0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 }
 
 .mobile-form-header-left {
@@ -363,10 +363,11 @@
   border-radius: 8px;
   border: none;
   background: transparent;
-  color: #334155;
-  font-size: 20px;
+  color: #1e293b;
+  font-size: 22px;
   cursor: pointer;
   padding: 0;
+  transition: background 0.15s ease;
 }
 
 .mobile-form-back-btn:active {
@@ -374,29 +375,30 @@
 }
 
 .mobile-form-header-title {
-  font-size: 18px;
-  font-weight: 700;
+  font-size: 19px;
+  font-weight: 750;
   color: #0f172a;
   margin: 0;
+  letter-spacing: -0.01em;
 }
 
 .mobile-form-header-actions {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
 }
 
 .mobile-form-icon-btn {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  height: 36px;
+  width: 38px;
+  height: 38px;
   border-radius: 8px;
-  border: 1px solid #e2e8f0;
-  background: #ffffff;
-  color: #475569;
-  font-size: 18px;
+  border: none;
+  background: transparent;
+  color: #1e293b;
+  font-size: 21px;
   cursor: pointer;
   transition: all 0.15s ease;
 }
@@ -406,9 +408,8 @@
 }
 
 .mobile-form-icon-btn.has-note {
-  color: #2563eb;
+  color: #0062eb;
   background: #eff6ff;
-  border-color: #bfdbfe;
 }
 
 .mobile-form-body {
@@ -1320,3 +1321,27 @@
   from { transform: translateY(100%); }
   to { transform: translateY(0); }
 }
+
+/* Tabular Numbers & Consistent Numeric Formatting across Mobile */
+.mobile-row-price,
+.mobile-pos-card-price,
+.mobile-pos-cart-bar-total,
+.mobile-cart-item-unitprice,
+.mobile-cart-qty-val,
+.mobile-orders-total-amount,
+.mobile-orders-item-total,
+.mobile-orders-kpi-value,
+.mobile-po-total-due,
+.mobile-pricebook-cost-line,
+.mobile-product-card-price,
+.salary-amount,
+.mobile-detail-hero-amount,
+.mobile-detail-grid-value,
+.mobile-appointment-time-badge,
+.mobile-form-tag,
+.mobile-summary-row span,
+.more-user-branch {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+}
+

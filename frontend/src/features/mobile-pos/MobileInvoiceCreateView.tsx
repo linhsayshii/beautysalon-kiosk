@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/components/ui/Toast/ToastProvider';
 import { formatMoney, formatNumber } from '@/lib/format';
+import { MoneyInput } from '@/components/forms/MoneyInput';
 import {
   checkoutPosInvoice,
   getPosCatalog,
@@ -499,24 +500,45 @@ export function MobileInvoiceCreateView() {
               </div>
             </div>
 
-            <input
-              type="number"
-              min="0"
-              placeholder="0"
-              value={discountInput || ''}
-              onChange={(e) => setDiscountInput(Math.max(0, Number(e.target.value) || 0))}
-              style={{
-                width: '100%',
-                height: 40,
-                borderRadius: 10,
-                border: '1px solid #cbd5e1',
-                padding: '0 12px',
-                fontSize: 14,
-                fontWeight: 600,
-                background: '#ffffff',
-                boxSizing: 'border-box',
-              }}
-            />
+            {discountType === 'vnd' ? (
+              <MoneyInput
+                placeholder="0"
+                value={discountInput}
+                onChange={(val) => setDiscountInput(val)}
+                suffix="đ"
+                style={{
+                  width: '100%',
+                  height: 40,
+                  borderRadius: 10,
+                  border: '1px solid #cbd5e1',
+                  padding: '0 12px',
+                  fontSize: 14,
+                  fontWeight: 600,
+                  background: '#ffffff',
+                  boxSizing: 'border-box',
+                }}
+              />
+            ) : (
+              <input
+                type="number"
+                min="0"
+                max="100"
+                placeholder="0"
+                value={discountInput || ''}
+                onChange={(e) => setDiscountInput(Math.min(100, Math.max(0, Number(e.target.value) || 0)))}
+                style={{
+                  width: '100%',
+                  height: 40,
+                  borderRadius: 10,
+                  border: '1px solid #cbd5e1',
+                  padding: '0 12px',
+                  fontSize: 14,
+                  fontWeight: 600,
+                  background: '#ffffff',
+                  boxSizing: 'border-box',
+                }}
+              />
+            )}
           </div>
 
           {/* Summary Box */}

@@ -181,130 +181,133 @@ export function MobileStaffScheduleAdminView() {
 
   return (
     <div className="mobile-staff-view">
-      {/* 1. Header Top Navigation */}
-      <div className="mobile-staff-top-nav">
-        <div className="mobile-staff-nav-left">
+      {/* Sticky Top Header Cluster */}
+      <div className="mobile-staff-sticky-header-cluster">
+        {/* 1. Header Top Navigation */}
+        <div className="mobile-staff-top-nav">
+          <div className="mobile-staff-nav-left">
+            <button
+              type="button"
+              className="mobile-staff-back-icon"
+              onClick={() => navigate('/m/more')}
+              aria-label="Quay lại"
+            >
+              <i className="ph ph-caret-left" />
+            </button>
+            <h1 className="mobile-staff-nav-title">Lịch làm việc</h1>
+          </div>
+
+          <div className="mobile-staff-nav-actions">
+            <button
+              type="button"
+              className="mobile-staff-nav-btn"
+              onClick={() => setIsSearchVisible((prev) => !prev)}
+              aria-label="Tìm kiếm"
+            >
+              <i className="ph ph-magnifying-glass" />
+            </button>
+            <button
+              type="button"
+              className="mobile-staff-nav-btn"
+              onClick={() => {
+                if (staffList.length > 0) handleOpenAssign(staffList[0]);
+              }}
+              aria-label="Phân ca nhanh"
+              title="Phân ca nhanh"
+            >
+              <i className="ph ph-calendar-plus" />
+            </button>
+          </div>
+        </div>
+
+        {/* Inline Search Bar */}
+        {isSearchVisible && (
+          <div className="mobile-staff-search-bar-wrap">
+            <MobileSearchBar
+              value={search}
+              onChange={setSearch}
+              placeholder="Tìm nhân viên theo tên, mã..."
+            />
+          </div>
+        )}
+
+        {/* Week Navigator */}
+        <div className="mobile-week-navigator">
           <button
             type="button"
-            className="mobile-staff-back-icon"
-            onClick={() => navigate('/m/more')}
-            aria-label="Quay lại"
+            className="mobile-week-nav-btn"
+            aria-label="Tuần trước"
+            onClick={handlePrevWeek}
           >
             <i className="ph ph-caret-left" />
           </button>
-          <h1 className="mobile-staff-nav-title">Lịch làm việc</h1>
-        </div>
-
-        <div className="mobile-staff-nav-actions">
+          <span className="mobile-week-label">
+            {selectedDayInfo.fullLabel} ({selectedDayInfo.iso})
+          </span>
           <button
             type="button"
-            className="mobile-staff-nav-btn"
-            onClick={() => setIsSearchVisible((prev) => !prev)}
-            aria-label="Tìm kiếm"
+            className="mobile-week-nav-btn"
+            aria-label="Tuần sau"
+            onClick={handleNextWeek}
           >
-            <i className="ph ph-magnifying-glass" />
-          </button>
-          <button
-            type="button"
-            className="mobile-staff-nav-btn"
-            onClick={() => {
-              if (staffList.length > 0) handleOpenAssign(staffList[0]);
-            }}
-            aria-label="Phân ca nhanh"
-            title="Phân ca nhanh"
-          >
-            <i className="ph ph-calendar-plus" />
+            <i className="ph ph-caret-right" />
           </button>
         </div>
-      </div>
 
-      {/* Inline Search Bar */}
-      {isSearchVisible && (
-        <div className="mobile-staff-search-bar-wrap">
-          <MobileSearchBar
-            value={search}
-            onChange={setSearch}
-            placeholder="Tìm nhân viên theo tên, mã..."
-          />
+        {/* Horizontal Week Strip (T2 -> CN) */}
+        <div className="mobile-week-strip" role="tablist">
+          {weekDays.map((day) => (
+            <button
+              key={day.iso}
+              type="button"
+              role="tab"
+              aria-selected={day.iso === selectedDateIso}
+              className={`mobile-week-day-chip ${day.iso === selectedDateIso ? 'selected' : ''} ${
+                day.isToday ? 'today' : ''
+              }`}
+              onClick={() => setSelectedDateIso(day.iso)}
+            >
+              <span className="mobile-week-day-name">{day.name}</span>
+              <span className="mobile-week-day-num">{day.date}</span>
+              {day.isToday && <span className="mobile-week-day-dot" />}
+            </button>
+          ))}
         </div>
-      )}
 
-      {/* Week Navigator */}
-      <div className="mobile-week-navigator">
-        <button
-          type="button"
-          className="mobile-week-nav-btn"
-          aria-label="Tuần trước"
-          onClick={handlePrevWeek}
-        >
-          <i className="ph ph-caret-left" />
-        </button>
-        <span className="mobile-week-label">
-          {selectedDayInfo.fullLabel} ({selectedDayInfo.iso})
-        </span>
-        <button
-          type="button"
-          className="mobile-week-nav-btn"
-          aria-label="Tuần sau"
-          onClick={handleNextWeek}
-        >
-          <i className="ph ph-caret-right" />
-        </button>
-      </div>
-
-      {/* Horizontal Week Strip (T2 -> CN) */}
-      <div className="mobile-week-strip" role="tablist">
-        {weekDays.map((day) => (
+        {/* Filter & View Switcher Strip */}
+        <div className="mobile-staff-filter-strip">
           <button
-            key={day.iso}
             type="button"
+            className={`mobile-filter-chip ${viewMode === 'by-staff' ? 'is-active' : ''}`}
+            onClick={() => setViewMode('by-staff')}
             role="tab"
-            aria-selected={day.iso === selectedDateIso}
-            className={`mobile-week-day-chip ${day.iso === selectedDateIso ? 'selected' : ''} ${
-              day.isToday ? 'today' : ''
-            }`}
-            onClick={() => setSelectedDateIso(day.iso)}
+            aria-selected={viewMode === 'by-staff'}
           >
-            <span className="mobile-week-day-name">{day.name}</span>
-            <span className="mobile-week-day-num">{day.date}</span>
-            {day.isToday && <span className="mobile-week-day-dot" />}
+            <i className="ph ph-user" />
+            <span>Theo nhân viên</span>
           </button>
-        ))}
-      </div>
 
-      {/* Filter & View Switcher Strip */}
-      <div className="mobile-staff-filter-strip">
-        <button
-          type="button"
-          className={`mobile-filter-chip ${viewMode === 'by-staff' ? 'is-active' : ''}`}
-          onClick={() => setViewMode('by-staff')}
-          role="tab"
-          aria-selected={viewMode === 'by-staff'}
-        >
-          <i className="ph ph-user" />
-          <span>Theo nhân viên</span>
-        </button>
+          <button
+            type="button"
+            className={`mobile-filter-chip ${viewMode === 'by-shift' ? 'is-active' : ''}`}
+            onClick={() => setViewMode('by-shift')}
+            role="tab"
+            aria-selected={viewMode === 'by-shift'}
+          >
+            <i className="ph ph-clock" />
+            <span>Theo ca làm</span>
+          </button>
+        </div>
 
-        <button
-          type="button"
-          className={`mobile-filter-chip ${viewMode === 'by-shift' ? 'is-active' : ''}`}
-          onClick={() => setViewMode('by-shift')}
-          role="tab"
-          aria-selected={viewMode === 'by-shift'}
-        >
-          <i className="ph ph-clock" />
-          <span>Theo ca làm</span>
-        </button>
-      </div>
-
-      {/* Summary Bar */}
-      <div className="mobile-staff-summary-sort-bar">
-        <span className="mobile-sort-select-chip">
-          <span>{selectedDayInfo.fullLabel}</span>
-        </span>
-        <span className="mobile-summary-text">
-          {assignedCount}/{filteredStaff.length} nhân viên đã xếp ca
-        </span>
+        {/* Summary Bar */}
+        <div className="mobile-staff-summary-sort-bar">
+          <span className="mobile-sort-select-chip">
+            <span>{selectedDayInfo.fullLabel}</span>
+          </span>
+          <span className="mobile-summary-text">
+            {assignedCount}/{filteredStaff.length} nhân viên đã xếp ca
+          </span>
+        </div>
       </div>
 
       {/* Content by Staff */}

@@ -285,6 +285,73 @@ export async function createCustomer({ branchId, name, code, phone, dob, gender,
   }
 }
 
+export async function updateCustomer({ branchId, id, name, code, phone, dob, gender, email, facebook, customerGroup }) {
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    await client.query('SELECT pg_advisory_xact_lock($1)', [branchId]);
+
+    const existing = await client.query('SELECT id, code FROM customers WHERE branch_id = $1 AND id = $2', [branchId, id]);
+    if (!existing.rows[0]) throw new HttpError(404, 'CUSTOMER_NOT_FOUND', 'Không tìm thấy khách hàng');
+
+    let finalCode = code?.trim();
+    if (finalCode && finalCode !== existing.rows[0].code) {
+      const codeCheck = await client.query('SELECT id FROM customers WHERE code = $1 AND id <> $2', [finalCode, id]);
+      if (codeCheck.rows[0]) throw new HttpError(409, 'CODE_EXISTS', 'Mã khách hàng đã tồn tại');
+    } else {
+      finalCode = existing.rows[0].code;
+    }
+
+    const result = await client.query(
+      `UPDATE customers SET
+         name = $1,
+         code = $2,
+         phone = $3,
+         dob = $4,
+         gender = $5,
+         email = $6,
+         facebook = $7,
+         customer_group = COALESCE($8, customer_group)
+       WHERE branch_id = $9 AND id = $10
+       RETURNING id, code, name, phone, dob, gender, email, facebook, customer_type, customer_group, debt_balance, created_at`,
+      [
+        name.trim(),
+        finalCode,
+        phone?.trim() || null,
+        dob || null,
+        gender || null,
+        email?.trim() || null,
+        facebook?.trim() || null,
+        customerGroup?.trim() || null,
+        branchId,
+        id,
+      ],
+    );
+    await client.query('COMMIT');
+
+    const row = result.rows[0];
+    return {
+      id: number(row.id),
+      code: row.code,
+      name: row.name,
+      phone: row.phone,
+      dob: row.dob,
+      gender: row.gender,
+      email: row.email,
+      facebook: row.facebook,
+      customerType: row.customer_type,
+      group: row.customer_group,
+      debtBalance: number(row.debt_balance),
+      createdAt: row.created_at,
+    };
+  } catch (error) {
+    await client.query('ROLLBACK');
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
 export async function getCustomerPackage({ branchId, itemType, id }) {
   const isPackage = itemType === 'package';
   const result = await pool.query(isPackage

@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { formatMoney } from '@/lib/format';
+import { MoneyInput } from '@/components/forms/MoneyInput';
 import { searchPosCustomers, checkoutPosInvoice, getPosStaff, type PosReceiptData } from '@/features/pos/pos.api';
 
 interface PosLine {
@@ -317,12 +318,11 @@ export function MobileCartBottomSheet({
           {/* Discount input */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink-700)' }}>Giảm giá (VNĐ)</span>
-            <input
-              type="number"
-              min="0"
-              value={discountValue || ''}
+            <MoneyInput
               placeholder="0"
-              onChange={(e) => setDiscountValue(Math.max(0, Number(e.target.value) || 0))}
+              value={discountValue}
+              onChange={(val) => setDiscountValue(val)}
+              suffix="đ"
               style={{
                 width: '100%',
                 height: 40,

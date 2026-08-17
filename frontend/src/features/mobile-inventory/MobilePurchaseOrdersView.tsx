@@ -11,6 +11,7 @@ import {
   MobileFilterSheet,
   MobileDetailSheet,
   MobileEmptyState,
+  MobileSortDropdown,
 } from '@/features/mobile-common';
 import './mobile-inventory.css';
 
@@ -45,8 +46,16 @@ export function MobilePurchaseOrdersView() {
   const [isFilterOpen, setIsFilterOpen] = useState(false);
 
   // Sorting
-  const [sortBy, setSortBy] = useState<'date' | 'total' | 'code'>('date');
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+  const [sortValue, setSortValue] = useState<string>('date_desc');
+
+  const sortOptions = [
+    { value: 'date_desc', label: 'Thời gian: Mới nhất' },
+    { value: 'date_asc', label: 'Thời gian: Cũ nhất' },
+    { value: 'total_desc', label: 'Giá trị: Cao → thấp' },
+    { value: 'total_asc', label: 'Giá trị: Thấp → cao' },
+    { value: 'code_asc', label: 'Mã phiếu: A → Z' },
+    { value: 'code_desc', label: 'Mã phiếu: Z → A' },
+  ];
 
   // Detail Sheet
   const [selectedOrderId, setSelectedOrderId] = useState<number | null>(null);
@@ -103,24 +112,35 @@ export function MobilePurchaseOrdersView() {
   // Filter and Sort Rows
   const sortedRows = useMemo(() => {
     return [...rawRows].sort((a, b) => {
-      if (sortBy === 'date') {
+      if (sortValue === 'date_desc') {
         const tA = a.receivedAt || a.createdAt ? new Date(a.receivedAt || a.createdAt).getTime() : 0;
         const tB = b.receivedAt || b.createdAt ? new Date(b.receivedAt || b.createdAt).getTime() : 0;
-        return sortOrder === 'desc' ? tB - tA : tA - tB;
+        return tB - tA;
       }
-      if (sortBy === 'total') {
+      if (sortValue === 'date_asc') {
+        const tA = a.receivedAt || a.createdAt ? new Date(a.receivedAt || a.createdAt).getTime() : 0;
+        const tB = b.receivedAt || b.createdAt ? new Date(b.receivedAt || b.createdAt).getTime() : 0;
+        return tA - tB;
+      }
+      if (sortValue === 'total_desc') {
         const valA = Number(a.amountDue || 0);
         const valB = Number(b.amountDue || 0);
-        return sortOrder === 'desc' ? valB - valA : valA - valB;
+        return valB - valA;
       }
-      if (sortBy === 'code') {
-        return sortOrder === 'desc'
-          ? String(b.code || '').localeCompare(String(a.code || ''))
-          : String(a.code || '').localeCompare(String(b.code || ''));
+      if (sortValue === 'total_asc') {
+        const valA = Number(a.amountDue || 0);
+        const valB = Number(b.amountDue || 0);
+        return valA - valB;
+      }
+      if (sortValue === 'code_asc') {
+        return String(a.code || '').localeCompare(String(b.code || ''));
+      }
+      if (sortValue === 'code_desc') {
+        return String(b.code || '').localeCompare(String(a.code || ''));
       }
       return 0;
     });
-  }, [rawRows, sortBy, sortOrder]);
+  }, [rawRows, sortValue]);
 
   // Group purchase orders by month/date (e.g. YYYY-MM)
   const groupedSections = useMemo(() => {
@@ -142,28 +162,6 @@ export function MobilePurchaseOrdersView() {
   const totalAmountDueSum = useMemo(() => {
     return rawRows.reduce((sum, r) => sum + Number(r.amountDue || 0), 0);
   }, [rawRows]);
-
-  // Handle Sort Toggle
-  const toggleSort = () => {
-    if (sortBy === 'date') {
-      if (sortOrder === 'desc') {
-        setSortOrder('asc');
-      } else {
-        setSortBy('total');
-        setSortOrder('desc');
-      }
-    } else if (sortBy === 'total') {
-      if (sortOrder === 'desc') {
-        setSortOrder('asc');
-      } else {
-        setSortBy('code');
-        setSortOrder('asc');
-      }
-    } else {
-      setSortBy('date');
-      setSortOrder('desc');
-    }
-  };
 
   const openFilterSheet = () => {
     setDraftDatePreset(datePreset);
@@ -211,7 +209,7 @@ export function MobilePurchaseOrdersView() {
           <div className="mobile-inventory-nav-actions">
             <button
               type="button"
-              className="mobile-inventory-nav-btn"
+              className={`mobile-inventory-nav-btn ${isSearchVisible ? 'is-active' : ''}`}
               onClick={() => setIsSearchVisible((prev) => !prev)}
               aria-label="Tìm kiếm"
             >
@@ -263,18 +261,13 @@ export function MobilePurchaseOrdersView() {
           </button>
         </div>
 
-        {/* 3. Summary & Sort Bar */}
+        {/* 3. Summary & Sort Dropdown Bar */}
         <div className="mobile-inventory-summary-bar">
-          <button type="button" className="mobile-inventory-sort-selector" onClick={toggleSort}>
-            <span>
-              {sortBy === 'date'
-                ? `Thời gian ${sortOrder === 'desc' ? 'mới nhất' : 'cũ nhất'}`
-                : sortBy === 'total'
-                ? `Giá trị ${sortOrder === 'desc' ? 'cao → thấp' : 'thấp → cao'}`
-                : `Mã phiếu ${sortOrder === 'asc' ? 'A → Z' : 'Z → A'}`}
-            </span>
-            <i className="ph ph-caret-down" />
-          </button>
+          <MobileSortDropdown
+            value={sortValue}
+            options={sortOptions}
+            onChange={setSortValue}
+          />
 
           <div className="mobile-inventory-count-summary">
             {rawRows.length} phiếu nhập · Cần trả: {formatMoney(totalAmountDueSum)}

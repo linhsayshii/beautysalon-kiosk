@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { getPosAppointments } from '@/features/pos/pos.api';
 import { getStaff } from '@/features/staff/staff.api';
-import { MobileDetailSheet } from '@/features/mobile-common';
+import { MobileDetailSheet, MobileSearchBar } from '@/features/mobile-common';
 import type { ApiRecord } from '@/types/api';
 import './mobile-appointments.css';
 
@@ -113,116 +113,111 @@ export function MobileAppointmentsListView() {
 
   return (
     <div className="mobile-appointments-view">
-      {/* 1. Header Toolbar */}
-      <div className="mobile-appointments-top-header">
-        <h1 className="mobile-appointments-main-title">Lịch dịch vụ</h1>
-        <button
-          type="button"
-          className="mobile-appointments-search-trigger"
-          onClick={() => setIsSearchVisible((prev) => !prev)}
-          aria-label="Tìm kiếm"
-        >
-          <i className="ph ph-magnifying-glass" />
-        </button>
-      </div>
-
-      {/* Inline Search Bar */}
-      {isSearchVisible && (
-        <div className="mobile-appointments-search-box">
-          <div className="mobile-appointments-search-input-wrap">
-            <i className="ph ph-magnifying-glass" />
-            <input
-              type="text"
-              placeholder="Tìm khách hàng, số điện thoại, thợ..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              autoFocus
-            />
-            {search && (
-              <button type="button" onClick={() => setSearch('')} aria-label="Xóa">
-                <i className="ph ph-x" />
-              </button>
-            )}
+      {/* Sticky Top Cluster */}
+      <div className="mobile-appointments-sticky-header-cluster">
+        {/* 1. Header Toolbar */}
+        <div className="mobile-appointments-top-header">
+          <h1 className="mobile-appointments-main-title">Lịch dịch vụ</h1>
+          <div className="mobile-appointments-nav-actions">
+            <button
+              type="button"
+              className={`mobile-appointments-search-trigger ${isSearchVisible ? 'is-active' : ''}`}
+              onClick={() => setIsSearchVisible((prev) => !prev)}
+              aria-label="Tìm kiếm"
+            >
+              <i className="ph ph-magnifying-glass" />
+            </button>
           </div>
         </div>
-      )}
 
-      {/* 2. Filter Chips Strip */}
-      <div className="mobile-appointments-filter-strip">
-        <button type="button" className="mobile-appointments-filter-icon-btn" aria-label="Lọc">
-          <i className="ph ph-faders" />
-        </button>
+        {/* Inline Search Bar */}
+        {isSearchVisible && (
+          <div className="mobile-appointments-search-box">
+            <MobileSearchBar
+              value={search}
+              placeholder="Tìm khách hàng, số điện thoại, thợ..."
+              onChange={setSearch}
+            />
+          </div>
+        )}
 
-        {/* Date Selector Chip */}
-        <div className="mobile-appointments-chip-select-wrap">
-          <input
-            type="date"
-            className="mobile-appointments-date-hidden-input"
-            value={selectedDate}
-            onChange={(e) => setSelectedDate(e.target.value)}
-            aria-label="Chọn ngày"
-          />
-          <button type="button" className="mobile-appointments-filter-chip">
-            <span>{selectedDate ? selectedDate.split('-').reverse().slice(0, 2).join('/') : 'Tất cả ngày'}</span>
-            <i className="ph ph-caret-down" />
+        {/* 2. Filter Chips Strip */}
+        <div className="mobile-appointments-filter-strip">
+          <button type="button" className="mobile-appointments-filter-icon-btn" aria-label="Lọc">
+            <i className="ph ph-faders" />
+          </button>
+
+          {/* Date Selector Chip */}
+          <div className="mobile-appointments-chip-select-wrap">
+            <input
+              type="date"
+              className="mobile-appointments-date-hidden-input"
+              value={selectedDate}
+              onChange={(e) => setSelectedDate(e.target.value)}
+              aria-label="Chọn ngày"
+            />
+            <button type="button" className={`mobile-appointments-filter-chip ${selectedDate ? 'is-active' : ''}`}>
+              <span>{selectedDate ? selectedDate.split('-').reverse().slice(0, 2).join('/') : 'Tất cả ngày'}</span>
+              <i className="ph ph-caret-down" />
+            </button>
+          </div>
+
+          {/* Staff Filter Dropdown Chip */}
+          <div className="mobile-appointments-chip-select-wrap">
+            <select
+              className="mobile-appointments-staff-select"
+              value={staffFilter}
+              onChange={(e) => setStaffFilter(e.target.value)}
+              aria-label="Chọn nhân viên"
+            >
+              <option value="all">Tất cả nhân viên</option>
+              {staffList.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.name}
+                </option>
+              ))}
+            </select>
+            <div className={`mobile-appointments-filter-chip ${staffFilter !== 'all' ? 'is-active' : ''}`}>
+              <span>
+                {staffFilter === 'all'
+                  ? 'Tất cả nhân viên'
+                  : staffList.find((s) => Number(s.id) === Number(staffFilter))?.name || 'Nhân viên'}
+              </span>
+              <i className="ph ph-caret-down" />
+            </div>
+          </div>
+        </div>
+
+        {/* 3. Underline Tab Navigation */}
+        <div className="mobile-appointments-tabs-nav" role="tablist">
+          <button
+            type="button"
+            role="tab"
+            aria-selected={activeTab === 'list'}
+            className={`mobile-appointments-tab-item ${activeTab === 'list' ? 'is-active' : ''}`}
+            onClick={() => setActiveTab('list')}
+          >
+            Danh sách
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={activeTab === 'timeline'}
+            className={`mobile-appointments-tab-item ${activeTab === 'timeline' ? 'is-active' : ''}`}
+            onClick={() => setActiveTab('timeline')}
+          >
+            Lưới thời gian
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={activeTab === 'staff_grid'}
+            className={`mobile-appointments-tab-item ${activeTab === 'staff_grid' ? 'is-active' : ''}`}
+            onClick={() => setActiveTab('staff_grid')}
+          >
+            Lưới nhân viên
           </button>
         </div>
-
-        {/* Staff Filter Dropdown Chip */}
-        <div className="mobile-appointments-chip-select-wrap">
-          <select
-            className="mobile-appointments-staff-select"
-            value={staffFilter}
-            onChange={(e) => setStaffFilter(e.target.value)}
-            aria-label="Chọn nhân viên"
-          >
-            <option value="all">Tất cả nhân viên</option>
-            {staffList.map((s) => (
-              <option key={s.id} value={s.id}>
-                {s.name}
-              </option>
-            ))}
-          </select>
-          <div className={`mobile-appointments-filter-chip ${staffFilter !== 'all' ? 'is-active' : ''}`}>
-            <span>
-              {staffFilter === 'all'
-                ? 'Tất cả nhân viên'
-                : staffList.find((s) => Number(s.id) === Number(staffFilter))?.name || 'Nhân viên'}
-            </span>
-            <i className="ph ph-caret-down" />
-          </div>
-        </div>
-      </div>
-
-      {/* 3. Underline Tab Navigation */}
-      <div className="mobile-appointments-tabs-nav" role="tablist">
-        <button
-          type="button"
-          role="tab"
-          aria-selected={activeTab === 'list'}
-          className={`mobile-appointments-tab-item ${activeTab === 'list' ? 'is-active' : ''}`}
-          onClick={() => setActiveTab('list')}
-        >
-          Danh sách
-        </button>
-        <button
-          type="button"
-          role="tab"
-          aria-selected={activeTab === 'timeline'}
-          className={`mobile-appointments-tab-item ${activeTab === 'timeline' ? 'is-active' : ''}`}
-          onClick={() => setActiveTab('timeline')}
-        >
-          Lưới thời gian
-        </button>
-        <button
-          type="button"
-          role="tab"
-          aria-selected={activeTab === 'staff_grid'}
-          className={`mobile-appointments-tab-item ${activeTab === 'staff_grid' ? 'is-active' : ''}`}
-          onClick={() => setActiveTab('staff_grid')}
-        >
-          Lưới nhân viên
-        </button>
       </div>
 
       {/* 4. Grouped Cards Container */}

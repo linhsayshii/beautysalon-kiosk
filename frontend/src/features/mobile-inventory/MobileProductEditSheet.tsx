@@ -3,6 +3,7 @@ import type { FormEvent } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/components/ui/Toast/ToastProvider';
 import { updateInventoryItem } from '@/features/inventory/inventory.api';
+import { MoneyInput } from '@/components/forms/MoneyInput';
 import type { ApiRecord } from '@/types/api';
 import '@/features/mobile-common/mobile-common.css';
 
@@ -35,8 +36,8 @@ export function MobileProductEditSheet({
   const [category, setCategory] = useState('');
   const [durationMinutes, setDurationMinutes] = useState('');
   const [unit, setUnit] = useState('cái');
-  const [salePrice, setSalePrice] = useState('0');
-  const [costPrice, setCostPrice] = useState('0');
+  const [salePrice, setSalePrice] = useState<number>(0);
+  const [costPrice, setCostPrice] = useState<number>(0);
   const [active, setActive] = useState(true);
   const [description, setDescription] = useState('');
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -48,8 +49,8 @@ export function MobileProductEditSheet({
       setCategory(String(item.category || (item.itemType === 'package' ? 'Gói dịch vụ' : 'Chăm sóc salon')));
       setDurationMinutes(String(item.durationMinutes || (item.itemType === 'service' ? '60' : '')));
       setUnit(String(item.unit || (item.itemType === 'service' ? 'lần' : item.itemType === 'package' ? 'gói' : 'cái')));
-      setSalePrice(String(item.salePrice || item.price || item.listPrice || 0));
-      setCostPrice(String(item.costPrice || 0));
+      setSalePrice(Number(item.salePrice || item.price || item.listPrice || 0));
+      setCostPrice(Number(item.costPrice || 0));
       setActive(item.active !== false);
       setDescription(String(item.description || ''));
       setErrors({});
@@ -247,13 +248,13 @@ export function MobileProductEditSheet({
                 Giá bán
               </label>
               <div className="mobile-form-card-row">
-                <input
+                <MoneyInput
                   id="product-edit-sale-price"
-                  type="number"
                   className="mobile-form-card-input"
                   value={salePrice}
-                  onChange={(e) => setSalePrice(e.target.value)}
+                  onChange={(val) => setSalePrice(val)}
                   placeholder="0"
+                  suffix="đ"
                 />
                 <div className="mobile-form-card-accessory">
                   <i className="ph ph-tag" />
@@ -266,13 +267,13 @@ export function MobileProductEditSheet({
                 Giá vốn
               </label>
               <div className="mobile-form-card-row">
-                <input
+                <MoneyInput
                   id="product-edit-cost-price"
-                  type="number"
                   className="mobile-form-card-input"
                   value={costPrice}
-                  onChange={(e) => setCostPrice(e.target.value)}
+                  onChange={(val) => setCostPrice(val)}
                   placeholder="0"
+                  suffix="đ"
                 />
               </div>
             </div>

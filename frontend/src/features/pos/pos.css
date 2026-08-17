@@ -1755,7 +1755,7 @@
   padding: 24px 20px;
   background: #ffffff;
   color: #1e293b;
-  font-family: 'Courier New', Courier, monospace, system-ui;
+  font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace);
   font-size: 12px;
   line-height: 1.4;
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);

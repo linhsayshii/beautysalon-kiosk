@@ -101,9 +101,8 @@ describe('MobileOrdersView Component', () => {
     // Header title
     expect(screen.getByRole('heading', { name: /Đơn hàng/i })).toBeInTheDocument();
 
-    // Search and Sort triggers
+    // Search trigger
     expect(screen.getByLabelText('Tìm kiếm')).toBeInTheDocument();
-    expect(screen.getByLabelText('Sắp xếp')).toBeInTheDocument();
 
     // Summary bar
     await waitFor(() => {
@@ -171,19 +170,5 @@ describe('MobileOrdersView Component', () => {
       expect(screen.getByRole('button', { name: /In hóa đơn/i })).toBeInTheDocument();
       expect(screen.getByRole('button', { name: /Xem chi tiết/i })).toBeInTheDocument();
     });
-  });
-
-  it('toggles sorting criteria', async () => {
-    renderComponent();
-
-    await waitFor(() => {
-      expect(screen.getByText('HD007176')).toBeInTheDocument();
-    });
-
-    const sortBtn = screen.getByLabelText('Sắp xếp');
-    fireEvent.click(sortBtn);
-
-    // After clicking sort, changes direction or criteria
-    expect(screen.getByText(/Thời gian: Cũ nhất|Giá trị/i)).toBeInTheDocument();
   });
 });

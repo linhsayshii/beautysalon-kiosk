@@ -80,6 +80,6 @@ describe('MobileBottomNav Component', () => {
 
     expect(appointmentLink).toHaveAttribute('href', '/m/appointments/new');
     expect(invoiceLink).toHaveAttribute('href', '/m/invoices/new');
-    expect(customerLink).toHaveAttribute('href', '/m/customers/new');
+    expect(customerLink).toHaveAttribute('href', '/m/customers?create=1');
   });
 });

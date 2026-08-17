@@ -30,8 +30,8 @@ describe('MobileProductEditSheet', () => {
     expect(screen.getByText('Sửa thông tin cơ bản')).toBeInTheDocument();
     expect(screen.getByLabelText(/Tên hàng/)).toHaveValue('RF Needle Skinlip 1 buổi');
     expect(screen.getByLabelText(/Mã hàng/)).toHaveValue('SP000470');
-    expect(screen.getByLabelText(/Giá bán/)).toHaveValue(2500000);
-    expect(screen.getByLabelText(/Giá vốn/)).toHaveValue(900000);
+    expect(screen.getByLabelText(/Giá bán/)).toHaveValue('2.500.000');
+    expect(screen.getByLabelText(/Giá vốn/)).toHaveValue('900.000');
     expect(screen.getByText('Cho phép bán')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Lưu' })).toBeInTheDocument();
   });

@@ -36,6 +36,25 @@ export function createCustomer(body: {
   });
 }
 
+export function updateCustomer(
+  id: number,
+  body: {
+    name: string;
+    code?: string;
+    phone?: string;
+    dob?: string | null;
+    gender?: string | null;
+    email?: string | null;
+    facebook?: string | null;
+    customerGroup?: string;
+  }
+) {
+  return apiRequest<ApiEnvelope<ApiRecord>>(`/customers/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(body),
+  });
+}
+
 export function getCustomerActivity(id: number, kind: string) {
   return apiRequest<ApiEnvelope<ApiRecord[]>>(`/customers/${id}/activity/${kind}`);
 }

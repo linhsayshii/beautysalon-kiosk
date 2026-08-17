@@ -200,6 +200,163 @@ export async function createInventoryItem({
   }
 }
 
+export async function updateInventoryItem({
+  branchId, type, id, name, code, category, brand, salePrice, costPrice, active,
+  imageUrl, description, note, barcode, unit, minStock, maxStock, durationMinutes,
+  validityDays, usageSchedule, packageItems, faceValue, allowedTypes, scopeItems,
+}) {
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    await client.query('SELECT pg_advisory_xact_lock($1)', [branchId]);
+
+    const source = itemSources[type];
+    if (!source) throw new HttpError(400, 'INVALID_TYPE', 'Loại hàng không hợp lệ');
+
+    const existing = await client.query(`SELECT id, ${source.codeColumn} AS code FROM ${source.table} WHERE branch_id = $1 AND id = $2`, [branchId, id]);
+    if (!existing.rows[0]) throw new HttpError(404, 'ITEM_NOT_FOUND', 'Không tìm thấy hàng hóa');
+
+    const finalCode = code ? code.trim().toUpperCase() : existing.rows[0].code;
+    if (finalCode !== existing.rows[0].code) {
+      const codeCheck = await client.query(`SELECT id FROM ${source.table} WHERE ${source.codeColumn} = $1 AND id <> $2`, [finalCode, id]);
+      if (codeCheck.rows[0]) throw new HttpError(409, 'DUPLICATE_CODE', 'Mã hàng đã tồn tại');
+    }
+
+    if (type === 'product') {
+      await client.query(
+        `UPDATE products SET
+           sku = $1,
+           name = $2,
+           barcode = $3,
+           sale_price = $4,
+           cost_price = $5,
+           min_stock = $6,
+           max_stock = $7,
+           category = $8,
+           brand = $9,
+           unit = $10,
+           active = $11,
+           image_url = $12,
+           description = $13,
+           note = $14
+         WHERE branch_id = $15 AND id = $16`,
+        [finalCode, name, barcode || null, salePrice, costPrice, minStock, maxStock, category, brand || null, unit, active, imageUrl || null, description || null, note || null, branchId, id],
+      );
+    } else if (type === 'service') {
+      await client.query(
+        `UPDATE services SET
+           code = $1,
+           name = $2,
+           price = $3,
+           cost_price = $4,
+           duration_minutes = $5,
+           category = $6,
+           brand = $7,
+           active = $8,
+           image_url = $9,
+           description = $10,
+           note = $11
+         WHERE branch_id = $12 AND id = $13`,
+        [finalCode, name, salePrice, costPrice, durationMinutes, category, brand || null, active, imageUrl || null, description || null, note || null, branchId, id],
+      );
+    } else if (type === 'package') {
+      let totalUnits = undefined;
+      if (packageItems && packageItems.length > 0) {
+        const serviceIds = packageItems.map((item) => item.serviceId);
+        const services = await client.query(
+          'SELECT id, price FROM services WHERE branch_id = $1 AND active AND id = ANY($2::bigint[])',
+          [branchId, [...new Set(serviceIds)]],
+        );
+        if (services.rowCount !== new Set(serviceIds).size) throw new HttpError(400, 'INVALID_PACKAGE_SERVICE', 'Gói có dịch vụ không hợp lệ');
+        totalUnits = packageItems.reduce((sum, item) => sum + item.units, 0);
+
+        await client.query('DELETE FROM service_package_items WHERE package_id = $1', [id]);
+        const priceByService = new Map(services.rows.map((row) => [number(row.id), number(row.price)]));
+        for (const item of packageItems) {
+          await client.query(
+            'INSERT INTO service_package_items (package_id, service_id, units, unit_price) VALUES ($1, $2, $3, $4)',
+            [id, item.serviceId, item.units, priceByService.get(item.serviceId) ?? 0],
+          );
+        }
+      }
+
+      await client.query(
+        `UPDATE service_packages SET
+           code = $1,
+           name = $2,
+           total_units = COALESCE($3, total_units),
+           validity_days = $4,
+           list_price = $5,
+           cost_price = $6,
+           category = $7,
+           brand = $8,
+           active = $9,
+           image_url = $10,
+           description = $11,
+           note = $12,
+           usage_schedule = $13
+         WHERE branch_id = $14 AND id = $15`,
+        [finalCode, name, totalUnits ?? null, validityDays, salePrice, costPrice, category, brand || null, active, imageUrl || null, description || null, note || null, usageSchedule, branchId, id],
+      );
+    } else if (type === 'account_card') {
+      if (scopeItems) {
+        await validateScopedItems(client, branchId, scopeItems);
+        await client.query('DELETE FROM account_card_scopes WHERE account_card_id = $1', [id]);
+        for (const item of scopeItems) {
+          await client.query(
+            'INSERT INTO account_card_scopes (account_card_id, item_type, item_id) VALUES ($1, $2, $3)',
+            [id, item.itemType, item.itemId],
+          );
+        }
+      }
+
+      await client.query(
+        `UPDATE account_cards SET
+           code = $1,
+           name = $2,
+           category = $3,
+           brand = $4,
+           sale_price = $5,
+           face_value = COALESCE($6, face_value),
+           validity_days = $7,
+           allow_products = COALESCE($8, allow_products),
+           allow_services = COALESCE($9, allow_services),
+           allow_packages = COALESCE($10, allow_packages),
+           active = $11,
+           image_url = $12,
+           description = $13,
+           note = $14
+         WHERE branch_id = $15 AND id = $16`,
+        [
+          finalCode, name, category, brand || null, salePrice, faceValue || null, validityDays,
+          allowedTypes ? allowedTypes.includes('product') : null,
+          allowedTypes ? allowedTypes.includes('service') : null,
+          allowedTypes ? allowedTypes.includes('package') : null,
+          active, imageUrl || null, description || null, note || null, branchId, id,
+        ],
+      );
+    }
+
+    // Cập nhật bảng giá mặc định
+    const pricebookId = await ensureDefaultPricebook(client, branchId);
+    await client.query(
+      `INSERT INTO pricebook_items (pricebook_id, item_type, item_id, sale_price)
+       VALUES ($1, $2, $3, $4)
+       ON CONFLICT (pricebook_id, item_type, item_id) DO UPDATE SET sale_price = EXCLUDED.sale_price, updated_at = NOW()`,
+      [pricebookId, type, id, salePrice],
+    );
+
+    await client.query('COMMIT');
+    return { itemId: number(id), itemType: type, code: finalCode, name, salePrice, active };
+  } catch (error) {
+    await client.query('ROLLBACK');
+    if (error.code === '23505') throw new HttpError(409, 'DUPLICATE_ITEM', 'Mã hàng hoặc mã vạch đã tồn tại');
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
 export async function listProducts({ branchId, search, type, category, stockStatus, status, page, pageSize, offset }) {
   const parameters = [branchId, search, type, category, stockStatus, status];
   const filters = `

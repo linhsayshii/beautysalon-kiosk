@@ -1,10 +1,42 @@
 import { Router } from 'express';
 import { domainOptions } from '../../domain-options.js';
 import { asyncRoute, HttpError, parseEnum, parseIsoDate, parsePagination, parsePositiveInteger } from '../../lib/http.js';
-import { createCustomer, getCustomer, getCustomerActivity, getCustomerPackage, listCustomerPackages, listCustomers } from './customers.service.js';
+import { createCustomer, getCustomer, getCustomerActivity, getCustomerPackage, listCustomerPackages, listCustomers, updateCustomer } from './customers.service.js';
 
 const router = Router();
 const text = (value, maximum = 160) => String(value ?? '').trim().slice(0, maximum);
+
+router.put('/:id', asyncRoute(async (request, response) => {
+  const branchId = request.account.branchId;
+  const id = parsePositiveInteger(request.params.id, 'id');
+  const name = text(request.body.name, 160);
+  if (!name) throw new HttpError(400, 'NAME_REQUIRED', 'Tên khách hàng không được để trống');
+  const code = text(request.body.code, 40);
+  const phone = text(request.body.phone, 30);
+  const dob = request.body.dob ? parseIsoDate(request.body.dob, 'dob') : null;
+  const gender = request.body.gender ? parseEnum(request.body.gender, 'gender', ['male', 'female', 'other', 'Nam', 'Nữ', 'Khác']) : null;
+  const email = text(request.body.email, 160);
+  const facebook = text(request.body.facebook, 255);
+  const customerGroup = text(request.body.customerGroup || request.body.group, 80);
+
+  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    throw new HttpError(400, 'INVALID_EMAIL', 'Email không đúng định dạng');
+  }
+
+  const data = await updateCustomer({
+    branchId,
+    id,
+    name,
+    code,
+    phone,
+    dob,
+    gender,
+    email,
+    facebook,
+    customerGroup,
+  });
+  response.json({ data });
+}));
 
 router.post('/', asyncRoute(async (request, response) => {
   const branchId = request.account.branchId;

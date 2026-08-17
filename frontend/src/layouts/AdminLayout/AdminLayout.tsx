@@ -13,6 +13,12 @@ export function AdminLayout() {
   const [showMobileBanner, setShowMobileBanner] = useState(false);
 
   useEffect(() => {
+    if (typeof window.scrollTo === 'function') {
+      window.scrollTo(0, 0);
+    }
+  }, [location.pathname, location.key]);
+
+  useEffect(() => {
     // If on a mobile device and user explicitly chose desktop, show a floating helper banner
     if (isMobileDevice()) {
       setShowMobileBanner(true);

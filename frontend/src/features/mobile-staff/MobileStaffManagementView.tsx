@@ -10,6 +10,7 @@ import {
   MobileFilterSheet,
   MobileDetailSheet,
   MobileEmptyState,
+  MobileSortDropdown,
 } from '@/features/mobile-common';
 import type { ApiRecord } from '@/types/api';
 import './mobile-staff.css';
@@ -34,8 +35,14 @@ export function MobileStaffManagementView() {
   const [isFilterOpen, setIsFilterOpen] = useState(false);
 
   // Sorting
-  const [sortBy, setSortBy] = useState<'name' | 'role'>('name');
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+  const [sortValue, setSortValue] = useState<string>('name_asc');
+
+  const sortOptions = [
+    { value: 'name_asc', label: 'Tên nhân viên: A → Z' },
+    { value: 'name_desc', label: 'Tên nhân viên: Z → A' },
+    { value: 'role_asc', label: 'Theo vai trò: A → Z' },
+    { value: 'role_desc', label: 'Theo vai trò: Z → A' },
+  ];
 
   // Detail Sheet & Create Sheet
   const [selectedStaff, setSelectedStaff] = useState<ApiRecord | null>(null);
@@ -114,19 +121,21 @@ export function MobileStaffManagementView() {
   // Sort rows
   const sortedStaff = useMemo(() => {
     return [...filteredStaff].sort((a, b) => {
-      if (sortBy === 'name') {
-        return sortOrder === 'desc'
-          ? String(b.name || '').localeCompare(String(a.name || ''))
-          : String(a.name || '').localeCompare(String(b.name || ''));
+      if (sortValue === 'name_asc') {
+        return String(a.name || '').localeCompare(String(b.name || ''));
       }
-      if (sortBy === 'role') {
-        return sortOrder === 'desc'
-          ? String(b.role || '').localeCompare(String(a.role || ''))
-          : String(a.role || '').localeCompare(String(b.role || ''));
+      if (sortValue === 'name_desc') {
+        return String(b.name || '').localeCompare(String(a.name || ''));
+      }
+      if (sortValue === 'role_asc') {
+        return String(a.role || '').localeCompare(String(b.role || ''));
+      }
+      if (sortValue === 'role_desc') {
+        return String(b.role || '').localeCompare(String(a.role || ''));
       }
       return 0;
     });
-  }, [filteredStaff, sortBy, sortOrder]);
+  }, [filteredStaff, sortValue]);
 
   // Group by Role
   const groupedSections = useMemo(() => {
@@ -164,20 +173,6 @@ export function MobileStaffManagementView() {
     setIsFilterOpen(true);
   };
 
-  const toggleSort = () => {
-    if (sortBy === 'name') {
-      if (sortOrder === 'asc') {
-        setSortOrder('desc');
-      } else {
-        setSortBy('role');
-        setSortOrder('asc');
-      }
-    } else {
-      setSortBy('name');
-      setSortOrder('asc');
-    }
-  };
-
   const handleCreateStaff = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newName.trim()) return;
@@ -209,20 +204,11 @@ export function MobileStaffManagementView() {
           <div className="mobile-staff-nav-actions">
             <button
               type="button"
-              className="mobile-staff-nav-btn"
+              className={`mobile-staff-nav-btn ${isSearchVisible ? 'is-active' : ''}`}
               onClick={() => setIsSearchVisible((prev) => !prev)}
               aria-label="Tìm kiếm"
             >
               <i className="ph ph-magnifying-glass" />
-            </button>
-            <button
-              type="button"
-              className="mobile-staff-nav-btn"
-              onClick={toggleSort}
-              aria-label="Sắp xếp"
-              title={`Sắp xếp: ${sortBy === 'name' ? 'Tên A → Z' : 'Vai trò'}`}
-            >
-              <i className="ph ph-arrows-down-up" />
             </button>
           </div>
         </div>
@@ -274,18 +260,13 @@ export function MobileStaffManagementView() {
           </button>
         </div>
 
-        {/* 3. Summary & Sort Bar */}
+        {/* 3. Summary & Sort Dropdown Bar */}
         <div className="mobile-staff-summary-sort-bar">
-          <button type="button" className="mobile-sort-select-chip" onClick={toggleSort}>
-            <span>
-              {sortBy === 'name'
-                ? sortOrder === 'asc'
-                  ? 'Tên A → Z'
-                  : 'Tên Z → A'
-                : 'Theo vai trò'}
-            </span>
-            <i className="ph ph-caret-down" />
-          </button>
+          <MobileSortDropdown
+            value={sortValue}
+            options={sortOptions}
+            onChange={setSortValue}
+          />
 
           <span className="mobile-summary-text">
             {sortedStaff.length} nhân viên · {workingCount} đang làm việc

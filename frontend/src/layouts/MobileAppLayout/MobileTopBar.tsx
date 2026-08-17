@@ -23,8 +23,9 @@ const SUBPAGE_CONFIG: Record<string, { title: string; backTo?: string; hideTopBa
   '/m/staff/payroll': { title: 'Bảng lương', backTo: '/m/more', hideTopBar: true },
   '/m/staff/commissions': { title: 'Hoa hồng nhân viên', backTo: '/m/more', hideTopBar: true },
   '/m/attendance/qr': { title: 'Mã QR Chấm công', backTo: '/m/more', hideTopBar: true },
-  '/m/invoices/new': { title: 'Tạo hóa đơn', backTo: '/m/pos' },
-  '/m/appointments/new': { title: 'Đặt lịch hẹn', backTo: '/m/appointments' },
+  '/m/invoices/new': { title: 'Tạo hóa đơn', backTo: '/m/pos', hideTopBar: true },
+  '/m/appointments/new': { title: 'Đặt lịch hẹn', backTo: '/m/appointments', hideTopBar: true },
+  '/m/account': { title: 'Cài đặt tài khoản', backTo: '/m/more', hideTopBar: true },
 };
 
 // Map of top-level tab routes

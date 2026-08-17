@@ -1,4 +1,4 @@
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
@@ -62,7 +62,7 @@ describe('MobileTopBar Component', () => {
     expect(screen.queryByTestId('mobile-topbar-title')).not.toBeInTheDocument();
   });
 
-  it('renders sub-page title for appointments/new and navs back', () => {
+  it('hides topbar for full-bleed subpages like /m/products and /m/appointments/new that have their own embedded header', () => {
     vi.spyOn(auth, 'useAuth').mockReturnValue({
       account: { id: 1, role: 'manager', displayName: 'Hằng', branchId: 1, branchName: 'Chi nhánh Quận 1', staffId: null, staffCode: null, phone: '', email: '', username: 'hang' },
       loading: false, login: vi.fn(), logout: vi.fn(), updateLocalAccount: vi.fn(), switchBranch: vi.fn(),
@@ -81,10 +81,7 @@ describe('MobileTopBar Component', () => {
       </QueryClientProvider>
     );
 
-    expect(screen.getByTestId('mobile-topbar-title')).toHaveTextContent('Đặt lịch hẹn');
-    const backBtn = screen.getByTestId('mobile-topbar-back-btn');
-    fireEvent.click(backBtn);
-    expect(screen.getByText('Appointments List')).toBeInTheDocument();
+    expect(screen.queryByTestId('mobile-topbar-title')).not.toBeInTheDocument();
   });
 
   it('renders sub-page title and navigation for all configured subpages', () => {
@@ -95,7 +92,6 @@ describe('MobileTopBar Component', () => {
 
     const subpageTestCases = [
       { path: '/m/purchase-orders/new', expectedTitle: 'Tạo phiếu nhập' },
-      { path: '/m/invoices/new', expectedTitle: 'Tạo hóa đơn' },
     ];
 
     for (const { path, expectedTitle } of subpageTestCases) {
