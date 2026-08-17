@@ -8,17 +8,29 @@
   padding-bottom: 72px; /* space for sticky cart bar */
   box-sizing: border-box;
 }
+
+/* Sticky Top Controls Cluster */
+.mobile-pos-sticky-top-controls {
+  position: sticky;
+  top: -12px; /* offset for container padding */
+  z-index: 25;
+  background: var(--canvas, #f8fafc);
+  margin: -12px -14px 0;
+  padding: 10px 14px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  border-bottom: 1px solid var(--line, #e2e8f0);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
 /* Top Search Header */
 .mobile-pos-header {
   display: flex;
   align-items: center;
   gap: 8px;
-  position: sticky;
-  top: 0;
-  background: var(--canvas, #f8fafc);
-  z-index: 10;
-  padding: 4px 0 8px;
 }
+
 .mobile-pos-search-wrapper {
   flex: 1;
   position: relative;

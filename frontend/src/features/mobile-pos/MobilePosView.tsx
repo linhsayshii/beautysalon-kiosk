@@ -138,75 +138,78 @@ export function MobilePosView() {
 
   return (
     <div className="mobile-pos-container">
-      {/* Top Search & Actions */}
-      <div className="mobile-pos-header">
-        <div className="mobile-pos-search-wrapper">
-          <i className="ph ph-magnifying-glass search-icon" />
-          <input
-            type="text"
-            className="mobile-pos-search-input"
-            placeholder="Tìm hàng hóa"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
-          {search && (
-            <button
-              type="button"
-              className="mobile-pos-search-clear"
-              onClick={() => setSearch('')}
-              aria-label="Xóa tìm kiếm"
-            >
-              <i className="ph ph-x" />
+      {/* Sticky Top Controls Cluster */}
+      <div className="mobile-pos-sticky-top-controls">
+        {/* Top Search & Actions */}
+        <div className="mobile-pos-header">
+          <div className="mobile-pos-search-wrapper">
+            <i className="ph ph-magnifying-glass search-icon" />
+            <input
+              type="text"
+              className="mobile-pos-search-input"
+              placeholder="Tìm hàng hóa"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+            {search && (
+              <button
+                type="button"
+                className="mobile-pos-search-clear"
+                onClick={() => setSearch('')}
+                aria-label="Xóa tìm kiếm"
+              >
+                <i className="ph ph-x" />
+              </button>
+            )}
+          </div>
+
+          <div className="mobile-pos-header-actions">
+            <button type="button" className="mobile-pos-icon-btn" title="Sắp xếp" aria-label="Sắp xếp">
+              <i className="ph ph-arrows-down-up" />
             </button>
-          )}
+            <button type="button" className="mobile-pos-icon-btn" title="Chuyển đổi giao diện" aria-label="Chuyển đổi giao diện">
+              <i className="ph ph-squares-four" />
+            </button>
+          </div>
         </div>
 
-        <div className="mobile-pos-header-actions">
-          <button type="button" className="mobile-pos-icon-btn" title="Sắp xếp" aria-label="Sắp xếp">
-            <i className="ph ph-arrows-down-up" />
-          </button>
-          <button type="button" className="mobile-pos-icon-btn" title="Chuyển đổi giao diện" aria-label="Chuyển đổi giao diện">
-            <i className="ph ph-squares-four" />
-          </button>
+        {/* Category Filter Horizontal Tabs */}
+        <div className="mobile-pos-category-tabs">
+          {filterTabs.map((tab) => (
+            <button
+              key={tab.value}
+              type="button"
+              className={`mobile-pos-tab-pill ${activeTab === tab.value ? 'is-active' : ''}`}
+              onClick={() => {
+                setActiveTab(tab.value);
+                setSelectedSubCategory('');
+              }}
+            >
+              {tab.label}
+            </button>
+          ))}
         </div>
-      </div>
 
-      {/* Category Filter Horizontal Tabs */}
-      <div className="mobile-pos-category-tabs">
-        {filterTabs.map((tab) => (
-          <button
-            key={tab.value}
-            type="button"
-            className={`mobile-pos-tab-pill ${activeTab === tab.value ? 'is-active' : ''}`}
-            onClick={() => {
-              setActiveTab(tab.value);
-              setSelectedSubCategory('');
-            }}
-          >
-            {tab.label}
-          </button>
-        ))}
-      </div>
-
-      {/* Subcategory dropdown / pill */}
-      <div className="mobile-pos-filter-row">
-        <div className="mobile-pos-subcat-select">
-          <i className="ph ph-funnel" />
-          <select
-            value={selectedSubCategory}
-            onChange={(e) => setSelectedSubCategory(e.target.value)}
-          >
-            <option value="">Tất cả nhóm hàng ▼</option>
-            {subCategories.map((cat) => (
-              <option key={cat} value={cat}>
-                {cat}
-              </option>
-            ))}
-          </select>
+        {/* Subcategory dropdown / pill */}
+        <div className="mobile-pos-filter-row">
+          <div className="mobile-pos-subcat-select">
+            <i className="ph ph-funnel" />
+            <select
+              value={selectedSubCategory}
+              onChange={(e) => setSelectedSubCategory(e.target.value)}
+            >
+              <option value="">Tất cả nhóm hàng ▼</option>
+              {subCategories.map((cat) => (
+                <option key={cat} value={cat}>
+                  {cat}
+                </option>
+              ))}
+            </select>
+          </div>
+          <span style={{ fontSize: 12, color: 'var(--ink-500)' }}>
+            {filteredItems.length} mặt hàng
+          </span>
         </div>
-        <span style={{ fontSize: 12, color: 'var(--ink-500)' }}>
-          {filteredItems.length} mặt hàng
-        </span>
       </div>
 
       {/* Grouped Items List */}

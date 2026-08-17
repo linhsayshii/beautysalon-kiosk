@@ -50,23 +50,26 @@ export function MobileStaffScheduleView() {
 
   return (
     <div className="mobile-staff-container">
-      <div className="mobile-staff-header">
-        <h1>Lịch làm việc của tôi</h1>
-      </div>
+      {/* Sticky Top Cluster for Schedule */}
+      <div className="mobile-schedule-sticky-header">
+        <div className="mobile-staff-header">
+          <h1>Lịch làm việc của tôi</h1>
+        </div>
 
-      {/* Week Day Strip */}
-      <div className="schedule-week-strip">
-        {weekDays.map((day) => (
-          <div
-            key={day.iso}
-            className={`schedule-day-item ${day.iso === selectedDateIso ? 'selected' : ''} ${day.isToday ? 'today' : ''}`}
-            onClick={() => setSelectedDateIso(day.iso)}
-          >
-            <div className="schedule-day-name">{day.name}</div>
-            <div className="schedule-day-num">{day.date}</div>
-            {day.isToday && <div className="schedule-day-dot" />}
-          </div>
-        ))}
+        {/* Week Day Strip */}
+        <div className="schedule-week-strip">
+          {weekDays.map((day) => (
+            <div
+              key={day.iso}
+              className={`schedule-day-item ${day.iso === selectedDateIso ? 'selected' : ''} ${day.isToday ? 'today' : ''}`}
+              onClick={() => setSelectedDateIso(day.iso)}
+            >
+              <div className="schedule-day-name">{day.name}</div>
+              <div className="schedule-day-num">{day.date}</div>
+              {day.isToday && <div className="schedule-day-dot" />}
+            </div>
+          ))}
+        </div>
       </div>
 
       {/* Shifts on selected day */}

@@ -190,104 +190,107 @@ export function MobileStaffManagementView() {
 
   return (
     <div className="mobile-staff-view">
-      {/* 1. Header Top Navigation */}
-      <div className="mobile-staff-top-nav">
-        <div className="mobile-staff-nav-left">
-          <button
-            type="button"
-            className="mobile-staff-back-icon"
-            onClick={() => navigate('/m/more')}
-            aria-label="Quay lại"
-          >
-            <i className="ph ph-caret-left" />
-          </button>
-          <h1 className="mobile-staff-nav-title">Nhân viên & Ca làm</h1>
+      {/* Sticky Top Cluster for Staff Management */}
+      <div className="mobile-staff-sticky-header-cluster">
+        {/* 1. Header Top Navigation */}
+        <div className="mobile-staff-top-nav">
+          <div className="mobile-staff-nav-left">
+            <button
+              type="button"
+              className="mobile-staff-back-icon"
+              onClick={() => navigate('/m/more')}
+              aria-label="Quay lại"
+            >
+              <i className="ph ph-caret-left" />
+            </button>
+            <h1 className="mobile-staff-nav-title">Nhân viên & Ca làm</h1>
+          </div>
+
+          <div className="mobile-staff-nav-actions">
+            <button
+              type="button"
+              className="mobile-staff-nav-btn"
+              onClick={() => setIsSearchVisible((prev) => !prev)}
+              aria-label="Tìm kiếm"
+            >
+              <i className="ph ph-magnifying-glass" />
+            </button>
+            <button
+              type="button"
+              className="mobile-staff-nav-btn"
+              onClick={toggleSort}
+              aria-label="Sắp xếp"
+              title={`Sắp xếp: ${sortBy === 'name' ? 'Tên A → Z' : 'Vai trò'}`}
+            >
+              <i className="ph ph-arrows-down-up" />
+            </button>
+          </div>
         </div>
 
-        <div className="mobile-staff-nav-actions">
+        {/* Inline Search Bar */}
+        {isSearchVisible && (
+          <div className="mobile-staff-search-bar-wrap">
+            <MobileSearchBar
+              value={search}
+              onChange={setSearch}
+              placeholder="Tìm tên nhân viên, mã, SĐT..."
+            />
+          </div>
+        )}
+
+        {/* 2. Filter Strip */}
+        <div className="mobile-staff-filter-strip">
           <button
             type="button"
-            className="mobile-staff-nav-btn"
-            onClick={() => setIsSearchVisible((prev) => !prev)}
-            aria-label="Tìm kiếm"
+            className="mobile-filter-icon-btn"
+            onClick={openFilterSheet}
+            aria-label="Bộ lọc nâng cao"
           >
-            <i className="ph ph-magnifying-glass" />
+            <i className="ph ph-sliders-horizontal" />
           </button>
+
           <button
             type="button"
-            className="mobile-staff-nav-btn"
-            onClick={toggleSort}
-            aria-label="Sắp xếp"
-            title={`Sắp xếp: ${sortBy === 'name' ? 'Tên A → Z' : 'Vai trò'}`}
+            className={`mobile-filter-chip ${roleFilter ? 'is-active' : ''}`}
+            onClick={openFilterSheet}
           >
-            <i className="ph ph-arrows-down-up" />
+            <span>{roleFilter || 'Tất cả vai trò'}</span>
+            <i className="ph ph-caret-down" />
+          </button>
+
+          <button
+            type="button"
+            className={`mobile-filter-chip ${statusFilter !== 'all' ? 'is-active' : ''}`}
+            onClick={openFilterSheet}
+          >
+            <span>
+              {statusFilter === 'working'
+                ? 'Đang làm việc'
+                : statusFilter === 'off'
+                ? 'Chưa vào ca'
+                : 'Trạng thái làm việc'}
+            </span>
+            <i className="ph ph-caret-down" />
           </button>
         </div>
-      </div>
 
-      {/* Inline Search Bar */}
-      {isSearchVisible && (
-        <div className="mobile-staff-search-bar-wrap">
-          <MobileSearchBar
-            value={search}
-            onChange={setSearch}
-            placeholder="Tìm tên nhân viên, mã, SĐT..."
-          />
-        </div>
-      )}
+        {/* 3. Summary & Sort Bar */}
+        <div className="mobile-staff-summary-sort-bar">
+          <button type="button" className="mobile-sort-select-chip" onClick={toggleSort}>
+            <span>
+              {sortBy === 'name'
+                ? sortOrder === 'asc'
+                  ? 'Tên A → Z'
+                  : 'Tên Z → A'
+                : 'Theo vai trò'}
+            </span>
+            <i className="ph ph-caret-down" />
+          </button>
 
-      {/* 2. Filter Strip */}
-      <div className="mobile-staff-filter-strip">
-        <button
-          type="button"
-          className="mobile-filter-icon-btn"
-          onClick={openFilterSheet}
-          aria-label="Bộ lọc nâng cao"
-        >
-          <i className="ph ph-sliders-horizontal" />
-        </button>
-
-        <button
-          type="button"
-          className={`mobile-filter-chip ${roleFilter ? 'is-active' : ''}`}
-          onClick={openFilterSheet}
-        >
-          <span>{roleFilter || 'Tất cả vai trò'}</span>
-          <i className="ph ph-caret-down" />
-        </button>
-
-        <button
-          type="button"
-          className={`mobile-filter-chip ${statusFilter !== 'all' ? 'is-active' : ''}`}
-          onClick={openFilterSheet}
-        >
-          <span>
-            {statusFilter === 'working'
-              ? 'Đang làm việc'
-              : statusFilter === 'off'
-              ? 'Chưa vào ca'
-              : 'Trạng thái làm việc'}
+          <span className="mobile-summary-text">
+            {sortedStaff.length} nhân viên · {workingCount} đang làm việc
           </span>
-          <i className="ph ph-caret-down" />
-        </button>
-      </div>
-
-      {/* 3. Summary & Sort Bar */}
-      <div className="mobile-staff-summary-sort-bar">
-        <button type="button" className="mobile-sort-select-chip" onClick={toggleSort}>
-          <span>
-            {sortBy === 'name'
-              ? sortOrder === 'asc'
-                ? 'Tên A → Z'
-                : 'Tên Z → A'
-              : 'Theo vai trò'}
-          </span>
-          <i className="ph ph-caret-down" />
-        </button>
-
-        <span className="mobile-summary-text">
-          {sortedStaff.length} nhân viên · {workingCount} đang làm việc
-        </span>
+        </div>
       </div>
 
       {/* 4. Grouped Sections */}

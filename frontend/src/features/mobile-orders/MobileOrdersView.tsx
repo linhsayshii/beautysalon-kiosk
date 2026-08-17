@@ -228,115 +228,118 @@ export function MobileOrdersView() {
 
   return (
     <div className="mobile-orders-view">
-      {/* 1. Header Toolbar */}
-      <div className="mobile-orders-top-nav">
-        <div className="mobile-orders-nav-left">
-          <button
-            type="button"
-            className="mobile-orders-back-icon"
-            onClick={() => navigate('/m/more')}
-            aria-label="Quay lại"
-          >
-            <i className="ph ph-caret-left" />
-          </button>
-          <h1 className="mobile-orders-nav-title">Đơn hàng</h1>
+      {/* Sticky Top Cluster */}
+      <div className="mobile-orders-sticky-header-cluster">
+        {/* 1. Header Toolbar */}
+        <div className="mobile-orders-top-nav">
+          <div className="mobile-orders-nav-left">
+            <button
+              type="button"
+              className="mobile-orders-back-icon"
+              onClick={() => navigate('/m/more')}
+              aria-label="Quay lại"
+            >
+              <i className="ph ph-caret-left" />
+            </button>
+            <h1 className="mobile-orders-nav-title">Đơn hàng</h1>
+          </div>
+
+          <div className="mobile-orders-nav-actions">
+            <button
+              type="button"
+              className="mobile-orders-nav-btn"
+              onClick={() => setIsSearchVisible((prev) => !prev)}
+              aria-label="Tìm kiếm"
+            >
+              <i className="ph ph-magnifying-glass" />
+            </button>
+            <button
+              type="button"
+              className="mobile-orders-nav-btn"
+              onClick={toggleSort}
+              aria-label="Sắp xếp"
+              title={`Sắp xếp: ${
+                sortBy === 'date'
+                  ? `Thời gian ${sortOrder === 'desc' ? 'mới nhất' : 'cũ nhất'}`
+                  : sortBy === 'total'
+                  ? `Giá trị ${sortOrder === 'desc' ? 'cao → thấp' : 'thấp → cao'}`
+                  : `Mã đơn ${sortOrder === 'asc' ? 'A → Z' : 'Z → A'}`
+              }`}
+            >
+              <i className="ph ph-arrows-down-up" />
+            </button>
+          </div>
         </div>
 
-        <div className="mobile-orders-nav-actions">
+        {/* Inline Search Bar */}
+        {isSearchVisible && (
+          <div className="mobile-orders-search-bar-wrap">
+            <MobileSearchBar
+              value={search}
+              placeholder="Tìm theo mã đơn, khách hàng, số điện thoại..."
+              onChange={setSearch}
+            />
+          </div>
+        )}
+
+        {/* 2. Filter Strip */}
+        <div className="mobile-orders-filter-strip">
           <button
             type="button"
-            className="mobile-orders-nav-btn"
-            onClick={() => setIsSearchVisible((prev) => !prev)}
-            aria-label="Tìm kiếm"
+            className="mobile-orders-filter-icon-btn"
+            onClick={openFilterSheet}
+            aria-label="Mở bộ lọc"
           >
-            <i className="ph ph-magnifying-glass" />
+            <i className="ph ph-faders" />
           </button>
+
+          {/* Date Preset Chip */}
           <button
             type="button"
-            className="mobile-orders-nav-btn"
-            onClick={toggleSort}
-            aria-label="Sắp xếp"
-            title={`Sắp xếp: ${
-              sortBy === 'date'
-                ? `Thời gian ${sortOrder === 'desc' ? 'mới nhất' : 'cũ nhất'}`
+            className={`mobile-orders-filter-chip ${datePreset !== 'all' ? 'is-active' : ''}`}
+            onClick={openFilterSheet}
+          >
+            <span>Khoảng ngày: {getDatePresetLabel(datePreset)}</span>
+            <i className="ph ph-caret-down" />
+          </button>
+
+          {/* Status Filter Chip */}
+          <button
+            type="button"
+            className={`mobile-orders-filter-chip ${statusFilter ? 'is-active' : ''}`}
+            onClick={openFilterSheet}
+          >
+            <span>Trạng thái: {statusLabels[statusFilter] || 'Tất cả'}</span>
+            <i className="ph ph-caret-down" />
+          </button>
+
+          {/* Sales Channel Filter Chip */}
+          <button
+            type="button"
+            className={`mobile-orders-filter-chip ${channelFilter ? 'is-active' : ''}`}
+            onClick={openFilterSheet}
+          >
+            <span>Kênh bán: {salesChannelLabels[channelFilter] || 'Tất cả'}</span>
+            <i className="ph ph-caret-down" />
+          </button>
+        </div>
+
+        {/* 3. Summary & Sort Bar */}
+        <div className="mobile-orders-summary-bar">
+          <button type="button" className="mobile-orders-sort-selector" onClick={toggleSort}>
+            <span>
+              {sortBy === 'date'
+                ? `Thời gian: ${sortOrder === 'desc' ? 'Mới nhất' : 'Cũ nhất'}`
                 : sortBy === 'total'
-                ? `Giá trị ${sortOrder === 'desc' ? 'cao → thấp' : 'thấp → cao'}`
-                : `Mã đơn ${sortOrder === 'asc' ? 'A → Z' : 'Z → A'}`
-            }`}
-          >
-            <i className="ph ph-arrows-down-up" />
+                ? `Giá trị: ${sortOrder === 'desc' ? 'Cao → thấp' : 'Thấp → cao'}`
+                : `Mã đơn: ${sortOrder === 'asc' ? 'A → Z' : 'Z → A'}`}
+            </span>
+            <i className="ph ph-caret-down" />
           </button>
-        </div>
-      </div>
 
-      {/* Inline Search Bar */}
-      {isSearchVisible && (
-        <div className="mobile-orders-search-bar-wrap">
-          <MobileSearchBar
-            value={search}
-            placeholder="Tìm theo mã đơn, khách hàng, số điện thoại..."
-            onChange={setSearch}
-          />
-        </div>
-      )}
-
-      {/* 2. Filter Strip */}
-      <div className="mobile-orders-filter-strip">
-        <button
-          type="button"
-          className="mobile-orders-filter-icon-btn"
-          onClick={openFilterSheet}
-          aria-label="Mở bộ lọc"
-        >
-          <i className="ph ph-faders" />
-        </button>
-
-        {/* Date Preset Chip */}
-        <button
-          type="button"
-          className={`mobile-orders-filter-chip ${datePreset !== 'all' ? 'is-active' : ''}`}
-          onClick={openFilterSheet}
-        >
-          <span>Khoảng ngày: {getDatePresetLabel(datePreset)}</span>
-          <i className="ph ph-caret-down" />
-        </button>
-
-        {/* Status Filter Chip */}
-        <button
-          type="button"
-          className={`mobile-orders-filter-chip ${statusFilter ? 'is-active' : ''}`}
-          onClick={openFilterSheet}
-        >
-          <span>Trạng thái: {statusLabels[statusFilter] || 'Tất cả'}</span>
-          <i className="ph ph-caret-down" />
-        </button>
-
-        {/* Sales Channel Filter Chip */}
-        <button
-          type="button"
-          className={`mobile-orders-filter-chip ${channelFilter ? 'is-active' : ''}`}
-          onClick={openFilterSheet}
-        >
-          <span>Kênh bán: {salesChannelLabels[channelFilter] || 'Tất cả'}</span>
-          <i className="ph ph-caret-down" />
-        </button>
-      </div>
-
-      {/* 3. Summary & Sort Bar */}
-      <div className="mobile-orders-summary-bar">
-        <button type="button" className="mobile-orders-sort-selector" onClick={toggleSort}>
-          <span>
-            {sortBy === 'date'
-              ? `Thời gian: ${sortOrder === 'desc' ? 'Mới nhất' : 'Cũ nhất'}`
-              : sortBy === 'total'
-              ? `Giá trị: ${sortOrder === 'desc' ? 'Cao → thấp' : 'Thấp → cao'}`
-              : `Mã đơn: ${sortOrder === 'asc' ? 'A → Z' : 'Z → A'}`}
-          </span>
-          <i className="ph ph-caret-down" />
-        </button>
-
-        <div className="mobile-orders-count-summary">
-          {rawRows.length} đơn hàng · Doanh thu: {formatMoney(totalRevenueSum)}
+          <div className="mobile-orders-count-summary">
+            {rawRows.length} đơn hàng · Doanh thu: {formatMoney(totalRevenueSum)}
+          </div>
         </div>
       </div>
 
