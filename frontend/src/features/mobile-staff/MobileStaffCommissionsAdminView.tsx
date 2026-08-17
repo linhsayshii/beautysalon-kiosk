@@ -92,73 +92,76 @@ export function MobileStaffCommissionsAdminView() {
 
   return (
     <div className="mobile-staff-view">
-      {/* 1. Header Top Navigation */}
-      <div className="mobile-staff-top-nav">
-        <div className="mobile-staff-nav-left">
+      {/* Sticky Top Header Cluster */}
+      <div className="mobile-staff-sticky-header-cluster">
+        {/* 1. Header Top Navigation */}
+        <div className="mobile-staff-top-nav">
+          <div className="mobile-staff-nav-left">
+            <button
+              type="button"
+              className="mobile-staff-back-icon"
+              onClick={() => navigate('/m/more')}
+              aria-label="Quay lại"
+            >
+              <i className="ph ph-caret-left" />
+            </button>
+            <h1 className="mobile-staff-nav-title">Bảng hoa hồng</h1>
+          </div>
+
+          <div className="mobile-staff-nav-actions">
+            <button
+              type="button"
+              className="mobile-staff-nav-btn"
+              onClick={() => setIsSearchVisible((prev) => !prev)}
+              aria-label="Tìm kiếm"
+            >
+              <i className="ph ph-magnifying-glass" />
+            </button>
+          </div>
+        </div>
+
+        {/* Inline Search Bar */}
+        {isSearchVisible && (
+          <div className="mobile-staff-search-bar-wrap">
+            <MobileSearchBar
+              value={search}
+              onChange={setSearch}
+              placeholder="Tìm theo nhân viên, dịch vụ, hóa đơn..."
+            />
+          </div>
+        )}
+
+        {/* Underline Tab Navigation */}
+        <div className="mobile-staff-underline-tabs">
           <button
             type="button"
-            className="mobile-staff-back-icon"
-            onClick={() => navigate('/m/more')}
-            aria-label="Quay lại"
+            role="tab"
+            aria-selected={activeTab === 'by_staff'}
+            className={`mobile-staff-underline-tab ${activeTab === 'by_staff' ? 'is-active' : ''}`}
+            onClick={() => setActiveTab('by_staff')}
           >
-            <i className="ph ph-caret-left" />
+            Theo nhân viên
           </button>
-          <h1 className="mobile-staff-nav-title">Bảng hoa hồng</h1>
-        </div>
-
-        <div className="mobile-staff-nav-actions">
           <button
             type="button"
-            className="mobile-staff-nav-btn"
-            onClick={() => setIsSearchVisible((prev) => !prev)}
-            aria-label="Tìm kiếm"
+            role="tab"
+            aria-selected={activeTab === 'details'}
+            className={`mobile-staff-underline-tab ${activeTab === 'details' ? 'is-active' : ''}`}
+            onClick={() => setActiveTab('details')}
           >
-            <i className="ph ph-magnifying-glass" />
+            Chi tiết giao dịch
           </button>
         </div>
-      </div>
 
-      {/* Inline Search Bar */}
-      {isSearchVisible && (
-        <div className="mobile-staff-search-bar-wrap">
-          <MobileSearchBar
-            value={search}
-            onChange={setSearch}
-            placeholder="Tìm theo nhân viên, dịch vụ, hóa đơn..."
-          />
+        {/* Summary Bar */}
+        <div className="mobile-staff-summary-sort-bar">
+          <span className="mobile-sort-select-chip">
+            <span>Tháng này</span>
+          </span>
+          <span className="mobile-summary-text">
+            {activeTab === 'by_staff' ? `${filteredByStaff.length} nhân viên` : `${filteredRows.length} giao dịch`} · Tổng: <strong>{formatMoney(totalCommissions)}</strong>
+          </span>
         </div>
-      )}
-
-      {/* Underline Tab Navigation */}
-      <div className="mobile-staff-underline-tabs">
-        <button
-          type="button"
-          role="tab"
-          aria-selected={activeTab === 'by_staff'}
-          className={`mobile-staff-underline-tab ${activeTab === 'by_staff' ? 'is-active' : ''}`}
-          onClick={() => setActiveTab('by_staff')}
-        >
-          Theo nhân viên
-        </button>
-        <button
-          type="button"
-          role="tab"
-          aria-selected={activeTab === 'details'}
-          className={`mobile-staff-underline-tab ${activeTab === 'details' ? 'is-active' : ''}`}
-          onClick={() => setActiveTab('details')}
-        >
-          Chi tiết giao dịch
-        </button>
-      </div>
-
-      {/* Summary Bar */}
-      <div className="mobile-staff-summary-sort-bar">
-        <span className="mobile-sort-select-chip">
-          <span>Tháng này</span>
-        </span>
-        <span className="mobile-summary-text">
-          Tổng hoa hồng: <strong>{formatMoney(totalCommissions)}</strong>
-        </span>
       </div>
 
       {/* Tab 1: Grouped list by Role showing individual staff commission */}

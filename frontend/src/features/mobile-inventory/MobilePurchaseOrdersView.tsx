@@ -192,105 +192,93 @@ export function MobilePurchaseOrdersView() {
 
   return (
     <div className="mobile-inventory-view">
-      {/* 1. Header Top Navigation */}
-      <div className="mobile-inventory-top-nav">
-        <div className="mobile-inventory-nav-left">
-          <button
-            type="button"
-            className="mobile-inventory-back-icon"
-            onClick={() => navigate('/m/more')}
-            aria-label="Quay lại"
-          >
-            <i className="ph ph-caret-left" />
-          </button>
-          <h1 className="mobile-inventory-nav-title">Nhập hàng</h1>
+      {/* Sticky Top Cluster */}
+      <div className="mobile-inventory-sticky-header-cluster">
+        {/* 1. Header Top Navigation */}
+        <div className="mobile-inventory-top-nav">
+          <div className="mobile-inventory-nav-left">
+            <button
+              type="button"
+              className="mobile-inventory-back-icon"
+              onClick={() => navigate('/m/more')}
+              aria-label="Quay lại"
+            >
+              <i className="ph ph-caret-left" />
+            </button>
+            <h1 className="mobile-inventory-nav-title">Nhập hàng</h1>
+          </div>
+
+          <div className="mobile-inventory-nav-actions">
+            <button
+              type="button"
+              className="mobile-inventory-nav-btn"
+              onClick={() => setIsSearchVisible((prev) => !prev)}
+              aria-label="Tìm kiếm"
+            >
+              <i className="ph ph-magnifying-glass" />
+            </button>
+          </div>
         </div>
 
-        <div className="mobile-inventory-nav-actions">
+        {/* Inline Search Bar */}
+        {isSearchVisible && (
+          <div className="mobile-inventory-search-bar-wrap">
+            <MobileSearchBar
+              value={search}
+              placeholder="Tìm theo mã phiếu, nhà cung cấp..."
+              onChange={setSearch}
+            />
+          </div>
+        )}
+
+        {/* 2. Filter Strip */}
+        <div className="mobile-inventory-filter-strip">
           <button
             type="button"
-            className="mobile-inventory-nav-btn"
-            onClick={() => setIsSearchVisible((prev) => !prev)}
-            aria-label="Tìm kiếm"
+            className="mobile-filter-icon-btn"
+            onClick={openFilterSheet}
+            aria-label="Mở bộ lọc"
           >
-            <i className="ph ph-magnifying-glass" />
+            <i className="ph ph-faders" />
           </button>
+
+          {/* Date Preset Chip */}
           <button
             type="button"
-            className="mobile-inventory-nav-btn"
-            onClick={toggleSort}
-            aria-label="Sắp xếp"
-            title={`Sắp xếp: ${
-              sortBy === 'date'
+            className={`mobile-filter-chip ${datePreset !== 'this_month' ? 'is-active' : ''}`}
+            onClick={openFilterSheet}
+          >
+            <span>Khoảng ngày: {getDatePresetLabel(datePreset)}</span>
+            <i className="ph ph-caret-down" />
+          </button>
+
+          {/* Status Filter Chip */}
+          <button
+            type="button"
+            className={`mobile-filter-chip ${statusFilter ? 'is-active' : ''}`}
+            onClick={openFilterSheet}
+          >
+            <span>Trạng thái: {statusFilter === 'completed' ? 'Đã nhập hàng' : statusFilter === 'draft' ? 'Phiếu tạm' : 'Tất cả'}</span>
+            <i className="ph ph-caret-down" />
+          </button>
+        </div>
+
+        {/* 3. Summary & Sort Bar */}
+        <div className="mobile-inventory-summary-bar">
+          <button type="button" className="mobile-inventory-sort-selector" onClick={toggleSort}>
+            <span>
+              {sortBy === 'date'
                 ? `Thời gian ${sortOrder === 'desc' ? 'mới nhất' : 'cũ nhất'}`
                 : sortBy === 'total'
-                ? `Cần trả ${sortOrder === 'desc' ? 'cao → thấp' : 'thấp → cao'}`
-                : `Mã phiếu ${sortOrder === 'asc' ? 'A → Z' : 'Z → A'}`
-            }`}
-          >
-            <i className="ph ph-arrows-down-up" />
+                ? `Giá trị ${sortOrder === 'desc' ? 'cao → thấp' : 'thấp → cao'}`
+                : `Mã phiếu ${sortOrder === 'asc' ? 'A → Z' : 'Z → A'}`}
+            </span>
+            <i className="ph ph-caret-down" />
           </button>
-        </div>
-      </div>
 
-      {/* Inline Search Bar */}
-      {isSearchVisible && (
-        <div className="mobile-inventory-search-bar-wrap">
-          <MobileSearchBar
-            value={search}
-            placeholder="Tìm theo mã phiếu, nhà cung cấp..."
-            onChange={setSearch}
-          />
-        </div>
-      )}
-
-      {/* 2. Filter Strip */}
-      <div className="mobile-inventory-filter-strip">
-        <button
-          type="button"
-          className="mobile-filter-icon-btn"
-          onClick={openFilterSheet}
-          aria-label="Mở bộ lọc"
-        >
-          <i className="ph ph-faders" />
-        </button>
-
-        {/* Date Preset Chip */}
-        <button
-          type="button"
-          className={`mobile-filter-chip ${datePreset !== 'this_month' ? 'is-active' : ''}`}
-          onClick={openFilterSheet}
-        >
-          <span>Khoảng ngày: {getDatePresetLabel(datePreset)}</span>
-          <i className="ph ph-caret-down" />
-        </button>
-
-        {/* Status Filter Chip */}
-        <button
-          type="button"
-          className={`mobile-filter-chip ${statusFilter ? 'is-active' : ''}`}
-          onClick={openFilterSheet}
-        >
-          <span>Trạng thái: {statusFilter === 'completed' ? 'Đã nhập hàng' : statusFilter === 'draft' ? 'Phiếu tạm' : 'Tất cả'}</span>
-          <i className="ph ph-caret-down" />
-        </button>
-      </div>
-
-      {/* 3. Summary & Sort Bar */}
-      <div className="mobile-inventory-summary-bar">
-        <button type="button" className="mobile-inventory-sort-selector" onClick={toggleSort}>
-          <span>
-            {sortBy === 'date'
-              ? `${sortOrder === 'desc' ? 'Mới nhất' : 'Cũ nhất'}`
-              : sortBy === 'total'
-              ? `Cần trả: ${sortOrder === 'desc' ? 'Cao → thấp' : 'Thấp → cao'}`
-              : `Mã phiếu: ${sortOrder === 'asc' ? 'A → Z' : 'Z → A'}`}
-          </span>
-          <i className="ph ph-caret-down" />
-        </button>
-
-        <div className="mobile-inventory-count-summary">
-          {rawRows.length} phiếu nhập · Cần trả: {formatMoney(totalAmountDueSum)}
+          <div className="mobile-inventory-count-summary">
+            {rawRows.length} phiếu nhập · Cần trả: {formatMoney(totalAmountDueSum)}
+          </div>
         </div>
       </div>
 

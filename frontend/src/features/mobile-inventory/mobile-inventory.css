@@ -9,6 +9,16 @@
   box-sizing: border-box;
 }
 
+/* Sticky Top Header Cluster for Inventory Views */
+.mobile-inventory-sticky-header-cluster {
+  position: sticky;
+  top: -12px;
+  z-index: 30;
+  background: #ffffff;
+  margin: -12px -14px 0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
 /* 1. Header Toolbar */
 .mobile-inventory-top-nav {
   display: flex;
@@ -17,9 +27,6 @@
   padding: 12px 16px;
   background: #ffffff;
   border-bottom: 1px solid #e5e9f0;
-  position: sticky;
-  top: 0;
-  z-index: 25;
 }
 
 .mobile-inventory-nav-left {

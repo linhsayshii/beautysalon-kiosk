@@ -155,99 +155,102 @@ export function MobileStaffAttendanceAdminView() {
 
   return (
     <div className="mobile-staff-view">
-      {/* 1. Header Top Navigation */}
-      <div className="mobile-staff-top-nav">
-        <div className="mobile-staff-nav-left">
-          <button
-            type="button"
-            className="mobile-staff-back-icon"
-            onClick={() => navigate('/m/more')}
-            aria-label="Quay lại"
-          >
-            <i className="ph ph-caret-left" />
-          </button>
-          <h1 className="mobile-staff-nav-title">Bảng chấm công</h1>
+      {/* Sticky Top Header Cluster */}
+      <div className="mobile-staff-sticky-header-cluster">
+        {/* 1. Header Top Navigation */}
+        <div className="mobile-staff-top-nav">
+          <div className="mobile-staff-nav-left">
+            <button
+              type="button"
+              className="mobile-staff-back-icon"
+              onClick={() => navigate('/m/more')}
+              aria-label="Quay lại"
+            >
+              <i className="ph ph-caret-left" />
+            </button>
+            <h1 className="mobile-staff-nav-title">Bảng chấm công</h1>
+          </div>
+
+          <div className="mobile-staff-nav-actions">
+            <button
+              type="button"
+              className="mobile-staff-nav-btn"
+              onClick={() => setIsSearchVisible((prev) => !prev)}
+              aria-label="Tìm kiếm"
+            >
+              <i className="ph ph-magnifying-glass" />
+            </button>
+          </div>
         </div>
 
-        <div className="mobile-staff-nav-actions">
+        {/* Inline Search Bar */}
+        {isSearchVisible && (
+          <div className="mobile-staff-search-bar-wrap">
+            <MobileSearchBar
+              value={search}
+              onChange={setSearch}
+              placeholder="Tìm nhân viên theo tên, mã..."
+            />
+          </div>
+        )}
+
+        {/* Horizontal Period Filter Strip */}
+        <div className="mobile-staff-filter-strip">
           <button
             type="button"
-            className="mobile-staff-nav-btn"
-            onClick={() => setIsSearchVisible((prev) => !prev)}
-            aria-label="Tìm kiếm"
+            role="tab"
+            aria-selected={periodType === 'week'}
+            className={`mobile-filter-chip ${periodType === 'week' ? 'is-active' : ''}`}
+            onClick={() => setPeriodType('week')}
           >
-            <i className="ph ph-magnifying-glass" />
+            <i className="ph ph-calendar-blank" />
+            <span>Theo tuần</span>
           </button>
-        </div>
-      </div>
 
-      {/* Inline Search Bar */}
-      {isSearchVisible && (
-        <div className="mobile-staff-search-bar-wrap">
-          <MobileSearchBar
-            value={search}
-            onChange={setSearch}
-            placeholder="Tìm nhân viên theo tên, mã..."
-          />
-        </div>
-      )}
-
-      {/* Horizontal Period Filter Strip */}
-      <div className="mobile-staff-filter-strip">
-        <button
-          type="button"
-          role="tab"
-          aria-selected={periodType === 'week'}
-          className={`mobile-filter-chip ${periodType === 'week' ? 'is-active' : ''}`}
-          onClick={() => setPeriodType('week')}
-        >
-          <i className="ph ph-calendar-blank" />
-          <span>Theo tuần</span>
-        </button>
-
-        <button
-          type="button"
-          role="tab"
-          aria-selected={periodType === 'month'}
-          className={`mobile-filter-chip ${periodType === 'month' ? 'is-active' : ''}`}
-          onClick={() => setPeriodType('month')}
-        >
-          <i className="ph ph-calendar" />
-          <span>Theo tháng</span>
-        </button>
-      </div>
-
-      {/* Week Navigator for week mode */}
-      {periodType === 'week' && (
-        <div className="mobile-week-navigator">
           <button
             type="button"
-            className="mobile-week-nav-btn"
-            aria-label="Tuần trước"
-            onClick={handlePrevWeek}
+            role="tab"
+            aria-selected={periodType === 'month'}
+            className={`mobile-filter-chip ${periodType === 'month' ? 'is-active' : ''}`}
+            onClick={() => setPeriodType('month')}
           >
-            <i className="ph ph-caret-left" />
-          </button>
-          <span className="mobile-week-label">{periodLabel}</span>
-          <button
-            type="button"
-            className="mobile-week-nav-btn"
-            aria-label="Tuần sau"
-            onClick={handleNextWeek}
-          >
-            <i className="ph ph-caret-right" />
+            <i className="ph ph-calendar" />
+            <span>Theo tháng</span>
           </button>
         </div>
-      )}
 
-      {/* Summary Bar */}
-      <div className="mobile-staff-summary-sort-bar">
-        <span className="mobile-sort-select-chip">
-          <span>{periodLabel}</span>
-        </span>
-        <span className="mobile-summary-text">
-          {filteredStaff.length} nhân viên
-        </span>
+        {/* Week Navigator for week mode */}
+        {periodType === 'week' && (
+          <div className="mobile-week-navigator">
+            <button
+              type="button"
+              className="mobile-week-nav-btn"
+              aria-label="Tuần trước"
+              onClick={handlePrevWeek}
+            >
+              <i className="ph ph-caret-left" />
+            </button>
+            <span className="mobile-week-label">{periodLabel}</span>
+            <button
+              type="button"
+              className="mobile-week-nav-btn"
+              aria-label="Tuần sau"
+              onClick={handleNextWeek}
+            >
+              <i className="ph ph-caret-right" />
+            </button>
+          </div>
+        )}
+
+        {/* Summary Bar */}
+        <div className="mobile-staff-summary-sort-bar">
+          <span className="mobile-sort-select-chip">
+            <span>{periodLabel}</span>
+          </span>
+          <span className="mobile-summary-text">
+            {filteredStaff.length} nhân viên
+          </span>
+        </div>
       </div>
 
       {/* Grouped Section List */}

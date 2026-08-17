@@ -93,102 +93,105 @@ export function MobileStaffPayrollAdminView() {
 
   return (
     <div className="mobile-staff-view">
-      {/* 1. Header Top Navigation */}
-      <div className="mobile-staff-top-nav">
-        <div className="mobile-staff-nav-left">
-          <button
-            type="button"
-            className="mobile-staff-back-icon"
-            onClick={() => navigate('/m/more')}
-            aria-label="Quay lại"
-          >
-            <i className="ph ph-caret-left" />
-          </button>
-          <h1 className="mobile-staff-nav-title">Bảng lương</h1>
+      {/* Sticky Top Header Cluster */}
+      <div className="mobile-staff-sticky-header-cluster">
+        {/* 1. Header Top Navigation */}
+        <div className="mobile-staff-top-nav">
+          <div className="mobile-staff-nav-left">
+            <button
+              type="button"
+              className="mobile-staff-back-icon"
+              onClick={() => navigate('/m/more')}
+              aria-label="Quay lại"
+            >
+              <i className="ph ph-caret-left" />
+            </button>
+            <h1 className="mobile-staff-nav-title">Bảng lương</h1>
+          </div>
+
+          <div className="mobile-staff-nav-actions">
+            <button
+              type="button"
+              className="mobile-staff-nav-btn"
+              onClick={() => setIsSearchVisible((prev) => !prev)}
+              aria-label="Tìm kiếm"
+            >
+              <i className="ph ph-magnifying-glass" />
+            </button>
+            <button
+              type="button"
+              className="mobile-staff-nav-btn"
+              onClick={handleExport}
+              aria-label="Xuất file"
+              title="Xuất file bảng lương"
+            >
+              <i className="ph ph-export" />
+            </button>
+          </div>
         </div>
 
-        <div className="mobile-staff-nav-actions">
-          <button
-            type="button"
-            className="mobile-staff-nav-btn"
-            onClick={() => setIsSearchVisible((prev) => !prev)}
-            aria-label="Tìm kiếm"
-          >
-            <i className="ph ph-magnifying-glass" />
-          </button>
-          <button
-            type="button"
-            className="mobile-staff-nav-btn"
-            onClick={handleExport}
-            aria-label="Xuất file"
-            title="Xuất file bảng lương"
-          >
-            <i className="ph ph-export" />
-          </button>
-        </div>
-      </div>
-
-      {/* Inline Search Bar */}
-      {isSearchVisible && (
-        <div className="mobile-staff-search-bar-wrap">
-          <MobileSearchBar
-            value={search}
-            onChange={setSearch}
-            placeholder="Tìm phiếu lương theo tên, mã thợ..."
-          />
-        </div>
-      )}
-
-      {/* Filter Strip */}
-      <div className="mobile-staff-filter-strip">
-        <button
-          type="button"
-          className={`mobile-filter-chip ${periodType === 'monthly' ? 'is-active' : ''}`}
-          onClick={() => setPeriodType('monthly')}
-        >
-          <span>Kỳ tháng</span>
-        </button>
-
-        <button
-          type="button"
-          className={`mobile-filter-chip ${periodType === 'weekly' ? 'is-active' : ''}`}
-          onClick={() => setPeriodType('weekly')}
-        >
-          <span>Kỳ tuần</span>
-        </button>
-
-        {rawPeriods.length > 0 && (
-          <select
-            value={activePeriod?.id ?? ''}
-            onChange={(e) => setSelectedPeriodId(Number(e.target.value))}
-            style={{
-              height: 36,
-              borderRadius: 10,
-              border: '1px solid #e2e8f0',
-              padding: '0 10px',
-              fontSize: 13,
-              fontWeight: 600,
-              background: '#ffffff',
-              color: '#334155',
-            }}
-          >
-            {rawPeriods.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.name}
-              </option>
-            ))}
-          </select>
+        {/* Inline Search Bar */}
+        {isSearchVisible && (
+          <div className="mobile-staff-search-bar-wrap">
+            <MobileSearchBar
+              value={search}
+              onChange={setSearch}
+              placeholder="Tìm phiếu lương theo tên, mã thợ..."
+            />
+          </div>
         )}
-      </div>
 
-      {/* Summary Bar */}
-      <div className="mobile-staff-summary-sort-bar">
-        <span className="mobile-sort-select-chip">
-          <span>{activePeriod?.name || 'Kỳ lương hiện tại'}</span>
-        </span>
-        <span className="mobile-summary-text">
-          {filteredRecords.length} nhân viên · Tổng thực lĩnh: <strong>{formatMoney(totalNet)}</strong>
-        </span>
+        {/* Filter Strip */}
+        <div className="mobile-staff-filter-strip">
+          <button
+            type="button"
+            className={`mobile-filter-chip ${periodType === 'monthly' ? 'is-active' : ''}`}
+            onClick={() => setPeriodType('monthly')}
+          >
+            <span>Kỳ tháng</span>
+          </button>
+
+          <button
+            type="button"
+            className={`mobile-filter-chip ${periodType === 'weekly' ? 'is-active' : ''}`}
+            onClick={() => setPeriodType('weekly')}
+          >
+            <span>Kỳ tuần</span>
+          </button>
+
+          {rawPeriods.length > 0 && (
+            <select
+              value={activePeriod?.id ?? ''}
+              onChange={(e) => setSelectedPeriodId(Number(e.target.value))}
+              style={{
+                height: 36,
+                borderRadius: 10,
+                border: '1px solid #e2e8f0',
+                padding: '0 10px',
+                fontSize: 13,
+                fontWeight: 600,
+                background: '#ffffff',
+                color: '#334155',
+              }}
+            >
+              {rawPeriods.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.name}
+                </option>
+              ))}
+            </select>
+          )}
+        </div>
+
+        {/* Summary Bar */}
+        <div className="mobile-staff-summary-sort-bar">
+          <span className="mobile-sort-select-chip">
+            <span>{activePeriod?.name || 'Kỳ lương hiện tại'}</span>
+          </span>
+          <span className="mobile-summary-text">
+            {filteredRecords.length} nhân viên · Tổng: <strong>{formatMoney(totalNet)}</strong>
+          </span>
+        </div>
       </div>
 
       {/* Grouped Section List */}

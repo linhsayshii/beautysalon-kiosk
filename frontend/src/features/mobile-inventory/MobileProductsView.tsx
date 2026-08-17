@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { formatMoney, formatNumber } from '@/lib/format';
 import { GoodsCreateDialog } from '@/features/inventory/components/GoodsCreateDialog';
 import { getProducts, type InventoryItemType } from '@/features/inventory/inventory.api';
+import { MobileProductEditSheet } from './MobileProductEditSheet';
 import {
   MobileSearchBar,
   MobileFilterSheet,
@@ -45,6 +46,7 @@ export function MobileProductsView() {
   const [isFilterOpen, setIsFilterOpen] = useState(false);
 
   const [selectedItem, setSelectedItem] = useState<ApiRecord | null>(null);
+  const [editingItem, setEditingItem] = useState<ApiRecord | null>(null);
   const [isCreatingType, setIsCreatingType] = useState<InventoryItemType | null>(null);
 
   const { data: productsData, isLoading } = useQuery({
@@ -143,116 +145,110 @@ export function MobileProductsView() {
 
   return (
     <div className="mobile-inventory-view">
-      {/* 1. Header Top Navigation */}
-      <div className="mobile-inventory-top-nav">
-        <div className="mobile-inventory-nav-left">
-          <button
-            type="button"
-            className="mobile-inventory-back-icon"
-            onClick={() => navigate('/m/more')}
-            aria-label="Quay lại"
-          >
-            <i className="ph ph-caret-left" />
-          </button>
-          <h1 className="mobile-inventory-nav-title">Hàng hóa</h1>
+      {/* Sticky Top Cluster */}
+      <div className="mobile-inventory-sticky-header-cluster">
+        {/* 1. Header Top Navigation */}
+        <div className="mobile-inventory-top-nav">
+          <div className="mobile-inventory-nav-left">
+            <button
+              type="button"
+              className="mobile-inventory-back-icon"
+              onClick={() => navigate('/m/more')}
+              aria-label="Quay lại"
+            >
+              <i className="ph ph-caret-left" />
+            </button>
+            <h1 className="mobile-inventory-nav-title">Hàng hóa</h1>
+          </div>
+
+          <div className="mobile-inventory-nav-actions">
+            <button
+              type="button"
+              className="mobile-inventory-nav-btn"
+              onClick={() => setIsSearchVisible((prev) => !prev)}
+              aria-label="Tìm kiếm"
+            >
+              <i className="ph ph-magnifying-glass" />
+            </button>
+          </div>
         </div>
 
-        <div className="mobile-inventory-nav-actions">
+        {/* Inline Search Bar */}
+        {isSearchVisible && (
+          <div className="mobile-inventory-search-bar-wrap">
+            <MobileSearchBar
+              value={search}
+              placeholder="Tìm theo tên, mã hàng..."
+              onChange={setSearch}
+            />
+          </div>
+        )}
+
+        {/* 2. Horizontal Filter Chips Strip */}
+        <div className="mobile-inventory-filter-strip">
           <button
             type="button"
-            className="mobile-inventory-nav-btn"
-            onClick={() => setIsSearchVisible((prev) => !prev)}
-            aria-label="Tìm kiếm"
+            className="mobile-filter-icon-btn"
+            onClick={openFilterSheet}
+            aria-label="Mở bộ lọc"
           >
-            <i className="ph ph-magnifying-glass" />
+            <i className="ph ph-faders" />
           </button>
+
           <button
             type="button"
-            className="mobile-inventory-nav-btn"
-            onClick={toggleSort}
-            aria-label="Sắp xếp"
-            title={`Sắp xếp theo: ${sortBy === 'price' ? 'Giá bán' : sortBy === 'name' ? 'Tên hàng' : 'Tồn kho'}`}
+            className={`mobile-filter-chip ${categoryFilter ? 'is-active' : ''}`}
+            onClick={openFilterSheet}
           >
-            <i className="ph ph-arrows-down-up" />
+            <span>{categoryFilter ? categoryFilter : 'Tất cả nhóm hàng'}</span>
+            <i className="ph ph-caret-down" />
+          </button>
+
+          <button
+            type="button"
+            className={`mobile-filter-chip ${typeFilter ? 'is-active' : ''}`}
+            onClick={openFilterSheet}
+          >
+            <span>
+              {typeFilter === 'product'
+                ? 'Sản phẩm'
+                : typeFilter === 'service'
+                ? 'Dịch vụ'
+                : typeFilter === 'package'
+                ? 'Gói dịch vụ'
+                : typeFilter === 'account_card'
+                ? 'Thẻ tài khoản'
+                : 'Tất cả loại hàng'}
+            </span>
+            <i className="ph ph-caret-down" />
+          </button>
+
+          <button
+            type="button"
+            className={`mobile-filter-chip ${stockStatusFilter ? 'is-active' : ''}`}
+            onClick={openFilterSheet}
+          >
+            <span>{stockStatusFilter === 'in_stock' ? 'Còn tồn kho' : stockStatusFilter === 'below_min' ? 'Dưới định mức' : 'Tồn kho'}</span>
+            <i className="ph ph-caret-down" />
           </button>
         </div>
-      </div>
 
-      {/* Inline Search Bar */}
-      {isSearchVisible && (
-        <div className="mobile-inventory-search-bar-wrap">
-          <MobileSearchBar
-            value={search}
-            placeholder="Tìm theo tên, mã hàng..."
-            onChange={setSearch}
-          />
-        </div>
-      )}
+        {/* 3. Summary & Sort Indicator Bar */}
+        <div className="mobile-inventory-summary-bar">
+          <button type="button" className="mobile-inventory-sort-selector" onClick={toggleSort}>
+            <span>
+              {sortBy === 'price'
+                ? `Giá ${sortOrder === 'desc' ? 'cao → thấp' : 'thấp → cao'}`
+                : sortBy === 'name'
+                ? `Tên ${sortOrder === 'asc' ? 'A → Z' : 'Z → A'}`
+                : `Tồn kho ${sortOrder === 'desc' ? 'nhiều → ít' : 'ít → nhiều'}`}
+            </span>
+            <i className="ph ph-caret-down" />
+          </button>
 
-      {/* 2. Horizontal Filter Chips Strip */}
-      <div className="mobile-inventory-filter-strip">
-        <button
-          type="button"
-          className="mobile-filter-icon-btn"
-          onClick={openFilterSheet}
-          aria-label="Mở bộ lọc"
-        >
-          <i className="ph ph-faders" />
-        </button>
-
-        <button
-          type="button"
-          className={`mobile-filter-chip ${categoryFilter ? 'is-active' : ''}`}
-          onClick={openFilterSheet}
-        >
-          <span>{categoryFilter ? categoryFilter : 'Tất cả nhóm hàng'}</span>
-          <i className="ph ph-caret-down" />
-        </button>
-
-        <button
-          type="button"
-          className={`mobile-filter-chip ${typeFilter ? 'is-active' : ''}`}
-          onClick={openFilterSheet}
-        >
-          <span>
-            {typeFilter === 'product'
-              ? 'Sản phẩm'
-              : typeFilter === 'service'
-              ? 'Dịch vụ'
-              : typeFilter === 'package'
-              ? 'Gói dịch vụ'
-              : typeFilter === 'account_card'
-              ? 'Thẻ tài khoản'
-              : 'Tất cả loại hàng'}
-          </span>
-          <i className="ph ph-caret-down" />
-        </button>
-
-        <button
-          type="button"
-          className={`mobile-filter-chip ${stockStatusFilter ? 'is-active' : ''}`}
-          onClick={openFilterSheet}
-        >
-          <span>{stockStatusFilter === 'in_stock' ? 'Còn tồn kho' : stockStatusFilter === 'below_min' ? 'Dưới định mức' : 'Tồn kho'}</span>
-          <i className="ph ph-caret-down" />
-        </button>
-      </div>
-
-      {/* 3. Summary & Sort Indicator Bar */}
-      <div className="mobile-inventory-summary-bar">
-        <button type="button" className="mobile-inventory-sort-selector" onClick={toggleSort}>
-          <span>
-            {sortBy === 'price'
-              ? `Giá bán ${sortOrder === 'desc' ? 'cao → thấp' : 'thấp → cao'}`
-              : sortBy === 'name'
-              ? 'Tên hàng hóa'
-              : 'Số lượng tồn'}
-          </span>
-          <i className="ph ph-caret-down" />
-        </button>
-
-        <div className="mobile-inventory-count-summary">
-          {rawRows.length} hàng hóa · Tồn: {formatNumber(totalStockCount)}
+          <div className="mobile-inventory-count-summary">
+            {rawRows.length} hàng hóa · Tồn: {formatNumber(totalStockCount)}
+          </div>
         </div>
       </div>
 
@@ -400,7 +396,7 @@ export function MobileProductsView() {
                 <button
                   type="button"
                   className="mobile-detail-edit-link"
-                  onClick={() => alert('Chức năng sửa hàng hóa')}
+                  onClick={() => setEditingItem(selectedItem)}
                 >
                   Sửa
                 </button>
@@ -521,6 +517,17 @@ export function MobileProductsView() {
           onClose={() => setIsCreatingType(null)}
         />
       )}
+
+      {/* Edit Sheet (Styled after the modern card form) */}
+      <MobileProductEditSheet
+        isOpen={editingItem !== null}
+        item={editingItem}
+        onClose={() => setEditingItem(null)}
+        onSuccess={() => {
+          setEditingItem(null);
+          setSelectedItem(null);
+        }}
+      />
     </div>
   );
 }
