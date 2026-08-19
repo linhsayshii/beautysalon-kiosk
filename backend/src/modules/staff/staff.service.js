@@ -317,12 +317,17 @@ export async function listCommissions({ branchId, dateFrom, dateTo }) {
     pool.query(
       `SELECT
          cr.id, cr.source_name, cr.revenue, cr.rate, cr.amount, cr.occurred_on, cr.status,
+         cr.invoice_id, cr.invoice_item_id,
          COALESCE(cr.commission_type, CASE WHEN cr.source_name ILIKE '%tư vấn%' OR cr.source_name ILIKE '%sản phẩm%' THEN 'consulting' ELSE 'service' END) AS commission_type,
          s.id AS staff_id, s.code AS staff_code, s.name AS staff_name, s.role, s.avatar_tone,
-         i.code AS invoice_code
+         i.code AS invoice_code,
+         ii.quantity AS item_quantity,
+         p.name AS product_name
        FROM commission_records cr
        JOIN staff s ON s.id = cr.staff_id
        LEFT JOIN invoices i ON i.id = cr.invoice_id
+       LEFT JOIN invoice_items ii ON ii.id = cr.invoice_item_id
+       LEFT JOIN products p ON p.id = ii.product_id
        WHERE cr.branch_id = $1 AND cr.occurred_on >= $2::date AND cr.occurred_on <= $3::date
        ORDER BY cr.occurred_on DESC, cr.id DESC LIMIT 100`,
       [branchId, dateFrom, dateTo],
@@ -350,6 +355,9 @@ export async function listCommissions({ branchId, dateFrom, dateTo }) {
       id: number(row.id),
       staff: { id: number(row.staff_id), code: row.staff_code, name: row.staff_name, role: row.role, avatarTone: row.avatar_tone },
       invoiceCode: row.invoice_code,
+      invoiceItemId: number(row.invoice_item_id) || null,
+      itemQuantity: parseInt(row.item_quantity) || 1,
+      productName: row.product_name,
       sourceName: row.source_name,
       commissionType: row.commission_type,
       revenue: number(row.revenue),
