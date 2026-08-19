@@ -3,6 +3,7 @@ import type { FormEvent } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { appConfig } from '@/app/config';
 import { MoneyInput } from '@/components/forms/MoneyInput';
+import { PercentInput } from '@/components/forms/PercentInput';
 import { Select } from '@/components/ui/Select/Select';
 import { useToast } from '@/components/ui/Toast/ToastProvider';
 import { formatMoney } from '@/lib/format';
@@ -60,6 +61,14 @@ function buildFormFromItem(data: ApiRecord) {
   };
 }
 
+function buildCommissionFromItem(data: ApiRecord) {
+  const ct = data.commissionType ?? null;
+  return {
+    commissionType: ct,
+    commissionRate: ct === 'percent' ? Number(data.commissionRate ?? 0) * 100 : Number(data.commissionRate ?? 0),
+  };
+}
+
 export function GoodsCreateDialog({ type, onClose, itemId, initialData }: GoodsCreateDialogProps) {
   const isEdit = Boolean(itemId && initialData);
   const [tab, setTab] = useState<'information' | 'details'>('information');
@@ -69,8 +78,12 @@ export function GoodsCreateDialog({ type, onClose, itemId, initialData }: GoodsC
   const [serviceToAdd, setServiceToAdd] = useState('');
   const [allowedTypes, setAllowedTypes] = useState<string[]>(['product', 'service', 'package']);
   const [scopeItems, setScopeItems] = useState<string[]>([]);
-  const [commissionType, setCommissionType] = useState<CommissionType>(null);
-  const [commissionRate, setCommissionRate] = useState(0);
+  const [commissionType, setCommissionType] = useState<CommissionType>(
+    initialData ? buildCommissionFromItem(initialData).commissionType : null,
+  );
+  const [commissionRate, setCommissionRate] = useState(
+    initialData ? buildCommissionFromItem(initialData).commissionRate : 0,
+  );
   const nameRef = useRef<HTMLInputElement>(null);
   const queryClient = useQueryClient();
   const { notify } = useToast();
@@ -91,8 +104,9 @@ export function GoodsCreateDialog({ type, onClose, itemId, initialData }: GoodsC
   useEffect(() => {
     if (initialData) {
       setForm(buildFormFromItem(initialData));
-      setCommissionType(initialData.commissionType ?? null);
-      setCommissionRate(Number(initialData.commissionRate ?? 0));
+      const { commissionType: ct, commissionRate: cr } = buildCommissionFromItem(initialData);
+      setCommissionType(ct);
+      setCommissionRate(cr);
       if (Array.isArray(initialData.packageItems)) {
         setPackageItems(initialData.packageItems.map((item: { serviceId: number; units: number }) => ({
           serviceId: String(item.serviceId),
@@ -203,7 +217,7 @@ export function GoodsCreateDialog({ type, onClose, itemId, initialData }: GoodsC
       allowedTypes,
       scopeItems: scopeItems.map((key) => { const [itemType, itemId] = key.split(':'); return { itemType, itemId: Number(itemId) }; }),
       commissionType: commissionType,
-      commissionRate: commissionRate,
+      commissionRate: commissionType === 'percent' ? commissionRate / 100 : commissionRate,
     };
     mutation.mutate(payload);
   };
@@ -276,19 +290,32 @@ export function GoodsCreateDialog({ type, onClose, itemId, initialData }: GoodsC
                       </button>
                     </div>
 
-                    <div className="commission-rate-row">
-                      <div className="input-suffix commission-rate-input">
-                        <input
-                          id="goods-commission-rate"
-                          type="number"
-                          value={commissionRate}
-                          onChange={(e) => setCommissionRate(parseFloat(e.target.value) || 0)}
-                          step={commissionType === 'percent' ? 0.01 : 1000}
-                          min={0}
-                          max={commissionType === 'percent' ? 1 : undefined}
-                          placeholder="0"
-                        />
-                        <span>{commissionType === 'percent' ? '%' : 'đ'}</span>
+                  <div className="goods-field">
+                    <label htmlFor="goods-commission-rate">{commissionType === 'percent' ? 'Tỷ lệ (%)' : 'Số tiền (đ)'}</label>
+                    {commissionType === 'percent' ? (
+                      <PercentInput
+                        id="goods-commission-rate"
+                        suffix="%"
+                        value={commissionRate}
+                        onChange={(val) => setCommissionRate(val)}
+                        placeholder="0"
+                      />
+                    ) : (
+                      <MoneyInput
+                        id="goods-commission-rate"
+                        suffix="đ"
+                        value={commissionRate}
+                        onChange={(val) => setCommissionRate(val)}
+                        placeholder="0"
+                      />
+                    )}
+                  </div>
+
+                  {commissionType === 'percent' && (
+                    <div className="goods-field">
+                      <label>Hoa hồng dự kiến / sản phẩm</label>
+                      <div style={{ padding: '8px 0', fontWeight: 600 }}>
+                        = {formatMoney(numeric(form.salePrice) * (commissionRate / 100))}đ
                       </div>
                       {commissionType === 'percent' && (
                         <span className="commission-preview">
@@ -296,9 +323,7 @@ export function GoodsCreateDialog({ type, onClose, itemId, initialData }: GoodsC
                         </span>
                       )}
                     </div>
-                  </>
-                )}
-              </div>
+                  )}
             </section>
 
             {type === 'product' && <section className="goods-form-section"><div className="goods-section-heading"><span><strong>Tồn kho</strong><small>Thiết lập số lượng ban đầu và cảnh báo tồn.</small></span><i className="ph ph-caret-up" /></div><div className="goods-form-grid three-columns"><div className="goods-field"><label htmlFor="goods-stock">Tồn ban đầu</label><input id="goods-stock" type="number" min="0" value={form.initialStock} onChange={(event) => update('initialStock', event.target.value)} /></div><div className="goods-field"><label htmlFor="goods-min-stock">Tồn tối thiểu</label><input id="goods-min-stock" type="number" min="0" value={form.minStock} onChange={(event) => update('minStock', event.target.value)} /></div><div className="goods-field"><label htmlFor="goods-max-stock">Tồn tối đa</label><input id="goods-max-stock" type="number" min="1" value={form.maxStock} onChange={(event) => update('maxStock', event.target.value)} placeholder="Không giới hạn" aria-invalid={Boolean(errors.maxStock)} />{errors.maxStock && <small className="field-error">{errors.maxStock}</small>}</div></div><div className="goods-field compact-field"><label htmlFor="goods-unit">Đơn vị tính</label><input id="goods-unit" value={form.unit} onChange={(event) => update('unit', event.target.value)} /></div></section>}

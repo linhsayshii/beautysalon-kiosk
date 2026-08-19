@@ -469,8 +469,36 @@
 
 .radio-group {
   display: flex;
+  flex-wrap: wrap;
   gap: 16px;
   margin: 8px 0;
+}
+
+.radio-group label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 34px;
+  padding: 0 12px;
+  border: 1px solid var(--line-strong);
+  border-radius: 10px;
+  color: var(--ink-800);
+  background: var(--surface);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.radio-group input[type="radio"] {
+  flex: 0 0 auto;
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  accent-color: var(--blue-600);
+}
+
+.radio-group input[type="radio"]:checked + span {
+  color: var(--blue-700);
 }
 
 .rate-input {
