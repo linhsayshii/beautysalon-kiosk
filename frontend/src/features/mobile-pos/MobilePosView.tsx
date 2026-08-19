@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { formatMoney, formatNumber } from '@/lib/format';
-import { getPosCatalog, type PosReceiptData } from '@/features/pos/pos.api';
+import { getPosCatalog, getPosStaff, type PosReceiptData } from '@/features/pos/pos.api';
 import { PosReceiptPrint } from '@/features/pos/components/PosReceiptPrint';
 import { MobileCartBottomSheet } from './MobileCartBottomSheet';
 import '@/features/mobile-pos/mobile-pos.css';
@@ -47,6 +47,7 @@ export function MobilePosView() {
   const [cartLines, setCartLines] = useState<PosLine[]>([]);
   const [customer, setCustomer] = useState<PosCustomer | null>(null);
   const [isCartOpen, setIsCartOpen] = useState(false);
+  const [isCartExpanded, setIsCartExpanded] = useState(true);
   const [receiptToPrint, setReceiptToPrint] = useState<PosReceiptData | null>(null);
 
   // Fetch Pos Catalog
@@ -54,6 +55,13 @@ export function MobilePosView() {
     queryKey: ['pos-catalog', search, activeTab],
     queryFn: () => getPosCatalog(search, activeTab),
   });
+
+  // Fetch staff list
+  const { data: staffResponse } = useQuery({
+    queryKey: ['pos-staff'],
+    queryFn: getPosStaff,
+  });
+  const staffList = (staffResponse?.data || []) as Array<{ id: number; name: string }>;
 
   const catalogItems = useMemo(() => {
     return (catalogResponse?.data || []) as unknown as CatalogItem[];
@@ -92,6 +100,24 @@ export function MobilePosView() {
 
   const totalCartAmount = useMemo(() => {
     return cartLines.reduce((sum, item) => sum + item.salePrice * item.quantity, 0);
+  }, [cartLines]);
+
+  const totalCommission = useMemo(() => {
+    return cartLines.reduce((sum, line) => {
+      if (!line.staffId) return sum;
+      if (!line.commissionType || !line.commissionRate) return sum;
+
+      const revenue = line.salePrice * line.quantity;
+      let amount = 0;
+
+      if (line.commissionType === 'percent') {
+        amount = revenue * line.commissionRate;
+      } else {
+        amount = line.quantity * line.commissionRate;
+      }
+
+      return sum + amount;
+    }, 0);
   }, [cartLines]);
 
   // Add or increment item
@@ -279,22 +305,79 @@ export function MobilePosView() {
         </div>
       )}
 
-      {/* Floating Sticky Cart Bar */}
-      {totalCartCount > 0 && (
-        <div className="mobile-pos-cart-bar" onClick={() => setIsCartOpen(true)}>
-          <div className="mobile-pos-cart-bar-left">
-            <div className="mobile-pos-cart-bar-badge">
-              <i className="ph ph-shopping-cart-simple" />
-              <span>{totalCartCount} món</span>
-            </div>
-            <div className="mobile-pos-cart-bar-total">{formatMoney(totalCartAmount)}</div>
+      {/* Collapsible Cart */}
+      <div className={`mobile-cart ${isCartExpanded ? 'expanded' : 'collapsed'}`}>
+        <button
+          className="cart-header"
+          onClick={() => setIsCartExpanded(!isCartExpanded)}
+        >
+          <span className="cart-title">
+            <i className="ph ph-shopping-cart-simple" style={{ marginRight: 8 }} />
+            Giỏ hàng ({totalCartCount})
+          </span>
+          <span className="cart-toggle">
+            {isCartExpanded ? '▼' : '▲'}
+          </span>
+        </button>
+
+        {isCartExpanded && (
+          <div className="cart-items">
+            {cartLines.map((line) => (
+              <div key={`${line.itemType}-${line.itemId}`} className="cart-item">
+                <div className="item-main">
+                  <div className="item-info">
+                    <span className="item-name">{line.name}</span>
+                    <span className="item-price">{formatMoney(line.salePrice)} x {line.quantity}</span>
+                  </div>
+                </div>
+
+                <div className="item-meta">
+                  <div className="staff-select">
+                    <label>NV:</label>
+                    <select
+                      value={line.staffId ?? ''}
+                      onChange={(e) => handleUpdateLineStaff(line.itemId, line.itemType, e.target.value ? Number(e.target.value) : null)}
+                    >
+                      <option value="">-- Chọn --</option>
+                      {staffList.map((st) => (
+                        <option key={st.id} value={st.id}>{st.name}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="commission-badge">
+                    HH: {line.staffId && line.commissionType && line.commissionRate
+                      ? formatMoney(Math.round(line.commissionType === 'percent'
+                          ? line.salePrice * line.quantity * line.commissionRate
+                          : line.quantity * line.commissionRate))
+                      : '-'}
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
-          <div className="mobile-pos-cart-bar-right">
-            <span>Xem giỏ hàng</span>
-            <i className="ph ph-caret-right" />
+        )}
+
+        {/* Always visible summary */}
+        <div className="cart-summary">
+          <div className="summary-row">
+            <span>Tạm tính:</span>
+            <span className="amount">{formatMoney(totalCartAmount)}</span>
+          </div>
+          <div className="summary-row commission">
+            <span>HH dự kiến:</span>
+            <span className="amount">{formatMoney(totalCommission)}</span>
           </div>
         </div>
-      )}
+
+        <button
+          className="checkout-btn"
+          disabled={cartLines.length === 0}
+          onClick={() => setIsCartOpen(true)}
+        >
+          Thanh toán
+        </button>
+      </div>
 
       {/* Cart & Checkout Bottom Sheet */}
       {isCartOpen && (
