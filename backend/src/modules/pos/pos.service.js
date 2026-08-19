@@ -369,8 +369,8 @@ export async function checkoutPosInvoice({
           await client.query(
             `INSERT INTO commission_records (
                branch_id, staff_id, invoice_id, invoice_item_id, source_name, revenue, rate, amount, occurred_on, status, commission_type
-             ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, CURRENT_DATE, 'pending', 'service')`,
-            [branchId, item.staffId, invoiceId, item.itemId, `Thực hiện dịch vụ`, revenue, rate, amount],
+             ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, CURRENT_DATE, 'pending', $9)`,
+            [branchId, item.staffId, invoiceId, item.itemId, `Thực hiện dịch vụ`, revenue, rate, amount, 'service'],
           );
         }
       }
