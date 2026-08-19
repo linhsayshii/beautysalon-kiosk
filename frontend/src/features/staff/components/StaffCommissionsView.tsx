@@ -215,6 +215,8 @@ export function StaffCommissionsView() {
                       <th>Nhân viên</th>
                       <th>Loại hoa hồng</th>
                       <th>Nguồn / Hàng hóa - Dịch vụ</th>
+                      <th>Sản phẩm</th>
+                      <th style={{ textAlign: 'right' }}>SL</th>
                       <th>Hóa đơn</th>
                       <th style={{ textAlign: 'right' }}>Doanh thu</th>
                       <th>Tỷ lệ</th>
@@ -252,6 +254,12 @@ export function StaffCommissionsView() {
                         </td>
                         <td data-label="Nguồn">
                           <span className="cell-main">{row.sourceName}</span>
+                        </td>
+                        <td data-label="Sản phẩm">
+                          <span className="cell-main">{row.productName || row.sourceName}</span>
+                        </td>
+                        <td data-label="SL" className="numeric-cell" style={{ textAlign: 'right' }}>
+                          {formatNumber(row.itemQuantity ?? 1)}
                         </td>
                         <td data-label="Hóa đơn">
                           <span className="cell-main link">{row.invoiceCode ?? '-'}</span>
