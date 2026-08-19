@@ -6,19 +6,25 @@ import { MoneyInput } from '@/components/forms/MoneyInput';
 import { Select } from '@/components/ui/Select/Select';
 import { useToast } from '@/components/ui/Toast/ToastProvider';
 import { formatMoney } from '@/lib/format';
-import { createInventoryItem, getProducts } from '../inventory.api';
+import { createInventoryItem, getProducts, updateInventoryItem } from '../inventory.api';
 import type { CreateInventoryItemInput, InventoryItemType } from '../inventory.api';
+import type { ApiRecord } from '@/types/api';
 
 type CommissionType = 'percent' | 'fixed' | null;
 
-interface GoodsCreateDialogProps { type: InventoryItemType; onClose: () => void }
+interface GoodsCreateDialogProps {
+  type: InventoryItemType;
+  onClose: () => void;
+  itemId?: number;
+  initialData?: ApiRecord;
+}
 interface PackageItem { serviceId: string; units: number }
 
-const typeCopy: Record<InventoryItemType, { title: string; noun: string }> = {
-  product: { title: 'Tạo sản phẩm', noun: 'sản phẩm' },
-  service: { title: 'Tạo dịch vụ', noun: 'dịch vụ' },
-  package: { title: 'Tạo gói dịch vụ, liệu trình', noun: 'gói dịch vụ' },
-  account_card: { title: 'Tạo thẻ tài khoản', noun: 'thẻ tài khoản' },
+const typeCopy: Record<InventoryItemType, { title: string; noun: string; editTitle: string }> = {
+  product: { title: 'Tạo sản phẩm', noun: 'sản phẩm', editTitle: 'Chỉnh sửa sản phẩm' },
+  service: { title: 'Tạo dịch vụ', noun: 'dịch vụ', editTitle: 'Chỉnh sửa dịch vụ' },
+  package: { title: 'Tạo gói dịch vụ, liệu trình', noun: 'gói dịch vụ', editTitle: 'Chỉnh sửa gói dịch vụ' },
+  account_card: { title: 'Tạo thẻ tài khoản', noun: 'thẻ tài khoản', editTitle: 'Chỉnh sửa thẻ tài khoản' },
 };
 
 const initialForm = {
@@ -30,9 +36,34 @@ const initialForm = {
 
 const numeric = (value: string) => Number(value) || 0;
 
-export function GoodsCreateDialog({ type, onClose }: GoodsCreateDialogProps) {
+function buildFormFromItem(data: ApiRecord) {
+  return {
+    name: String(data.name ?? ''),
+    code: String(data.code ?? ''),
+    barcode: String(data.barcode ?? ''),
+    category: String(data.category ?? ''),
+    brand: String(data.brand ?? ''),
+    unit: String(data.unit ?? 'cái'),
+    salePrice: String(data.salePrice ?? 0),
+    costPrice: String(data.costPrice ?? 0),
+    initialStock: String(data.initialStock ?? data.stockQuantity ?? 0),
+    minStock: String(data.minStock ?? 0),
+    maxStock: data.maxStock ? String(data.maxStock) : '',
+    durationMinutes: String(data.durationMinutes ?? 30),
+    validityDays: data.validityDays ? String(data.validityDays) : '',
+    usageSchedule: String(data.usageSchedule ?? 'flexible'),
+    faceValue: String(data.faceValue ?? 0),
+    active: data.active !== false,
+    imageUrl: String(data.imageUrl ?? ''),
+    description: String(data.description ?? ''),
+    note: String(data.note ?? ''),
+  };
+}
+
+export function GoodsCreateDialog({ type, onClose, itemId, initialData }: GoodsCreateDialogProps) {
+  const isEdit = Boolean(itemId && initialData);
   const [tab, setTab] = useState<'information' | 'details'>('information');
-  const [form, setForm] = useState(initialForm);
+  const [form, setForm] = useState(initialData ? buildFormFromItem(initialData) : initialForm);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [packageItems, setPackageItems] = useState<PackageItem[]>([]);
   const [serviceToAdd, setServiceToAdd] = useState('');
@@ -58,6 +89,26 @@ export function GoodsCreateDialog({ type, onClose }: GoodsCreateDialogProps) {
   })), [availableServices, packageItems]);
 
   useEffect(() => {
+    if (initialData) {
+      setForm(buildFormFromItem(initialData));
+      setCommissionType(initialData.commissionType ?? null);
+      setCommissionRate(Number(initialData.commissionRate ?? 0));
+      if (Array.isArray(initialData.packageItems)) {
+        setPackageItems(initialData.packageItems.map((item: { serviceId: number; units: number }) => ({
+          serviceId: String(item.serviceId),
+          units: Number(item.units ?? 1),
+        })));
+      }
+      if (Array.isArray(initialData.allowedTypes)) {
+        setAllowedTypes(initialData.allowedTypes.map(String));
+      }
+      if (Array.isArray(initialData.scopeItems)) {
+        setScopeItems(initialData.scopeItems.map((item: { itemType: string; itemId: number }) => `${item.itemType}:${item.itemId}`));
+      }
+    }
+  }, [initialData]);
+
+  useEffect(() => {
     nameRef.current?.focus();
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
@@ -70,14 +121,23 @@ export function GoodsCreateDialog({ type, onClose }: GoodsCreateDialogProps) {
   }, [onClose]);
 
   const mutation = useMutation({
-    mutationFn: createInventoryItem,
+    mutationFn: (payload: CreateInventoryItemInput) => {
+      if (isEdit && itemId) {
+        return updateInventoryItem(type, itemId, payload as ApiRecord);
+      }
+      return createInventoryItem(payload);
+    },
     onSuccess: (payload) => {
       queryClient.invalidateQueries({ queryKey: ['products'] });
       queryClient.invalidateQueries({ queryKey: ['pricebooks'] });
       queryClient.invalidateQueries({ queryKey: ['purchase-catalog'] });
       queryClient.invalidateQueries({ queryKey: ['goods-create-catalog'] });
       queryClient.invalidateQueries({ queryKey: ['customer-packages'] });
-      notify(`Đã tạo ${copy.noun}`, `${payload.data.code} đã được lưu vào database.`);
+      queryClient.invalidateQueries({ queryKey: ['pos-catalog'] });
+      notify(
+        isEdit ? `Đã cập nhật ${copy.noun}` : `Đã tạo ${copy.noun}`,
+        `${payload.data.code} đã được ${isEdit ? 'cập nhật' : 'lưu'} vào database.`,
+      );
       onClose();
     },
   });
@@ -151,7 +211,7 @@ export function GoodsCreateDialog({ type, onClose }: GoodsCreateDialogProps) {
   return <div className="goods-dialog-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget && !mutation.isPending) onClose(); }}>
     <section className="goods-dialog" role="dialog" aria-modal="true" aria-labelledby="goods-dialog-title">
       <header className="goods-dialog-header">
-        <h2 id="goods-dialog-title">{copy.title}</h2>
+        <h2 id="goods-dialog-title">{isEdit ? copy.editTitle : copy.title}</h2>
         <button type="button" onClick={onClose} disabled={mutation.isPending} aria-label="Đóng"><i className="ph ph-x" /></button>
       </header>
       <div className="goods-dialog-tabs" role="tablist">
@@ -176,8 +236,15 @@ export function GoodsCreateDialog({ type, onClose }: GoodsCreateDialogProps) {
               {type === 'account_card' ? <div className="goods-field"><label htmlFor="goods-face-value">Mệnh giá sử dụng</label><MoneyInput id="goods-face-value" suffix="đ" value={numeric(form.faceValue)} onChange={(val) => update('faceValue', String(val))} />{errors.faceValue && <small className="field-error">{errors.faceValue}</small>}</div> : <div className="goods-field"><label htmlFor="goods-cost-price">Giá vốn</label><MoneyInput id="goods-cost-price" suffix="đ" value={numeric(form.costPrice)} onChange={(val) => update('costPrice', String(val))} />{errors.costPrice && <small className="field-error">{errors.costPrice}</small>}</div>}
             </div></section>
 
-            <div className="commission-section">
-              <label className="checkbox-label">
+            <section className="goods-form-section">
+              <div className="goods-section-heading">
+                <span>
+                  <strong>Hoa hồng</strong>
+                  <small>Thiết lập hoa hồng cho nhân viên khi bán {copy.noun}.</small>
+                </span>
+                <i className="ph ph-caret-up" />
+              </div>
+              <label className="goods-active-check">
                 <input
                   type="checkbox"
                   checked={commissionType !== null}
@@ -186,54 +253,64 @@ export function GoodsCreateDialog({ type, onClose }: GoodsCreateDialogProps) {
                     setCommissionRate(0);
                   }}
                 />
-                <span>Có hoa hồng</span>
+                <span>Cho phép tính hoa hồng</span>
               </label>
 
               {commissionType !== null && (
-                <div className="commission-fields">
-                  <div className="radio-group">
-                    <label>
-                      <input
-                        type="radio"
-                        name="commissionType"
-                        value="percent"
-                        checked={commissionType === 'percent'}
-                        onChange={() => setCommissionType('percent')}
-                      />
-                      <span>% giá bán</span>
-                    </label>
-                    <label>
-                      <input
-                        type="radio"
-                        name="commissionType"
-                        value="fixed"
-                        checked={commissionType === 'fixed'}
-                        onChange={() => setCommissionType('fixed')}
-                      />
-                      <span>Số tiền cố định</span>
-                    </label>
+                <div className="goods-form-grid" style={{ marginTop: 10 }}>
+                  <div className="goods-field">
+                    <label>Loại hoa hồng</label>
+                    <div className="radio-group">
+                      <label>
+                        <input
+                          type="radio"
+                          name="commissionType"
+                          value="percent"
+                          checked={commissionType === 'percent'}
+                          onChange={() => setCommissionType('percent')}
+                        />
+                        <span>% giá bán</span>
+                      </label>
+                      <label>
+                        <input
+                          type="radio"
+                          name="commissionType"
+                          value="fixed"
+                          checked={commissionType === 'fixed'}
+                          onChange={() => setCommissionType('fixed')}
+                        />
+                        <span>Số tiền cố định</span>
+                      </label>
+                    </div>
                   </div>
 
-                  <div className="rate-input">
-                    <input
-                      type="number"
-                      value={commissionRate}
-                      onChange={(e) => setCommissionRate(parseFloat(e.target.value) || 0)}
-                      step={commissionType === 'percent' ? 0.01 : 1000}
-                      min={0}
-                      max={commissionType === 'percent' ? 1 : undefined}
-                    />
-                    <span>{commissionType === 'percent' ? '%' : 'đ'}</span>
+                  <div className="goods-field">
+                    <label htmlFor="goods-commission-rate">{commissionType === 'percent' ? 'Tỷ lệ (%)' : 'Số tiền (đ)'}</label>
+                    <div className="input-suffix">
+                      <input
+                        id="goods-commission-rate"
+                        type="number"
+                        value={commissionRate}
+                        onChange={(e) => setCommissionRate(parseFloat(e.target.value) || 0)}
+                        step={commissionType === 'percent' ? 0.01 : 1000}
+                        min={0}
+                        max={commissionType === 'percent' ? 1 : undefined}
+                      />
+                      <span>{commissionType === 'percent' ? '%' : 'đ'}</span>
+                    </div>
                   </div>
 
                   {commissionType === 'percent' && (
-                    <span className="preview">
-                      = {formatMoney(numeric(form.salePrice) * commissionRate)}đ
-                    </span>
+                    <div className="goods-field">
+                      <label>Hoa hồng dự kiến / sản phẩm</label>
+                      <div style={{ padding: '8px 0', fontWeight: 600 }}>
+                        = {formatMoney(numeric(form.salePrice) * commissionRate)}đ
+                      </div>
+                    </div>
                   )}
                 </div>
               )}
-            </div>
+            </section>
 
             {type === 'product' && <section className="goods-form-section"><div className="goods-section-heading"><span><strong>Tồn kho</strong><small>Thiết lập số lượng ban đầu và cảnh báo tồn.</small></span><i className="ph ph-caret-up" /></div><div className="goods-form-grid three-columns"><div className="goods-field"><label htmlFor="goods-stock">Tồn ban đầu</label><input id="goods-stock" type="number" min="0" value={form.initialStock} onChange={(event) => update('initialStock', event.target.value)} /></div><div className="goods-field"><label htmlFor="goods-min-stock">Tồn tối thiểu</label><input id="goods-min-stock" type="number" min="0" value={form.minStock} onChange={(event) => update('minStock', event.target.value)} /></div><div className="goods-field"><label htmlFor="goods-max-stock">Tồn tối đa</label><input id="goods-max-stock" type="number" min="1" value={form.maxStock} onChange={(event) => update('maxStock', event.target.value)} placeholder="Không giới hạn" aria-invalid={Boolean(errors.maxStock)} />{errors.maxStock && <small className="field-error">{errors.maxStock}</small>}</div></div><div className="goods-field compact-field"><label htmlFor="goods-unit">Đơn vị tính</label><input id="goods-unit" value={form.unit} onChange={(event) => update('unit', event.target.value)} /></div></section>}
 
