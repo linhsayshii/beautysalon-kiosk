@@ -9,26 +9,26 @@ const goodsCte = `
       p.branch_id, 'product'::text AS item_type, p.id AS item_id, p.sku AS code, p.name,
       p.category, p.brand, p.unit, p.sale_price, p.cost_price,
       p.last_purchase_price, COALESCE(ib.quantity, 0) AS stock_quantity,
-      p.min_stock, p.max_stock, p.active
+      p.min_stock, p.max_stock, p.active, p.commission_type, p.commission_rate
     FROM products p
     LEFT JOIN inventory_balances ib ON ib.product_id = p.id AND ib.branch_id = p.branch_id
     UNION ALL
     SELECT
       s.branch_id, 'service'::text, s.id, s.code, s.name,
       s.category, s.brand, 'lần'::varchar, s.price, s.cost_price,
-      0::numeric, NULL::numeric, 0::numeric, NULL::numeric, s.active
+      0::numeric, NULL::numeric, 0::numeric, NULL::numeric, s.active, NULL::varchar, NULL::numeric
     FROM services s
     UNION ALL
     SELECT
       sp.branch_id, 'package'::text, sp.id, sp.code, sp.name,
       sp.category, sp.brand, 'gói'::varchar, sp.list_price, sp.cost_price,
-      0::numeric, NULL::numeric, 0::numeric, NULL::numeric, sp.active
+      0::numeric, NULL::numeric, 0::numeric, NULL::numeric, sp.active, NULL::varchar, NULL::numeric
     FROM service_packages sp
     UNION ALL
     SELECT
       ac.branch_id, 'account_card'::text, ac.id, ac.code, ac.name,
       ac.category, ac.brand, 'thẻ'::varchar, ac.sale_price, 0::numeric,
-      0::numeric, NULL::numeric, 0::numeric, NULL::numeric, ac.active
+      0::numeric, NULL::numeric, 0::numeric, NULL::numeric, ac.active, NULL::varchar, NULL::numeric
     FROM account_cards ac
   )
 `;
@@ -50,6 +50,8 @@ function mapProduct(row) {
     minStock: number(row.min_stock),
     maxStock: row.max_stock === null ? null : number(row.max_stock),
     active: row.active,
+    commissionType: row.commission_type,
+    commissionRate: parseFloat(row.commission_rate) || 0,
   };
 }
 
