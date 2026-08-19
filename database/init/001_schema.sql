@@ -237,6 +237,11 @@ CREATE TABLE products (
   description TEXT,
   note TEXT,
   active BOOLEAN NOT NULL DEFAULT TRUE,
+  commission_type VARCHAR(10) DEFAULT NULL
+    CHECK (commission_type IS NULL OR commission_type IN ('percent', 'fixed')),
+  commission_rate NUMERIC(14, 2) DEFAULT 0
+    CHECK (commission_type != 'percent' OR commission_rate >= 0)
+    CHECK (commission_type != 'percent' OR commission_rate <= 1),
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
@@ -496,6 +501,7 @@ CREATE TABLE commission_records (
   branch_id BIGINT NOT NULL REFERENCES branches(id) ON DELETE RESTRICT,
   staff_id BIGINT NOT NULL REFERENCES staff(id) ON DELETE RESTRICT,
   invoice_id BIGINT REFERENCES invoices(id) ON DELETE SET NULL,
+  invoice_item_id BIGINT REFERENCES invoice_items(id) ON DELETE SET NULL,
   source_name VARCHAR(220) NOT NULL,
   revenue NUMERIC(14, 2) NOT NULL DEFAULT 0 CHECK (revenue >= 0),
   rate NUMERIC(7, 4) NOT NULL DEFAULT 0 CHECK (rate >= 0),

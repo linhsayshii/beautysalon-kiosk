@@ -419,6 +419,13 @@ ON CONFLICT (sku) DO UPDATE SET
   description = EXCLUDED.description,
   active = EXCLUDED.active;
 
+-- 7b. PRODUCT COMMISSIONS: Assign commission settings to selected products
+UPDATE products SET commission_type = 'percent', commission_rate = 0.10 WHERE sku = 'SP000492';
+UPDATE products SET commission_type = 'percent', commission_rate = 0.10 WHERE sku = 'SP000488';
+UPDATE products SET commission_type = 'fixed', commission_rate = 50000.00 WHERE sku = 'SP000479';
+UPDATE products SET commission_type = 'percent', commission_rate = 0.05 WHERE sku = 'SP000447';
+UPDATE products SET commission_type = 'percent', commission_rate = 0.08 WHERE sku = 'SP000340';
+
 -- 8. INVENTORY BALANCES (284 products)
 INSERT INTO inventory_balances (branch_id, product_id, quantity)
 SELECT p.branch_id, p.id, x.quantity
