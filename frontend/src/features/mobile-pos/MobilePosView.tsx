@@ -17,10 +17,13 @@ interface CatalogItem {
   unit: string;
   salePrice: number;
   stockQuantity: number | null;
+  commissionType: 'percent' | 'fixed' | null;
+  commissionRate: number;
 }
 
 interface PosLine extends CatalogItem {
   quantity: number;
+  staffId: number | null;
 }
 
 interface PosCustomer {
@@ -102,8 +105,20 @@ export function MobilePosView() {
             : l
         );
       }
-      return [...prev, { ...item, quantity: 1 }];
+      // Preserve commission data from catalog item
+      return [...prev, { ...item, quantity: 1, staffId: null }];
     });
+  };
+
+  // Update staff for a line
+  const handleUpdateLineStaff = (itemId: number, itemType: string, staffId: number | null) => {
+    setCartLines((prev) =>
+      prev.map((l) =>
+        l.itemId === itemId && l.itemType === itemType
+          ? { ...l, staffId }
+          : l
+      )
+    );
   };
 
   // Update quantity or remove
@@ -288,6 +303,7 @@ export function MobilePosView() {
           customer={customer}
           onSelectCustomer={setCustomer}
           onUpdateQuantity={handleUpdateQuantity}
+          onUpdateLineStaff={handleUpdateLineStaff}
           onClose={() => setIsCartOpen(false)}
           onSuccess={(receipt) => {
             setIsCartOpen(false);
