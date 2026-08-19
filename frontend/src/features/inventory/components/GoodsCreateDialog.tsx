@@ -290,40 +290,36 @@ export function GoodsCreateDialog({ type, onClose, itemId, initialData }: GoodsC
                       </button>
                     </div>
 
-                  <div className="goods-field">
-                    <label htmlFor="goods-commission-rate">{commissionType === 'percent' ? 'Tỷ lệ (%)' : 'Số tiền (đ)'}</label>
-                    {commissionType === 'percent' ? (
-                      <PercentInput
-                        id="goods-commission-rate"
-                        suffix="%"
-                        value={commissionRate}
-                        onChange={(val) => setCommissionRate(val)}
-                        placeholder="0"
-                      />
-                    ) : (
-                      <MoneyInput
-                        id="goods-commission-rate"
-                        suffix="đ"
-                        value={commissionRate}
-                        onChange={(val) => setCommissionRate(val)}
-                        placeholder="0"
-                      />
-                    )}
-                  </div>
-
-                  {commissionType === 'percent' && (
-                    <div className="goods-field">
-                      <label>Hoa hồng dự kiến / sản phẩm</label>
-                      <div style={{ padding: '8px 0', fontWeight: 600 }}>
-                        = {formatMoney(numeric(form.salePrice) * (commissionRate / 100))}đ
+                    <div className="commission-rate-row">
+                      <div className="input-suffix commission-rate-input">
+                        {commissionType === 'percent' ? (
+                          <PercentInput
+                            id="goods-commission-rate"
+                            suffix="%"
+                            value={commissionRate}
+                            onChange={(val) => setCommissionRate(val)}
+                            placeholder="0"
+                          />
+                        ) : (
+                          <MoneyInput
+                            id="goods-commission-rate"
+                            suffix="đ"
+                            value={commissionRate}
+                            onChange={(val) => setCommissionRate(val)}
+                            placeholder="0"
+                          />
+                        )}
                       </div>
+
                       {commissionType === 'percent' && (
-                        <span className="commission-preview">
-                          ≈ {formatMoney(numeric(form.salePrice) * commissionRate)}đ / {copy.noun}
-                        </span>
+                        <div className="commission-preview">
+                          ≈ {formatMoney(numeric(form.salePrice) * (commissionRate / 100))}đ / {copy.noun}
+                        </div>
                       )}
                     </div>
-                  )}
+                  </>
+                )}
+              </div>
             </section>
 
             {type === 'product' && <section className="goods-form-section"><div className="goods-section-heading"><span><strong>Tồn kho</strong><small>Thiết lập số lượng ban đầu và cảnh báo tồn.</small></span><i className="ph ph-caret-up" /></div><div className="goods-form-grid three-columns"><div className="goods-field"><label htmlFor="goods-stock">Tồn ban đầu</label><input id="goods-stock" type="number" min="0" value={form.initialStock} onChange={(event) => update('initialStock', event.target.value)} /></div><div className="goods-field"><label htmlFor="goods-min-stock">Tồn tối thiểu</label><input id="goods-min-stock" type="number" min="0" value={form.minStock} onChange={(event) => update('minStock', event.target.value)} /></div><div className="goods-field"><label htmlFor="goods-max-stock">Tồn tối đa</label><input id="goods-max-stock" type="number" min="1" value={form.maxStock} onChange={(event) => update('maxStock', event.target.value)} placeholder="Không giới hạn" aria-invalid={Boolean(errors.maxStock)} />{errors.maxStock && <small className="field-error">{errors.maxStock}</small>}</div></div><div className="goods-field compact-field"><label htmlFor="goods-unit">Đơn vị tính</label><input id="goods-unit" value={form.unit} onChange={(event) => update('unit', event.target.value)} /></div></section>}
