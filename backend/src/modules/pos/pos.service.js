@@ -4,14 +4,6 @@ import { broadcastToBranch } from '../../lib/ws.js';
 
 const number = (value) => Number(value ?? 0);
 
-function calculateCommission(revenue, commissionType, commissionRate) {
-  if (!commissionType || !commissionRate) return 0;
-  if (commissionType === 'percent') {
-    return Math.round(revenue * commissionRate);
-  }
-  return 0; // fixed amount handled in per-item loop
-}
-
 function generateInvoiceCode() {
   const dateStr = new Intl.DateTimeFormat('en-GB', {
     year: '2-digit',
@@ -359,17 +351,16 @@ export async function checkoutPosInvoice({
 
         const revenue = item.lineTotal;
         let amount = 0;
-        let commissionType = 'service';
         let rate = 0;
 
         if (item.productId && productCommissions[item.productId]) {
           const comm = productCommissions[item.productId];
-          commissionType = comm.commissionType || 'service';
+          const calcType = comm.commissionType; // 'percent' or 'fixed'
           rate = comm.commissionRate || 0;
 
-          if (commissionType === 'percent') {
+          if (calcType === 'percent') {
             amount = Math.round(revenue * rate);
-          } else if (commissionType === 'fixed') {
+          } else if (calcType === 'fixed') {
             amount = item.quantity * rate;
           }
         }
@@ -378,8 +369,8 @@ export async function checkoutPosInvoice({
           await client.query(
             `INSERT INTO commission_records (
                branch_id, staff_id, invoice_id, invoice_item_id, source_name, revenue, rate, amount, occurred_on, status, commission_type
-             ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, CURRENT_DATE, 'pending', $9)`,
-            [branchId, item.staffId, invoiceId, item.itemId, `Thực hiện dịch vụ`, revenue, rate, amount, commissionType],
+             ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, CURRENT_DATE, 'pending', 'service')`,
+            [branchId, item.staffId, invoiceId, item.itemId, `Thực hiện dịch vụ`, revenue, rate, amount],
           );
         }
       }
