@@ -112,8 +112,18 @@ export async function runMigrations() {
       CREATE INDEX IF NOT EXISTS idx_payroll_periods_branch ON payroll_periods(branch_id, starts_on DESC);
       CREATE INDEX IF NOT EXISTS idx_payroll_records_period ON payroll_records(payroll_period_id);
       CREATE INDEX IF NOT EXISTS idx_payroll_payments_period ON payroll_payments(payroll_period_id);
+
+      -- Add commission fields to products table for per-line commission
+      ALTER TABLE products
+        ADD COLUMN IF NOT EXISTS commission_type VARCHAR(10) DEFAULT NULL
+          CHECK (commission_type IS NULL OR commission_type IN ('percent', 'fixed')),
+        ADD COLUMN IF NOT EXISTS commission_rate NUMERIC(14, 2) DEFAULT 0;
+
+      -- Add invoice_item_id to commission_records for per-item tracking
+      ALTER TABLE commission_records
+        ADD COLUMN IF NOT EXISTS invoice_item_id BIGINT REFERENCES invoice_items(id) ON DELETE SET NULL;
     `);
-    console.log('[database] payroll migrations checked and applied');
+    console.log('[database] payroll & commission migrations checked and applied');
   } catch (err) {
     console.error('[database] migration error', err.message);
   }

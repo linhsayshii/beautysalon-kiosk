@@ -4,6 +4,14 @@ import { broadcastToBranch } from '../../lib/ws.js';
 
 const number = (value) => Number(value ?? 0);
 
+function calculateCommission(revenue, commissionType, commissionRate) {
+  if (!commissionType || !commissionRate) return 0;
+  if (commissionType === 'percent') {
+    return Math.round(revenue * commissionRate);
+  }
+  return 0; // fixed amount handled in per-item loop
+}
+
 function generateInvoiceCode() {
   const dateStr = new Intl.DateTimeFormat('en-GB', {
     year: '2-digit',
@@ -273,12 +281,14 @@ export async function checkoutPosInvoice({
     const invoice = invoiceResult.rows[0];
     const invoiceId = Number(invoice.id);
 
-    // 6. Insert invoice items
+    // 6. Insert invoice items and collect their IDs
+    const invoiceItemIds = [];
     for (const item of validatedItems) {
-      await client.query(
+      const itemResult = await client.query(
         `INSERT INTO invoice_items (
            invoice_id, item_type, service_id, product_id, staff_id, description, quantity, unit_price, line_total
-         ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+         ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+         RETURNING id`,
         [
           invoiceId,
           item.itemType,
@@ -291,6 +301,15 @@ export async function checkoutPosInvoice({
           item.lineTotal,
         ],
       );
+      invoiceItemIds.push({
+        itemId: Number(itemResult.rows[0].id),
+        productId: item.productId,
+        staffId: item.staffId,
+        unitPrice: item.unitPrice,
+        quantity: item.quantity,
+        lineTotal: item.lineTotal,
+        name: item.name,
+      });
     }
 
     // 7. Auto-activate customer packages & account cards if applicable
@@ -316,16 +335,54 @@ export async function checkoutPosInvoice({
       );
     }
 
-    // 8. Create commission record for staff if assigned
-    if (staffId && total > 0) {
-      const commissionRate = 0.05; // 5% standard rate for servicing staff
-      const commissionAmount = Math.round(total * commissionRate);
-      await client.query(
-        `INSERT INTO commission_records (
-           branch_id, staff_id, invoice_id, source_name, revenue, rate, amount, occurred_on, status
-         ) VALUES ($1, $2, $3, $4, $5, $6, $7, CURRENT_DATE, 'pending')`,
-        [branchId, staffId, invoiceId, `Thực hiện đơn ${invoiceCode}`, total, commissionRate, commissionAmount],
-      );
+    // 8. Create per-line commission records for staff assigned to each item
+    if (invoiceItemIds.length > 0) {
+      // Fetch product commission settings for items with product_id
+      const productIds = invoiceItemIds.filter((i) => i.productId).map((i) => i.productId);
+      const productCommissions = {};
+      if (productIds.length > 0) {
+        const commResult = await client.query(
+          `SELECT id, commission_type, commission_rate FROM products WHERE id = ANY($1)`,
+          [productIds],
+        );
+        for (const row of commResult.rows) {
+          productCommissions[row.id] = {
+            commissionType: row.commission_type,
+            commissionRate: parseFloat(row.commission_rate) || 0,
+          };
+        }
+      }
+
+      // Create commission for each line with assigned staff
+      for (const item of invoiceItemIds) {
+        if (!item.staffId) continue;
+
+        const revenue = item.lineTotal;
+        let amount = 0;
+        let commissionType = 'service';
+        let rate = 0;
+
+        if (item.productId && productCommissions[item.productId]) {
+          const comm = productCommissions[item.productId];
+          commissionType = comm.commissionType || 'service';
+          rate = comm.commissionRate || 0;
+
+          if (commissionType === 'percent') {
+            amount = Math.round(revenue * rate);
+          } else if (commissionType === 'fixed') {
+            amount = item.quantity * rate;
+          }
+        }
+
+        if (amount > 0) {
+          await client.query(
+            `INSERT INTO commission_records (
+               branch_id, staff_id, invoice_id, invoice_item_id, source_name, revenue, rate, amount, occurred_on, status, commission_type
+             ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, CURRENT_DATE, 'pending', $9)`,
+            [branchId, item.staffId, invoiceId, item.itemId, `Thực hiện dịch vụ`, revenue, rate, amount, commissionType],
+          );
+        }
+      }
     }
 
     // 9. Record cash transaction
