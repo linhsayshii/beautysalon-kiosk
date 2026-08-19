@@ -143,7 +143,7 @@ export function GoodsCreateDialog({ type, onClose }: GoodsCreateDialogProps) {
       allowedTypes,
       scopeItems: scopeItems.map((key) => { const [itemType, itemId] = key.split(':'); return { itemType, itemId: Number(itemId) }; }),
       commissionType: commissionType,
-      commissionRate: commissionType === 'percent' ? commissionRate : commissionRate,
+      commissionRate: commissionRate,
     };
     mutation.mutate(payload);
   };
@@ -186,7 +186,7 @@ export function GoodsCreateDialog({ type, onClose }: GoodsCreateDialogProps) {
                     setCommissionRate(0);
                   }}
                 />
-                <span>Có hoa hong</span>
+                <span>Có hoa hồng</span>
               </label>
 
               {commissionType !== null && (

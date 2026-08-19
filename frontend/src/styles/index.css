@@ -357,6 +357,10 @@
   margin-top: 12px;
 }
 
+.commission-fields {
+  padding-left: 24px;
+}
+
 .checkbox-label {
   display: flex;
   align-items: center;
