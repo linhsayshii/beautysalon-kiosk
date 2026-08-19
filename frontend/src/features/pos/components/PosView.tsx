@@ -171,7 +171,7 @@ export function PosView() {
     if (item.itemType === 'product' && Number(item.stockQuantity ?? 0) <= 0) return;
     updateActive((invoice) => {
       const current = invoice.lines.find((line) => line.itemId === item.itemId && line.itemType === item.itemType);
-      if (!current) return { ...invoice, lines: [...invoice.lines, { ...item, quantity: 1, staffId: null, commissionType: null, commissionRate: 0 }] };
+      if (!current) return { ...invoice, lines: [...invoice.lines, { ...item, quantity: 1, staffId: null }] };
       if (item.itemType === 'product' && current.quantity >= Number(item.stockQuantity ?? 0)) return invoice;
       return { ...invoice, lines: invoice.lines.map((line) => line === current ? { ...line, quantity: line.quantity + 1 } : line) };
     });
