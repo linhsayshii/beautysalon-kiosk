@@ -14,6 +14,8 @@ interface PosLine {
   salePrice: number;
   quantity: number;
   staffId?: number | null;
+  commissionType: 'percent' | 'fixed' | null;
+  commissionRate: number;
 }
 
 interface PosCustomer {
@@ -27,6 +29,7 @@ interface MobileCartBottomSheetProps {
   customer: PosCustomer | null;
   onSelectCustomer: (cust: PosCustomer | null) => void;
   onUpdateQuantity: (itemId: number, itemType: string, delta: number) => void;
+  onUpdateLineStaff: (itemId: number, itemType: string, staffId: number | null) => void;
   onClose: () => void;
   onSuccess: (receipt: PosReceiptData) => void;
 }
@@ -38,10 +41,10 @@ export function MobileCartBottomSheet({
   customer,
   onSelectCustomer,
   onUpdateQuantity,
+  onUpdateLineStaff,
   onClose,
   onSuccess,
 }: MobileCartBottomSheetProps) {
-  const [selectedStaffId, setSelectedStaffId] = useState<string>('');
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('cash');
   const [discountValue, setDiscountValue] = useState<number>(0);
   const [customerQuery, setCustomerQuery] = useState('');
@@ -67,6 +70,42 @@ export function MobileCartBottomSheet({
 
   const total = Math.max(0, subtotal - discountValue);
 
+  // Calculate expected commission for a line
+  const calculateExpectedCommission = (line: PosLine): string => {
+    if (!line.staffId) return '-';
+    if (!line.commissionType || !line.commissionRate) return '0đ';
+
+    const revenue = line.salePrice * line.quantity;
+    let amount = 0;
+
+    if (line.commissionType === 'percent') {
+      amount = revenue * line.commissionRate;
+    } else {
+      amount = line.quantity * line.commissionRate;
+    }
+
+    return formatMoney(Math.round(amount));
+  };
+
+  // Calculate total expected commission
+  const totalCommission = useMemo(() => {
+    return lines.reduce((sum, line) => {
+      if (!line.staffId) return sum;
+      if (!line.commissionType || !line.commissionRate) return sum;
+
+      const revenue = line.salePrice * line.quantity;
+      let amount = 0;
+
+      if (line.commissionType === 'percent') {
+        amount = revenue * line.commissionRate;
+      } else {
+        amount = line.quantity * line.commissionRate;
+      }
+
+      return sum + amount;
+    }, 0);
+  }, [lines]);
+
   const checkoutMutation = useMutation({
     mutationFn: checkoutPosInvoice,
     onSuccess: (res) => {
@@ -78,7 +117,7 @@ export function MobileCartBottomSheet({
     if (lines.length === 0) return;
     checkoutMutation.mutate({
       customerId: customer?.id ?? null,
-      staffId: selectedStaffId ? Number(selectedStaffId) : null,
+      staffId: null,
       discount: discountValue,
       paymentMethod,
       amountPaid: total,
@@ -86,7 +125,7 @@ export function MobileCartBottomSheet({
         itemId: l.itemId,
         itemType: l.itemType,
         quantity: l.quantity,
-        staffId: l.staffId || (selectedStaffId ? Number(selectedStaffId) : null),
+        staffId: l.staffId || null,
       })),
     });
   };
@@ -249,32 +288,66 @@ export function MobileCartBottomSheet({
             </div>
           </div>
 
-          {/* Staff selection */}
+          {/* Staff assignment per line item */}
           {staffList.length > 0 && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-              <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink-700)' }}>Kỹ thuật viên / Nhân viên phục vụ</span>
-              <select
-                value={selectedStaffId}
-                onChange={(e) => setSelectedStaffId(e.target.value)}
-                style={{
-                  width: '100%',
-                  height: 40,
-                  borderRadius: 12,
-                  border: '1px solid #e2e8f0',
-                  padding: '0 10px',
-                  background: '#ffffff',
-                  fontSize: 13.5,
-                  fontWeight: 600,
-                  color: 'var(--ink-950)'
-                }}
-              >
-                <option value="">-- Chọn nhân viên thực hiện (Tùy chọn) --</option>
-                {staffList.map((st) => (
-                  <option key={st.id} value={st.id}>{st.name}</option>
+              <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink-700)' }}>Nhân viên thực hiện</span>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                {lines.map((line) => (
+                  <div key={`staff-${line.itemType}-${line.itemId}`} style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: 8,
+                    padding: '8px 0',
+                    borderBottom: '1px dashed var(--line, #e2e8f0)'
+                  }}>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <span style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink-800)' }}>{line.name}</span>
+                      {line.quantity > 1 && <span style={{ fontSize: 11.5, color: 'var(--ink-500)', marginLeft: 6 }}>x{line.quantity}</span>}
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <select
+                        value={line.staffId ?? ''}
+                        onChange={(e) => onUpdateLineStaff(line.itemId, line.itemType, e.target.value ? Number(e.target.value) : null)}
+                        style={{
+                          padding: '4px 8px',
+                          borderRadius: 8,
+                          border: '1px solid var(--line, #e2e8f0)',
+                          background: 'var(--surface, #ffffff)',
+                          fontSize: 12.5,
+                          fontWeight: 600,
+                          color: 'var(--ink-800)',
+                          minWidth: 100,
+                          maxWidth: 140
+                        }}
+                      >
+                        <option value="">-- Chọn NV --</option>
+                        {staffList.map((st) => (
+                          <option key={st.id} value={st.id}>{st.name}</option>
+                        ))}
+                      </select>
+                      {line.staffId && (
+                        <span style={{
+                          fontSize: 11.5,
+                          fontWeight: 700,
+                          color: '#059669',
+                          background: '#ecfdf5',
+                          padding: '2px 8px',
+                          borderRadius: 10,
+                          whiteSpace: 'nowrap'
+                        }}>
+                          HH: {calculateExpectedCommission(line)}
+                        </span>
+                      )}
+                    </div>
+                  </div>
                 ))}
-              </select>
+              </div>
             </div>
           )}
+
+          {/* Staff selection - removed, using per-line assignment above */}
 
           {/* Payment Method */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
@@ -348,6 +421,12 @@ export function MobileCartBottomSheet({
               <div className="mobile-summary-row" style={{ color: '#dc2626' }}>
                 <span>Giảm giá:</span>
                 <span>-{formatMoney(discountValue)}</span>
+              </div>
+            )}
+            {totalCommission > 0 && (
+              <div className="mobile-summary-row" style={{ color: '#059669' }}>
+                <span>HH dự kiến:</span>
+                <span style={{ fontWeight: 700 }}>{formatMoney(totalCommission)}</span>
               </div>
             )}
             <div className="mobile-summary-row total-row">
