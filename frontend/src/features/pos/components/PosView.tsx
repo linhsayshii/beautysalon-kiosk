@@ -26,7 +26,12 @@ interface CatalogItem {
   stockQuantity: number | null;
 }
 
-interface PosLine extends CatalogItem { quantity: number }
+interface PosLine extends CatalogItem {
+  quantity: number;
+  staffId: number | null;
+  commissionType: 'percent' | 'fixed' | null;
+  commissionRate: number;
+}
 
 interface PosCustomer {
   id: number;
@@ -166,7 +171,7 @@ export function PosView() {
     if (item.itemType === 'product' && Number(item.stockQuantity ?? 0) <= 0) return;
     updateActive((invoice) => {
       const current = invoice.lines.find((line) => line.itemId === item.itemId && line.itemType === item.itemType);
-      if (!current) return { ...invoice, lines: [...invoice.lines, { ...item, quantity: 1 }] };
+      if (!current) return { ...invoice, lines: [...invoice.lines, { ...item, quantity: 1, staffId: null, commissionType: null, commissionRate: 0 }] };
       if (item.itemType === 'product' && current.quantity >= Number(item.stockQuantity ?? 0)) return invoice;
       return { ...invoice, lines: invoice.lines.map((line) => line === current ? { ...line, quantity: line.quantity + 1 } : line) };
     });
@@ -182,6 +187,33 @@ export function PosView() {
         .filter((current) => current.quantity > 0),
     }));
   };
+
+  const updateLineStaff = (line: PosLine, staffId: number | null) => {
+    updateActive((invoice) => ({
+      ...invoice,
+      lines: invoice.lines.map((current) =>
+        current.itemId === line.itemId && current.itemType === line.itemType
+          ? { ...current, staffId }
+          : current
+      ),
+    }));
+  };
+
+  function calculateExpectedCommission(line: PosLine): string {
+    if (!line.staffId) return '-';
+    if (!line.commissionType || !line.commissionRate) return '0đ';
+
+    const revenue = line.salePrice * line.quantity;
+    let amount = 0;
+
+    if (line.commissionType === 'percent') {
+      amount = revenue * line.commissionRate;
+    } else {
+      amount = line.quantity * line.commissionRate;
+    }
+
+    return formatMoney(Math.round(amount));
+  }
 
   const removeLine = (line: PosLine) => updateActive((invoice) => ({
     ...invoice,
@@ -292,6 +324,19 @@ export function PosView() {
                     <span>{line.quantity}</span>
                     <button type="button" onClick={() => changeQuantity(line, 1)} disabled={line.itemType === 'product' && line.quantity >= Number(line.stockQuantity ?? 0)} aria-label="Tăng số lượng"><i className="ph ph-plus" /></button>
                   </div>
+                  <div className="pos-line-staff">
+                    <select
+                      value={line.staffId ?? ''}
+                      onChange={(e) => updateLineStaff(line, e.target.value ? Number(e.target.value) : null)}
+                      aria-label={`Nhân viên cho ${line.name}`}
+                    >
+                      <option value="">-- NV --</option>
+                      {staffList.map((s) => (
+                        <option key={s.id} value={s.id}>{s.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <span className="pos-line-commission">{calculateExpectedCommission(line)}</span>
                   <strong className="pos-line-total">{formatMoney(line.salePrice * line.quantity)}</strong>
                   <button className="pos-remove-line" type="button" onClick={() => removeLine(line)} aria-label={`Xóa ${line.name}`}><i className="ph ph-trash" /></button>
                 </article>)}

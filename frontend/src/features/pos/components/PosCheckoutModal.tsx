@@ -16,6 +16,7 @@ interface PosLine {
   unit: string;
   salePrice: number;
   quantity: number;
+  staffId: number | null;
 }
 
 interface PosCustomer {
@@ -122,6 +123,7 @@ export function PosCheckoutModal({
           itemType: line.itemType,
           itemId: line.itemId,
           quantity: line.quantity,
+          staffId: line.staffId ?? undefined,
         })),
       };
       return checkoutPosInvoice(payload);
