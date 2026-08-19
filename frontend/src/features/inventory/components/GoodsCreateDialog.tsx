@@ -9,6 +9,8 @@ import { formatMoney } from '@/lib/format';
 import { createInventoryItem, getProducts } from '../inventory.api';
 import type { CreateInventoryItemInput, InventoryItemType } from '../inventory.api';
 
+type CommissionType = 'percent' | 'fixed' | null;
+
 interface GoodsCreateDialogProps { type: InventoryItemType; onClose: () => void }
 interface PackageItem { serviceId: string; units: number }
 
@@ -36,6 +38,8 @@ export function GoodsCreateDialog({ type, onClose }: GoodsCreateDialogProps) {
   const [serviceToAdd, setServiceToAdd] = useState('');
   const [allowedTypes, setAllowedTypes] = useState<string[]>(['product', 'service', 'package']);
   const [scopeItems, setScopeItems] = useState<string[]>([]);
+  const [commissionType, setCommissionType] = useState<CommissionType>(null);
+  const [commissionRate, setCommissionRate] = useState(0);
   const nameRef = useRef<HTMLInputElement>(null);
   const queryClient = useQueryClient();
   const { notify } = useToast();
@@ -138,6 +142,8 @@ export function GoodsCreateDialog({ type, onClose }: GoodsCreateDialogProps) {
       packageItems: packageItems.map((item) => ({ serviceId: Number(item.serviceId), units: item.units })),
       allowedTypes,
       scopeItems: scopeItems.map((key) => { const [itemType, itemId] = key.split(':'); return { itemType, itemId: Number(itemId) }; }),
+      commissionType: commissionType,
+      commissionRate: commissionType === 'percent' ? commissionRate : commissionRate,
     };
     mutation.mutate(payload);
   };
@@ -169,6 +175,65 @@ export function GoodsCreateDialog({ type, onClose }: GoodsCreateDialogProps) {
               <div className="goods-field"><label htmlFor="goods-sale-price">Giá bán</label><MoneyInput id="goods-sale-price" suffix="đ" value={numeric(form.salePrice)} onChange={(val) => update('salePrice', String(val))} />{errors.salePrice && <small className="field-error">{errors.salePrice}</small>}</div>
               {type === 'account_card' ? <div className="goods-field"><label htmlFor="goods-face-value">Mệnh giá sử dụng</label><MoneyInput id="goods-face-value" suffix="đ" value={numeric(form.faceValue)} onChange={(val) => update('faceValue', String(val))} />{errors.faceValue && <small className="field-error">{errors.faceValue}</small>}</div> : <div className="goods-field"><label htmlFor="goods-cost-price">Giá vốn</label><MoneyInput id="goods-cost-price" suffix="đ" value={numeric(form.costPrice)} onChange={(val) => update('costPrice', String(val))} />{errors.costPrice && <small className="field-error">{errors.costPrice}</small>}</div>}
             </div></section>
+
+            <div className="commission-section">
+              <label className="checkbox-label">
+                <input
+                  type="checkbox"
+                  checked={commissionType !== null}
+                  onChange={(e) => {
+                    setCommissionType(e.target.checked ? 'percent' : null);
+                    setCommissionRate(0);
+                  }}
+                />
+                <span>Có hoa hong</span>
+              </label>
+
+              {commissionType !== null && (
+                <div className="commission-fields">
+                  <div className="radio-group">
+                    <label>
+                      <input
+                        type="radio"
+                        name="commissionType"
+                        value="percent"
+                        checked={commissionType === 'percent'}
+                        onChange={() => setCommissionType('percent')}
+                      />
+                      <span>% giá bán</span>
+                    </label>
+                    <label>
+                      <input
+                        type="radio"
+                        name="commissionType"
+                        value="fixed"
+                        checked={commissionType === 'fixed'}
+                        onChange={() => setCommissionType('fixed')}
+                      />
+                      <span>Số tiền cố định</span>
+                    </label>
+                  </div>
+
+                  <div className="rate-input">
+                    <input
+                      type="number"
+                      value={commissionRate}
+                      onChange={(e) => setCommissionRate(parseFloat(e.target.value) || 0)}
+                      step={commissionType === 'percent' ? 0.01 : 1000}
+                      min={0}
+                      max={commissionType === 'percent' ? 1 : undefined}
+                    />
+                    <span>{commissionType === 'percent' ? '%' : 'đ'}</span>
+                  </div>
+
+                  {commissionType === 'percent' && (
+                    <span className="preview">
+                      = {formatMoney(numeric(form.salePrice) * commissionRate)}đ
+                    </span>
+                  )}
+                </div>
+              )}
+            </div>
 
             {type === 'product' && <section className="goods-form-section"><div className="goods-section-heading"><span><strong>Tồn kho</strong><small>Thiết lập số lượng ban đầu và cảnh báo tồn.</small></span><i className="ph ph-caret-up" /></div><div className="goods-form-grid three-columns"><div className="goods-field"><label htmlFor="goods-stock">Tồn ban đầu</label><input id="goods-stock" type="number" min="0" value={form.initialStock} onChange={(event) => update('initialStock', event.target.value)} /></div><div className="goods-field"><label htmlFor="goods-min-stock">Tồn tối thiểu</label><input id="goods-min-stock" type="number" min="0" value={form.minStock} onChange={(event) => update('minStock', event.target.value)} /></div><div className="goods-field"><label htmlFor="goods-max-stock">Tồn tối đa</label><input id="goods-max-stock" type="number" min="1" value={form.maxStock} onChange={(event) => update('maxStock', event.target.value)} placeholder="Không giới hạn" aria-invalid={Boolean(errors.maxStock)} />{errors.maxStock && <small className="field-error">{errors.maxStock}</small>}</div></div><div className="goods-field compact-field"><label htmlFor="goods-unit">Đơn vị tính</label><input id="goods-unit" value={form.unit} onChange={(event) => update('unit', event.target.value)} /></div></section>}
 

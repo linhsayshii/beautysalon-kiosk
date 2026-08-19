@@ -9,6 +9,8 @@ export type InventoryItemType = 'product' | 'service' | 'package' | 'account_car
 export interface CreateInventoryItemInput extends ApiRecord {
   type: InventoryItemType;
   name: string;
+  commissionType?: 'percent' | 'fixed' | null;
+  commissionRate?: number;
 }
 
 export const getProducts = (filters: ApiRecord) => apiRequest<ApiEnvelope<ApiRecord[], InventoryMeta>>(`/inventory/products?${toQueryString(filters)}`);
