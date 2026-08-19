@@ -244,72 +244,61 @@ export function GoodsCreateDialog({ type, onClose, itemId, initialData }: GoodsC
                 </span>
                 <i className="ph ph-caret-up" />
               </div>
-              <label className="goods-active-check">
-                <input
-                  type="checkbox"
-                  checked={commissionType !== null}
-                  onChange={(e) => {
-                    setCommissionType(e.target.checked ? 'percent' : null);
-                    setCommissionRate(0);
-                  }}
-                />
-                <span>Cho phép tính hoa hồng</span>
-              </label>
+              <div className="commission-inline">
+                <label className="commission-toggle">
+                  <input
+                    type="checkbox"
+                    checked={commissionType !== null}
+                    onChange={(e) => {
+                      setCommissionType(e.target.checked ? 'percent' : null);
+                      setCommissionRate(0);
+                    }}
+                  />
+                  <span>Cho phép tính hoa hồng</span>
+                </label>
 
-              {commissionType !== null && (
-                <div className="goods-form-grid" style={{ marginTop: 10 }}>
-                  <div className="goods-field">
-                    <label>Loại hoa hồng</label>
-                    <div className="radio-group">
-                      <label>
-                        <input
-                          type="radio"
-                          name="commissionType"
-                          value="percent"
-                          checked={commissionType === 'percent'}
-                          onChange={() => setCommissionType('percent')}
-                        />
-                        <span>% giá bán</span>
-                      </label>
-                      <label>
-                        <input
-                          type="radio"
-                          name="commissionType"
-                          value="fixed"
-                          checked={commissionType === 'fixed'}
-                          onChange={() => setCommissionType('fixed')}
-                        />
-                        <span>Số tiền cố định</span>
-                      </label>
+                {commissionType !== null && (
+                  <>
+                    <div className="commission-segments" role="radiogroup" aria-label="Loại hoa hồng">
+                      <button
+                        type="button"
+                        className={`commission-segment ${commissionType === 'percent' ? 'is-active' : ''}`}
+                        onClick={() => setCommissionType('percent')}
+                      >
+                        % giá bán
+                      </button>
+                      <button
+                        type="button"
+                        className={`commission-segment ${commissionType === 'fixed' ? 'is-active' : ''}`}
+                        onClick={() => setCommissionType('fixed')}
+                      >
+                        Số tiền cố định
+                      </button>
                     </div>
-                  </div>
 
-                  <div className="goods-field">
-                    <label htmlFor="goods-commission-rate">{commissionType === 'percent' ? 'Tỷ lệ (%)' : 'Số tiền (đ)'}</label>
-                    <div className="input-suffix">
-                      <input
-                        id="goods-commission-rate"
-                        type="number"
-                        value={commissionRate}
-                        onChange={(e) => setCommissionRate(parseFloat(e.target.value) || 0)}
-                        step={commissionType === 'percent' ? 0.01 : 1000}
-                        min={0}
-                        max={commissionType === 'percent' ? 1 : undefined}
-                      />
-                      <span>{commissionType === 'percent' ? '%' : 'đ'}</span>
-                    </div>
-                  </div>
-
-                  {commissionType === 'percent' && (
-                    <div className="goods-field">
-                      <label>Hoa hồng dự kiến / sản phẩm</label>
-                      <div style={{ padding: '8px 0', fontWeight: 600 }}>
-                        = {formatMoney(numeric(form.salePrice) * commissionRate)}đ
+                    <div className="commission-rate-row">
+                      <div className="input-suffix commission-rate-input">
+                        <input
+                          id="goods-commission-rate"
+                          type="number"
+                          value={commissionRate}
+                          onChange={(e) => setCommissionRate(parseFloat(e.target.value) || 0)}
+                          step={commissionType === 'percent' ? 0.01 : 1000}
+                          min={0}
+                          max={commissionType === 'percent' ? 1 : undefined}
+                          placeholder="0"
+                        />
+                        <span>{commissionType === 'percent' ? '%' : 'đ'}</span>
                       </div>
+                      {commissionType === 'percent' && (
+                        <span className="commission-preview">
+                          ≈ {formatMoney(numeric(form.salePrice) * commissionRate)}đ / {copy.noun}
+                        </span>
+                      )}
                     </div>
-                  )}
-                </div>
-              )}
+                  </>
+                )}
+              </div>
             </section>
 
             {type === 'product' && <section className="goods-form-section"><div className="goods-section-heading"><span><strong>Tồn kho</strong><small>Thiết lập số lượng ban đầu và cảnh báo tồn.</small></span><i className="ph ph-caret-up" /></div><div className="goods-form-grid three-columns"><div className="goods-field"><label htmlFor="goods-stock">Tồn ban đầu</label><input id="goods-stock" type="number" min="0" value={form.initialStock} onChange={(event) => update('initialStock', event.target.value)} /></div><div className="goods-field"><label htmlFor="goods-min-stock">Tồn tối thiểu</label><input id="goods-min-stock" type="number" min="0" value={form.minStock} onChange={(event) => update('minStock', event.target.value)} /></div><div className="goods-field"><label htmlFor="goods-max-stock">Tồn tối đa</label><input id="goods-max-stock" type="number" min="1" value={form.maxStock} onChange={(event) => update('maxStock', event.target.value)} placeholder="Không giới hạn" aria-invalid={Boolean(errors.maxStock)} />{errors.maxStock && <small className="field-error">{errors.maxStock}</small>}</div></div><div className="goods-field compact-field"><label htmlFor="goods-unit">Đơn vị tính</label><input id="goods-unit" value={form.unit} onChange={(event) => update('unit', event.target.value)} /></div></section>}
