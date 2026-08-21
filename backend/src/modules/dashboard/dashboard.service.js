@@ -61,7 +61,7 @@ export async function listAppointments({ branchId, dateFrom, dateTo }) {
          (($3::date + 1) AT TIME ZONE b.timezone) AS range_end
        FROM branches b WHERE b.id = $1
      )
-     SELECT a.id, a.starts_at, a.ends_at, a.status, a.note,
+     SELECT a.id, a.starts_at, a.ends_at, a.status, a.note, a.invoice_id,
             c.id AS customer_id, c.name AS customer_name, c.phone AS customer_phone,
             s.id AS staff_id, s.name AS staff_name,
             sv.id AS service_id, sv.name AS service_name
@@ -84,6 +84,7 @@ export async function listAppointments({ branchId, dateFrom, dateTo }) {
     endsAt: row.ends_at,
     status: row.status,
     note: row.note,
+    invoiceId: row.invoice_id || null,
     customer: { id: row.customer_id ? number(row.customer_id) : null, name: row.customer_name ?? 'Khách lẻ', phone: row.customer_phone },
     staff: { id: row.staff_id ? number(row.staff_id) : null, name: row.staff_name },
     service: { id: row.service_id ? number(row.service_id) : null, name: row.service_name },
@@ -142,6 +143,49 @@ export async function createAppointment({ branchId, customerId, serviceId, staff
     );
     await client.query('COMMIT');
     const appointment = result.rows[0];
+
+    // Auto-create draft invoice for appointment
+    try {
+      const servicePriceResult = await pool.query(
+        'SELECT name, price FROM services WHERE id = $1',
+        [serviceId]
+      );
+      const serviceName = servicePriceResult.rows[0]?.name || 'Dịch vụ';
+      const servicePrice = servicePriceResult.rows[0]?.price || 0;
+
+      // Create invoice draft
+      const invoiceResult = await pool.query(`
+        INSERT INTO invoices (branch_id, customer_id, staff_id, code, status, subtotal, discount, total, payment_method, issued_at, appointment_id)
+        VALUES ($1, $2, $3, $4, 'draft', 0, 0, 0, 'cash', $5, $6)
+        RETURNING id
+      `, [
+        branchId,
+        customerId,
+        staffId || null,
+        `INV-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+        startsAt,
+        appointment.id,
+      ]);
+
+      const invoiceId = invoiceResult.rows[0].id;
+
+      // Link invoice to appointment
+      await pool.query(
+        'UPDATE appointments SET invoice_id = $1 WHERE id = $2',
+        [invoiceId, appointment.id]
+      );
+
+      // Create invoice_item for service
+      await pool.query(`
+        INSERT INTO invoice_items (invoice_id, item_type, service_id, description, quantity, unit_price, line_total)
+        VALUES ($1, 'service', $2, $3, 1, $4, $4)
+      `, [invoiceId, serviceId, serviceName, servicePrice]);
+
+    } catch (err) {
+      // Log but don't fail appointment — invoice is a side-effect
+      console.error('Failed to create draft invoice for appointment:', err);
+    }
+
     return {
       id: number(appointment.id),
       startsAt: appointment.starts_at,
@@ -210,7 +254,7 @@ export async function updateAppointment({ branchId, id, customerId, serviceId, s
       throw error;
     }
 
-    if (targetStaffId && targetStatus !== 'cancelled') {
+    if (targetStaffId && targetStatus !== 'cancelled' && targetStatus !== 'no_show') {
       const overlap = await client.query(
         `SELECT id FROM appointments
          WHERE branch_id = $1 AND staff_id = $2 AND status <> 'cancelled' AND id <> $3
@@ -224,6 +268,25 @@ export async function updateAppointment({ branchId, id, customerId, serviceId, s
         error.code = 'STAFF_SCHEDULE_CONFLICT';
         throw error;
       }
+    }
+
+    // Handle no_show status - skip overlap check and update directly
+    if (targetStatus === 'no_show') {
+      await client.query(
+        'UPDATE appointments SET status = $1 WHERE id = $2',
+        ['no_show', id]
+      );
+      await client.query('COMMIT');
+      return {
+        id: number(id),
+        startsAt: existing.starts_at,
+        endsAt: existing.ends_at,
+        status: 'no_show',
+        note: existing.note,
+        customer: { id: targetCustomerId, name: customerResult.rows[0]?.name ?? 'Khách lẻ', phone: customerResult.rows[0]?.phone },
+        staff: { id: targetStaffId, name: staffResult.rows[0]?.name ?? null },
+        service: { id: targetServiceId, name: serviceResult.rows[0]?.name ?? null },
+      };
     }
 
     const result = await client.query(

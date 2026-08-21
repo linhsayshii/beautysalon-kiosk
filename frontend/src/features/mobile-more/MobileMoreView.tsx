@@ -1,16 +1,18 @@
-import { useState } from 'react';
+import { useState, type RefObject } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/features/auth/AuthProvider';
 import { getBranches } from '@/features/branches/branches.api';
 import { initials } from '@/lib/format';
 import type { ApiRecord } from '@/types/api';
+import { useMobileDialog } from '@/features/mobile-common/useMobileDialog';
 import './mobile-more.css';
 
 export function MobileMoreView() {
   const { account, logout, switchBranch } = useAuth();
   const navigate = useNavigate();
   const [isSwitchingBranch, setIsSwitchingBranch] = useState(false);
+  const branchDialog = useMobileDialog({ isOpen: isSwitchingBranch, onClose: () => setIsSwitchingBranch(false) });
 
   const { data: branchesData } = useQuery({
     queryKey: ['branches-list'],
@@ -202,6 +204,14 @@ export function MobileMoreView() {
               </div>
               <i className="ph ph-caret-right more-item-arrow" />
             </Link>
+            <Link to="/m/my-schedule" className="more-nav-item">
+              <span className="more-item-badge sky"><i className="ph ph-calendar" /></span>
+              <div className="more-item-info">
+                <span className="more-item-label">Lịch của tôi</span>
+                <span className="more-item-desc">Lịch hẹn, đơn nháp & ca làm việc cá nhân</span>
+              </div>
+              <i className="ph ph-caret-right more-item-arrow" />
+            </Link>
           </div>
         </div>
 
@@ -252,10 +262,10 @@ export function MobileMoreView() {
           onClick={() => setIsSwitchingBranch(false)}
           data-testid="branch-modal-overlay"
         >
-          <div className="mobile-more-sheet-content" onClick={(e) => e.stopPropagation()}>
+          <div ref={branchDialog.dialogRef as RefObject<HTMLDivElement>} className="mobile-more-sheet-content" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" aria-labelledby={branchDialog.titleId} tabIndex={-1}>
             <div className="mobile-more-sheet-handle" />
             <div className="mobile-more-sheet-header">
-              <h3>Chọn chi nhánh làm việc</h3>
+              <h3 id={branchDialog.titleId}>Chọn chi nhánh làm việc</h3>
               <button
                 type="button"
                 className="mobile-more-sheet-close"

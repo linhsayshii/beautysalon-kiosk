@@ -11,6 +11,7 @@ router.get('/', asyncRoute(async (request, response) => {
   const pagination = parsePagination(request.query);
   const status = parseEnum(request.query.status, 'status', statuses);
   const paymentMethod = parseEnum(request.query.paymentMethod, 'paymentMethod', paymentMethods);
+  const staffId = request.query.staffId ? parsePositiveInteger(request.query.staffId, 'staffId') : null;
   const dateFrom = request.query.dateFrom ? parseIsoDate(request.query.dateFrom, 'dateFrom') : null;
   const dateTo = request.query.dateTo ? parseIsoDate(request.query.dateTo, 'dateTo') : null;
   const result = await listOrders({
@@ -18,6 +19,7 @@ router.get('/', asyncRoute(async (request, response) => {
     search: String(request.query.search ?? '').trim().slice(0, 120),
     status,
     paymentMethod,
+    staffId,
     dateFrom,
     dateTo,
     ...pagination,

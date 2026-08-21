@@ -3,15 +3,16 @@ import { HttpError } from '../../lib/http.js';
 
 const number = (value) => Number(value ?? 0);
 
-export async function listOrders({ branchId, search, status, paymentMethod, dateFrom, dateTo, page, pageSize, offset }) {
-  const parameters = [branchId, search, status, paymentMethod, dateFrom, dateTo];
+export async function listOrders({ branchId, search, status, paymentMethod, staffId, dateFrom, dateTo, page, pageSize, offset }) {
+  const parameters = [branchId, search, status, paymentMethod, staffId, dateFrom, dateTo];
   const filters = `
     i.branch_id = $1
     AND ($2 = '' OR i.code ILIKE '%' || $2 || '%' OR c.name ILIKE '%' || $2 || '%' OR c.phone ILIKE '%' || $2 || '%')
     AND ($3 = '' OR i.status = $3)
     AND ($4 = '' OR i.payment_method = $4)
-    AND ($5::date IS NULL OR i.issued_at >= $5::date)
-    AND ($6::date IS NULL OR i.issued_at < $6::date + INTERVAL '1 day')
+    AND ($5::bigint IS NULL OR i.staff_id = $5)
+    AND ($6::date IS NULL OR i.issued_at >= $6::date)
+    AND ($7::date IS NULL OR i.issued_at < $7::date + INTERVAL '1 day')
   `;
 
   const [rowsResult, summaryResult] = await Promise.all([
@@ -26,7 +27,7 @@ export async function listOrders({ branchId, search, status, paymentMethod, date
        LEFT JOIN staff s ON s.id = i.staff_id
        WHERE ${filters}
        ORDER BY i.issued_at DESC, i.id DESC
-       LIMIT $7 OFFSET $8`,
+       LIMIT $8 OFFSET $9`,
       [...parameters, pageSize, offset],
     ),
     pool.query(

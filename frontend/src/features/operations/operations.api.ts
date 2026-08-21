@@ -4,8 +4,27 @@ import type { ApiRecord, Pagination } from '@/types/api';
 
 export interface PagedMeta { pagination: Pagination; summary: ApiRecord; groups?: string[] }
 
-export function getOrders(filters: ApiRecord) {
-  return apiRequest<ApiEnvelope<ApiRecord[], PagedMeta>>(`/orders?${toQueryString(filters)}`);
+export interface OrderFilters {
+  status?: string;
+  staffId?: number;
+  dateFrom?: string;
+  dateTo?: string;
+  search?: string;
+  page?: number;
+  pageSize?: number;
+  salesChannel?: string;
+  paymentMethod?: string;
+}
+
+export interface OrderListResponse {
+  rows: ApiRecord[];
+  total: number;
+  page: number;
+  pageSize: number;
+}
+
+export function getOrders(filters?: OrderFilters) {
+  return apiRequest<ApiEnvelope<ApiRecord[], PagedMeta>>(`/orders?${toQueryString(filters ?? {})}`);
 }
 
 export function getOrder(id: number) {

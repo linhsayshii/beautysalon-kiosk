@@ -25,6 +25,7 @@ export async function checkoutPosInvoice({
   paymentMethod,
   amountPaid,
   note,
+  appointmentId,
 }) {
   if (!Array.isArray(lines) || lines.length === 0) {
     throw new HttpError(400, 'EMPTY_CART', 'Hóa đơn phải có ít nhất một dịch vụ hoặc sản phẩm');
@@ -272,6 +273,37 @@ export async function checkoutPosInvoice({
     );
     const invoice = invoiceResult.rows[0];
     const invoiceId = Number(invoice.id);
+
+    // 5b. Handle appointmentId if provided
+    let usedExistingInvoice = false;
+    if (appointmentId) {
+      const aptResult = await client.query(
+        'SELECT id, invoice_id, status FROM appointments WHERE id = $1 AND branch_id = $2',
+        [appointmentId, branchId],
+      );
+
+      if (!aptResult.rows[0]) {
+        throw new HttpError(404, 'NOT_FOUND', 'Không tìm thấy lịch hẹn');
+      }
+
+      // If appointment already has a draft invoice, delete the new one and use the existing
+      if (aptResult.rows[0].invoice_id && aptResult.rows[0].invoice_id !== invoiceId) {
+        await client.query('DELETE FROM invoices WHERE id = $1', [invoiceId]);
+        usedExistingInvoice = true;
+      }
+
+      // Update appointment: link invoice_id and set status to completed
+      await client.query(
+        `UPDATE appointments SET status = 'completed', invoice_id = $1 WHERE id = $2`,
+        [usedExistingInvoice ? aptResult.rows[0].invoice_id : invoiceId, appointmentId],
+      );
+
+      // If using existing invoice, reassign invoiceId to the existing one so the rest
+      // of the flow (items, commissions, cash tx, etc.) uses it correctly
+      if (usedExistingInvoice) {
+        invoiceId = Number(aptResult.rows[0].invoice_id);
+      }
+    }
 
     // 6. Insert invoice items and collect their IDs
     const invoiceItemIds = [];

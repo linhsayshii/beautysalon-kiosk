@@ -1,9 +1,10 @@
 import { useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
-import { getPosAppointments } from '@/features/pos/pos.api';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { getPosAppointments, updatePosAppointment } from '@/features/pos/pos.api';
 import { getStaff } from '@/features/staff/staff.api';
 import { MobileDetailSheet, MobileSearchBar } from '@/features/mobile-common';
+import { useToast } from '@/components/ui/Toast/ToastProvider';
 import type { ApiRecord } from '@/types/api';
 import './mobile-appointments.css';
 
@@ -27,7 +28,10 @@ const STATUS_LABELS: Record<string, string> = {
   in_service: 'Đang làm',
   completed: 'Đã xong',
   cancelled: 'Đã hủy',
+  no_show: 'Không đến',
 };
+
+const APPOINTMENT_STATUSES = ['pending', 'confirmed', 'waiting', 'in_service', 'completed', 'cancelled', 'no_show'] as const;
 
 function toIsoDate(date: Date): string {
   const y = date.getFullYear();
@@ -73,6 +77,9 @@ export function MobileAppointmentsListView() {
   const [search, setSearch] = useState('');
   const [isSearchVisible, setIsSearchVisible] = useState(false);
   const [selectedApt, setSelectedApt] = useState<AppointmentData | null>(null);
+  const [isStatusMenuOpen, setIsStatusMenuOpen] = useState(false);
+  const { notify } = useToast();
+  const queryClient = useQueryClient();
 
   const { data: appointmentsResponse, isLoading } = useQuery({
     queryKey: ['pos-appointments', selectedDate, selectedDate],
@@ -83,6 +90,33 @@ export function MobileAppointmentsListView() {
     queryKey: ['staff-list'],
     queryFn: () => getStaff({}),
   });
+
+  const statusMutation = useMutation({
+    mutationFn: ({ id, status }: { id: number; status: string }) => updatePosAppointment(id, { status }),
+    onSuccess: (response) => {
+      const updated = response.data as unknown as AppointmentData;
+      setSelectedApt((current) => current && current.id === updated.id
+        ? { ...current, status: updated.status }
+        : current);
+      queryClient.invalidateQueries({ queryKey: ['pos-appointments'] });
+      notify('Đã cập nhật lịch hẹn', `Trạng thái: ${STATUS_LABELS[updated.status] || updated.status}.`);
+    },
+    onError: (error) => {
+      const message = error instanceof Error ? error.message : 'Vui lòng thử lại.';
+      notify('Không thể cập nhật trạng thái', message);
+    },
+  });
+
+  const handleStatusChange = (status: string) => {
+    if (!selectedApt || status === selectedApt.status || statusMutation.isPending) return;
+    const needsConfirmation = status === 'completed' || status === 'cancelled';
+    if (needsConfirmation && !window.confirm(
+      status === 'completed' ? 'Xác nhận hoàn tất lịch hẹn này?' : 'Xác nhận hủy lịch hẹn này?'
+    )) return;
+
+    setIsStatusMenuOpen(false);
+    statusMutation.mutate({ id: selectedApt.id, status });
+  };
 
   const staffList = (staffResponse?.data ?? []) as ApiRecord[];
   const appointments = useMemo(() => {
@@ -143,10 +177,6 @@ export function MobileAppointmentsListView() {
 
         {/* 2. Filter Chips Strip */}
         <div className="mobile-appointments-filter-strip">
-          <button type="button" className="mobile-appointments-filter-icon-btn" aria-label="Lọc">
-            <i className="ph ph-faders" />
-          </button>
-
           {/* Date Selector Chip */}
           <div className="mobile-appointments-chip-select-wrap">
             <input
@@ -254,6 +284,7 @@ export function MobileAppointmentsListView() {
                   onClick={() => setSelectedApt(apt)}
                   role="button"
                   tabIndex={0}
+                  onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); setSelectedApt(apt); } }}
                 >
                   {/* Top Row: Customer Name + Time Badge */}
                   <div className="mobile-apt-card-top-row">
@@ -321,7 +352,10 @@ export function MobileAppointmentsListView() {
       <MobileDetailSheet
         isOpen={selectedApt !== null}
         title="Chi tiết lịch dịch vụ"
-        onClose={() => setSelectedApt(null)}
+        onClose={() => {
+          setIsStatusMenuOpen(false);
+          setSelectedApt(null);
+        }}
       >
         {selectedApt && (
           <div className="mobile-apt-detail-wrapper">
@@ -331,9 +365,36 @@ export function MobileAppointmentsListView() {
                 <h2 className="mobile-apt-detail-code">
                   {selectedApt.code || `B00${selectedApt.id || '7979'}`}
                 </h2>
-                <div className="mobile-apt-status-dropdown-btn">
-                  <span>{STATUS_LABELS[selectedApt.status] || selectedApt.status}</span>
-                  <i className="ph ph-caret-down" />
+                <div className="mobile-apt-status-control">
+                  <button
+                    type="button"
+                    className="mobile-apt-status-dropdown-btn"
+                    aria-haspopup="menu"
+                    aria-expanded={isStatusMenuOpen}
+                    aria-label="Đổi trạng thái lịch hẹn"
+                    disabled={statusMutation.isPending}
+                    onClick={() => setIsStatusMenuOpen((open) => !open)}
+                  >
+                    <span>{statusMutation.isPending ? 'Đang lưu…' : STATUS_LABELS[selectedApt.status] || selectedApt.status}</span>
+                    <i className={`ph ph-caret-down ${isStatusMenuOpen ? 'is-open' : ''}`} />
+                  </button>
+                  {isStatusMenuOpen && (
+                    <div className="mobile-apt-status-menu" role="menu" aria-label="Chọn trạng thái lịch hẹn">
+                      {APPOINTMENT_STATUSES.map((status) => (
+                        <button
+                          key={status}
+                          type="button"
+                          role="menuitem"
+                          className={status === selectedApt.status ? 'is-current' : ''}
+                          disabled={status === selectedApt.status || statusMutation.isPending}
+                          onClick={() => handleStatusChange(status)}
+                        >
+                          <span className={`mobile-apt-status-dot is-${status}`} />
+                          {STATUS_LABELS[status]}
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -417,13 +478,6 @@ export function MobileAppointmentsListView() {
                 </div>
               </div>
 
-              <button
-                type="button"
-                className="mobile-apt-edit-action-btn"
-                onClick={() => alert('Sửa lịch hẹn')}
-              >
-                Sửa lịch
-              </button>
             </div>
           </div>
         )}
@@ -431,4 +485,3 @@ export function MobileAppointmentsListView() {
     </div>
   );
 }
-

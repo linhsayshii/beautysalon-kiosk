@@ -181,6 +181,7 @@ router.post('/checkout', asyncRoute(async (request, response) => {
 
   const customerId = request.body.customerId ? parsePositiveInteger(request.body.customerId, 'customerId') : null;
   const staffId = request.body.staffId ? parsePositiveInteger(request.body.staffId, 'staffId') : null;
+  const appointmentId = request.body.appointmentId ? parsePositiveInteger(request.body.appointmentId, 'appointmentId') : null;
   const discount = Math.max(0, Number(request.body.discount || 0));
   const amountPaid = request.body.amountPaid !== undefined && request.body.amountPaid !== null
     ? Math.max(0, Number(request.body.amountPaid))
@@ -210,6 +211,7 @@ router.post('/checkout', asyncRoute(async (request, response) => {
     paymentMethod,
     amountPaid,
     note,
+    appointmentId,
   });
 
   response.status(201).json({ data });
