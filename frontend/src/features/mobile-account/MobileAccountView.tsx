@@ -17,6 +17,7 @@ import type { ApiRecord } from '@/types/api';
 import './mobile-account.css';
 
 type AccountTab = 'profile' | 'branches' | 'accounts';
+type ProfileSubTab = 'info' | 'security';
 
 const roleLabels: Record<string, string> = { manager: 'Quản lý', cashier: 'Thu ngân', staff: 'Nhân viên' };
 const roleDescriptions: Record<string, string> = { manager: 'Toàn bộ hệ thống', cashier: 'Chỉ trang Thu ngân', staff: 'Chỉ chấm công QR' };
@@ -42,6 +43,7 @@ export function MobileAccountView() {
   const isManager = account?.role === 'manager';
 
   const [activeTab, setActiveTab] = useState<AccountTab>('profile');
+  const [profileSubTab, setProfileSubTab] = useState<ProfileSubTab>('info');
 
   // Search & Dialog states
   const [accountSearch, setAccountSearch] = useState('');
@@ -245,7 +247,7 @@ export function MobileAccountView() {
             <button
               type="button"
               className={`mobile-account-tab-btn ${activeTab === 'profile' ? 'is-active' : ''}`}
-              onClick={() => setActiveTab('profile')}
+              onClick={() => { setActiveTab('profile'); setProfileSubTab('info'); }}
             >
               <i className="ph ph-user-circle" />
               <span>Thông tin cá nhân</span>
@@ -294,7 +296,28 @@ export function MobileAccountView() {
               </div>
             </div>
 
+            {/* Sub-tabs: Thông tin / Bảo mật */}
+            <div className="mobile-profile-sub-tabs">
+              <button
+                type="button"
+                className={`mobile-profile-sub-tab-btn ${profileSubTab === 'info' ? 'is-active' : ''}`}
+                onClick={() => setProfileSubTab('info')}
+              >
+                <i className="ph ph-user" />
+                <span>Thông tin</span>
+              </button>
+              <button
+                type="button"
+                className={`mobile-profile-sub-tab-btn ${profileSubTab === 'security' ? 'is-active' : ''}`}
+                onClick={() => setProfileSubTab('security')}
+              >
+                <i className="ph ph-lock-key" />
+                <span>Bảo mật</span>
+              </button>
+            </div>
+
             {/* Form: Thông tin tài khoản */}
+            {profileSubTab === 'info' && (
             <section className="mobile-settings-card">
               <header className="mobile-settings-card-header">
                 <span className="mobile-settings-icon blue">
@@ -371,8 +394,10 @@ export function MobileAccountView() {
                 </div>
               </form>
             </section>
+            )}
 
             {/* Form: Đổi mật khẩu */}
+            {profileSubTab === 'security' && (
             <section className="mobile-settings-card security-card">
               <header className="mobile-settings-card-header">
                 <span className="mobile-settings-icon purple">
@@ -451,6 +476,7 @@ export function MobileAccountView() {
                 </div>
               </form>
             </section>
+            )}
           </div>
         )}
 

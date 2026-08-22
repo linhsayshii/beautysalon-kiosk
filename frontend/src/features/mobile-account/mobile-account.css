@@ -239,6 +239,46 @@
   font-weight: 600;
 }
 
+/* Sub-tabs: Thông tin / Bảo mật */
+.mobile-profile-sub-tabs {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0;
+  background: transparent;
+}
+
+.mobile-profile-sub-tab-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border-radius: 10px;
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
+  color: #64748b;
+  font-size: 13px;
+  font-weight: 650;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  min-height: 40px;
+}
+
+.mobile-profile-sub-tab-btn i {
+  font-size: 16px;
+  color: #64748b;
+}
+
+.mobile-profile-sub-tab-btn.is-active {
+  background: #0284c7;
+  border-color: #0284c7;
+  color: #ffffff;
+}
+
+.mobile-profile-sub-tab-btn.is-active i {
+  color: #ffffff;
+}
+
 /* Settings Card and Form */
 .mobile-settings-card {
   background: #ffffff;
