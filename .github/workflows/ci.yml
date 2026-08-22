@@ -423,15 +423,7 @@ jobs:
         run: npm ci
 
       - name: TypeScript check (mobile features)
-        run: |
-          npx tsc --noEmit --pretty false \
-            src/features/mobile-account/*.tsx \
-            src/features/mobile-appointments/*.tsx \
-            src/features/mobile-pos/*.tsx \
-            src/features/mobile-staff/*.tsx \
-            src/features/mobile-inventory/*.tsx \
-            src/features/mobile-dashboard/*.tsx \
-            src/features/mobile-common/*.tsx
+        run: npm run typecheck
 
       - name: Run mobile-specific tests
         run: |
