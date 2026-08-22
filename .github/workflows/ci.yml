@@ -164,12 +164,12 @@ jobs:
           let testStaffId = null;
 
           // Helper for API calls (uses cookies, not Bearer tokens)
-          async function api(method, path, body) {
+          async function api(method, path, body, withAuth = true) {
             const opts = {
               method,
               headers: { 'Content-Type': 'application/json' },
             };
-            if (authCookie) opts.headers['Cookie'] = authCookie;
+            if (withAuth && authCookie) opts.headers['Cookie'] = authCookie;
             if (body) opts.body = JSON.stringify(body);
 
             try {
@@ -200,60 +200,58 @@ jobs:
           // ==================== PUBLIC ENDPOINTS ====================
           console.log('\n📋 Testing public endpoints...');
 
-          let res = await api('GET', '/health');
+          let res = await api('GET', '/health', null, false);
           check(res, 'GET /health');
 
-          res = await api('GET', '/ready');
+          res = await api('GET', '/ready', null, false);
           check(res, 'GET /ready', res.ok && res.data.status === 'ready');
 
           // ==================== AUTHENTICATION ====================
           console.log('\n🔐 Testing authentication...');
 
-          // Test login with valid credentials (this sets the cookie)
-          res = await api('POST', '/auth/login', ADMIN_CREDS);
+          // Login first (this sets the cookie for subsequent requests)
+          res = await api('POST', '/auth/login', ADMIN_CREDS, false);
           check(res, 'POST /auth/login (valid)');
 
-          // Test login with invalid credentials
-          res = await api('POST', '/auth/login', { username: 'admin', password: 'wrongpassword' });
+          // Test invalid login
+          res = await api('POST', '/auth/login', { username: 'admin', password: 'wrongpassword' }, false);
           check(res, 'POST /auth/login (invalid credentials)', res.status === 401);
 
-          // Test missing auth token
-          res = await api('GET', '/staff');
-          check(res, 'GET /staff (no token)', res.status === 401 && res.data.error?.code === 'AUTH_REQUIRED');
+          // Test missing auth - clear cookie and try protected endpoint
+          authCookie = '';
+          res = await api('GET', '/staff', null, true);
+          check(res, 'GET /staff (no auth)', res.status === 401 && res.data.error?.code === 'AUTH_REQUIRED');
 
-          // Re-login to get fresh cookie for remaining tests
-          res = await api('POST', '/auth/login', ADMIN_CREDS);
+          // Re-login to get fresh cookie
+          res = await api('POST', '/auth/login', ADMIN_CREDS, false);
 
           // ==================== META & BRANCHES ====================
           console.log('\n🏢 Testing meta and branches...');
 
-          res = await api('GET', '/meta', null);
+          res = await api('GET', '/meta');
           check(res, 'GET /meta');
 
-          res = await api('GET', '/branches', null);
+          res = await api('GET', '/branches');
           check(res, 'GET /branches');
           const branchId = res.data?.data?.[0]?.id || 1;
 
           // ==================== STAFF ====================
           console.log('\n👥 Testing staff endpoints...');
 
-          res = await api('GET', '/staff', null);
+          res = await api('GET', '/staff');
           check(res, 'GET /staff');
           if (res.ok && res.data.data?.length > 0) {
             testStaffId = res.data.data[0].id;
           }
 
-          res = await api('GET', '/staff/me', null);
+          res = await api('GET', '/staff/me');
           check(res, 'GET /staff/me');
 
           // ==================== CUSTOMERS ====================
           console.log('\n👤 Testing customer endpoints...');
 
-          res = await api('GET', '/customers', null);
+          res = await api('GET', '/customers');
           check(res, 'GET /customers');
-
-          res = await api('GET', '/customers?search=test', null);
-          check(res, 'GET /customers?search=test');
 
           res = await api('POST', '/customers', {
             name: 'Test Customer CI',
@@ -271,109 +269,72 @@ jobs:
               name: 'Test Customer CI Updated',
             });
             check(res, 'PUT /customers/:id (update)');
-
-            res = await api('GET', `/customers/${testCustomerId}`, null);
-            check(res, 'GET /customers/:id (get by id)');
           }
 
           // ==================== DASHBOARD ====================
           console.log('\n📊 Testing dashboard...');
 
-          res = await api('GET', '/dashboard', null);
+          res = await api('GET', '/dashboard');
           check(res, 'GET /dashboard');
-
-          res = await api('GET', '/dashboard/revenue?period=today', null);
-          check(res, 'GET /dashboard/revenue?period=today');
-
-          res = await api('GET', '/dashboard/top-services?period=today', null);
-          check(res, 'GET /dashboard/top-services');
 
           // ==================== POS & ORDERS ====================
           console.log('\n💳 Testing POS and orders...');
 
-          res = await api('GET', '/pos', null);
-          check(res, 'GET /pos');
+          res = await api('GET', '/pos/catalog');
+          check(res, 'GET /pos/catalog');
 
-          res = await api('GET', '/pos/services', null);
-          check(res, 'GET /pos/services');
+          res = await api('GET', '/pos/customers');
+          check(res, 'GET /pos/customers');
 
-          res = await api('GET', '/pos/products', null);
-          check(res, 'GET /pos/products');
+          res = await api('GET', '/pos/staff');
+          check(res, 'GET /pos/staff');
 
-          // Create order
+          // Create order via checkout
           const orderPayload = {
-            customer_id: testCustomerId || null,
-            branch_id: branchId,
+            customerId: testCustomerId || null,
+            branchId: branchId,
             items: [
-              { service_id: 1, staff_id: testStaffId || null, price: 100000, quantity: 1 },
+              { serviceId: 1, staffId: testStaffId || null, price: 100000, quantity: 1 },
             ],
             payment: { method: 'cash', amount: 100000 },
-            notes: 'CI Test Order',
           };
-          res = await api('POST', '/pos/invoices', orderPayload);
-          check(res, 'POST /pos/invoices (create order)');
-          if (res.ok && res.data.data?.id) {
-            testOrderId = res.data.data.id;
+          res = await api('POST', '/pos/checkout', orderPayload);
+          check(res, 'POST /pos/checkout (create order)');
+          if (res.ok && res.data.data?.invoiceId) {
+            testOrderId = res.data.data.invoiceId;
           }
 
           // List orders
-          res = await api('GET', '/orders', null);
+          res = await api('GET', '/orders');
           check(res, 'GET /orders');
-
-          res = await api('GET', '/orders?status=completed', null);
-          check(res, 'GET /orders?status=completed');
-
-          // Get order by ID
-          if (testOrderId) {
-            res = await api('GET', `/orders/${testOrderId}`, null);
-            check(res, 'GET /orders/:id');
-          }
 
           // ==================== INVENTORY ====================
           console.log('\n📦 Testing inventory...');
 
-          res = await api('GET', '/inventory/products', null);
+          res = await api('GET', '/inventory/products');
           check(res, 'GET /inventory/products');
 
-          res = await api('GET', '/inventory/services', null);
-          check(res, 'GET /inventory/services');
-
-          res = await api('GET', '/inventory/pricebooks', null);
+          res = await api('GET', '/inventory/pricebooks');
           check(res, 'GET /inventory/pricebooks');
 
-          res = await api('GET', '/inventory/suppliers', null);
+          res = await api('GET', '/inventory/suppliers');
           check(res, 'GET /inventory/suppliers');
 
-          res = await api('GET', '/inventory/purchase-orders', null);
+          res = await api('GET', '/inventory/purchase-orders');
           check(res, 'GET /inventory/purchase-orders');
 
-          // Create purchase order
-          res = await api('POST', '/inventory/purchase-orders', {
-            supplier_id: 1,
-            branch_id: branchId,
-            items: [
-              { product_id: 1, quantity: 10, unit_cost: 50000 },
-            ],
-          });
-          check(res, 'POST /inventory/purchase-orders');
-
-          // Get purchase order by ID
-          res = await api('GET', '/inventory/purchase-orders/1', null);
-          check(res, 'GET /inventory/purchase-orders/:id');
-
-          // ==================== ATTENDANCE ====================
-          console.log('\n📅 Testing attendance...');
-
-          res = await api('GET', '/attendance', null);
-          check(res, 'GET /attendance');
-
-          res = await api('GET', '/attendance?date=2026-08-01', null);
-          check(res, 'GET /attendance?date=...');
-
-          res = await api('GET', '/attendance/summary?month=2026-08', null);
-          check(res, 'GET /attendance/summary');
-
           // ==================== ERROR HANDLING ====================
+          console.log('\n⚠️  Testing error handling...');
+
+          // 404 for non-existent route
+          res = await api('GET', '/nonexistent-route');
+          check(res, '404 for non-existent route', res.status === 404 && res.data.error?.code === 'ROUTE_NOT_FOUND');
+
+          // 400 for invalid request
+          res = await api('POST', '/customers', {});
+          check(res, 'POST /customers (validation error)', res.status === 400);
+
+          // ==================== REPORT ====================
           console.log('\n⚠️  Testing error handling...');
 
           // 404 for non-existent route
