@@ -4,6 +4,7 @@ import { asyncRoute, HttpError, parseDateTime, parseEnum, parseIsoDate, parseOpt
 import {
   createInventoryItem,
   createPurchaseOrder,
+  getInventoryItem,
   getPurchaseOrder,
   listPricebooks,
   listProducts,
@@ -30,6 +31,12 @@ const positive = (value, field) => {
 };
 const optionalPositive = (value, field) => (value === undefined || value === null || value === '' ? null : positive(value, field));
 const boolean = (value, fallback = true) => (typeof value === 'boolean' ? value : fallback);
+const commission = (body) => {
+  const type = body.commissionType === null ? null : parseEnum(body.commissionType, 'commissionType', ['percent', 'fixed'], null);
+  const rate = type ? nonNegative(body.commissionRate, 'commissionRate') : 0;
+  if (type === 'percent' && rate > 1) throw new HttpError(400, 'INVALID_COMMISSION_RATE', 'Hoa hồng phần trăm không được lớn hơn 100%');
+  return { commissionType: type, commissionRate: rate };
+};
 
 router.put('/items/:itemType/:itemId', asyncRoute(async (request, response) => {
   const type = parseEnum(request.params.itemType, 'itemType', itemTypes);
@@ -65,6 +72,7 @@ router.put('/items/:itemType/:itemId', asyncRoute(async (request, response) => {
 
   const minStock = request.body.minStock !== undefined ? nonNegative(request.body.minStock, 'minStock') : 0;
   const maxStock = optionalPositive(request.body.maxStock, 'maxStock');
+  const { commissionType, commissionRate } = commission(request.body);
   if (maxStock !== null && maxStock < minStock) {
     throw new HttpError(400, 'INVALID_STOCK_RANGE', 'Tồn tối đa phải lớn hơn hoặc bằng tồn tối thiểu');
   }
@@ -94,8 +102,17 @@ router.put('/items/:itemType/:itemId', asyncRoute(async (request, response) => {
     faceValue: type === 'account_card' ? positive(request.body.faceValue, 'faceValue') : 0,
     allowedTypes,
     scopeItems,
+    stockQuantity: request.body.initialStock === undefined ? undefined : nonNegative(request.body.initialStock, 'initialStock'),
+    commissionType,
+    commissionRate,
   });
   response.json({ data });
+}));
+
+router.get('/items/:itemType/:itemId', asyncRoute(async (request, response) => {
+  const type = parseEnum(request.params.itemType, 'itemType', itemTypes);
+  const id = parsePositiveInteger(request.params.itemId, 'itemId');
+  response.json({ data: await getInventoryItem({ branchId: request.account.branchId, type, id }) });
 }));
 
 router.post('/items', asyncRoute(async (request, response) => {
@@ -134,6 +151,7 @@ router.post('/items', asyncRoute(async (request, response) => {
   const uniqueScopeItems = [...new Map(scopeItems.map((item) => [`${item.itemType}:${item.itemId}`, item])).values()];
   const minStock = nonNegative(request.body.minStock, 'minStock');
   const maxStock = optionalPositive(request.body.maxStock, 'maxStock');
+  const { commissionType, commissionRate } = commission(request.body);
   if (maxStock !== null && maxStock < minStock) {
     throw new HttpError(400, 'INVALID_STOCK_RANGE', 'Tồn tối đa phải lớn hơn hoặc bằng tồn tối thiểu');
   }
@@ -163,6 +181,8 @@ router.post('/items', asyncRoute(async (request, response) => {
     faceValue: type === 'account_card' ? positive(request.body.faceValue, 'faceValue') : 0,
     allowedTypes,
     scopeItems: uniqueScopeItems,
+    commissionType,
+    commissionRate,
   });
   response.status(201).json({ data });
 }));

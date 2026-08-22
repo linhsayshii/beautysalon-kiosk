@@ -13,14 +13,19 @@ import {
   cancelPayrollPeriod,
   createPayrollPayment,
   getSchedule,
+  getStaffPayrollHistory,
+  getStaffSchedule,
   listAttendance,
   listCommissions,
   listStaff,
   listWorkShifts,
+  getWorkScheduleSettings,
+  updateWorkScheduleSettings,
   updateStaff,
 } from './staff.service.js';
 
 const router = Router();
+export const staffSelfRoutes = Router();
 
 function currentDate() {
   return new Intl.DateTimeFormat('en-CA', {
@@ -42,6 +47,26 @@ const nonNegative = (value, field) => {
   }
   return parsed;
 };
+const staffProfile = (body) => (body.profile && typeof body.profile === 'object' && !Array.isArray(body.profile) ? body.profile : undefined);
+const accountId = (value) => (value === undefined ? undefined : (value === null || value === '' ? null : parsePositiveInteger(value, 'accountId')));
+
+function requireLinkedStaff(request) {
+  if (request.account.role !== 'staff' || !request.account.staffId) {
+    throw new HttpError(403, 'STAFF_ACCOUNT_REQUIRED', 'Chức năng này chỉ dành cho tài khoản nhân viên đã liên kết hồ sơ');
+  }
+  return request.account.staffId;
+}
+
+staffSelfRoutes.get('/payroll', asyncRoute(async (request, response) => {
+  const staffId = requireLinkedStaff(request);
+  response.json({ data: await getStaffPayrollHistory({ branchId: request.account.branchId, staffId }) });
+}));
+
+staffSelfRoutes.get('/schedule', asyncRoute(async (request, response) => {
+  const staffId = requireLinkedStaff(request);
+  const startDate = parseIsoDate(request.query.startDate, 'startDate', currentDate());
+  response.json({ data: await getStaffSchedule({ branchId: request.account.branchId, staffId, startDate }) });
+}));
 
 router.post('/', asyncRoute(async (request, response) => {
   const name = text(request.body.name, 160);
@@ -70,6 +95,8 @@ router.post('/', asyncRoute(async (request, response) => {
     defaultCommissionRate,
     canSell: typeof request.body.canSell === 'boolean' ? request.body.canSell : true,
     canManageInventory: request.body.canManageInventory === true,
+    profile: staffProfile(request.body),
+    accountId: accountId(request.body.accountId),
   });
   response.status(201).json({ data });
 }));
@@ -89,6 +116,24 @@ router.get('/shifts', asyncRoute(async (request, response) => {
   const branchId = request.account.branchId;
   const shifts = await listWorkShifts(branchId);
   response.json({ data: shifts });
+}));
+
+router.get('/work-schedule-settings', asyncRoute(async (request, response) => {
+  response.json({ data: await getWorkScheduleSettings(request.account.branchId) });
+}));
+
+router.put('/work-schedule-settings', asyncRoute(async (request, response) => {
+  const allowedDays = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'];
+  const activeWorkDays = Array.isArray(request.body.activeWorkDays)
+    ? [...new Set(request.body.activeWorkDays.filter((day) => allowedDays.includes(day)))].sort((a, b) => allowedDays.indexOf(a) - allowedDays.indexOf(b))
+    : [];
+  if (!activeWorkDays.length) throw new HttpError(400, 'WORK_DAYS_REQUIRED', 'Cần chọn ít nhất một ngày làm việc');
+  const holidays = Array.isArray(request.body.holidays) ? request.body.holidays.slice(0, 100).map((holiday, index) => ({
+    id: String(holiday?.id ?? index), name: text(holiday?.name, 160), fromDate: text(holiday?.fromDate, 20),
+    toDate: text(holiday?.toDate, 20), daysCount: nonNegative(holiday?.daysCount, `holidays[${index}].daysCount`),
+  })) : [];
+  if (holidays.some((holiday) => !holiday.name)) throw new HttpError(400, 'INVALID_HOLIDAY', 'Tên kỳ nghỉ là bắt buộc');
+  response.json({ data: await updateWorkScheduleSettings({ branchId: request.account.branchId, activeWorkDays, holidays }) });
 }));
 
 router.post('/shifts', asyncRoute(async (request, response) => {
@@ -248,6 +293,8 @@ router.patch('/:id', asyncRoute(async (request, response) => {
     defaultCommissionRate,
     canSell: typeof request.body.canSell === 'boolean' ? request.body.canSell : true,
     canManageInventory: request.body.canManageInventory === true,
+    profile: staffProfile(request.body),
+    accountId: accountId(request.body.accountId),
   });
   response.json({ data });
 }));

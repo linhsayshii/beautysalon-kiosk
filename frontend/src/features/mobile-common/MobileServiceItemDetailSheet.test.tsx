@@ -86,14 +86,14 @@ describe('MobileServiceItemDetailSheet', () => {
       />
     );
 
-    const plusBtn = screen.getByRole('button', { name: '+' });
+    const plusBtn = screen.getByRole('button', { name: /tăng số lượng/i });
     fireEvent.click(plusBtn);
 
     // Quantity should now be 2, total should be 5,000,000
     expect(screen.getByText('2')).toBeInTheDocument();
     expect(screen.getByText(/5[.,]000[.,]000/i)).toBeInTheDocument();
 
-    const minusBtn = screen.getByRole('button', { name: '-' });
+    const minusBtn = screen.getByRole('button', { name: /giảm số lượng/i });
     fireEvent.click(minusBtn);
 
     // Quantity returns to 1, total returns to 2,500,000
@@ -197,7 +197,7 @@ describe('MobileServiceItemDetailSheet', () => {
     );
 
     // Increment quantity
-    fireEvent.click(screen.getByRole('button', { name: '+' }));
+    fireEvent.click(screen.getByRole('button', { name: /tăng số lượng/i }));
 
     // Click Xong
     fireEvent.click(screen.getByRole('button', { name: /xong/i }));

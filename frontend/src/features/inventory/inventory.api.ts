@@ -14,6 +14,7 @@ export interface CreateInventoryItemInput extends ApiRecord {
 }
 
 export const getProducts = (filters: ApiRecord) => apiRequest<ApiEnvelope<ApiRecord[], InventoryMeta>>(`/inventory/products?${toQueryString(filters)}`);
+export const getInventoryItem = (itemType: string, itemId: number) => apiRequest<ApiEnvelope<ApiRecord>>(`/inventory/items/${itemType}/${itemId}`);
 export const createInventoryItem = (body: CreateInventoryItemInput) => apiRequest<ApiEnvelope<ApiRecord>>('/inventory/items', { method: 'POST', body: JSON.stringify(body) });
 export const updateInventoryItem = (itemType: string, itemId: number, body: ApiRecord) =>
   apiRequest<ApiEnvelope<ApiRecord>>(`/inventory/items/${itemType}/${itemId}`, { method: 'PUT', body: JSON.stringify(body) });

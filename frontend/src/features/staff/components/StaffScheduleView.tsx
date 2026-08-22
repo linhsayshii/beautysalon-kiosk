@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { LoadingState } from '@/components/data-display/DataState';
 import { useToast } from '@/components/ui/Toast/ToastProvider';
@@ -10,7 +10,7 @@ import { WeekPicker } from './WeekPicker';
 import { AddShiftModal, ShiftFormValues } from './AddShiftModal';
 import { AssignStaffModal } from './AssignStaffModal';
 import { AssignShiftForStaffModal } from './AssignShiftForStaffModal';
-import { getStaff, getShifts, createShift, getSchedule, assignShift } from '../staff.api';
+import { getStaff, getShifts, createShift, getSchedule, assignShift, getWorkScheduleSettings, updateWorkScheduleSettings } from '../staff.api';
 import { calculateStaffShiftSalary } from '../salary-calc';
 import './AttendanceTimekeeping.css';
 
@@ -113,6 +113,7 @@ export function StaffScheduleView() {
     queryKey: ['staff-schedule', startDateIso],
     queryFn: () => getSchedule(startDateIso),
   });
+  const workSettingsQuery = useQuery({ queryKey: ['work-schedule-settings'], queryFn: getWorkScheduleSettings });
 
   // Mutations
   const addShiftMutation = useMutation({
@@ -135,6 +136,24 @@ export function StaffScheduleView() {
     },
     onError: (cause) => notify('Không thể phân ca', errorMessage(cause, 'Vui lòng thử lại')),
   });
+  const workSettingsMutation = useMutation({
+    mutationFn: updateWorkScheduleSettings,
+    onSuccess: (payload) => {
+      setActiveWorkDays(payload.data.activeWorkDays as string[]);
+      setHolidaysList((payload.data.holidays ?? []) as Array<{ id: number; name: string; fromDate: string; toDate: string; daysCount: number }>);
+      queryClient.invalidateQueries({ queryKey: ['work-schedule-settings'] });
+      notify('Đã lưu thiết lập', 'Ngày làm việc và các kỳ nghỉ đã được lưu vào hệ thống.');
+      setIsSettingDaysOpen(false);
+    },
+    onError: (cause) => notify('Không thể lưu thiết lập', errorMessage(cause, 'Vui lòng thử lại')),
+  });
+
+  useEffect(() => {
+    const settings = workSettingsQuery.data?.data;
+    if (!settings) return;
+    setActiveWorkDays(settings.activeWorkDays);
+    setHolidaysList((settings.holidays ?? []) as Array<{ id: number; name: string; fromDate: string; toDate: string; daysCount: number }>);
+  }, [workSettingsQuery.data]);
 
   const staffList = (staffQuery.data?.data ?? [
     { id: 1, name: 'AnnaChillBeauty', code: 'NV000009', role: 'Quản trị viên' },
@@ -834,12 +853,12 @@ export function StaffScheduleView() {
                   // Auto compute workDays based on active days (e.g. 7 days/week ≈ 30/31 days/mo, 6 days ≈ 26 days/mo)
                   const estimatedDays = Math.round((activeWorkDays.length / 7) * 30);
                   setWorkDaysPerMonth(estimatedDays);
-                  setIsSettingDaysOpen(false);
-                  notify('Đã lưu thiết lập', `Đã lưu ngày làm việc (${activeWorkDays.length} ngày/tuần) và ${holidaysList.length} kỳ nghỉ lễ.`);
+                  workSettingsMutation.mutate({ activeWorkDays, holidays: holidaysList });
                 }}
                 className="btn-primary"
+                disabled={workSettingsMutation.isPending}
               >
-                Lưu cài đặt
+                {workSettingsMutation.isPending ? 'Đang lưu...' : 'Lưu cài đặt'}
               </button>
             </div>
           </div>

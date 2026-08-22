@@ -7,7 +7,7 @@ import { createRateLimiter, requireJsonBody, requireTrustedOrigin, securityHeade
 import dashboardRoutes from './modules/dashboard/dashboard.routes.js';
 import customerRoutes from './modules/customers/customers.routes.js';
 import orderRoutes from './modules/orders/orders.routes.js';
-import staffRoutes from './modules/staff/staff.routes.js';
+import staffRoutes, { staffSelfRoutes } from './modules/staff/staff.routes.js';
 import inventoryRoutes from './modules/inventory/inventory.routes.js';
 import { domainOptions } from './domain-options.js';
 import authRoutes from './modules/auth/auth.routes.js';
@@ -61,7 +61,8 @@ export function createApp() {
   app.use('/api/v1', securityHeaders);
   app.use('/api/v1', requireTrustedOrigin(config.http.trustedOrigins));
   app.use('/api/v1', createRateLimiter({ windowMs: 60_000, max: config.http.apiRateLimit }));
-  app.use(express.json({ limit: '1mb' }));
+  // Staff avatars are uploaded as base64 data URLs; 3 MB accepts the UI's 2 MB file limit.
+  app.use(express.json({ limit: '3mb' }));
   app.use('/api/v1', requireJsonBody);
 
   app.get('/api/v1/health', (request, response) => {
@@ -102,6 +103,7 @@ export function createApp() {
   app.use('/api/v1/dashboard', requirePermissions(permissions.readDashboard), dashboardRoutes);
   app.use('/api/v1/orders', requirePermissions(permissions.readOrders), orderRoutes);
   app.use('/api/v1/customers', requirePermissions(permissions.manageCustomers), customerRoutes);
+  app.use('/api/v1/staff/me', staffSelfRoutes);
   app.use('/api/v1/staff', requirePermissions(permissions.manageStaff), staffRoutes);
   app.use('/api/v1/inventory', requirePermissions(permissions.manageInventory), inventoryRoutes);
 

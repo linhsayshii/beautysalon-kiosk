@@ -53,7 +53,11 @@ describe('MobileAccountView', () => {
 
     expect(screen.getByRole('heading', { level: 1, name: 'Cài đặt tài khoản' })).toBeInTheDocument();
     expect(screen.getByRole('heading', { level: 2, name: 'Thông tin tài khoản' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Lưu thông tin' })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Bảo mật' }));
     expect(screen.getByRole('heading', { level: 2, name: 'Đổi mật khẩu' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Đổi mật khẩu' })).toBeInTheDocument();
     // Manager tabs should NOT be visible
     expect(screen.queryByRole('button', { name: /Quản lý chi nhánh/i })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Tài khoản & phân quyền/i })).not.toBeInTheDocument();

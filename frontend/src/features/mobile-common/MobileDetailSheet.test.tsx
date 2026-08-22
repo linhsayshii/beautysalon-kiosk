@@ -57,4 +57,18 @@ describe('MobileDetailSheet', () => {
     fireEvent.click(backdrop);
     expect(handleClose).toHaveBeenCalledTimes(1);
   });
+
+  it('exposes modal semantics and closes with Escape', () => {
+    const handleClose = vi.fn();
+    render(
+      <MobileDetailSheet isOpen title="Chi tiết" onClose={handleClose}>
+        <button>Nội dung</button>
+      </MobileDetailSheet>
+    );
+
+    const dialog = screen.getByRole('dialog', { name: 'Chi tiết' });
+    expect(dialog).toHaveAttribute('aria-modal', 'true');
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(handleClose).toHaveBeenCalledTimes(1);
+  });
 });

@@ -1,15 +1,15 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import type { FormEvent } from 'react';
+import type { FormEvent, RefObject } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { appConfig } from '@/app/config';
 import { MoneyInput } from '@/components/forms/MoneyInput';
-import { PercentInput } from '@/components/forms/PercentInput';
 import { Select } from '@/components/ui/Select/Select';
 import { useToast } from '@/components/ui/Toast/ToastProvider';
 import { formatMoney } from '@/lib/format';
-import { createInventoryItem, getProducts, updateInventoryItem } from '../inventory.api';
+import { createInventoryItem, getInventoryItem, getProducts, updateInventoryItem } from '../inventory.api';
 import type { CreateInventoryItemInput, InventoryItemType } from '../inventory.api';
 import type { ApiRecord } from '@/types/api';
+import { useMobileDialog } from '@/features/mobile-common/useMobileDialog';
 
 type CommissionType = 'percent' | 'fixed' | null;
 
@@ -18,6 +18,7 @@ interface GoodsCreateDialogProps {
   onClose: () => void;
   itemId?: number;
   initialData?: ApiRecord;
+  initialTab?: 'information' | 'details';
 }
 interface PackageItem { serviceId: string; units: number }
 
@@ -69,9 +70,9 @@ function buildCommissionFromItem(data: ApiRecord) {
   };
 }
 
-export function GoodsCreateDialog({ type, onClose, itemId, initialData }: GoodsCreateDialogProps) {
+export function GoodsCreateDialog({ type, onClose, itemId, initialData, initialTab = 'information' }: GoodsCreateDialogProps) {
   const isEdit = Boolean(itemId && initialData);
-  const [tab, setTab] = useState<'information' | 'details'>('information');
+  const [tab, setTab] = useState<'information' | 'details'>(initialTab);
   const [form, setForm] = useState(initialData ? buildFormFromItem(initialData) : initialForm);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [packageItems, setPackageItems] = useState<PackageItem[]>([]);
@@ -85,6 +86,7 @@ export function GoodsCreateDialog({ type, onClose, itemId, initialData }: GoodsC
     initialData ? buildCommissionFromItem(initialData).commissionRate : 0,
   );
   const nameRef = useRef<HTMLInputElement>(null);
+  const { dialogRef, titleId } = useMobileDialog({ isOpen: true, onClose, initialFocusRef: nameRef });
   const queryClient = useQueryClient();
   const { notify } = useToast();
   const copy = typeCopy[type];
@@ -94,6 +96,11 @@ export function GoodsCreateDialog({ type, onClose, itemId, initialData }: GoodsC
     queryFn: () => getProducts({ type: type === 'package' ? 'service' : '', status: 'active', page: 1, pageSize: appConfig.purchaseCatalogPageSize }),
     enabled: needsCatalog,
   });
+  const itemQuery = useQuery({
+    queryKey: ['inventory-item', type, itemId],
+    queryFn: () => getInventoryItem(type, Number(itemId)),
+    enabled: isEdit,
+  });
   const availableItems = catalog.data?.data ?? [];
   const availableServices = type === 'package' ? availableItems : [];
   const selectedServices = useMemo(() => packageItems.map((item) => ({
@@ -102,37 +109,26 @@ export function GoodsCreateDialog({ type, onClose, itemId, initialData }: GoodsC
   })), [availableServices, packageItems]);
 
   useEffect(() => {
-    if (initialData) {
-      setForm(buildFormFromItem(initialData));
-      const { commissionType: ct, commissionRate: cr } = buildCommissionFromItem(initialData);
+    const source = itemQuery.data?.data ?? initialData;
+    if (source) {
+      setForm(buildFormFromItem(source));
+      const { commissionType: ct, commissionRate: cr } = buildCommissionFromItem(source);
       setCommissionType(ct);
       setCommissionRate(cr);
-      if (Array.isArray(initialData.packageItems)) {
-        setPackageItems(initialData.packageItems.map((item: { serviceId: number; units: number }) => ({
+      if (Array.isArray(source.packageItems)) {
+        setPackageItems(source.packageItems.map((item: { serviceId: number; units: number }) => ({
           serviceId: String(item.serviceId),
           units: Number(item.units ?? 1),
         })));
       }
-      if (Array.isArray(initialData.allowedTypes)) {
-        setAllowedTypes(initialData.allowedTypes.map(String));
+      if (Array.isArray(source.allowedTypes)) {
+        setAllowedTypes(source.allowedTypes.map(String));
       }
-      if (Array.isArray(initialData.scopeItems)) {
-        setScopeItems(initialData.scopeItems.map((item: { itemType: string; itemId: number }) => `${item.itemType}:${item.itemId}`));
+      if (Array.isArray(source.scopeItems)) {
+        setScopeItems(source.scopeItems.map((item: { itemType: string; itemId: number }) => `${item.itemType}:${item.itemId}`));
       }
     }
-  }, [initialData]);
-
-  useEffect(() => {
-    nameRef.current?.focus();
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    const closeOnEscape = (event: KeyboardEvent) => { if (event.key === 'Escape') onClose(); };
-    document.addEventListener('keydown', closeOnEscape);
-    return () => {
-      document.body.style.overflow = previousOverflow;
-      document.removeEventListener('keydown', closeOnEscape);
-    };
-  }, [onClose]);
+  }, [initialData, itemQuery.data]);
 
   const mutation = useMutation({
     mutationFn: (payload: CreateInventoryItemInput) => {
@@ -223,17 +219,18 @@ export function GoodsCreateDialog({ type, onClose, itemId, initialData }: GoodsC
   };
 
   return <div className="goods-dialog-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget && !mutation.isPending) onClose(); }}>
-    <section className="goods-dialog" role="dialog" aria-modal="true" aria-labelledby="goods-dialog-title">
+    <section ref={dialogRef as RefObject<HTMLElement>} className="goods-dialog" role="dialog" aria-modal="true" aria-labelledby={titleId} tabIndex={-1}>
       <header className="goods-dialog-header">
-        <h2 id="goods-dialog-title">{isEdit ? copy.editTitle : copy.title}</h2>
+        <h2 id={titleId}>{isEdit ? copy.editTitle : copy.title}</h2>
         <button type="button" onClick={onClose} disabled={mutation.isPending} aria-label="Đóng"><i className="ph ph-x" /></button>
       </header>
-      <div className="goods-dialog-tabs" role="tablist">
-        <button type="button" role="tab" aria-selected={tab === 'information'} className={tab === 'information' ? 'is-active' : ''} onClick={() => setTab('information')}>Thông tin</button>
-        <button type="button" role="tab" aria-selected={tab === 'details'} className={tab === 'details' ? 'is-active' : ''} onClick={() => setTab('details')}>Hình ảnh, mô tả, ghi chú</button>
+      <div className="goods-dialog-tabs" role="tablist" aria-label="Nội dung hàng hóa">
+        <button id="goods-tab-information" type="button" role="tab" aria-controls="goods-panel" aria-selected={tab === 'information'} className={tab === 'information' ? 'is-active' : ''} onClick={() => setTab('information')}>Thông tin</button>
+        <button id="goods-tab-details" type="button" role="tab" aria-controls="goods-panel" aria-selected={tab === 'details'} className={tab === 'details' ? 'is-active' : ''} onClick={() => setTab('details')}>Hình ảnh, mô tả, ghi chú</button>
       </div>
       <form onSubmit={submit} noValidate>
-        <div className="goods-dialog-body">
+        <div id="goods-panel" className="goods-dialog-body" role="tabpanel" aria-labelledby={tab === 'information' ? 'goods-tab-information' : 'goods-tab-details'}>
+          {itemQuery.error && <div className="goods-form-alert" role="alert"><i className="ph ph-warning-circle" /><span><strong>Không thể tải thông tin đầy đủ</strong><small>{itemQuery.error.message}</small></span></div>}
           {mutation.error && <div className="goods-form-alert" role="alert"><i className="ph ph-warning-circle" /><span><strong>Không thể lưu {copy.noun}</strong><small>{mutation.error.message}</small></span></div>}
           {tab === 'information' ? <>
             <div className="goods-field full-field"><label htmlFor="goods-name">Tên hàng <span>*</span></label><input ref={nameRef} id="goods-name" value={form.name} onChange={(event) => update('name', event.target.value)} aria-invalid={Boolean(errors.name)} placeholder={`Nhập tên ${copy.noun}`} />{errors.name && <small className="field-error">{errors.name}</small>}</div>
@@ -273,33 +270,37 @@ export function GoodsCreateDialog({ type, onClose, itemId, initialData }: GoodsC
 
                 {commissionType !== null && (
                   <>
-                    <div className="commission-segments" role="radiogroup" aria-label="Loại hoa hồng">
-                      <button
-                        type="button"
-                        className={`commission-segment ${commissionType === 'percent' ? 'is-active' : ''}`}
-                        onClick={() => setCommissionType('percent')}
-                      >
-                        % giá bán
-                      </button>
-                      <button
-                        type="button"
-                        className={`commission-segment ${commissionType === 'fixed' ? 'is-active' : ''}`}
-                        onClick={() => setCommissionType('fixed')}
-                      >
-                        Số tiền cố định
-                      </button>
-                    </div>
+                    <div className="commission-config-row">
+                      <div className="commission-segments" role="radiogroup" aria-label="Loại hoa hồng">
+                        <button
+                          type="button"
+                          className={`commission-segment ${commissionType === 'percent' ? 'is-active' : ''}`}
+                          onClick={() => setCommissionType('percent')}
+                        >
+                          % giá bán
+                        </button>
+                        <button
+                          type="button"
+                          className={`commission-segment ${commissionType === 'fixed' ? 'is-active' : ''}`}
+                          onClick={() => setCommissionType('fixed')}
+                        >
+                          Số tiền cố định
+                        </button>
+                      </div>
 
-                    <div className="commission-rate-row">
-                      <div className="input-suffix commission-rate-input">
+                      <div className="commission-rate-row">
                         {commissionType === 'percent' ? (
-                          <PercentInput
-                            id="goods-commission-rate"
-                            suffix="%"
-                            value={commissionRate}
-                            onChange={(val) => setCommissionRate(val)}
-                            placeholder="0"
-                          />
+                          <div className="input-suffix commission-rate-input">
+                            <input
+                              id="goods-commission-rate"
+                              type="text"
+                              inputMode="numeric"
+                              value={commissionRate}
+                              onChange={(event) => setCommissionRate(Number(event.target.value.replace(/\D/g, '')) || 0)}
+                              placeholder="0"
+                            />
+                            <span>%</span>
+                          </div>
                         ) : (
                           <MoneyInput
                             id="goods-commission-rate"
@@ -307,22 +308,23 @@ export function GoodsCreateDialog({ type, onClose, itemId, initialData }: GoodsC
                             value={commissionRate}
                             onChange={(val) => setCommissionRate(val)}
                             placeholder="0"
+                            wrapperClassName="input-suffix commission-rate-input"
                           />
                         )}
-                      </div>
 
-                      {commissionType === 'percent' && (
-                        <div className="commission-preview">
-                          ≈ {formatMoney(numeric(form.salePrice) * (commissionRate / 100))}đ / {copy.noun}
-                        </div>
-                      )}
+                        {commissionType === 'percent' && (
+                          <div className="commission-preview">
+                            ≈ {formatMoney(numeric(form.salePrice) * (commissionRate / 100))} / {copy.noun}
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </>
                 )}
               </div>
             </section>
 
-            {type === 'product' && <section className="goods-form-section"><div className="goods-section-heading"><span><strong>Tồn kho</strong><small>Thiết lập số lượng ban đầu và cảnh báo tồn.</small></span><i className="ph ph-caret-up" /></div><div className="goods-form-grid three-columns"><div className="goods-field"><label htmlFor="goods-stock">Tồn ban đầu</label><input id="goods-stock" type="number" min="0" value={form.initialStock} onChange={(event) => update('initialStock', event.target.value)} /></div><div className="goods-field"><label htmlFor="goods-min-stock">Tồn tối thiểu</label><input id="goods-min-stock" type="number" min="0" value={form.minStock} onChange={(event) => update('minStock', event.target.value)} /></div><div className="goods-field"><label htmlFor="goods-max-stock">Tồn tối đa</label><input id="goods-max-stock" type="number" min="1" value={form.maxStock} onChange={(event) => update('maxStock', event.target.value)} placeholder="Không giới hạn" aria-invalid={Boolean(errors.maxStock)} />{errors.maxStock && <small className="field-error">{errors.maxStock}</small>}</div></div><div className="goods-field compact-field"><label htmlFor="goods-unit">Đơn vị tính</label><input id="goods-unit" value={form.unit} onChange={(event) => update('unit', event.target.value)} /></div></section>}
+            {type === 'product' && <section className="goods-form-section"><div className="goods-section-heading"><span><strong>Tồn kho</strong><small>{isEdit ? 'Điều chỉnh số lượng tồn hiện tại và cảnh báo tồn.' : 'Thiết lập số lượng ban đầu và cảnh báo tồn.'}</small></span><i className="ph ph-caret-up" /></div><div className="goods-form-grid three-columns"><div className="goods-field"><label htmlFor="goods-stock">{isEdit ? 'Tồn hiện tại' : 'Tồn ban đầu'}</label><input id="goods-stock" type="number" min="0" value={form.initialStock} onChange={(event) => update('initialStock', event.target.value)} /></div><div className="goods-field"><label htmlFor="goods-min-stock">Tồn tối thiểu</label><input id="goods-min-stock" type="number" min="0" value={form.minStock} onChange={(event) => update('minStock', event.target.value)} /></div><div className="goods-field"><label htmlFor="goods-max-stock">Tồn tối đa</label><input id="goods-max-stock" type="number" min="1" value={form.maxStock} onChange={(event) => update('maxStock', event.target.value)} placeholder="Không giới hạn" aria-invalid={Boolean(errors.maxStock)} />{errors.maxStock && <small className="field-error">{errors.maxStock}</small>}</div></div><div className="goods-field compact-field"><label htmlFor="goods-unit">Đơn vị tính</label><input id="goods-unit" value={form.unit} onChange={(event) => update('unit', event.target.value)} /></div></section>}
 
             {type === 'package' && <section className="goods-form-section"><div className="goods-section-heading"><span><strong>Dịch vụ trong gói</strong><small>Gói được liên kết trực tiếp với các dịch vụ đã tạo.</small></span><i className="ph ph-caret-up" /></div>{catalog.isPending ? <div className="goods-inline-state">Đang tải danh sách dịch vụ...</div> : catalog.error ? <div className="goods-inline-state error">{catalog.error.message}</div> : <><div className="goods-link-picker"><Select value={serviceToAdd} onChange={setServiceToAdd} placeholder="Chọn dịch vụ" fullWidth className="goods-service-select" options={[{ value: '', label: 'Chọn dịch vụ' }, ...availableServices.filter((service) => !packageItems.some((item) => item.serviceId === String(service.itemId))).map((service) => ({ value: String(service.itemId), label: `${service.name} (${formatMoney(service.salePrice)})` }))]} /><button className="secondary-button" type="button" onClick={addService} disabled={!serviceToAdd}><i className="ph ph-plus" />Thêm dịch vụ</button></div>{selectedServices.length ? <div className="linked-items-list">{selectedServices.map((item) => <div key={item.serviceId}><span><strong>{item.service?.name ?? `Dịch vụ #${item.serviceId}`}</strong><small>{item.service?.code}</small></span><label>Số buổi<input type="number" min="1" value={item.units} onChange={(event) => setPackageItems((current) => current.map((row) => row.serviceId === item.serviceId ? { ...row, units: Math.max(1, Number(event.target.value) || 1) } : row))} /></label><button type="button" aria-label="Xóa dịch vụ khỏi gói" onClick={() => setPackageItems((current) => current.filter((row) => row.serviceId !== item.serviceId))}><i className="ph ph-trash" /></button></div>)}</div> : <div className="goods-inline-state">Chưa có dịch vụ trong gói. Hãy tạo dịch vụ trước nếu danh sách đang trống.</div>}</>}{errors.packageItems && <small className="field-error section-error">{errors.packageItems}</small>}<div className="goods-field compact-field"><label htmlFor="goods-schedule">Lịch sử dụng</label><Select id="goods-schedule" value={form.usageSchedule} onChange={(val) => update('usageSchedule', val)} fullWidth options={[{ value: 'flexible', label: 'Tự do' }, { value: 'scheduled', label: 'Theo lịch' }]} /></div></section>}
 
@@ -333,7 +335,7 @@ export function GoodsCreateDialog({ type, onClose, itemId, initialData }: GoodsC
             <div className="goods-field"><label htmlFor="goods-note">Ghi chú nội bộ</label><textarea id="goods-note" rows={4} value={form.note} onChange={(event) => update('note', event.target.value)} placeholder="Thông tin chỉ dùng trong nội bộ" /></div>
           </div>}
         </div>
-        <footer className="goods-dialog-footer"><button className="secondary-button" type="button" onClick={onClose} disabled={mutation.isPending}>Bỏ qua</button><button className="primary-button" type="submit" disabled={mutation.isPending}>{mutation.isPending ? 'Đang lưu...' : 'Lưu'}</button></footer>
+        <footer className="goods-dialog-footer"><button className="secondary-button" type="button" onClick={onClose} disabled={mutation.isPending}>Bỏ qua</button><button className="primary-button" type="submit" disabled={mutation.isPending || itemQuery.isPending || Boolean(itemQuery.error)}>{mutation.isPending ? 'Đang lưu...' : itemQuery.isPending ? 'Đang tải...' : 'Lưu'}</button></footer>
       </form>
     </section>
   </div>;

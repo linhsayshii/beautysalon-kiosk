@@ -5,7 +5,7 @@
   flex-direction: column;
   min-height: 100vh;
   background-color: #f8fafc;
-  padding-bottom: 90px;
+  padding-bottom: calc(var(--mobile-bottomnav-h, 60px) + var(--mobile-safe-bottom, 0px) + 100px);
   box-sizing: border-box;
   font-family: inherit;
   color: #1e293b;
@@ -53,6 +53,7 @@
   padding: 6px 10px;
   border-radius: 8px;
   transition: background 0.15s ease;
+  min-height: 44px;
 }
 
 .mobile-notifications-readall-btn:active {
@@ -80,6 +81,7 @@
   cursor: pointer;
   text-align: center;
   transition: all 0.15s ease;
+  min-height: 44px;
 }
 
 .mobile-notifications-tab-btn.is-active {

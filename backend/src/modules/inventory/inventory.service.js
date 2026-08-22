@@ -16,19 +16,19 @@ const goodsCte = `
     SELECT
       s.branch_id, 'service'::text, s.id, s.code, s.name,
       s.category, s.brand, 'lần'::varchar, s.price, s.cost_price,
-      0::numeric, NULL::numeric, 0::numeric, NULL::numeric, s.active, NULL::varchar, NULL::numeric
+      0::numeric, NULL::numeric, 0::numeric, NULL::numeric, s.active, s.commission_type, s.commission_rate
     FROM services s
     UNION ALL
     SELECT
       sp.branch_id, 'package'::text, sp.id, sp.code, sp.name,
       sp.category, sp.brand, 'gói'::varchar, sp.list_price, sp.cost_price,
-      0::numeric, NULL::numeric, 0::numeric, NULL::numeric, sp.active, NULL::varchar, NULL::numeric
+      0::numeric, NULL::numeric, 0::numeric, NULL::numeric, sp.active, sp.commission_type, sp.commission_rate
     FROM service_packages sp
     UNION ALL
     SELECT
       ac.branch_id, 'account_card'::text, ac.id, ac.code, ac.name,
       ac.category, ac.brand, 'thẻ'::varchar, ac.sale_price, 0::numeric,
-      0::numeric, NULL::numeric, 0::numeric, NULL::numeric, ac.active, NULL::varchar, NULL::numeric
+      0::numeric, NULL::numeric, 0::numeric, NULL::numeric, ac.active, ac.commission_type, ac.commission_rate
     FROM account_cards ac
   )
 `;
@@ -61,6 +61,71 @@ const itemSources = {
   package: { table: 'service_packages', codeColumn: 'code', prefix: 'GDV' },
   account_card: { table: 'account_cards', codeColumn: 'code', prefix: 'TTK' },
 };
+
+export async function getInventoryItem({ branchId, type, id }) {
+  const source = itemSources[type];
+  if (!source) throw new HttpError(400, 'INVALID_TYPE', 'Loại hàng không hợp lệ');
+
+  if (type === 'product') {
+    const result = await pool.query(
+      `SELECT p.*, COALESCE(ib.quantity, 0) AS stock_quantity
+       FROM products p LEFT JOIN inventory_balances ib ON ib.branch_id = p.branch_id AND ib.product_id = p.id
+       WHERE p.branch_id = $1 AND p.id = $2`, [branchId, id],
+    );
+    const row = result.rows[0];
+    if (!row) throw new HttpError(404, 'ITEM_NOT_FOUND', 'Không tìm thấy hàng hóa');
+    return {
+      ...mapProduct({ ...row, item_type: type, item_id: row.id, code: row.sku }),
+      barcode: row.barcode, imageUrl: row.image_url, description: row.description, note: row.note,
+      initialStock: number(row.stock_quantity),
+    };
+  }
+
+  if (type === 'service') {
+    const result = await pool.query('SELECT * FROM services WHERE branch_id = $1 AND id = $2', [branchId, id]);
+    const row = result.rows[0];
+    if (!row) throw new HttpError(404, 'ITEM_NOT_FOUND', 'Không tìm thấy hàng hóa');
+    return {
+      id: `${type}:${row.id}`, itemId: number(row.id), itemType: type, code: row.code, name: row.name,
+      category: row.category, brand: row.brand, unit: 'lần', salePrice: number(row.price), costPrice: number(row.cost_price),
+      durationMinutes: number(row.duration_minutes), active: row.active, imageUrl: row.image_url,
+      description: row.description, note: row.note, commissionType: row.commission_type, commissionRate: number(row.commission_rate),
+    };
+  }
+
+  if (type === 'package') {
+    const [itemResult, itemsResult] = await Promise.all([
+      pool.query('SELECT * FROM service_packages WHERE branch_id = $1 AND id = $2', [branchId, id]),
+      pool.query('SELECT service_id, units FROM service_package_items WHERE package_id = $1 ORDER BY id', [id]),
+    ]);
+    const row = itemResult.rows[0];
+    if (!row) throw new HttpError(404, 'ITEM_NOT_FOUND', 'Không tìm thấy hàng hóa');
+    return {
+      id: `${type}:${row.id}`, itemId: number(row.id), itemType: type, code: row.code, name: row.name,
+      category: row.category, brand: row.brand, unit: 'gói', salePrice: number(row.list_price), costPrice: number(row.cost_price),
+      validityDays: row.validity_days === null ? null : number(row.validity_days), usageSchedule: row.usage_schedule,
+      active: row.active, imageUrl: row.image_url, description: row.description, note: row.note,
+      commissionType: row.commission_type, commissionRate: number(row.commission_rate),
+      packageItems: itemsResult.rows.map((item) => ({ serviceId: number(item.service_id), units: number(item.units) })),
+    };
+  }
+
+  const [itemResult, scopeResult] = await Promise.all([
+    pool.query('SELECT * FROM account_cards WHERE branch_id = $1 AND id = $2', [branchId, id]),
+    pool.query('SELECT item_type, item_id FROM account_card_scope_items WHERE account_card_id = $1 ORDER BY id', [id]),
+  ]);
+  const row = itemResult.rows[0];
+  if (!row) throw new HttpError(404, 'ITEM_NOT_FOUND', 'Không tìm thấy hàng hóa');
+  return {
+    id: `${type}:${row.id}`, itemId: number(row.id), itemType: type, code: row.code, name: row.name,
+    category: row.category, brand: row.brand, unit: 'thẻ', salePrice: number(row.sale_price), costPrice: 0,
+    faceValue: number(row.face_value), validityDays: row.validity_days === null ? null : number(row.validity_days), active: row.active,
+    imageUrl: row.image_url, description: row.description, note: row.note,
+    commissionType: row.commission_type, commissionRate: number(row.commission_rate),
+    allowedTypes: [row.allow_products && 'product', row.allow_services && 'service', row.allow_packages && 'package'].filter(Boolean),
+    scopeItems: scopeResult.rows.map((item) => ({ itemType: item.item_type, itemId: number(item.item_id) })),
+  };
+}
 
 async function nextItemCode(client, branchId, type, requestedCode) {
   if (requestedCode) return requestedCode;
@@ -107,7 +172,7 @@ async function validateScopedItems(client, branchId, items) {
 export async function createInventoryItem({
   branchId, type, name, code: requestedCode, category, brand, salePrice, costPrice, active,
   imageUrl, description, note, barcode, unit, initialStock, minStock, maxStock, durationMinutes,
-  validityDays, usageSchedule, packageItems, faceValue, allowedTypes, scopeItems,
+  validityDays, usageSchedule, packageItems, faceValue, allowedTypes, scopeItems, commissionType, commissionRate,
 }) {
   const client = await pool.connect();
   try {
@@ -119,10 +184,10 @@ export async function createInventoryItem({
       const result = await client.query(
         `INSERT INTO products (
           branch_id, sku, name, barcode, sale_price, cost_price, last_purchase_price,
-          min_stock, max_stock, category, brand, unit, active, image_url, description, note
-        ) VALUES ($1, $2, $3, $4, $5, $6, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+          min_stock, max_stock, category, brand, unit, active, image_url, description, note, commission_type, commission_rate
+        ) VALUES ($1, $2, $3, $4, $5, $6, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
         RETURNING id`,
-        [branchId, code, name, barcode || null, salePrice, costPrice, minStock, maxStock, category, brand || null, unit, active, imageUrl || null, description || null, note || null],
+        [branchId, code, name, barcode || null, salePrice, costPrice, minStock, maxStock, category, brand || null, unit, active, imageUrl || null, description || null, note || null, commissionType, commissionRate],
       );
       created = result.rows[0];
       await client.query(
@@ -133,10 +198,10 @@ export async function createInventoryItem({
       const result = await client.query(
         `INSERT INTO services (
           branch_id, code, name, price, cost_price, duration_minutes, category, brand,
-          active, image_url, description, note
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+          active, image_url, description, note, commission_type, commission_rate
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
         RETURNING id`,
-        [branchId, code, name, salePrice, costPrice, durationMinutes, category, brand || null, active, imageUrl || null, description || null, note || null],
+        [branchId, code, name, salePrice, costPrice, durationMinutes, category, brand || null, active, imageUrl || null, description || null, note || null, commissionType, commissionRate],
       );
       created = result.rows[0];
     } else if (type === 'package') {
@@ -150,10 +215,10 @@ export async function createInventoryItem({
       const result = await client.query(
         `INSERT INTO service_packages (
           branch_id, code, name, total_units, validity_days, list_price, cost_price,
-          category, brand, active, image_url, description, note, usage_schedule
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+          category, brand, active, image_url, description, note, usage_schedule, commission_type, commission_rate
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
         RETURNING id`,
-        [branchId, code, name, totalUnits, validityDays, salePrice, costPrice, category, brand || null, active, imageUrl || null, description || null, note || null, usageSchedule],
+        [branchId, code, name, totalUnits, validityDays, salePrice, costPrice, category, brand || null, active, imageUrl || null, description || null, note || null, usageSchedule, commissionType, commissionRate],
       );
       created = result.rows[0];
       const priceByService = new Map(services.rows.map((row) => [number(row.id), number(row.price)]));
@@ -168,12 +233,12 @@ export async function createInventoryItem({
       const result = await client.query(
         `INSERT INTO account_cards (
           branch_id, code, name, category, brand, sale_price, face_value, validity_days,
-          allow_products, allow_services, allow_packages, active, image_url, description, note
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+          allow_products, allow_services, allow_packages, active, image_url, description, note, commission_type, commission_rate
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
         RETURNING id`,
         [branchId, code, name, category, brand || null, salePrice, faceValue, validityDays,
           allowedTypes.includes('product'), allowedTypes.includes('service'), allowedTypes.includes('package'),
-          active, imageUrl || null, description || null, note || null],
+          active, imageUrl || null, description || null, note || null, commissionType, commissionRate],
       );
       created = result.rows[0];
       for (const item of scopeItems) {
@@ -205,7 +270,7 @@ export async function createInventoryItem({
 export async function updateInventoryItem({
   branchId, type, id, name, code, category, brand, salePrice, costPrice, active,
   imageUrl, description, note, barcode, unit, minStock, maxStock, durationMinutes,
-  validityDays, usageSchedule, packageItems, faceValue, allowedTypes, scopeItems,
+  validityDays, usageSchedule, packageItems, faceValue, allowedTypes, scopeItems, stockQuantity, commissionType, commissionRate,
 }) {
   const client = await pool.connect();
   try {
@@ -240,10 +305,20 @@ export async function updateInventoryItem({
            active = $11,
            image_url = $12,
            description = $13,
-           note = $14
-         WHERE branch_id = $15 AND id = $16`,
-        [finalCode, name, barcode || null, salePrice, costPrice, minStock, maxStock, category, brand || null, unit, active, imageUrl || null, description || null, note || null, branchId, id],
+           note = $14,
+           commission_type = $15,
+           commission_rate = $16
+         WHERE branch_id = $17 AND id = $18`,
+        [finalCode, name, barcode || null, salePrice, costPrice, minStock, maxStock, category, brand || null, unit, active, imageUrl || null, description || null, note || null, commissionType, commissionRate, branchId, id],
       );
+      if (stockQuantity !== undefined) {
+        await client.query(
+          `INSERT INTO inventory_balances (branch_id, product_id, quantity, updated_at)
+           VALUES ($1, $2, $3, NOW())
+           ON CONFLICT (branch_id, product_id) DO UPDATE SET quantity = EXCLUDED.quantity, updated_at = NOW()`,
+          [branchId, id, stockQuantity],
+        );
+      }
     } else if (type === 'service') {
       await client.query(
         `UPDATE services SET
@@ -257,9 +332,11 @@ export async function updateInventoryItem({
            active = $8,
            image_url = $9,
            description = $10,
-           note = $11
-         WHERE branch_id = $12 AND id = $13`,
-        [finalCode, name, salePrice, costPrice, durationMinutes, category, brand || null, active, imageUrl || null, description || null, note || null, branchId, id],
+           note = $11,
+           commission_type = $12,
+           commission_rate = $13
+         WHERE branch_id = $14 AND id = $15`,
+        [finalCode, name, salePrice, costPrice, durationMinutes, category, brand || null, active, imageUrl || null, description || null, note || null, commissionType, commissionRate, branchId, id],
       );
     } else if (type === 'package') {
       let totalUnits = undefined;
@@ -296,9 +373,11 @@ export async function updateInventoryItem({
            image_url = $10,
            description = $11,
            note = $12,
-           usage_schedule = $13
-         WHERE branch_id = $14 AND id = $15`,
-        [finalCode, name, totalUnits ?? null, validityDays, salePrice, costPrice, category, brand || null, active, imageUrl || null, description || null, note || null, usageSchedule, branchId, id],
+           usage_schedule = $13,
+           commission_type = $14,
+           commission_rate = $15
+         WHERE branch_id = $16 AND id = $17`,
+        [finalCode, name, totalUnits ?? null, validityDays, salePrice, costPrice, category, brand || null, active, imageUrl || null, description || null, note || null, usageSchedule, commissionType, commissionRate, branchId, id],
       );
     } else if (type === 'account_card') {
       if (scopeItems) {
@@ -327,14 +406,16 @@ export async function updateInventoryItem({
            active = $11,
            image_url = $12,
            description = $13,
-           note = $14
-         WHERE branch_id = $15 AND id = $16`,
+           note = $14,
+           commission_type = $15,
+           commission_rate = $16
+         WHERE branch_id = $17 AND id = $18`,
         [
           finalCode, name, category, brand || null, salePrice, faceValue || null, validityDays,
           allowedTypes ? allowedTypes.includes('product') : null,
           allowedTypes ? allowedTypes.includes('service') : null,
           allowedTypes ? allowedTypes.includes('package') : null,
-          active, imageUrl || null, description || null, note || null, branchId, id,
+          active, imageUrl || null, description || null, note || null, commissionType, commissionRate, branchId, id,
         ],
       );
     }

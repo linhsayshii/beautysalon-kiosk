@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { formatDateTime, formatMoney, formatNumber } from '@/lib/format';
 import { toIsoDate, todayIso, monthStartIso, COMMON_DATE_PRESETS, formatDayHeader } from '@/lib/date';
 import { StatusBadge } from '@/components/data-display/Badges';
+import { LoadingState, ErrorState } from '@/components/data-display/DataState';
 import { statusLabels, type ApiRecord } from '@/types/api';
 import { getOrders, getOrder } from '@/features/operations/operations.api';
 import {
@@ -84,7 +85,7 @@ export function MobileOrdersView() {
   }, [datePreset]);
 
   // Fetch Orders
-  const { data: ordersData, isLoading } = useQuery({
+  const ordersQuery = useQuery({
     queryKey: [
       'mobile-orders',
       search,
@@ -106,7 +107,7 @@ export function MobileOrdersView() {
       }),
   });
 
-  const rawRows = (ordersData?.data ?? []) as ApiRecord[];
+  const rawRows = (ordersQuery.data?.data ?? []) as ApiRecord[];
 
   // Client-side search filter for instant responsiveness
   const filteredRows = useMemo(() => {
@@ -319,9 +320,13 @@ export function MobileOrdersView() {
 
       {/* 4. Grouped Section List */}
       <div className="mobile-orders-sections-wrapper">
-        {isLoading ? (
-          <div style={{ padding: '40px 16px', textAlign: 'center', color: '#64748b' }}>
-            Đang tải danh sách đơn hàng...
+        {ordersQuery.isPending ? (
+          <div style={{ padding: '40px 16px' }}>
+            <LoadingState />
+          </div>
+        ) : ordersQuery.error ? (
+          <div style={{ padding: '40px 16px' }}>
+            <ErrorState error={ordersQuery.error} onRetry={() => ordersQuery.refetch()} />
           </div>
         ) : rawRows.length === 0 ? (
           <div style={{ padding: '24px 16px' }}>
@@ -351,6 +356,7 @@ export function MobileOrdersView() {
                       onClick={() => setSelectedOrderId(order.id)}
                       role="button"
                       tabIndex={0}
+                      onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); setSelectedOrderId(order.id); } }}
                     >
                       {/* Square Rounded Avatar */}
                       <div className={`mobile-orders-square-avatar ${isPaid ? 'is-paid' : ''}`}>
@@ -422,8 +428,9 @@ export function MobileOrdersView() {
         onApply={handleApplyFilter}
       >
         <div className="mobile-filter-field">
-          <label className="mobile-filter-field-label">Khoảng thời gian</label>
+          <label htmlFor="mobile-orders-date-filter" className="mobile-filter-field-label">Khoảng thời gian</label>
           <select
+            id="mobile-orders-date-filter"
             className="mobile-filter-select"
             value={draftDatePreset}
             onChange={(e) => setDraftDatePreset(e.target.value)}
@@ -437,8 +444,9 @@ export function MobileOrdersView() {
         </div>
 
         <div className="mobile-filter-field">
-          <label className="mobile-filter-field-label">Trạng thái đơn hàng</label>
+          <label htmlFor="mobile-orders-status-filter" className="mobile-filter-field-label">Trạng thái đơn hàng</label>
           <select
+            id="mobile-orders-status-filter"
             className="mobile-filter-select"
             value={draftStatus}
             onChange={(e) => setDraftStatus(e.target.value)}
@@ -452,8 +460,9 @@ export function MobileOrdersView() {
         </div>
 
         <div className="mobile-filter-field">
-          <label className="mobile-filter-field-label">Kênh bán hàng</label>
+          <label htmlFor="mobile-orders-channel-filter" className="mobile-filter-field-label">Kênh bán hàng</label>
           <select
+            id="mobile-orders-channel-filter"
             className="mobile-filter-select"
             value={draftChannel}
             onChange={(e) => setDraftChannel(e.target.value)}
@@ -466,8 +475,9 @@ export function MobileOrdersView() {
         </div>
 
         <div className="mobile-filter-field">
-          <label className="mobile-filter-field-label">Hình thức thanh toán</label>
+          <label htmlFor="mobile-orders-payment-filter" className="mobile-filter-field-label">Hình thức thanh toán</label>
           <select
+            id="mobile-orders-payment-filter"
             className="mobile-filter-select"
             value={draftPaymentMethod}
             onChange={(e) => setDraftPaymentMethod(e.target.value)}
@@ -651,16 +661,9 @@ export function MobileOrdersView() {
                 <button
                   type="button"
                   className="mobile-orders-action-print-btn"
-                  onClick={() => alert(`Đang chuẩn bị in hóa đơn ${activeOrder.code}`)}
+                  onClick={() => window.print()}
                 >
                   <i className="ph ph-printer" /> In hóa đơn
-                </button>
-                <button
-                  type="button"
-                  className="mobile-orders-action-detail-btn"
-                  onClick={() => alert(`Xem chi tiết đầy đủ đơn hàng ${activeOrder.code}`)}
-                >
-                  Xem chi tiết
                 </button>
               </div>
             </div>

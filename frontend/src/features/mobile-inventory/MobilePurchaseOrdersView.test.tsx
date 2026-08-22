@@ -137,7 +137,7 @@ describe('MobilePurchaseOrdersView Component', () => {
       expect(screen.getByText('Serum Dưỡng Trắng Da')).toBeInTheDocument();
       expect(screen.getByText('0909123456')).toBeInTheDocument();
       expect(screen.getByText('In phiếu nhập')).toBeInTheDocument();
-      expect(screen.getByText('Sửa phiếu')).toBeInTheDocument();
+      expect(screen.queryByText('Sửa phiếu')).not.toBeInTheDocument();
     });
   });
 });

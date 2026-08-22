@@ -106,7 +106,7 @@ describe('MobilePricebooksView Component', () => {
     await waitFor(() => {
       expect(screen.getByText('SO SÁNH BẢNG GIÁ')).toBeInTheDocument();
       expect(screen.getByText('Biên lợi nhuận ước tính:')).toBeInTheDocument();
-      expect(screen.getByText('Xem chi tiết hàng hóa')).toBeInTheDocument();
+      expect(screen.queryByText('Xem chi tiết hàng hóa')).not.toBeInTheDocument();
     });
   });
 });

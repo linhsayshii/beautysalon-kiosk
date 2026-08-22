@@ -4,6 +4,7 @@ import { MemoryRouter } from 'react-router-dom';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { MobileAppointmentsListView } from './MobileAppointmentsListView';
 import * as posApi from '@/features/pos/pos.api';
+import { ToastProvider } from '@/components/ui/Toast/ToastProvider';
 
 describe('MobileAppointmentsListView Component', () => {
   let queryClient: QueryClient;
@@ -53,9 +54,11 @@ describe('MobileAppointmentsListView Component', () => {
   const renderComponent = () =>
     render(
       <QueryClientProvider client={queryClient}>
-        <MemoryRouter>
-          <MobileAppointmentsListView />
-        </MemoryRouter>
+        <ToastProvider>
+          <MemoryRouter>
+            <MobileAppointmentsListView />
+          </MemoryRouter>
+        </ToastProvider>
       </QueryClientProvider>
     );
 

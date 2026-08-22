@@ -130,9 +130,12 @@ export const getStaff = (filters: ApiRecord) => apiRequest<ApiEnvelope<ApiRecord
 export const createStaff = (body: CreateStaffInput) => apiRequest<ApiEnvelope<ApiRecord>>('/staff', { method: 'POST', body: JSON.stringify(body) });
 export const updateStaff = (id: number, body: CreateStaffInput) => apiRequest<ApiEnvelope<ApiRecord>>(`/staff/${id}`, { method: 'PATCH', body: JSON.stringify(body) });
 export const getShifts = () => apiRequest<ApiEnvelope<ApiRecord[]>>('/staff/shifts');
+export const getWorkScheduleSettings = () => apiRequest<ApiEnvelope<{ activeWorkDays: string[]; holidays: ApiRecord[] }>>('/staff/work-schedule-settings');
+export const updateWorkScheduleSettings = (body: { activeWorkDays: string[]; holidays: ApiRecord[] }) => apiRequest<ApiEnvelope<ApiRecord>>('/staff/work-schedule-settings', { method: 'PUT', body: JSON.stringify(body) });
 export const createShift = (body: CreateShiftInput) => apiRequest<ApiEnvelope<ApiRecord>>('/staff/shifts', { method: 'POST', body: JSON.stringify(body) });
 export const assignShift = (body: AssignShiftInput) => apiRequest<ApiEnvelope<ApiRecord>>('/staff/schedule/assign', { method: 'POST', body: JSON.stringify(body) });
 export const getSchedule = (startDate: string) => apiRequest<ApiEnvelope<ApiRecord>>(`/staff/schedule?${toQueryString({ startDate })}`);
+export const getMySchedule = (startDate: string) => apiRequest<ApiEnvelope<ApiRecord>>(`/staff/me/schedule?${toQueryString({ startDate })}`);
 export const getAttendance = (dateFrom: string, dateTo: string) => apiRequest<ApiEnvelope<ApiRecord[]>>(`/staff/attendance?${toQueryString({ dateFrom, dateTo })}`);
 export const getCommissions = (dateFrom: string, dateTo: string) => apiRequest<ApiEnvelope<{ rows: ApiRecord[]; byStaff: ApiRecord[] }>>(`/staff/commissions?${toQueryString({ dateFrom, dateTo })}`);
 
@@ -158,3 +161,21 @@ export const payPayroll = (id: number, body: { staffId: number; amount: number; 
 
 // Legacy compatibility
 export const getPayroll = (periodCode: string) => apiRequest<ApiEnvelope<ApiRecord>>(`/staff/payroll?${toQueryString({ periodCode })}`);
+
+export interface MyPayrollRecord extends Omit<PayrollRecordItem, 'staff'> {
+  period: {
+    id: number;
+    code: string;
+    name: string;
+    startsOn: string;
+    endsOn: string;
+    status: 'draft' | 'approved' | 'cancelled' | 'paid';
+  };
+}
+
+export interface MyPayrollResponse {
+  records: MyPayrollRecord[];
+  currentPeriodStartsOn: string;
+}
+
+export const getMyPayrollHistory = () => apiRequest<ApiEnvelope<MyPayrollResponse>>('/staff/me/payroll');

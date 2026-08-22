@@ -1,8 +1,10 @@
 import { useState, useMemo } from 'react';
+import type { RefObject } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { formatMoney } from '@/lib/format';
 import { MoneyInput } from '@/components/forms/MoneyInput';
 import { searchPosCustomers, checkoutPosInvoice, getPosStaff, type PosReceiptData } from '@/features/pos/pos.api';
+import { useMobileDialog } from '@/features/mobile-common/useMobileDialog';
 
 interface PosLine {
   itemId: number;
@@ -51,6 +53,7 @@ export function MobileCartBottomSheet({
   const [discountValue, setDiscountValue] = useState<number>(0);
   const [customerQuery, setCustomerQuery] = useState('');
   const [showCustomerSearch, setShowCustomerSearch] = useState(false);
+  const { dialogRef, titleId } = useMobileDialog({ isOpen: true, onClose });
 
   // Fetch staff list
   const { data: staffResponse } = useQuery({
@@ -135,11 +138,11 @@ export function MobileCartBottomSheet({
 
   return (
     <div className="mobile-bottom-sheet-backdrop" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
-      <div className="mobile-bottom-sheet" style={{ maxHeight: '90dvh' }}>
+      <div ref={dialogRef as RefObject<HTMLDivElement>} className="mobile-bottom-sheet" style={{ maxHeight: '90dvh' }} role="dialog" aria-modal="true" aria-labelledby={titleId} tabIndex={-1}>
         <div className="mobile-sheet-drag-handle" />
 
         <div className="mobile-cart-sheet-header">
-          <h2 className="mobile-cart-sheet-title">Chi tiết giỏ hàng & Thanh toán</h2>
+          <h2 id={titleId} className="mobile-cart-sheet-title">Chi tiết giỏ hàng & Thanh toán</h2>
           <button type="button" className="mobile-pos-search-clear" onClick={onClose} aria-label="Đóng">
             <i className="ph ph-x" />
           </button>
@@ -168,6 +171,7 @@ export function MobileCartBottomSheet({
                 </div>
                 <button
                   type="button"
+                  aria-label={`Bỏ chọn khách hàng ${customer.name}`}
                   style={{ border: 'none', background: 'transparent', color: '#dc2626', cursor: 'pointer', fontSize: 13, fontWeight: 600 }}
                   onClick={() => onSelectCustomer(null)}
                 >
@@ -206,11 +210,12 @@ export function MobileCartBottomSheet({
                         type="text"
                         className="mobile-pos-search-input"
                         placeholder="Tìm tên hoặc SĐT khách hàng..."
+                        aria-label="Tìm khách hàng theo tên hoặc số điện thoại"
                         value={customerQuery}
                         onChange={(e) => setCustomerQuery(e.target.value)}
                         autoFocus
                       />
-                      <button type="button" className="mobile-pos-search-clear" onClick={() => setShowCustomerSearch(false)}>
+                      <button type="button" className="mobile-pos-search-clear" onClick={() => setShowCustomerSearch(false)} aria-label="Đóng tìm khách hàng">
                         <i className="ph ph-x" />
                       </button>
                     </div>
@@ -225,7 +230,8 @@ export function MobileCartBottomSheet({
                         padding: 4
                       }}>
                         {customerResults.data.map((c) => (
-                          <div
+                          <button
+                            type="button"
                             key={c.id}
                             style={{
                               padding: '8px 10px',
@@ -244,7 +250,7 @@ export function MobileCartBottomSheet({
                           >
                             <span style={{ fontWeight: 600 }}>{c.name}</span>
                             <span style={{ color: '#64748b', fontSize: 12 }}>{c.phone}</span>
-                          </div>
+                          </button>
                         ))}
                       </div>
                     )}
@@ -269,6 +275,7 @@ export function MobileCartBottomSheet({
                     <button
                       type="button"
                       className="mobile-cart-qty-btn"
+                      aria-label={`Giảm số lượng ${line.name}`}
                       onClick={() => onUpdateQuantity(line.itemId, line.itemType, -1)}
                     >
                       <i className="ph ph-minus" />
@@ -277,6 +284,7 @@ export function MobileCartBottomSheet({
                     <button
                       type="button"
                       className="mobile-cart-qty-btn"
+                      aria-label={`Tăng số lượng ${line.name}`}
                       onClick={() => onUpdateQuantity(line.itemId, line.itemType, 1)}
                     >
                       <i className="ph ph-plus" />
@@ -311,6 +319,7 @@ export function MobileCartBottomSheet({
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                       <select
+                        aria-label={`Nhân viên thực hiện ${line.name}`}
                         value={line.staffId ?? ''}
                         onChange={(e) => onUpdateLineStaff(line.itemId, line.itemType, e.target.value ? Number(e.target.value) : null)}
                         style={{
@@ -358,6 +367,7 @@ export function MobileCartBottomSheet({
             <div className="mobile-payment-methods">
               <button
                 type="button"
+                aria-pressed={paymentMethod === 'cash'}
                 className={`mobile-pay-method-btn ${paymentMethod === 'cash' ? 'is-active' : ''}`}
                 onClick={() => setPaymentMethod('cash')}
               >
@@ -366,6 +376,7 @@ export function MobileCartBottomSheet({
               </button>
               <button
                 type="button"
+                aria-pressed={paymentMethod === 'bank_transfer'}
                 className={`mobile-pay-method-btn ${paymentMethod === 'bank_transfer' ? 'is-active' : ''}`}
                 onClick={() => setPaymentMethod('bank_transfer')}
               >
@@ -374,6 +385,7 @@ export function MobileCartBottomSheet({
               </button>
               <button
                 type="button"
+                aria-pressed={paymentMethod === 'card'}
                 className={`mobile-pay-method-btn ${paymentMethod === 'card' ? 'is-active' : ''}`}
                 onClick={() => setPaymentMethod('card')}
               >
@@ -382,6 +394,7 @@ export function MobileCartBottomSheet({
               </button>
               <button
                 type="button"
+                aria-pressed={paymentMethod === 'wallet'}
                 className={`mobile-pay-method-btn ${paymentMethod === 'wallet' ? 'is-active' : ''}`}
                 onClick={() => setPaymentMethod('wallet')}
               >
@@ -395,13 +408,14 @@ export function MobileCartBottomSheet({
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink-700)' }}>Giảm giá (VNĐ)</span>
             <MoneyInput
+              aria-label="Giảm giá"
               placeholder="0"
               value={discountValue}
               onChange={(val) => setDiscountValue(val)}
               suffix="đ"
               style={{
                 width: '100%',
-                height: 40,
+                minHeight: 44,
                 borderRadius: 12,
                 border: '1px solid #e2e8f0',
                 padding: '0 10px',

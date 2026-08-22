@@ -5,7 +5,7 @@
   flex-direction: column;
   min-height: 100vh;
   background-color: #f2f4f8;
-  padding-bottom: calc(var(--mobile-safe-bottom, 0px) + 90px);
+  padding-bottom: calc(var(--mobile-bottomnav-h, 60px) + var(--mobile-safe-bottom, 0px) + 100px);
   box-sizing: border-box;
 }
 
@@ -19,6 +19,97 @@
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 }
 
+/* Salary keeps its navigation and period selector visible while details scroll. */
+.mobile-salary-view {
+  --mobile-salary-header-h: 154px;
+  padding-top: var(--mobile-salary-header-h);
+}
+
+.mobile-salary-sticky-shell {
+  position: fixed;
+  top: calc(var(--mobile-topbar-h) + var(--mobile-safe-top));
+  right: 0;
+  left: 0;
+  z-index: 30;
+  width: 100%;
+  box-shadow: 0 2px 12px rgba(15, 23, 42, 0.06);
+}
+
+.mobile-salary-top-nav {
+  min-height: 72px;
+  padding: 14px 16px;
+}
+
+.mobile-salary-top-nav .mobile-staff-nav-title {
+  font-size: 22px;
+  letter-spacing: -0.02em;
+}
+
+.mobile-salary-month-menu {
+  min-height: 68px;
+  padding: 11px 16px;
+  background: #f8fafc;
+}
+
+.mobile-salary-month-control {
+  width: max-content;
+  min-width: 216px;
+  min-height: 46px;
+  gap: 8px;
+  padding: 0 14px;
+  border: 1px solid #dbe3ef;
+  border-radius: 14px;
+  background: #ffffff;
+  color: #1e293b;
+  font-size: 14px;
+  font-weight: 700;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
+}
+
+.mobile-salary-month-control > i:first-child {
+  color: #0062eb;
+  font-size: 18px;
+}
+
+.mobile-salary-month-label {
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 650;
+  white-space: nowrap;
+}
+
+.mobile-salary-month-control select {
+  min-width: 0;
+  flex: 1;
+  font-weight: 750;
+  cursor: pointer;
+}
+
+.mobile-salary-month-caret {
+  color: #64748b;
+  font-size: 14px;
+  pointer-events: none;
+}
+
+.mobile-salary-content {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 16px;
+}
+
+.mobile-salary-content .mobile-staff-empty-state {
+  margin: 8px 0;
+}
+
+.mobile-salary-content .salary-overview-card {
+  margin-bottom: 0;
+}
+
+.mobile-salary-content .salary-breakdown-list + .salary-breakdown-list {
+  margin-top: 4px;
+}
+
 /* Sticky Top Header for Schedule */
 .mobile-schedule-sticky-header {
   position: sticky;
@@ -30,6 +121,74 @@
   border-bottom: 1px solid #e2e8f0;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 }
+
+.mobile-staff-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.mobile-schedule-week-actions {
+  display: flex;
+  gap: 4px;
+}
+
+.mobile-schedule-week-actions button {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border: 1px solid #dbe3ef;
+  border-radius: 9px;
+  color: #334155;
+  background: #fff;
+  font-size: 17px;
+}
+
+.mobile-filter-chip select {
+  appearance: none;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  outline: none;
+}
+
+.breakdown-value.is-positive { color: #16a34a; }
+.breakdown-value.is-negative { color: #dc2626; }
+.breakdown-value.is-accent { color: #0284c7; }
+
+.mobile-payroll-status {
+  border-radius: 999px;
+  padding: 3px 8px;
+  font-size: 11px;
+  font-weight: 700;
+  background: #f1f5f9;
+  color: #475569;
+}
+
+.mobile-payroll-status.is-approved,
+.mobile-payroll-status.is-paid { background: #dcfce7; color: #15803d; }
+.mobile-payroll-status.is-cancelled { background: #fee2e2; color: #b91c1c; }
+
+.mobile-staff-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  margin: 24px 16px;
+  padding: 28px 20px;
+  border: 1px dashed #cbd5e1;
+  border-radius: 14px;
+  background: #fff;
+  color: #64748b;
+  text-align: center;
+}
+
+.mobile-staff-empty-state i { color: #0284c7; font-size: 30px; }
+.mobile-staff-empty-state strong { color: #334155; }
 
 /* 1. Header Top Navigation */
 .mobile-staff-top-nav {
@@ -54,8 +213,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  height: 36px;
+  width: 44px;
+  height: 44px;
   border-radius: 8px;
   border: none;
   background: transparent;
@@ -83,8 +242,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 38px;
-  height: 38px;
+  width: 44px;
+  height: 44px;
   border-radius: 8px;
   border: none;
   background: transparent;
@@ -115,6 +274,7 @@
 }
 
 .mobile-staff-underline-tab {
+  min-height: 44px;
   padding: 12px 4px;
   font-size: 14px;
   font-weight: 600;
@@ -154,8 +314,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  height: 36px;
+  width: 44px;
+  height: 44px;
   border-radius: 10px;
   background: #ffffff;
   border: 1px solid #e2e8f0;
@@ -173,7 +333,7 @@
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  height: 36px;
+  min-height: 44px;
   padding: 0 12px;
   border-radius: 10px;
   background: #ffffff;
@@ -211,6 +371,7 @@
 }
 
 .mobile-sort-select-chip {
+  min-height: 44px;
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -249,8 +410,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  height: 36px;
+  width: 44px;
+  height: 44px;
   border-radius: 8px;
   border: 1px solid #e2e8f0;
   background: #ffffff;
@@ -705,7 +866,7 @@
   align-items: center;
   justify-content: center;
   gap: 4px;
-  min-height: 32px;
+  min-height: 44px;
   padding: 0 10px;
   border-radius: 8px;
   font-size: 12px;

@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef, type RefObject } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/components/ui/Toast/ToastProvider';
@@ -20,6 +20,7 @@ import {
   MobileServiceItemDetailSheet,
   type ConfiguredServiceItem,
 } from '@/features/mobile-common/MobileServiceItemDetailSheet';
+import { useMobileDialog } from '@/features/mobile-common/useMobileDialog';
 import '@/features/mobile-appointments/mobile-appointments.css';
 import '@/features/mobile-pos/mobile-pos.css';
 
@@ -45,6 +46,9 @@ export function MobileInvoiceCreateView() {
   const [isDetailSheetOpen, setIsDetailSheetOpen] = useState(false);
   const [isNoteDialogOpen, setIsNoteDialogOpen] = useState(false);
   const [tempNote, setTempNote] = useState('');
+  const catalogSearchRef = useRef<HTMLInputElement>(null);
+  const catalogDialog = useMobileDialog({ isOpen: isCatalogSheetOpen, onClose: () => setIsCatalogSheetOpen(false), initialFocusRef: catalogSearchRef });
+  const noteDialog = useMobileDialog({ isOpen: isNoteDialogOpen, onClose: () => setIsNoteDialogOpen(false) });
   const [receiptToPrint, setReceiptToPrint] = useState<PosReceiptData | null>(null);
 
   // Active item in detail sheet
@@ -258,6 +262,7 @@ export function MobileInvoiceCreateView() {
             onClick={() => setIsCustomerSheetOpen(true)}
             role="button"
             tabIndex={0}
+            onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); setIsCustomerSheetOpen(true); } }}
           >
             <div className="mobile-form-row-left">
               <div className="mobile-form-row-icon is-customer">
@@ -502,6 +507,7 @@ export function MobileInvoiceCreateView() {
 
             {discountType === 'vnd' ? (
               <MoneyInput
+                aria-label="Giảm giá theo số tiền"
                 placeholder="0"
                 value={discountInput}
                 onChange={(val) => setDiscountInput(val)}
@@ -521,6 +527,7 @@ export function MobileInvoiceCreateView() {
             ) : (
               <input
                 type="number"
+                aria-label="Giảm giá theo phần trăm"
                 min="0"
                 max="100"
                 placeholder="0"
@@ -605,13 +612,10 @@ export function MobileInvoiceCreateView() {
           onClick={(e) => {
             if (e.target === e.currentTarget) setIsCatalogSheetOpen(false);
           }}
-          role="dialog"
-          aria-modal="true"
-          aria-label="Chọn dịch vụ, sản phẩm"
         >
-          <div className="mobile-catalog-sheet">
+          <div ref={catalogDialog.dialogRef as RefObject<HTMLDivElement>} className="mobile-catalog-sheet" role="dialog" aria-modal="true" aria-labelledby={catalogDialog.titleId} tabIndex={-1}>
             <header className="mobile-catalog-sheet-header">
-              <h3>Chọn dịch vụ, sản phẩm</h3>
+              <h3 id={catalogDialog.titleId}>Chọn dịch vụ, sản phẩm</h3>
               <button
                 type="button"
                 className="mobile-appointment-back-btn"
@@ -656,6 +660,7 @@ export function MobileInvoiceCreateView() {
                     cursor: 'pointer',
                   }}
                   onClick={() => setActiveCatalogTab(tab.value)}
+                  aria-pressed={activeCatalogTab === tab.value}
                 >
                   {tab.label}
                 </button>
@@ -665,7 +670,9 @@ export function MobileInvoiceCreateView() {
             <div className="mobile-catalog-sheet-search">
               <i className="ph ph-magnifying-glass" />
               <input
+                ref={catalogSearchRef}
                 type="text"
+                aria-label="Tìm dịch vụ, sản phẩm"
                 placeholder="Tìm tên dịch vụ, sản phẩm..."
                 value={catalogSearch}
                 onChange={(e) => setCatalogSearch(e.target.value)}
@@ -680,7 +687,8 @@ export function MobileInvoiceCreateView() {
                 </div>
               ) : (
                 catalogItems.map((cat) => (
-                  <div
+                  <button
+                    type="button"
                     key={`${cat.itemType}-${cat.itemId}`}
                     className="mobile-catalog-item-row"
                     onClick={() => handleSelectCatalogItem(cat)}
@@ -694,7 +702,7 @@ export function MobileInvoiceCreateView() {
                     <span className="mobile-catalog-item-price">
                       {formatNumber(cat.salePrice)}
                     </span>
-                  </div>
+                  </button>
                 ))
               )}
             </div>
@@ -722,22 +730,22 @@ export function MobileInvoiceCreateView() {
           onClick={(e) => {
             if (e.target === e.currentTarget) setIsNoteDialogOpen(false);
           }}
-          role="dialog"
-          aria-modal="true"
         >
-          <div className="mobile-note-dialog">
+          <div ref={noteDialog.dialogRef as RefObject<HTMLDivElement>} className="mobile-note-dialog" role="dialog" aria-modal="true" aria-labelledby={noteDialog.titleId} tabIndex={-1}>
             <div className="mobile-note-dialog-header">
-              <h3>Ghi chú hóa đơn</h3>
+              <h3 id={noteDialog.titleId}>Ghi chú hóa đơn</h3>
               <button
                 type="button"
                 className="mobile-appointment-back-btn"
                 onClick={() => setIsNoteDialogOpen(false)}
+                aria-label="Đóng ghi chú"
               >
                 <i className="ph ph-x" />
               </button>
             </div>
             <div className="mobile-note-dialog-body">
               <textarea
+                aria-label="Ghi chú hóa đơn"
                 placeholder="Nhập ghi chú cho hóa đơn..."
                 value={tempNote}
                 onChange={(e) => setTempNote(e.target.value)}

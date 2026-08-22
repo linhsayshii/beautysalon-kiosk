@@ -95,3 +95,7 @@ Critical variables (must be changed in production):
 - QR attendance uses GPS verification; requires HTTPS outside localhost
 - Detailed architecture decisions in `docs/architecture/ARCHITECTURE.md`
 - Module-specific research and progress docs in `docs/inventory-purchasing/`, `docs/operations-pages/`, `docs/frontend-react-refactor/`
+
+## Git Workflow (Solo Developer)
+- **Branches**: Do not create new branches unless a branch already exists in the repository and the user explicitly asks to change work on that branch. Work on `master` or `main` by default.
+- **Commits**: Do not auto-commit or push to remote. Only commit when the user asks, or at the end of a session if the user has granted standing permission. Never force-push.

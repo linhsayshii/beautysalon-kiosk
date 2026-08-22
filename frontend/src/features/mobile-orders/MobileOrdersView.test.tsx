@@ -168,7 +168,7 @@ describe('MobileOrdersView Component', () => {
       expect(screen.getByText('Tổng tiền hàng:')).toBeInTheDocument();
       // Action buttons
       expect(screen.getByRole('button', { name: /In hóa đơn/i })).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: /Xem chi tiết/i })).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /Xem chi tiết/i })).not.toBeInTheDocument();
     });
   });
 });

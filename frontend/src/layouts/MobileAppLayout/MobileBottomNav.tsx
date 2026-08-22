@@ -1,6 +1,8 @@
 import { useState } from 'react';
+import type { RefObject } from 'react';
 import { NavLink, Link } from 'react-router-dom';
 import { useAuth } from '@/features/auth/AuthProvider';
+import { useMobileDialog } from '@/features/mobile-common/useMobileDialog';
 
 interface QuickActionSheetProps {
   isOpen: boolean;
@@ -8,14 +10,16 @@ interface QuickActionSheetProps {
 }
 
 export function MobileQuickActionSheet({ isOpen, onClose }: QuickActionSheetProps) {
+  const { account } = useAuth();
+  const { dialogRef, titleId } = useMobileDialog({ isOpen, onClose });
   if (!isOpen) return null;
 
   return (
-    <div className="mobile-bottom-sheet-backdrop" onClick={onClose} role="dialog" aria-modal="true" aria-label="Tùy chọn tạo nhanh">
-      <div className="mobile-bottom-sheet mobile-quick-action-sheet" onClick={(e) => e.stopPropagation()}>
+    <div className="mobile-bottom-sheet-backdrop" onClick={onClose}>
+      <div ref={dialogRef as RefObject<HTMLDivElement>} className="mobile-bottom-sheet mobile-quick-action-sheet" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" aria-labelledby={titleId} tabIndex={-1}>
         <div className="mobile-sheet-drag-handle" />
         <div className="mobile-quick-action-header">
-          <h3 className="mobile-quick-action-title">Tạo mới nhanh</h3>
+          <h3 id={titleId} className="mobile-quick-action-title">Tạo mới nhanh</h3>
           <button type="button" className="mobile-quick-action-close" onClick={onClose} aria-label="Đóng">
             <i className="ph ph-x" />
           </button>
@@ -43,16 +47,18 @@ export function MobileQuickActionSheet({ isOpen, onClose }: QuickActionSheetProp
             <i className="ph ph-caret-right mobile-quick-action-arrow" />
           </Link>
 
-          <Link to="/m/customers?create=1" className="mobile-quick-action-item" onClick={onClose}>
-            <div className="mobile-quick-action-icon action-customer">
-              <i className="ph ph-user-plus" />
-            </div>
-            <div className="mobile-quick-action-info">
-              <div className="mobile-quick-action-name">Thêm khách hàng</div>
-              <div className="mobile-quick-action-desc">Đăng ký hồ sơ khách mới & gói thẻ dịch vụ</div>
-            </div>
-            <i className="ph ph-caret-right mobile-quick-action-arrow" />
-          </Link>
+          {account?.role !== 'staff' && (
+            <Link to="/m/customers?create=1" className="mobile-quick-action-item" onClick={onClose}>
+              <div className="mobile-quick-action-icon action-customer">
+                <i className="ph ph-user-plus" />
+              </div>
+              <div className="mobile-quick-action-info">
+                <div className="mobile-quick-action-name">Thêm khách hàng</div>
+                <div className="mobile-quick-action-desc">Đăng ký hồ sơ khách mới & gói thẻ dịch vụ</div>
+              </div>
+              <i className="ph ph-caret-right mobile-quick-action-arrow" />
+            </Link>
+          )}
         </div>
       </div>
     </div>
@@ -83,8 +89,8 @@ export function MobileBottomNav() {
             <NavLink to="/m/attendance" className={({ isActive }) => `mobile-nav-item ${isActive ? 'is-active' : ''}`}>
               <i className="ph ph-qr-code" /><span>Chấm công</span>
             </NavLink>
-            <NavLink to="/m/schedule" className={({ isActive }) => `mobile-nav-item ${isActive ? 'is-active' : ''}`}>
-              <i className="ph ph-calendar-check" /><span>Lịch làm</span>
+            <NavLink to="/m/my-schedule" className={({ isActive }) => `mobile-nav-item ${isActive ? 'is-active' : ''}`}>
+              <i className="ph ph-calendar-check" /><span>Lịch của tôi</span>
             </NavLink>
             {renderCenterButton()}
             <NavLink to="/m/salary" className={({ isActive }) => `mobile-nav-item ${isActive ? 'is-active' : ''}`}>

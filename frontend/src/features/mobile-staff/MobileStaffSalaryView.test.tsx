@@ -17,7 +17,7 @@ describe('MobileStaffSalaryView', () => {
     const currentMonth = monthStart(0);
     const previousMonth = monthStart(-1);
     vi.spyOn(staffApi, 'getMyPayrollHistory').mockResolvedValue({
-      data: [
+      data: { records: [
         {
           id: 1, code: 'PL-previous', period: { id: 1, code: 'BL-previous', name: 'Tháng trước', startsOn: previousMonth, endsOn: previousMonth, status: 'paid' },
           baseSalary: 5800000, overtimeSalary: 0, allowance: 0, bonus: 0, commission: 1000000, deduction: 0,
@@ -28,7 +28,7 @@ describe('MobileStaffSalaryView', () => {
           baseSalary: 6000000, overtimeSalary: 0, allowance: 500000, bonus: 0, commission: 1200000, deduction: 0,
           totalIncome: 7700000, netSalary: 7700000, paidAmount: 5000000, remainingAmount: 2700000, workUnits: 24, standardWorkDays: 26, hourlyRate: 0, status: 'approved',
         },
-      ],
+      ], currentPeriodStartsOn: currentMonth },
     } as any);
 
     render(

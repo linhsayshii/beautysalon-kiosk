@@ -61,10 +61,10 @@ describe('MobilePosView Component', () => {
     await waitFor(() => screen.getByText('Gội đầu 60k'));
     fireEvent.click(screen.getByText('Gội đầu 60k'));
 
-    expect(screen.getByText(/1 món/i)).toBeInTheDocument();
+    expect(screen.getByText(/Giỏ hàng \(1\)/i)).toBeInTheDocument();
     expect(screen.getAllByText(/60[.,]000/i).length).toBeGreaterThanOrEqual(1);
 
-    fireEvent.click(screen.getByText(/Xem giỏ hàng/i));
+    fireEvent.click(screen.getByRole('button', { name: /^Thanh toán$/i }));
     expect(screen.getByText('Chi tiết giỏ hàng & Thanh toán')).toBeInTheDocument();
   });
 });

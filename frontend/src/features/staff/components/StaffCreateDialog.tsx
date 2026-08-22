@@ -92,6 +92,22 @@ const getInitialForm = (staff?: ApiRecord) => staff ? {
   baseSalary: String(staff.baseSalary ?? 7000000),
   hourlyRate: String(staff.hourlyRate ?? 35000),
   enableCommission: Number(staff.defaultCommissionRate ?? 0) > 0,
+  avatarUrl: String(staff.avatarUrl ?? ''),
+  department: String(staff.department ?? ''),
+  startDate: String(staff.startDate ?? initialForm.startDate),
+  accountId: String(staff.accountId ?? ''),
+  note: String(staff.note ?? ''),
+  bankAccountNumber: String(staff.bankAccountNumber ?? ''),
+  bankName: String(staff.bankName ?? ''),
+  bankAccountHolder: String(staff.bankAccountHolder ?? ''),
+  idNumber: String(staff.idNumber ?? ''),
+  dob: String(staff.dob ?? ''),
+  gender: String(staff.gender ?? initialForm.gender),
+  address: String(staff.address ?? ''),
+  province: String(staff.province ?? ''),
+  district: String(staff.district ?? ''),
+  email: String(staff.email ?? ''),
+  facebook: String(staff.facebook ?? ''),
 } : initialForm;
 
 export function StaffCreateDialog({ onClose, staff, initialTab = 'info' }: StaffCreateDialogProps) {
@@ -271,6 +287,17 @@ export function StaffCreateDialog({ onClose, staff, initialTab = 'info' }: Staff
       canManageInventory: staff
         ? staff.canManageInventory === true
         : form.role.toLowerCase().includes('quản lý'),
+      accountId: form.accountId || null,
+      profile: {
+        phone: form.phone.trim(), avatarUrl: form.avatarUrl, department: form.department,
+        startDate: form.startDate, note: form.note, bankAccountNumber: form.bankAccountNumber,
+        bankName: form.bankName, bankAccountHolder: form.bankAccountHolder, idNumber: form.idNumber,
+        dob: form.dob, gender: form.gender, address: form.address, province: form.province,
+        district: form.district, email: form.email.trim(), facebook: form.facebook.trim(),
+        enableBonus: form.enableBonus, enableCommission: form.enableCommission,
+        enableAllowance: form.enableAllowance, enableDeduction: form.enableDeduction,
+        commissions, allowances, deductions,
+      },
     });
   };
 
@@ -851,12 +878,12 @@ export function StaffCreateDialog({ onClose, staff, initialTab = 'info' }: Staff
 
                 <hr style={{ border: 0, borderTop: '1px solid var(--line)', margin: '4px 0' }} />
 
-                {/* 3. Hoa hồng (KiotViet Style với 2 bảng dịch vụ & tư vấn) */}
-                <div style={{ display: 'grid', gap: '12px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                {/* 3. Hoa hồng */}
+                <div className="staff-commission-section">
+                  <div className="staff-compensation-heading">
                     <div>
-                      <div style={{ fontWeight: 700, fontSize: '14px', color: 'var(--ink-900)' }}>Hoa hồng</div>
-                      <small style={{ color: 'var(--ink-500)', fontSize: '11px' }}>
+                      <div>Hoa hồng</div>
+                      <small>
                         Thiết lập mức hoa hồng theo sản phẩm hoặc dịch vụ
                       </small>
                     </div>
@@ -871,18 +898,8 @@ export function StaffCreateDialog({ onClose, staff, initialTab = 'info' }: Staff
                   </div>
 
                   {form.enableCommission && (
-                    <div style={{ background: '#f8fafc', padding: '14px', borderRadius: '10px', border: '1px solid var(--line)' }}>
-                      <div
-                        style={{
-                          display: 'grid',
-                          gridTemplateColumns: '1.2fr 1fr 1.6fr 36px 36px',
-                          gap: '10px',
-                          marginBottom: '8px',
-                          fontSize: '11px',
-                          fontWeight: 700,
-                          color: 'var(--ink-600)',
-                        }}
-                      >
+                    <div className="staff-commission-table">
+                      <div className="staff-commission-table-head">
                         <div>Loại hình</div>
                         <div>Doanh thu <i className="ph ph-info" /></div>
                         <div>Hoa hồng thụ hưởng</div>
@@ -893,13 +910,7 @@ export function StaffCreateDialog({ onClose, staff, initialTab = 'info' }: Staff
                       {commissions.map((item) => (
                         <div
                           key={item.id}
-                          style={{
-                            display: 'grid',
-                            gridTemplateColumns: '1.2fr 1fr 1.6fr 36px 36px',
-                            gap: '10px',
-                            alignItems: 'center',
-                            marginBottom: '8px',
-                          }}
+                          className="staff-commission-table-row"
                         >
                           <Select
                             id={`comm-type-${item.id}`}
@@ -916,17 +927,17 @@ export function StaffCreateDialog({ onClose, staff, initialTab = 'info' }: Staff
                             ]}
                           />
 
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                            <span style={{ fontSize: '12px', color: 'var(--ink-500)' }}>Từ</span>
+                          <div className="staff-commission-revenue-input">
+                            <span>Từ</span>
                             <MoneyInput
+                              suffix="đ"
                               value={item.minRevenue}
                               onChange={(val) => {
                                 setCommissions((prev) =>
                                   prev.map((c) => (c.id === item.id ? { ...c, minRevenue: String(val) } : c))
                                 );
                               }}
-                              className="filter-control"
-                              style={{ width: '100%', height: '36px', borderRadius: '8px' }}
+                              wrapperClassName="staff-commission-money-input"
                             />
                           </div>
 
@@ -948,8 +959,7 @@ export function StaffCreateDialog({ onClose, staff, initialTab = 'info' }: Staff
 
                           <button
                             type="button"
-                            className="row-action"
-                            style={{ width: '36px', height: '36px' }}
+                            className="row-action staff-commission-action"
                             title="Mở bảng hoa hồng"
                           >
                             <i className="ph ph-arrow-square-out" />
@@ -957,9 +967,8 @@ export function StaffCreateDialog({ onClose, staff, initialTab = 'info' }: Staff
 
                           <button
                             type="button"
-                            className="row-action"
+                            className="row-action staff-commission-action is-muted"
                             onClick={() => removeCommission(item.id)}
-                            style={{ width: '36px', height: '36px', color: 'var(--ink-400)' }}
                             title="Xóa dòng"
                           >
                             <i className="ph ph-trash" />
@@ -970,20 +979,9 @@ export function StaffCreateDialog({ onClose, staff, initialTab = 'info' }: Staff
                       <button
                         type="button"
                         onClick={addCommission}
-                        style={{
-                          border: 0,
-                          background: 'transparent',
-                          color: 'var(--blue-600)',
-                          fontSize: '12px',
-                          fontWeight: 700,
-                          cursor: 'pointer',
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '4px',
-                          marginTop: '6px',
-                        }}
+                        className="staff-commission-add"
                       >
-                        + Thêm hoa hồng
+                        <i className="ph ph-plus" /> Thêm hoa hồng
                       </button>
                     </div>
                   )}

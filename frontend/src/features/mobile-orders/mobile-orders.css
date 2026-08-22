@@ -5,7 +5,7 @@
   flex-direction: column;
   min-height: 100vh;
   background-color: #f2f4f8;
-  padding-bottom: calc(var(--mobile-safe-bottom, 0px) + 90px);
+  padding-bottom: calc(var(--mobile-bottomnav-h, 60px) + var(--mobile-safe-bottom, 0px) + 100px);
   box-sizing: border-box;
   font-family: inherit;
   color: #0f172a;
@@ -44,8 +44,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  height: 36px;
+  width: 44px;
+  height: 44px;
   border-radius: 8px;
   border: none;
   background: transparent;
@@ -74,8 +74,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 38px;
-  height: 38px;
+  width: 44px;
+  height: 44px;
   border-radius: 8px;
   border: none;
   background: transparent;
@@ -118,8 +118,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  height: 36px;
+  width: 44px;
+  height: 44px;
   border-radius: 10px;
   background: #ffffff;
   border: 1px solid #e2e8f0;
@@ -134,7 +134,7 @@
   align-items: center;
   gap: 6px;
   padding: 0 13px;
-  height: 36px;
+  min-height: 44px;
   border-radius: 18px;
   background: #ffffff;
   border: 1px solid #e2e8f0;
@@ -296,6 +296,9 @@
 }
 
 .mobile-orders-phone-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
   font-size: 13px;
   color: #0062eb;
   text-decoration: none;
@@ -335,17 +338,17 @@
   position: fixed;
   bottom: calc(var(--mobile-safe-bottom, 0px) + 76px);
   right: 18px;
-  width: 52px;
-  height: 52px;
-  border-radius: 26px;
+  width: 54px;
+  height: 54px;
+  border-radius: 27px;
   background: #0062eb;
   color: #ffffff;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 24px;
+  font-size: 26px;
   box-shadow: 0 4px 14px rgba(0, 98, 235, 0.4);
-  z-index: 35;
+  z-index: 75;
   border: none;
   cursor: pointer;
   text-decoration: none;

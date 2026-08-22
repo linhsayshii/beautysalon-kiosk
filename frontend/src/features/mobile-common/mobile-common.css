@@ -39,8 +39,8 @@
 
 .mobile-customer-search-input {
   width: 100%;
-  height: 42px;
-  padding: 0 42px 0 38px;
+  height: var(--mobile-control-min, 44px);
+  padding: 0 14px 0 38px;
   border-radius: 21px;
   border: 1px solid var(--line, #e2e8f0);
   background: #f1f5f9;
@@ -72,7 +72,8 @@
 }
 
 .mobile-customer-cancel-btn {
-  padding: 8px 6px;
+  min-height: var(--mobile-control-min, 44px);
+  padding: 8px 10px;
   border: none;
   background: transparent;
   color: var(--blue-600, #2563eb);
@@ -107,6 +108,10 @@
   user-select: none;
   -webkit-tap-highlight-color: transparent;
   transition: all 0.15s ease;
+  width: 100%;
+  color: inherit;
+  font: inherit;
+  text-align: left;
 }
 
 .mobile-customer-card:active {
@@ -282,6 +287,7 @@
   transition: all 0.15s ease;
   user-select: none;
   -webkit-tap-highlight-color: transparent;
+  min-height: 44px;
 }
 
 .mobile-sort-trigger-btn:active,
@@ -303,6 +309,7 @@
   left: 0;
   z-index: 80;
   min-width: 190px;
+  max-width: calc(100vw - 32px);
   background: var(--surface, #ffffff);
   border: 1px solid var(--line, #e2e8f0);
   border-radius: 12px;
@@ -388,14 +395,20 @@
 .mobile-time-picker-settings-btn {
   display: grid;
   place-items: center;
-  width: 36px;
-  height: 36px;
+  width: var(--mobile-control-min, 44px);
+  height: var(--mobile-control-min, 44px);
   border-radius: 50%;
   border: none;
   background: transparent;
   color: var(--ink-700, #334155);
   font-size: 20px;
   cursor: pointer;
+}
+
+.mobile-time-picker-header-spacer {
+  width: var(--mobile-control-min, 44px);
+  height: var(--mobile-control-min, 44px);
+  flex: 0 0 auto;
 }
 
 .mobile-time-picker-back-btn:active,
@@ -444,6 +457,7 @@
   cursor: pointer;
   transition: all 0.15s ease;
   -webkit-tap-highlight-color: transparent;
+  min-height: 60px;
 }
 
 .mobile-date-pill-weekday {
@@ -583,6 +597,7 @@
   cursor: pointer;
   transition: all 0.15s ease;
   -webkit-tap-highlight-color: transparent;
+  min-height: var(--mobile-control-min, 44px);
 }
 
 .mobile-slot-btn:active {
@@ -654,7 +669,7 @@
   inset: 0;
   background: rgba(15, 23, 42, 0.6);
   backdrop-filter: blur(4px);
-  z-index: 100;
+  z-index: var(--mobile-layer-overlay-nested, 110);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -693,6 +708,11 @@
   color: var(--ink-400, #94a3b8);
   font-size: 20px;
   cursor: pointer;
+  display: grid;
+  place-items: center;
+  width: var(--mobile-control-min, 44px);
+  height: var(--mobile-control-min, 44px);
+  border-radius: 10px;
 }
 
 .mobile-time-wheel-content {
@@ -716,7 +736,7 @@
 }
 
 .mobile-wheel-select {
-  height: 42px;
+  min-height: 44px;
   border-radius: 10px;
   border: 1px solid var(--line, #e2e8f0);
   background: #f8fafc;
@@ -753,7 +773,7 @@
 
 .mobile-wheel-cancel-btn {
   flex: 1;
-  height: 42px;
+  min-height: 44px;
   background: #f1f5f9;
   color: var(--ink-700, #334155);
   border: none;
@@ -765,7 +785,7 @@
 
 .mobile-wheel-apply-btn {
   flex: 1;
-  height: 42px;
+  min-height: 44px;
   background: var(--blue-600, #2563eb);
   color: #ffffff;
   border: none;
@@ -914,12 +934,12 @@
   border: 1px solid var(--line, #e2e8f0);
   background: #f8fafc;
   overflow: hidden;
-  height: 38px;
+  min-height: 44px;
 }
 
 .mobile-stepper-btn {
-  width: 38px;
-  height: 38px;
+  width: 44px;
+  height: 44px;
   border: none;
   background: transparent;
   font-size: 18px;
@@ -944,7 +964,7 @@
 }
 
 .mobile-item-total-pill {
-  height: 38px;
+  min-height: 44px;
   padding: 0 16px;
   border-radius: 12px;
   background: #eff6ff;
@@ -997,6 +1017,7 @@
   font-weight: 700;
   cursor: pointer;
   transition: all 0.15s ease;
+  min-height: 48px;
 }
 
 .mobile-item-schedule-pill:active {
@@ -1020,6 +1041,11 @@
   background: #f8fafc;
   cursor: pointer;
   transition: all 0.15s ease;
+  width: 100%;
+  min-height: 58px;
+  color: inherit;
+  font: inherit;
+  text-align: left;
 }
 
 .mobile-item-picker-row:active {
@@ -1192,6 +1218,7 @@
   text-align: left;
   cursor: pointer;
   transition: all 0.15s ease;
+  min-height: 58px;
 }
 
 .mobile-staff-picker-item:active {
@@ -1261,7 +1288,8 @@
 
 .mobile-position-custom-row input {
   flex: 1;
-  height: 42px;
+  min-height: 44px;
+  font-size: 16px;
   padding: 0 14px;
   border-radius: 10px;
   border: 1px solid var(--line, #e2e8f0);
@@ -1435,7 +1463,7 @@
   inset: 0;
   background: rgba(15, 23, 42, 0.5);
   backdrop-filter: blur(2px);
-  z-index: 120;
+  z-index: var(--mobile-layer-overlay, 100);
   display: flex;
   align-items: flex-end;
 }
@@ -1479,10 +1507,10 @@
 .mobile-filter-sheet-close-btn {
   display: grid;
   place-items: center;
-  width: 40px;
-  height: 40px;
-  min-width: 40px;
-  min-height: 40px;
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  min-height: 44px;
   border-radius: 50%;
   border: none;
   background: transparent;
@@ -1785,7 +1813,7 @@
   inset: 0;
   background: rgba(15, 23, 42, 0.5);
   backdrop-filter: blur(2px);
-  z-index: 120;
+  z-index: var(--mobile-layer-overlay, 100);
   display: flex;
   align-items: flex-end;
 }
@@ -1833,10 +1861,10 @@
 .mobile-detail-sheet-close-btn {
   display: grid;
   place-items: center;
-  width: 40px;
-  height: 40px;
-  min-width: 40px;
-  min-height: 40px;
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  min-height: 44px;
   border-radius: 50%;
   border: none;
   background: transparent;
@@ -1878,7 +1906,7 @@
   inset: 0;
   background: rgba(15, 23, 42, 0.6);
   backdrop-filter: blur(4px);
-  z-index: 130;
+  z-index: var(--mobile-layer-overlay-nested, 110);
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
@@ -1913,8 +1941,8 @@
 .mobile-form-back-btn {
   display: grid;
   place-items: center;
-  width: 38px;
-  height: 38px;
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
   border: none;
   background: transparent;
@@ -2003,6 +2031,7 @@
   background: transparent;
   outline: none;
   font-size: 16px;
+  font-family: inherit;
   font-weight: 600;
   color: #0f172a;
   padding: 2px 0;
@@ -2020,6 +2049,7 @@
   background: transparent;
   outline: none;
   font-size: 15.5px;
+  font-family: inherit;
   font-weight: 600;
   color: #0f172a;
   padding: 2px 0;
@@ -2176,7 +2206,7 @@
   align-items: center;
   justify-content: center;
   gap: 6px;
-  height: 36px;
+  min-height: 44px;
   border-radius: 9px;
   border: none;
   background: transparent;
@@ -2252,6 +2282,3 @@
 .mobile-empty-state-action {
   margin-top: 8px;
 }
-
-
-

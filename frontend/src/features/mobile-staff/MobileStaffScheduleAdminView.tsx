@@ -105,7 +105,7 @@ export function MobileStaffScheduleAdminView() {
   ]) as Array<{ name: string; startsAt: string; endsAt: string }>;
 
   const rawSchedule = (scheduleQuery.data?.data ?? {}) as ApiRecord;
-  const rawAssignments = (rawSchedule.shifts ?? rawSchedule.assignments ?? []) as ApiRecord[];
+  const rawAssignments = (rawSchedule.schedules ?? []) as ApiRecord[];
 
   // Filter staff by search term
   const filteredStaff = useMemo(() => {
@@ -449,18 +449,6 @@ export function MobileStaffScheduleAdminView() {
           })}
         </div>
       )}
-
-      {/* Floating Action Button (FAB) */}
-      <button
-        type="button"
-        className="mobile-staff-fab"
-        onClick={() => {
-          if (staffList.length > 0) handleOpenAssign(staffList[0]);
-        }}
-        aria-label="Thêm ca làm việc"
-      >
-        <i className="ph ph-plus" />
-      </button>
 
       {/* Assign Shift Inset Sheet */}
       <MobileDetailSheet

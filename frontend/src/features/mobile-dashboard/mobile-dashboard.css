@@ -116,3 +116,22 @@
   display: grid;
   place-items: center;
 }
+
+@media (max-width: 360px) {
+  .mobile-dashboard-section .dashboard .stat-card,
+  .mobile-dashboard-section .stat-card {
+    gap: 8px;
+    padding: 12px;
+  }
+
+  .mobile-dashboard-section .dashboard .gauge,
+  .mobile-dashboard-section .gauge {
+    width: 118px;
+    min-width: 112px;
+  }
+
+  .mobile-dashboard-section .dashboard .gauge-label span,
+  .mobile-dashboard-section .gauge-label span {
+    white-space: normal;
+  }
+}

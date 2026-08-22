@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { formatMoney, formatNumber } from '@/lib/format';
+import { LoadingState, ErrorState } from '@/components/data-display/DataState';
 import { getPosCatalog, getPosStaff, type PosReceiptData } from '@/features/pos/pos.api';
 import { getOrder } from '@/features/operations/operations.api';
 import { PosReceiptPrint } from '@/features/pos/components/PosReceiptPrint';
@@ -99,7 +100,7 @@ export function MobilePosView() {
   const [receiptToPrint, setReceiptToPrint] = useState<PosReceiptData | null>(null);
 
   // Fetch Pos Catalog
-  const { data: catalogResponse, isLoading } = useQuery({
+  const catalogQuery = useQuery({
     queryKey: ['pos-catalog', search, activeTab],
     queryFn: () => getPosCatalog(search, activeTab),
   });
@@ -112,8 +113,8 @@ export function MobilePosView() {
   const staffList = (staffResponse?.data || []) as Array<{ id: number; name: string }>;
 
   const catalogItems = useMemo(() => {
-    return (catalogResponse?.data || []) as unknown as CatalogItem[];
-  }, [catalogResponse]);
+    return (catalogQuery.data?.data || []) as unknown as CatalogItem[];
+  }, [catalogQuery.data]);
 
   // Extract unique subcategories
   const subCategories = useMemo(() => {
@@ -237,6 +238,7 @@ export function MobilePosView() {
               type="text"
               className="mobile-pos-search-input"
               placeholder="Tìm hàng hóa"
+              aria-label="Tìm hàng hóa"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
@@ -252,11 +254,6 @@ export function MobilePosView() {
             )}
           </div>
 
-          <div className="mobile-pos-header-actions">
-            <button type="button" className="mobile-pos-icon-btn" title="Chuyển đổi giao diện" aria-label="Chuyển đổi giao diện">
-              <i className="ph ph-squares-four" />
-            </button>
-          </div>
         </div>
 
         {/* Category Filter Horizontal Tabs */}
@@ -281,6 +278,7 @@ export function MobilePosView() {
           <div className="mobile-pos-subcat-select">
             <i className="ph ph-funnel" />
             <select
+              aria-label="Nhóm hàng"
               value={selectedSubCategory}
               onChange={(e) => setSelectedSubCategory(e.target.value)}
             >
@@ -299,9 +297,13 @@ export function MobilePosView() {
       </div>
 
       {/* Grouped Items List */}
-      {isLoading ? (
-        <div style={{ padding: '30px 0', textAlign: 'center', color: 'var(--ink-400)' }}>
-          Đang tải dữ liệu hàng hóa...
+      {catalogQuery.isPending ? (
+        <div style={{ padding: '30px 16px' }}>
+          <LoadingState />
+        </div>
+      ) : catalogQuery.error ? (
+        <div style={{ padding: '30px 16px' }}>
+          <ErrorState error={catalogQuery.error} onRetry={() => catalogQuery.refetch()} />
         </div>
       ) : Object.keys(groupedItems).length === 0 ? (
         <div style={{ padding: '40px 0', textAlign: 'center', color: 'var(--ink-400)' }}>
@@ -319,7 +321,8 @@ export function MobilePosView() {
                     (l) => l.itemId === item.itemId && l.itemType === item.itemType
                   );
                   return (
-                    <div
+                    <button
+                      type="button"
                       key={`${item.itemType}-${item.itemId}`}
                       className="mobile-pos-card"
                       onClick={() => handleAddItem(item)}
@@ -344,7 +347,7 @@ export function MobilePosView() {
                           </div>
                         )}
                       </div>
-                    </div>
+                    </button>
                   );
                 })}
               </div>
@@ -356,6 +359,7 @@ export function MobilePosView() {
       {/* Collapsible Cart */}
       <div className={`mobile-cart ${isCartExpanded ? 'expanded' : 'collapsed'}`}>
         <button
+          type="button"
           className="cart-header"
           onClick={() => setIsCartExpanded(!isCartExpanded)}
         >
@@ -383,6 +387,7 @@ export function MobilePosView() {
                   <div className="staff-select">
                     <label>NV:</label>
                     <select
+                      aria-label={`Nhân viên thực hiện ${line.name}`}
                       value={line.staffId ?? ''}
                       onChange={(e) => handleUpdateLineStaff(line.itemId, line.itemType, e.target.value ? Number(e.target.value) : null)}
                     >
@@ -419,6 +424,7 @@ export function MobilePosView() {
         </div>
 
         <button
+          type="button"
           className="checkout-btn"
           disabled={cartLines.length === 0}
           onClick={() => setIsCartOpen(true)}

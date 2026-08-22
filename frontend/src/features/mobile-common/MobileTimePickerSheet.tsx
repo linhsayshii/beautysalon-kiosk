@@ -1,4 +1,6 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
+import type { RefObject } from 'react';
+import { useMobileDialog } from './useMobileDialog';
 import './mobile-common.css';
 
 export interface MobileTimePickerSheetProps {
@@ -56,6 +58,12 @@ export function MobileTimePickerSheet({
     return `${padZero(initialDate.getHours())}:${padZero(initialDate.getMinutes())}`;
   });
   const [isCustomModalOpen, setIsCustomModalOpen] = useState(false);
+  const { dialogRef, titleId } = useMobileDialog({ isOpen, onClose });
+  const closeCustomModal = useCallback(() => setIsCustomModalOpen(false), []);
+  const { dialogRef: customDialogRef, titleId: customTitleId } = useMobileDialog({
+    isOpen: isOpen && isCustomModalOpen,
+    onClose: closeCustomModal,
+  });
 
   // Custom modal temp state
   const [tempHour, setTempHour] = useState<number>(initialDate.getHours());
@@ -151,11 +159,8 @@ export function MobileTimePickerSheet({
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
-      role="dialog"
-      aria-modal="true"
-      aria-label={title}
     >
-      <div className="mobile-time-picker-sheet">
+      <div ref={dialogRef as RefObject<HTMLDivElement>} className="mobile-time-picker-sheet" role="dialog" aria-modal="true" aria-labelledby={titleId} tabIndex={-1}>
         {/* Header */}
         <header className="mobile-time-picker-header">
           <button
@@ -166,14 +171,8 @@ export function MobileTimePickerSheet({
           >
             <i className="ph ph-caret-left" />
           </button>
-          <h2 className="mobile-time-picker-title">{title}</h2>
-          <button
-            type="button"
-            className="mobile-time-picker-settings-btn"
-            aria-label="Cài đặt lịch"
-          >
-            <i className="ph ph-gear" />
-          </button>
+          <h2 id={titleId} className="mobile-time-picker-title">{title}</h2>
+          <span className="mobile-time-picker-header-spacer" aria-hidden="true" />
         </header>
 
         {/* 14-Day Horizontal Date Strip */}
@@ -321,17 +320,15 @@ export function MobileTimePickerSheet({
           onClick={(e) => {
             if (e.target === e.currentTarget) setIsCustomModalOpen(false);
           }}
-          role="dialog"
-          aria-modal="true"
-          aria-label="Chọn ngày giờ chi tiết"
         >
-          <div className="mobile-time-wheel-dialog">
+          <div ref={customDialogRef as RefObject<HTMLDivElement>} className="mobile-time-wheel-dialog" role="dialog" aria-modal="true" aria-labelledby={customTitleId} tabIndex={-1}>
             <div className="mobile-time-wheel-header">
-              <h3>Chọn ngày giờ chi tiết</h3>
+              <h3 id={customTitleId}>Chọn ngày giờ chi tiết</h3>
               <button
                 type="button"
                 className="mobile-time-wheel-close"
                 onClick={() => setIsCustomModalOpen(false)}
+                aria-label="Đóng"
               >
                 <i className="ph ph-x" />
               </button>

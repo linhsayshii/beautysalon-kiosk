@@ -1,4 +1,5 @@
-import type { ReactNode } from 'react';
+import type { ReactNode, RefObject } from 'react';
+import { useMobileDialog } from './useMobileDialog';
 import './mobile-common.css';
 
 export interface MobileFilterSheetProps {
@@ -18,6 +19,7 @@ export function MobileFilterSheet({
   onApply,
   children,
 }: MobileFilterSheetProps) {
+  const { dialogRef, titleId } = useMobileDialog({ isOpen, onClose });
   if (!isOpen) return null;
 
   return (
@@ -30,11 +32,18 @@ export function MobileFilterSheet({
         }
       }}
     >
-      <div className="mobile-filter-sheet-container">
+      <div
+        ref={dialogRef as RefObject<HTMLDivElement>}
+        className="mobile-filter-sheet-container"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        tabIndex={-1}
+      >
         <div className="mobile-sheet-drag-handle" />
 
         <div className="mobile-filter-sheet-header">
-          <h3 className="mobile-filter-sheet-title">{title}</h3>
+          <h3 id={titleId} className="mobile-filter-sheet-title">{title}</h3>
           <button
             type="button"
             className="mobile-filter-sheet-close-btn"

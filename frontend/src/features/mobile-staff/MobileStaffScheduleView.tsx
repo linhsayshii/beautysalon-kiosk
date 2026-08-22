@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { getSchedule } from '@/features/staff/staff.api';
+import { getMySchedule } from '@/features/staff/staff.api';
 import { weekStartIso, toIsoDate, todayIso } from '@/lib/date';
 import { useAuth } from '@/features/auth/AuthProvider';
 import type { ApiRecord } from '@/types/api';
@@ -10,12 +10,13 @@ const weekdayShorts = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'];
 
 export function MobileStaffScheduleView() {
   const { account } = useAuth();
-  const selectedMonday = weekStartIso();
+  const [selectedMonday, setSelectedMonday] = useState(weekStartIso());
   const [selectedDateIso, setSelectedDateIso] = useState(todayIso());
 
-  const { data: scheduleData, isLoading } = useQuery({
+  const { data: scheduleData, isLoading, isError, refetch } = useQuery({
     queryKey: ['mobile-staff-schedule', selectedMonday],
-    queryFn: () => getSchedule(selectedMonday),
+    queryFn: () => getMySchedule(selectedMonday),
+    enabled: Boolean(account?.staffId),
   });
 
   const weekDays = useMemo(() => {
@@ -33,20 +34,20 @@ export function MobileStaffScheduleView() {
   }, [selectedMonday]);
 
   const rawSchedule = (scheduleData?.data ?? {}) as ApiRecord;
-  const assignments = (rawSchedule.assignments ?? []) as ApiRecord[];
+  const assignments = (rawSchedule.schedules ?? []) as ApiRecord[];
 
-  // Filter assignments for the selected day (and current staff if not manager)
-  const currentStaffId = account?.staffId;
+  // The self-service endpoint is already scoped to the current staff account.
   const dayAssignments = useMemo(() => {
-    return assignments.filter((item) => {
-      const matchDate = item.shiftDate === selectedDateIso;
-      if (!matchDate) return false;
-      if (account?.role === 'staff' || account?.role === 'cashier') {
-        return Number(item.staffId) === Number(currentStaffId);
-      }
-      return true;
-    });
-  }, [assignments, selectedDateIso, account, currentStaffId]);
+    return assignments.filter((item) => item.shiftDate === selectedDateIso);
+  }, [assignments, selectedDateIso]);
+
+  const changeWeek = (offset: number) => {
+    const date = new Date(`${selectedMonday}T00:00:00`);
+    date.setDate(date.getDate() + offset * 7);
+    const nextMonday = toIsoDate(date);
+    setSelectedMonday(nextMonday);
+    setSelectedDateIso(nextMonday);
+  };
 
   return (
     <div className="mobile-staff-container">
@@ -54,6 +55,10 @@ export function MobileStaffScheduleView() {
       <div className="mobile-schedule-sticky-header">
         <div className="mobile-staff-header">
           <h1>Lịch làm việc của tôi</h1>
+          <div className="mobile-schedule-week-actions">
+            <button type="button" onClick={() => changeWeek(-1)} aria-label="Tuần trước"><i className="ph ph-caret-left" /></button>
+            <button type="button" onClick={() => changeWeek(1)} aria-label="Tuần sau"><i className="ph ph-caret-right" /></button>
+          </div>
         </div>
 
         {/* Week Day Strip */}
@@ -80,6 +85,10 @@ export function MobileStaffScheduleView() {
 
         {isLoading ? (
           <div style={{ textAlign: 'center', padding: '24px 0', color: '#64748b' }}>Đang tải lịch làm...</div>
+        ) : isError ? (
+          <div style={{ textAlign: 'center', padding: '24px 0', color: '#b91c1c' }}>
+            Không thể tải lịch làm việc. <button type="button" onClick={() => refetch()}>Thử lại</button>
+          </div>
         ) : dayAssignments.length === 0 ? (
           <div style={{
             background: '#ffffff',

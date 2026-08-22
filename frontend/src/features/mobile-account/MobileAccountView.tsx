@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import type { FormEvent } from 'react';
+import type { FormEvent, RefObject } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/components/ui/Toast/ToastProvider';
@@ -12,6 +12,7 @@ import { getStaff } from '@/features/staff/staff.api';
 import { LocationMapPicker } from '@/components/map/LocationMapPicker';
 import { Select } from '@/components/ui/Select/Select';
 import { MobileSearchBar, MobileEmptyState } from '@/features/mobile-common';
+import { useMobileDialog } from '@/features/mobile-common/useMobileDialog';
 import { formatDateTime } from '@/lib/format';
 import type { ApiRecord } from '@/types/api';
 import './mobile-account.css';
@@ -383,7 +384,7 @@ export function MobileAccountView() {
                   </div>
                 )}
 
-                <div className="mobile-form-footer">
+                <div className="mobile-account-form-footer">
                   <button
                     className="mobile-primary-btn"
                     disabled={profileMutation.isPending}
@@ -465,7 +466,7 @@ export function MobileAccountView() {
                   </div>
                 )}
 
-                <div className="mobile-form-footer">
+                <div className="mobile-account-form-footer">
                   <button
                     className="mobile-primary-btn"
                     disabled={passwordMutation.isPending}
@@ -750,6 +751,7 @@ function MobileBranchDialog({
   const { notify } = useToast();
   const [form, setForm] = useState(branch ? { ...emptyBranch, ...branch } : emptyBranch);
   const [error, setError] = useState('');
+  const { dialogRef, titleId } = useMobileDialog({ isOpen: true, onClose });
 
   const mutation = useMutation({
     mutationFn: (body: ApiRecord) => (branch ? updateBranch(Number(branch.id), body) : createBranch(body)),
@@ -796,13 +798,13 @@ function MobileBranchDialog({
         if (event.target === event.currentTarget) onClose();
       }}
     >
-      <section className="branch-dialog" role="dialog" aria-modal="true">
+      <section ref={dialogRef as RefObject<HTMLElement>} className="branch-dialog" role="dialog" aria-modal="true" aria-labelledby={titleId} tabIndex={-1}>
         <header>
           <div>
             <span className="eyebrow">THÔNG TIN CHI NHÁNH</span>
-            <h2>{branch ? 'Chỉnh sửa chi nhánh' : 'Thêm chi nhánh'}</h2>
+            <h2 id={titleId}>{branch ? 'Chỉnh sửa chi nhánh' : 'Thêm chi nhánh'}</h2>
           </div>
-          <button type="button" onClick={onClose}>
+          <button type="button" onClick={onClose} aria-label="Đóng">
             <i className="ph ph-x" />
           </button>
         </header>
@@ -934,6 +936,7 @@ function MobileAccountDialog({
   const staff = useQuery({ queryKey: ['staff-for-account'], queryFn: () => getStaff({ active: 'true' }) });
   const [form, setForm] = useState({ displayName: '', username: '', password: '', role: 'staff', staffId: '' });
   const [error, setError] = useState('');
+  const { dialogRef, titleId } = useMobileDialog({ isOpen: true, onClose });
 
   const mutation = useMutation({
     mutationFn: createAccount,
@@ -958,11 +961,11 @@ function MobileAccountDialog({
         if (event.target === event.currentTarget) onClose();
       }}
     >
-      <section className="account-dialog" role="dialog" aria-modal="true" aria-labelledby="account-dialog-title">
+      <section ref={dialogRef as RefObject<HTMLElement>} className="account-dialog" role="dialog" aria-modal="true" aria-labelledby={titleId} tabIndex={-1}>
         <header>
           <div>
             <span className="eyebrow">PHÂN QUYỀN</span>
-            <h2 id="account-dialog-title">Thêm tài khoản</h2>
+            <h2 id={titleId}>Thêm tài khoản</h2>
           </div>
           <button type="button" onClick={onClose} aria-label="Đóng">
             <i className="ph ph-x" />
@@ -1006,6 +1009,7 @@ function MobileAccountDialog({
             <div className="form-field">
               <span className="field-label">Loại tài khoản</span>
               <Select
+                aria-label="Loại tài khoản"
                 value={form.role}
                 onChange={(role) => setForm({ ...form, role })}
                 fullWidth
@@ -1018,6 +1022,7 @@ function MobileAccountDialog({
             <div className="form-field account-staff-field">
               <span className="field-label">Liên kết nhân viên {form.role === 'staff' && '*'}</span>
               <Select
+                aria-label="Liên kết nhân viên"
                 value={form.staffId}
                 onChange={(val) => {
                   const selected = staff.data?.data.find((row) => String(row.id) === val);

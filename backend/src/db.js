@@ -113,11 +113,52 @@ export async function runMigrations() {
       CREATE INDEX IF NOT EXISTS idx_payroll_records_period ON payroll_records(payroll_period_id);
       CREATE INDEX IF NOT EXISTS idx_payroll_payments_period ON payroll_payments(payroll_period_id);
 
-      -- Add commission fields to products for per-line commission
+      -- Add commission fields to all catalog item types for per-line commission
       ALTER TABLE products
         ADD COLUMN IF NOT EXISTS commission_type VARCHAR(10) DEFAULT NULL
           CHECK (commission_type IS NULL OR commission_type IN ('percent', 'fixed')),
         ADD COLUMN IF NOT EXISTS commission_rate NUMERIC(14, 2) DEFAULT 0;
+
+      ALTER TABLE services
+        ADD COLUMN IF NOT EXISTS commission_type VARCHAR(10) DEFAULT NULL
+          CHECK (commission_type IS NULL OR commission_type IN ('percent', 'fixed')),
+        ADD COLUMN IF NOT EXISTS commission_rate NUMERIC(14, 2) DEFAULT 0;
+
+      ALTER TABLE service_packages
+        ADD COLUMN IF NOT EXISTS commission_type VARCHAR(10) DEFAULT NULL
+          CHECK (commission_type IS NULL OR commission_type IN ('percent', 'fixed')),
+        ADD COLUMN IF NOT EXISTS commission_rate NUMERIC(14, 2) DEFAULT 0;
+
+      ALTER TABLE account_cards
+        ADD COLUMN IF NOT EXISTS commission_type VARCHAR(10) DEFAULT NULL
+          CHECK (commission_type IS NULL OR commission_type IN ('percent', 'fixed')),
+        ADD COLUMN IF NOT EXISTS commission_rate NUMERIC(14, 2) DEFAULT 0;
+
+      CREATE TABLE IF NOT EXISTS staff_profiles (
+        staff_id BIGINT PRIMARY KEY REFERENCES staff(id) ON DELETE CASCADE,
+        data JSONB NOT NULL DEFAULT '{}'::jsonb,
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+
+      CREATE TABLE IF NOT EXISTS branch_work_schedule_settings (
+        branch_id BIGINT PRIMARY KEY REFERENCES branches(id) ON DELETE CASCADE,
+        active_work_days JSONB NOT NULL DEFAULT '["T2", "T3", "T4", "T5", "T6", "T7", "CN"]'::jsonb,
+        holidays JSONB NOT NULL DEFAULT '[]'::jsonb,
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+
+      CREATE TABLE IF NOT EXISTS work_shifts (
+        id BIGSERIAL PRIMARY KEY,
+        branch_id BIGINT NOT NULL REFERENCES branches(id) ON DELETE CASCADE,
+        name VARCHAR(80) NOT NULL,
+        starts_at TIME NOT NULL,
+        ends_at TIME NOT NULL,
+        allow_check_in_from TIME NOT NULL,
+        allow_check_in_to TIME NOT NULL,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        UNIQUE (branch_id, name)
+      );
 
       -- Add invoice_item_id to commission_records for per-item tracking
       ALTER TABLE commission_records

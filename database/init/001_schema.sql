@@ -1,3 +1,4 @@
+-- Canonical schema used by Docker's database initialization.
 BEGIN;
 
 -- ============================================================================
@@ -216,6 +217,8 @@ CREATE TABLE services (
   description TEXT,
   note TEXT,
   active BOOLEAN NOT NULL DEFAULT TRUE,
+  commission_type VARCHAR(20) CHECK (commission_type IN ('percent', 'fixed')),
+  commission_rate NUMERIC(14, 2) NOT NULL DEFAULT 0 CHECK (commission_rate >= 0),
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
@@ -237,6 +240,8 @@ CREATE TABLE products (
   description TEXT,
   note TEXT,
   active BOOLEAN NOT NULL DEFAULT TRUE,
+  commission_type VARCHAR(20) CHECK (commission_type IN ('percent', 'fixed')),
+  commission_rate NUMERIC(14, 2) NOT NULL DEFAULT 0 CHECK (commission_rate >= 0),
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
@@ -271,6 +276,8 @@ CREATE TABLE service_packages (
   description TEXT,
   note TEXT,
   active BOOLEAN NOT NULL DEFAULT TRUE,
+  commission_type VARCHAR(20) CHECK (commission_type IN ('percent', 'fixed')),
+  commission_rate NUMERIC(14, 2) NOT NULL DEFAULT 0 CHECK (commission_rate >= 0),
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
@@ -302,6 +309,8 @@ CREATE TABLE account_cards (
   description TEXT,
   note TEXT,
   active BOOLEAN NOT NULL DEFAULT TRUE,
+  commission_type VARCHAR(20) CHECK (commission_type IN ('percent', 'fixed')),
+  commission_rate NUMERIC(14, 2) NOT NULL DEFAULT 0 CHECK (commission_rate >= 0),
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
@@ -435,17 +444,21 @@ CREATE INDEX idx_invoices_appointment ON invoices(appointment_id) WHERE appointm
 CREATE TABLE invoice_items (
   id BIGSERIAL PRIMARY KEY,
   invoice_id BIGINT NOT NULL REFERENCES invoices(id) ON DELETE CASCADE,
-  item_type VARCHAR(20) NOT NULL CHECK (item_type IN ('service', 'product')),
+  item_type VARCHAR(20) NOT NULL CHECK (item_type IN ('service', 'product', 'package', 'account_card')),
   service_id BIGINT REFERENCES services(id) ON DELETE SET NULL,
   product_id BIGINT REFERENCES products(id) ON DELETE SET NULL,
+  package_id BIGINT REFERENCES service_packages(id) ON DELETE SET NULL,
+  account_card_id BIGINT REFERENCES account_cards(id) ON DELETE SET NULL,
   staff_id BIGINT REFERENCES staff(id) ON DELETE SET NULL,
   description VARCHAR(220) NOT NULL,
   quantity NUMERIC(12, 2) NOT NULL DEFAULT 1 CHECK (quantity > 0),
   unit_price NUMERIC(14, 2) NOT NULL CHECK (unit_price >= 0),
   line_total NUMERIC(14, 2) NOT NULL CHECK (line_total >= 0),
   CHECK (
-    (item_type = 'service' AND service_id IS NOT NULL AND product_id IS NULL)
-    OR (item_type = 'product' AND product_id IS NOT NULL AND service_id IS NULL)
+    (item_type = 'service' AND service_id IS NOT NULL AND product_id IS NULL AND package_id IS NULL AND account_card_id IS NULL)
+    OR (item_type = 'product' AND product_id IS NOT NULL AND service_id IS NULL AND package_id IS NULL AND account_card_id IS NULL)
+    OR (item_type = 'package' AND package_id IS NOT NULL AND service_id IS NULL AND product_id IS NULL AND account_card_id IS NULL)
+    OR (item_type = 'account_card' AND account_card_id IS NOT NULL AND service_id IS NULL AND product_id IS NULL AND package_id IS NULL)
   )
 );
 
@@ -502,8 +515,9 @@ CREATE TABLE commission_records (
   invoice_id BIGINT REFERENCES invoices(id) ON DELETE SET NULL,
   source_name VARCHAR(220) NOT NULL,
   revenue NUMERIC(14, 2) NOT NULL DEFAULT 0 CHECK (revenue >= 0),
-  rate NUMERIC(7, 4) NOT NULL DEFAULT 0 CHECK (rate >= 0),
+  rate NUMERIC(14, 2) NOT NULL DEFAULT 0 CHECK (rate >= 0),
   amount NUMERIC(14, 2) NOT NULL DEFAULT 0 CHECK (amount >= 0),
+  rate_type VARCHAR(10) CHECK (rate_type IN ('percent', 'fixed')),
   occurred_on DATE NOT NULL,
   status VARCHAR(20) NOT NULL DEFAULT 'pending'
     CHECK (status IN ('pending', 'approved', 'paid')),

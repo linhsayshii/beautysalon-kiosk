@@ -155,7 +155,7 @@
 .goods-dialog-backdrop {
   position: fixed;
   inset: 0;
-  z-index: 70;
+  z-index: var(--mobile-layer-overlay, 100);
   display: grid;
   place-items: center;
   padding: 22px;
@@ -403,6 +403,13 @@
   width: max-content;
 }
 
+.commission-config-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(220px, 280px);
+  align-items: start;
+  gap: 16px;
+}
+
 .commission-segment {
   display: inline-flex;
   align-items: center;
@@ -429,21 +436,37 @@
 }
 
 .commission-rate-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
+  display: grid;
+  justify-items: stretch;
+  gap: 6px;
+  box-sizing: border-box;
+  padding: 3px;
+  overflow: visible;
 }
 
 .commission-rate-input {
-  width: 140px;
+  width: 100%;
   height: 38px;
+  box-sizing: border-box;
+  overflow: hidden;
 }
 
-.commission-rate-input input {
+.commission-rate-input > input {
   height: 100%;
+  min-width: 0;
+  padding: 0 11px;
+  border: 0;
+  border-radius: 0;
+  outline: 0;
+  box-shadow: none;
   font-size: 14px;
   font-weight: 750;
+}
+
+.commission-rate-input > input:focus {
+  border: 0;
+  outline: 0;
+  box-shadow: none;
 }
 
 .commission-rate-input span {
@@ -458,6 +481,7 @@
   font-size: 12px;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
+  text-align: right;
 }
 
 .checkbox-label {
@@ -551,6 +575,11 @@ tr:hover .goods-row-edit,
 }
 
 @media (max-width: 760px) {
+  .branch-dialog .secondary-button,
+  .branch-dialog .leaflet-control-zoom a {
+    min-width: 44px;
+    min-height: 44px;
+  }
   .goods-row-edit {
     opacity: 1;
   }
@@ -1156,6 +1185,130 @@ tr:hover .goods-row-edit,
   background: #f0edff;
 }
 
+/* Staff compensation controls share the goods form's 38px desktop control rhythm. */
+.staff-commission-section {
+  display: grid;
+  gap: 12px;
+}
+
+.staff-compensation-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.staff-compensation-heading > div:first-child {
+  display: grid;
+  gap: 2px;
+}
+
+.staff-compensation-heading > div:first-child > div {
+  color: var(--ink-900);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.staff-compensation-heading small {
+  color: var(--ink-500);
+  font-size: 11px;
+}
+
+.staff-commission-table {
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-inner);
+  background: #fbfcfe;
+}
+
+.staff-commission-table-head,
+.staff-commission-table-row {
+  display: grid;
+  grid-template-columns: minmax(156px, 1.2fr) minmax(168px, 1fr) minmax(200px, 1.6fr) 38px 38px;
+  gap: 10px;
+  align-items: center;
+}
+
+.staff-commission-table-head {
+  margin-bottom: 8px;
+  color: var(--ink-600);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.staff-commission-table-row + .staff-commission-table-row {
+  margin-top: 8px;
+}
+
+.staff-commission-table .app-select-trigger,
+.staff-commission-money-input,
+.staff-commission-table .row-action {
+  min-height: 38px;
+  height: 38px;
+  border-radius: 10px;
+}
+
+.staff-commission-revenue-input {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.staff-commission-revenue-input > span {
+  color: var(--ink-500);
+  font-size: 12px;
+}
+
+.staff-commission-money-input {
+  width: 100%;
+}
+
+.staff-commission-money-input input {
+  min-width: 0;
+  height: 36px;
+  padding: 0 9px;
+  color: var(--ink-800);
+  font: inherit;
+  font-size: 14px;
+  text-align: right;
+}
+
+.staff-commission-money-input span {
+  padding-right: 10px;
+}
+
+.staff-commission-action {
+  width: 38px;
+}
+
+.staff-commission-action.is-muted {
+  color: var(--ink-400);
+}
+
+.staff-commission-add {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 10px;
+  padding: 4px 0;
+  border: 0;
+  color: var(--blue-600);
+  background: transparent;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.staff-commission-add:hover,
+.staff-commission-add:focus-visible {
+  color: var(--blue-700);
+  outline: none;
+  text-decoration: underline;
+}
+
 .staff-active-option {
   align-self: end;
 }
@@ -1335,8 +1488,113 @@ tr:hover .goods-row-edit,
 
   .goods-dialog {
     width: 100%;
-    max-height: 94dvh;
-    border-radius: 16px 16px 0 0;
+    height: 100dvh;
+    max-height: 100dvh;
+    border: 0;
+    border-radius: 0;
+  }
+
+  .goods-dialog-header {
+    min-height: calc(60px + var(--mobile-safe-top, 0px));
+    padding-top: var(--mobile-safe-top, 0px);
+  }
+
+  .goods-dialog-header button {
+    width: var(--mobile-control-min, 44px);
+    height: var(--mobile-control-min, 44px);
+  }
+
+  .goods-dialog-tabs {
+    gap: 12px;
+    min-height: var(--mobile-control-min, 44px);
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .goods-dialog-tabs button {
+    min-height: var(--mobile-control-min, 44px);
+    white-space: nowrap;
+  }
+
+  .goods-field input,
+  .goods-field select,
+  .goods-link-picker select,
+  .customer-field-row .goods-field input {
+    min-height: var(--mobile-control-min, 44px);
+    height: var(--mobile-control-min, 44px);
+    font-size: 16px;
+  }
+
+  .goods-active-check,
+  .checkbox-label {
+    min-height: var(--mobile-control-min, 44px);
+  }
+
+  .goods-dialog-footer {
+    padding-bottom: calc(12px + var(--mobile-safe-bottom, 0px));
+  }
+
+  .goods-dialog-footer button {
+    min-height: var(--mobile-control-min, 44px);
+  }
+
+  .branch-dialog,
+  .account-dialog {
+    width: 100%;
+    height: 100dvh;
+    max-height: 100dvh;
+    border: 0;
+    border-radius: 0;
+  }
+
+  .branch-dialog > header,
+  .account-dialog > header {
+    min-height: calc(64px + var(--mobile-safe-top, 0px));
+    padding: var(--mobile-safe-top, 0px) 16px 0;
+  }
+
+  .branch-dialog header button,
+  .account-dialog header button {
+    width: var(--mobile-control-min, 44px);
+    height: var(--mobile-control-min, 44px);
+  }
+
+  .branch-form-grid input,
+  .coordinate-grid input,
+  .account-form-grid input,
+  .account-form-grid .app-select-trigger {
+    min-height: var(--mobile-control-min, 44px);
+    height: var(--mobile-control-min, 44px);
+    font-size: 16px;
+  }
+
+  .branch-dialog form > footer,
+  .account-dialog footer {
+    position: sticky;
+    bottom: 0;
+    margin-top: 0;
+    padding: 12px 16px calc(12px + var(--mobile-safe-bottom, 0px));
+    background: #ffffff;
+  }
+
+  .branch-dialog form > footer button,
+  .account-dialog footer button {
+    flex: 1;
+    min-height: var(--mobile-control-min, 44px);
+  }
+
+  .account-dialog {
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr);
+    overflow: hidden;
+  }
+
+  .account-dialog form {
+    display: grid;
+    grid-template-rows: minmax(0, 1fr) auto auto;
+    min-height: 0;
+    padding: 18px 16px 0;
+    overflow-y: auto;
   }
 
   .goods-dialog-header,
@@ -2771,6 +3029,14 @@ tr:hover .goods-row-edit,
 }
 
 @media (max-width: 720px) {
+  .commission-config-row {
+    grid-template-columns: 1fr;
+  }
+
+  .commission-rate-row {
+    width: min(100%, 280px);
+  }
+
   .dashboard-date-filter {
     display: grid;
     grid-template-columns: auto minmax(0, 1fr);
@@ -2886,4 +3152,3 @@ tr:hover .goods-row-edit,
     min-width: 0;
   }
 }
-

@@ -4,7 +4,6 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { formatDateTime, formatDate, formatMoney, formatNumber, initials } from '@/lib/format';
 import { getCustomers, getCustomer, getCustomerActivity } from '@/features/operations/operations.api';
 import { CustomerCreateDialog } from '@/features/operations/components/CustomerCreateDialog';
-import { MobileCustomerEditSheet } from './MobileCustomerEditSheet';
 import { StatusBadge } from '@/components/data-display/Badges';
 import { statusLabels } from '@/types/api';
 import {
@@ -320,6 +319,7 @@ export function MobileCustomersView() {
                       onClick={() => setSelectedCustomerId(row.id)}
                       role="button"
                       tabIndex={0}
+                      onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); setSelectedCustomerId(row.id); } }}
                     >
                       {/* Round Avatar */}
                       <div className={`mobile-customer-round-avatar ${isCompany ? 'is-company' : ''}`}>
@@ -385,8 +385,9 @@ export function MobileCustomersView() {
         onApply={handleApplyFilter}
       >
         <div className="mobile-filter-field">
-          <label className="mobile-filter-field-label">Nhóm khách hàng</label>
+          <label htmlFor="mobile-customer-group-filter" className="mobile-filter-field-label">Nhóm khách hàng</label>
           <select
+            id="mobile-customer-group-filter"
             className="mobile-filter-select"
             value={draftGroup}
             onChange={(e) => setDraftGroup(e.target.value)}
@@ -398,8 +399,9 @@ export function MobileCustomersView() {
         </div>
 
         <div className="mobile-filter-field">
-          <label className="mobile-filter-field-label">Tình trạng công nợ</label>
+          <label htmlFor="mobile-customer-debt-filter" className="mobile-filter-field-label">Tình trạng công nợ</label>
           <select
+            id="mobile-customer-debt-filter"
             className="mobile-filter-select"
             value={draftDebt}
             onChange={(e) => setDraftDebt(e.target.value)}
@@ -566,16 +568,16 @@ export function MobileCustomersView() {
         />
       )}
 
-      {/* Customer Edit Sheet */}
-      <MobileCustomerEditSheet
-        isOpen={editingCustomer !== null}
-        customer={editingCustomer}
-        onClose={() => setEditingCustomer(null)}
-        onSuccess={() => {
-          setEditingCustomer(null);
-          refetch();
-        }}
-      />
+      {editingCustomer && (
+        <CustomerCreateDialog
+          initialData={editingCustomer}
+          onClose={() => setEditingCustomer(null)}
+          onSuccess={() => {
+            setEditingCustomer(null);
+            refetch();
+          }}
+        />
+      )}
     </div>
   );
 }

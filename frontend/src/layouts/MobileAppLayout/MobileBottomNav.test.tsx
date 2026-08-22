@@ -51,7 +51,7 @@ describe('MobileBottomNav Component', () => {
 
     render(<MemoryRouter><MobileBottomNav /></MemoryRouter>);
     expect(screen.getByText('Chấm công')).toBeInTheDocument();
-    expect(screen.getByText('Lịch làm')).toBeInTheDocument();
+    expect(screen.getByText('Lịch của tôi')).toBeInTheDocument();
     expect(screen.getByText('Lương')).toBeInTheDocument();
     expect(screen.getByText('Tài khoản')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /tạo mới|action|quick action/i })).toBeInTheDocument();

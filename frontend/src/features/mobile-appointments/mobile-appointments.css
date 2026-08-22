@@ -5,7 +5,7 @@
   flex-direction: column;
   min-height: 100vh;
   background-color: #f8fafc;
-  padding-bottom: 90px;
+  padding-bottom: calc(var(--mobile-bottomnav-h, 60px) + var(--mobile-safe-bottom, 0px) + 100px);
   box-sizing: border-box;
   font-family: inherit;
   color: #1e293b;
@@ -35,7 +35,8 @@
   align-items: center;
   justify-content: center;
   width: 36px;
-  height: 36px;
+  min-height: 44px;
+  min-width: 44px;
   border-radius: 8px;
   border: none;
   background: transparent;
@@ -67,7 +68,8 @@
   align-items: center;
   justify-content: center;
   width: 36px;
-  height: 36px;
+  min-height: 44px;
+  min-width: 44px;
   border-radius: 8px;
   border: 1px solid #e2e8f0;
   background: #ffffff;
@@ -437,7 +439,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 100;
+  z-index: var(--mobile-layer-overlay-nested, 110);
   padding: 16px;
 }
 
@@ -477,7 +479,7 @@
   padding: 10px 12px;
   border-radius: 8px;
   border: 1px solid #cbd5e1;
-  font-size: 14px;
+  font-size: 16px;
   font-family: inherit;
   resize: none;
   box-sizing: border-box;
@@ -499,6 +501,7 @@
 }
 
 .mobile-note-dialog-footer button {
+  min-height: 44px;
   padding: 8px 14px;
   border-radius: 6px;
   font-size: 13px;
@@ -526,7 +529,7 @@
   display: flex;
   align-items: flex-end;
   justify-content: center;
-  z-index: 90;
+  z-index: var(--mobile-layer-overlay, 100);
 }
 
 .mobile-catalog-sheet {
@@ -569,8 +572,9 @@
   flex: 1;
   border: 1px solid #cbd5e1;
   border-radius: 6px;
+  min-height: 44px;
   padding: 8px 12px;
-  font-size: 14px;
+  font-size: 16px;
 }
 
 .mobile-catalog-sheet-search input:focus {
@@ -597,6 +601,11 @@
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.15s ease;
+  width: 100%;
+  min-height: 58px;
+  color: inherit;
+  font: inherit;
+  text-align: left;
 }
 
 .mobile-catalog-item-row:hover,
@@ -723,8 +732,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 38px;
-  height: 38px;
+  width: 44px;
+  height: 44px;
   border-radius: 8px;
   border: none;
   background: transparent;
@@ -801,7 +810,7 @@
   align-items: center;
   gap: 5px;
   padding: 0 13px;
-  height: 36px;
+  min-height: 44px;
   border-radius: 18px;
   background: #ffffff;
   border: 1px solid #e2e8f0;
@@ -836,6 +845,7 @@
 }
 
 .mobile-appointments-tab-item {
+  min-height: 44px;
   position: relative;
   padding: 10px 0 12px;
   background: transparent;
@@ -1028,6 +1038,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 12px;
 }
 
 .mobile-apt-detail-code {
@@ -1036,6 +1047,11 @@
   font-weight: 800;
   color: #0f172a;
   letter-spacing: -0.01em;
+}
+
+.mobile-apt-status-control {
+  position: relative;
+  flex: 0 0 auto;
 }
 
 .mobile-apt-status-dropdown-btn {
@@ -1049,7 +1065,59 @@
   color: #334155;
   font-size: 13.5px;
   font-weight: 600;
+  min-height: 44px;
   cursor: pointer;
+  white-space: nowrap;
+}
+
+.mobile-apt-status-dropdown-btn:disabled {
+  cursor: wait;
+  opacity: 0.7;
+}
+
+.mobile-apt-status-dropdown-btn .is-open {
+  transform: rotate(180deg);
+}
+
+.mobile-apt-status-menu {
+  position: absolute;
+  z-index: var(--mobile-layer-overlay-nested, 110);
+  top: calc(100% + 6px);
+  right: 0;
+  display: grid;
+  width: min(220px, calc(100vw - 72px));
+  padding: 6px;
+  border: 1px solid #dbe4f0;
+  border-radius: 12px;
+  background: #ffffff;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.16);
+}
+
+.mobile-apt-status-menu button {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  min-height: 44px;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: #334155;
+  font: inherit;
+  font-size: 13.5px;
+  font-weight: 650;
+  text-align: left;
+}
+
+.mobile-apt-status-menu button:not(:disabled):active,
+.mobile-apt-status-menu button.is-current {
+  background: #eff6ff;
+  color: #0062eb;
+}
+
+.mobile-apt-status-menu button:disabled {
+  cursor: default;
 }
 
 .mobile-apt-detail-cust-row {
@@ -1397,4 +1465,3 @@
   color: #94a3b8;
   margin: 0;
 }
-

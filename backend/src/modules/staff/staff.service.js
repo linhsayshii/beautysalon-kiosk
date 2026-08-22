@@ -3,6 +3,25 @@ import { HttpError } from '../../lib/http.js';
 
 const number = (value) => Number(value ?? 0);
 
+async function saveStaffProfile(client, { branchId, staffId, profile, accountId }) {
+  if (profile !== undefined) {
+    await client.query(
+      `INSERT INTO staff_profiles (staff_id, data, updated_at) VALUES ($1, $2::jsonb, NOW())
+       ON CONFLICT (staff_id) DO UPDATE SET data = EXCLUDED.data, updated_at = NOW()`,
+      [staffId, JSON.stringify(profile)],
+    );
+  }
+  if (accountId === undefined) return;
+  await client.query('UPDATE user_accounts SET staff_id = NULL, updated_at = NOW() WHERE branch_id = $1 AND staff_id = $2', [branchId, staffId]);
+  if (accountId !== null) {
+    const result = await client.query(
+      'UPDATE user_accounts SET staff_id = $1, updated_at = NOW() WHERE id = $2 AND branch_id = $3 RETURNING id',
+      [staffId, accountId, branchId],
+    );
+    if (!result.rowCount) throw new HttpError(400, 'ACCOUNT_NOT_FOUND', 'Tài khoản liên kết không thuộc chi nhánh hiện tại');
+  }
+}
+
 function getDaysInMonth(year, month) {
   return new Date(year, month, 0).getDate();
 }
@@ -36,7 +55,7 @@ export function getStandardWorkDaysForMonth(year, month, activeWeekdays = [1, 2,
 
 export async function createStaff({
   branchId, name, role, code: requestedCode, avatarTone, active, salaryType,
-  baseSalary, hourlyRate, defaultCommissionRate, canSell, canManageInventory,
+  baseSalary, hourlyRate, defaultCommissionRate, canSell, canManageInventory, profile, accountId,
 }) {
   const client = await pool.connect();
   try {
@@ -60,6 +79,7 @@ export async function createStaff({
        ) VALUES ($1, $2, $3, $4, $5, $6, $7)`,
       [staff.id, salaryType, baseSalary, hourlyRate, defaultCommissionRate, canSell, canManageInventory],
     );
+    await saveStaffProfile(client, { branchId, staffId: staff.id, profile, accountId });
     await client.query(
       `INSERT INTO activities (branch_id, actor_staff_id, action, object_type, object_code, description)
        VALUES ($1, $2, 'create', 'staff', $3, $4)`,
@@ -85,7 +105,7 @@ export async function createStaff({
 
 export async function updateStaff({
   branchId, staffId, name, role, code, avatarTone, active, salaryType,
-  baseSalary, hourlyRate, defaultCommissionRate, canSell, canManageInventory,
+  baseSalary, hourlyRate, defaultCommissionRate, canSell, canManageInventory, profile, accountId,
 }) {
   const client = await pool.connect();
   try {
@@ -115,6 +135,7 @@ export async function updateStaff({
          updated_at = NOW()`,
       [staffId, salaryType, baseSalary, hourlyRate, defaultCommissionRate, canSell, canManageInventory],
     );
+    await saveStaffProfile(client, { branchId, staffId, profile, accountId });
     await client.query(
       `INSERT INTO activities (branch_id, actor_staff_id, action, object_type, object_code, description)
        VALUES ($1, $2, 'update', 'staff', $3, $4)`,
@@ -146,6 +167,8 @@ export async function listStaff({ branchId, search, active }) {
       s.id, s.code, s.name, s.role, s.avatar_tone, s.active, s.created_at,
       ss.salary_type, ss.base_salary, ss.hourly_rate, ss.default_commission_rate,
       ss.can_sell, ss.can_manage_inventory,
+      COALESCE((SELECT sp.data FROM staff_profiles sp WHERE sp.staff_id = s.id), '{}'::jsonb) AS profile,
+      (SELECT ua.id FROM user_accounts ua WHERE ua.branch_id = s.branch_id AND ua.staff_id = s.id ORDER BY ua.id LIMIT 1) AS account_id,
       COALESCE(SUM(cr.revenue), 0) AS month_revenue,
       COUNT(DISTINCT cr.invoice_id) AS month_orders
     FROM staff s
@@ -186,6 +209,8 @@ export async function listStaff({ branchId, search, active }) {
     defaultCommissionRate: number(row.default_commission_rate),
     canSell: row.can_sell ?? true,
     canManageInventory: row.can_manage_inventory ?? false,
+    ...(row.profile ?? {}),
+    accountId: row.account_id === null ? '' : String(row.account_id),
     monthRevenue: number(row.month_revenue),
     monthOrders: number(row.month_orders),
     createdAt: row.created_at,
@@ -194,9 +219,11 @@ export async function listStaff({ branchId, search, active }) {
 
 export async function listWorkShifts(branchId) {
   const result = await pool.query(
-    `SELECT DISTINCT shift_name, TO_CHAR(starts_at, 'HH24:MI') AS starts_at, TO_CHAR(ends_at, 'HH24:MI') AS ends_at
-     FROM staff_schedules
-     WHERE branch_id = $1
+    `SELECT name AS shift_name, TO_CHAR(starts_at, 'HH24:MI') AS starts_at, TO_CHAR(ends_at, 'HH24:MI') AS ends_at
+     FROM work_shifts WHERE branch_id = $1
+     UNION
+     SELECT DISTINCT shift_name, TO_CHAR(starts_at, 'HH24:MI') AS starts_at, TO_CHAR(ends_at, 'HH24:MI') AS ends_at
+     FROM staff_schedules WHERE branch_id = $1
      ORDER BY starts_at`,
     [branchId],
   ).catch(() => ({ rows: [] }));
@@ -229,15 +256,42 @@ export async function listWorkShifts(branchId) {
   });
 }
 
-export async function createShift({ branchId, name, startsAt, endsAt, allowCheckInFrom, allowCheckInTo }) {
+export async function getWorkScheduleSettings(branchId) {
+  const result = await pool.query(
+    `SELECT active_work_days, holidays FROM branch_work_schedule_settings WHERE branch_id = $1`,
+    [branchId],
+  );
+  const row = result.rows[0];
   return {
-    id: Date.now(),
-    name,
-    startsAt,
-    endsAt,
-    allowCheckInFrom,
-    allowCheckInTo,
+    activeWorkDays: Array.isArray(row?.active_work_days) ? row.active_work_days : ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'],
+    holidays: Array.isArray(row?.holidays) ? row.holidays : [],
   };
+}
+
+export async function updateWorkScheduleSettings({ branchId, activeWorkDays, holidays }) {
+  const result = await pool.query(
+    `INSERT INTO branch_work_schedule_settings (branch_id, active_work_days, holidays, updated_at)
+     VALUES ($1, $2::jsonb, $3::jsonb, NOW())
+     ON CONFLICT (branch_id) DO UPDATE SET active_work_days = EXCLUDED.active_work_days, holidays = EXCLUDED.holidays, updated_at = NOW()
+     RETURNING active_work_days, holidays`,
+    [branchId, JSON.stringify(activeWorkDays), JSON.stringify(holidays)],
+  );
+  return { activeWorkDays: result.rows[0].active_work_days, holidays: result.rows[0].holidays };
+}
+
+export async function createShift({ branchId, name, startsAt, endsAt, allowCheckInFrom, allowCheckInTo }) {
+  const result = await pool.query(
+    `INSERT INTO work_shifts (branch_id, name, starts_at, ends_at, allow_check_in_from, allow_check_in_to)
+     VALUES ($1, $2, $3::time, $4::time, $5::time, $6::time)
+     ON CONFLICT (branch_id, name) DO UPDATE SET
+       starts_at = EXCLUDED.starts_at, ends_at = EXCLUDED.ends_at,
+       allow_check_in_from = EXCLUDED.allow_check_in_from, allow_check_in_to = EXCLUDED.allow_check_in_to, updated_at = NOW()
+     RETURNING id, name, TO_CHAR(starts_at, 'HH24:MI') AS starts_at, TO_CHAR(ends_at, 'HH24:MI') AS ends_at,
+       TO_CHAR(allow_check_in_from, 'HH24:MI') AS allow_check_in_from, TO_CHAR(allow_check_in_to, 'HH24:MI') AS allow_check_in_to`,
+    [branchId, name, startsAt, endsAt, allowCheckInFrom, allowCheckInTo],
+  );
+  const row = result.rows[0];
+  return { id: number(row.id), name: row.name, startsAt: row.starts_at, endsAt: row.ends_at, allowCheckInFrom: row.allow_check_in_from, allowCheckInTo: row.allow_check_in_to };
 }
 
 export async function assignShiftSchedule({ branchId, staffId, shiftDate, shiftName, startsAt, endsAt, status = 'scheduled' }) {
@@ -281,6 +335,66 @@ export async function getSchedule({ branchId, startDate }) {
       note: row.note,
     })),
   };
+}
+
+export async function getStaffSchedule({ branchId, staffId, startDate }) {
+  const schedule = await getSchedule({ branchId, startDate });
+  return {
+    ...schedule,
+    schedules: schedule.schedules.filter((item) => item.staffId === staffId),
+  };
+}
+
+export async function getStaffPayrollHistory({ branchId, staffId }) {
+  await ensureMonthlyPayrollPeriods(branchId);
+
+  const now = new Date();
+  const currentPeriodStartsOn = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
+  const result = await pool.query(
+    `SELECT
+       pp.id AS period_id, pp.code AS period_code, pp.name AS period_name,
+       pp.period_type, pp.starts_on::text AS starts_on_str, pp.ends_on::text AS ends_on_str, pp.status AS period_status,
+       pr.id, pr.code, pr.base_salary, pr.overtime_salary, pr.allowance, pr.bonus,
+       pr.commission, pr.deduction, pr.total_income, pr.net_salary, pr.paid_amount,
+       pr.remaining_amount, pr.work_units, pr.standard_work_days, pr.hourly_rate,
+       pr.status, pr.note
+     FROM payroll_records pr
+     JOIN payroll_periods pp ON pp.id = pr.payroll_period_id
+     WHERE pp.branch_id = $1 AND pr.staff_id = $2 AND pp.period_type = 'monthly'
+     ORDER BY pp.starts_on DESC, pp.id DESC
+     LIMIT 24`,
+    [branchId, staffId],
+  );
+
+  const records = result.rows.map((row) => ({
+    id: number(row.id),
+    code: row.code,
+    period: {
+      id: number(row.period_id),
+      code: row.period_code,
+      name: row.period_name,
+      startsOn: row.starts_on_str,
+      endsOn: row.ends_on_str,
+      status: row.period_status,
+    },
+    baseSalary: number(row.base_salary),
+    overtimeSalary: number(row.overtime_salary),
+    allowance: number(row.allowance),
+    bonus: number(row.bonus),
+    commission: number(row.commission),
+    deduction: number(row.deduction),
+    totalIncome: number(row.total_income),
+    netSalary: number(row.net_salary),
+    paidAmount: number(row.paid_amount),
+    remainingAmount: number(row.remaining_amount),
+    workUnits: number(row.work_units),
+    standardWorkDays: number(row.standard_work_days),
+    hourlyRate: number(row.hourly_rate),
+    status: row.status,
+    note: row.note,
+  }));
+
+  return { records, currentPeriodStartsOn };
 }
 
 export async function listAttendance({ branchId, dateFrom, dateTo }) {
@@ -820,18 +934,25 @@ export async function updatePayrollRecords({ branchId, periodId, records, note }
     if (Array.isArray(records)) {
       for (const rec of records) {
         const rId = parsePositiveInteger(rec.id, 'recordId');
-        const overtimeSalary = number(rec.overtimeSalary);
-        const allowance = number(rec.allowance);
-        const bonus = number(rec.bonus);
-        const deduction = number(rec.deduction);
         const recNote = rec.note ? String(rec.note).slice(0, 250) : null;
 
         // Fetch current record
-        const curRes = await client.query('SELECT base_salary, commission, paid_amount FROM payroll_records WHERE id = $1 AND payroll_period_id = $2', [rId, periodId]);
+        const curRes = await client.query(
+          `SELECT base_salary, overtime_salary, allowance, bonus, commission, deduction, paid_amount, note
+           FROM payroll_records WHERE id = $1 AND payroll_period_id = $2`,
+          [rId, periodId],
+        );
         if (curRes.rowCount) {
           const cur = curRes.rows[0];
-          const baseSalary = number(cur.base_salary);
-          const commission = number(cur.commission);
+          const baseSalary = rec.baseSalary === undefined ? number(cur.base_salary) : number(rec.baseSalary);
+          const overtimeSalary = rec.overtimeSalary === undefined ? number(cur.overtime_salary) : number(rec.overtimeSalary);
+          const allowance = rec.allowance === undefined ? number(cur.allowance) : number(rec.allowance);
+          const bonus = rec.bonus === undefined ? number(cur.bonus) : number(rec.bonus);
+          const commission = rec.commission === undefined ? number(cur.commission) : number(rec.commission);
+          const deduction = rec.deduction === undefined ? number(cur.deduction) : number(rec.deduction);
+          if ([baseSalary, overtimeSalary, allowance, bonus, commission, deduction].some((value) => value < 0)) {
+            throw new HttpError(400, 'INVALID_PAYROLL_AMOUNT', 'Các khoản lương không được âm');
+          }
           const paidAmount = number(cur.paid_amount);
           const totalIncome = baseSalary + overtimeSalary + commission + allowance + bonus;
           const netSalary = Math.max(0, totalIncome - deduction);
@@ -839,10 +960,10 @@ export async function updatePayrollRecords({ branchId, periodId, records, note }
 
           await client.query(
             `UPDATE payroll_records
-             SET overtime_salary = $1, allowance = $2, bonus = $3, deduction = $4,
-                 total_income = $5, net_salary = $6, remaining_amount = $7, note = $8
-             WHERE id = $9 AND payroll_period_id = $10`,
-            [overtimeSalary, allowance, bonus, deduction, totalIncome, netSalary, remainingAmount, recNote, rId, periodId],
+             SET base_salary = $1, overtime_salary = $2, allowance = $3, bonus = $4, commission = $5, deduction = $6,
+                 total_income = $7, net_salary = $8, remaining_amount = $9, note = $10
+             WHERE id = $11 AND payroll_period_id = $12`,
+            [baseSalary, overtimeSalary, allowance, bonus, commission, deduction, totalIncome, netSalary, remainingAmount, rec.note === undefined ? cur.note : recNote, rId, periodId],
           );
         }
       }

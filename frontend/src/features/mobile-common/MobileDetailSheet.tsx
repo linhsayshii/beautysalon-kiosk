@@ -1,4 +1,5 @@
-import type { ReactNode } from 'react';
+import type { ReactNode, RefObject } from 'react';
+import { useMobileDialog } from './useMobileDialog';
 import './mobile-common.css';
 
 export interface MobileDetailSheetProps {
@@ -18,6 +19,7 @@ export function MobileDetailSheet({
   children,
   footerActions,
 }: MobileDetailSheetProps) {
+  const { dialogRef, titleId } = useMobileDialog({ isOpen, onClose });
   if (!isOpen) return null;
 
   return (
@@ -30,12 +32,19 @@ export function MobileDetailSheet({
         }
       }}
     >
-      <div className="mobile-detail-sheet-container">
+      <div
+        ref={dialogRef as RefObject<HTMLDivElement>}
+        className="mobile-detail-sheet-container"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        tabIndex={-1}
+      >
         <div className="mobile-sheet-drag-handle" />
 
         <div className="mobile-detail-sheet-header">
           <div className="mobile-detail-sheet-title-box">
-            <h3 className="mobile-detail-sheet-title">{title}</h3>
+            <h3 id={titleId} className="mobile-detail-sheet-title">{title}</h3>
             {subtitle && (
               <span className="mobile-detail-sheet-subtitle">{subtitle}</span>
             )}

@@ -46,7 +46,7 @@
 }
 .mobile-pos-search-input {
   width: 100%;
-  height: 40px;
+  min-height: 44px;
   padding: 0 36px 0 38px;
   border-radius: 20px;
   border: 1px solid var(--line, #e2e8f0);
@@ -66,8 +66,8 @@
   right: 8px;
   display: grid;
   place-items: center;
-  width: 24px;
-  height: 24px;
+  width: 44px;
+  height: 44px;
   border: none;
   background: var(--ink-100, #f1f5f9);
   color: var(--ink-500, #64748b);
@@ -83,8 +83,8 @@
 .mobile-pos-icon-btn {
   display: grid;
   place-items: center;
-  width: 38px;
-  height: 38px;
+  width: 44px;
+  height: 44px;
   border-radius: 12px;
   border: 1px solid var(--line, #e2e8f0);
   background: var(--surface, #ffffff);
@@ -113,6 +113,7 @@
 }
 .mobile-pos-tab-pill {
   flex: 0 0 auto;
+  min-height: 44px;
   padding: 8px 14px;
   border-radius: 20px;
   border: 1px solid transparent;
@@ -143,6 +144,7 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
+  min-height: 44px;
   padding: 6px 12px;
   border-radius: 16px;
   background: #f1f5f9;
@@ -191,6 +193,10 @@
   user-select: none;
   -webkit-tap-highlight-color: transparent;
   transition: transform 0.1s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+  width: 100%;
+  color: inherit;
+  font: inherit;
+  text-align: left;
 }
 .mobile-pos-card:active {
   transform: scale(0.985);
@@ -282,7 +288,7 @@
   bottom: calc(var(--mobile-bottomnav-h, 60px) + var(--mobile-safe-bottom, 0px) + 10px);
   left: 14px;
   right: 14px;
-  z-index: 50;
+  z-index: 80;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -371,8 +377,8 @@
 .mobile-cart-qty-btn {
   display: grid;
   place-items: center;
-  width: 28px;
-  height: 28px;
+  width: 44px;
+  height: 44px;
   border: none;
   background: transparent;
   font-size: 14px;
@@ -396,6 +402,7 @@
   flex-direction: column;
   align-items: center;
   gap: 4px;
+  min-height: 58px;
   padding: 8px 4px;
   border-radius: 12px;
   border: 1px solid var(--line, #e2e8f0);
@@ -467,7 +474,7 @@
   background: var(--surface, #ffffff);
   border-top: 1px solid var(--line, #e2e8f0);
   box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
-  z-index: 50;
+  z-index: 85;
 }
 
 .cart-header {
@@ -544,6 +551,7 @@
 }
 
 .staff-select select {
+  min-height: 44px;
   padding: 4px 8px;
   border: 1px solid var(--line, #e2e8f0);
   border-radius: 6px;

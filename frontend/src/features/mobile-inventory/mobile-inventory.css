@@ -5,8 +5,16 @@
   flex-direction: column;
   min-height: 100vh;
   background-color: #f2f4f8;
-  padding-bottom: calc(var(--mobile-safe-bottom, 0px) + 90px);
+  padding-bottom: calc(var(--mobile-bottomnav-h, 60px) + var(--mobile-safe-bottom, 0px) + 100px);
   box-sizing: border-box;
+  width: 100%;
+  max-width: 100vw;
+}
+
+.mobile-inventory-sections-wrapper {
+  flex: 1;
+  width: 100%;
+  padding: 0;
 }
 
 /* Sticky Top Header Cluster for Inventory Views */
@@ -42,8 +50,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  height: 36px;
+  width: 44px;
+  height: 44px;
   border-radius: 8px;
   border: none;
   background: transparent;
@@ -67,8 +75,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 38px;
-  height: 38px;
+  width: 44px;
+  height: 44px;
   border-radius: 8px;
   border: none;
   background: transparent;
@@ -110,8 +118,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  height: 36px;
+  width: 44px;
+  height: 44px;
   border-radius: 10px;
   background: #ffffff;
   border: 1px solid #e2e8f0;
@@ -126,7 +134,7 @@
   align-items: center;
   gap: 5px;
   padding: 0 13px;
-  height: 36px;
+  min-height: 44px;
   border-radius: 18px;
   background: #ffffff;
   border: 1px solid #e2e8f0;
@@ -394,13 +402,11 @@
 }
 
 .mobile-pricebook-quick-input-bar {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(138px, 170px);
   align-items: center;
-  justify-content: space-between;
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
-  border-radius: 10px;
-  padding: 6px 12px;
+  border-top: 1px solid #f1f5f9;
+  padding: 10px 0 0 60px;
   gap: 10px;
 }
 
@@ -408,23 +414,118 @@
   font-size: 13px;
   font-weight: 600;
   color: #475569;
-  white-space: nowrap;
+  min-width: 0;
+  line-height: 1.35;
 }
 
 .mobile-pricebook-input-box {
-  flex: 1;
-  max-width: 170px;
+  width: 100%;
+  min-width: 0;
 }
 
 .mobile-pricebook-input-box input {
-  height: 34px !important;
-  font-size: 14px !important;
+  min-height: var(--mobile-control-min, 44px) !important;
+  font-size: 16px !important;
   font-weight: 700 !important;
   text-align: right !important;
   color: #0062eb !important;
   border-radius: 8px !important;
   background: #ffffff !important;
 }
+
+/* Mobile purchase-order creation */
+.mobile-po-create-page {
+  display: grid;
+  gap: 12px;
+  padding: 12px 12px calc(92px + var(--mobile-safe-bottom, 0px));
+  background: #f4f7fb;
+}
+
+.mobile-po-create-section {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  background: #fff;
+}
+
+.mobile-po-create-title {
+  margin: 0;
+  color: #0f172a;
+  font-size: 16px;
+  font-weight: 750;
+}
+
+.mobile-po-create-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  background: #fff;
+}
+
+.mobile-po-create-search input {
+  min-width: 0;
+  width: 100%;
+  border: 0;
+  outline: 0;
+  font-size: 16px;
+}
+
+.mobile-po-search-results {
+  overflow: hidden;
+  border: 1px solid #dbe4f0;
+  border-radius: 12px;
+}
+
+.mobile-po-search-results button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  min-height: 58px;
+  padding: 9px 12px;
+  border: 0;
+  border-bottom: 1px solid #edf2f7;
+  background: #fff;
+  color: #0f172a;
+  text-align: left;
+}
+
+.mobile-po-search-results button:last-child { border-bottom: 0; }
+.mobile-po-search-results button > span { display: grid; gap: 3px; }
+.mobile-po-search-results button > span:last-child { justify-items: end; color: #0062eb; }
+.mobile-po-search-results small,
+.mobile-po-draft-heading small { display: block; color: #64748b; font-size: 12px; font-weight: 500; }
+.mobile-po-search-results p { margin: 0; padding: 16px; color: #64748b; text-align: center; }
+
+.mobile-po-draft-list { display: grid; gap: 10px; }
+.mobile-po-draft-card { display: grid; gap: 12px; padding: 12px; border: 1px solid #e2e8f0; border-radius: 12px; }
+.mobile-po-draft-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+.mobile-po-draft-heading > div { min-width: 0; }
+.mobile-po-draft-heading strong { display: block; overflow: hidden; text-overflow: ellipsis; }
+.mobile-po-draft-heading button { display: grid; place-items: center; width: 44px; height: 44px; margin: -8px -8px 0 0; border: 0; background: transparent; color: #dc2626; font-size: 19px; }
+.mobile-po-draft-fields { display: grid; grid-template-columns: minmax(0, .75fr) minmax(0, 1.25fr); gap: 10px; }
+.mobile-po-draft-fields label,
+.mobile-po-field { display: grid; gap: 6px; color: #475569; font-size: 13px; font-weight: 650; }
+.mobile-po-draft-fields input,
+.mobile-po-field input,
+.mobile-po-field textarea { width: 100%; min-height: 44px; box-sizing: border-box; padding: 9px 10px; border: 1px solid #cbd5e1; border-radius: 9px; background: #fff; color: #0f172a; font-size: 16px; }
+.mobile-po-field textarea { min-height: 88px; resize: vertical; }
+.mobile-po-field em { color: #dc2626; font-style: normal; }
+.mobile-po-draft-total,
+.mobile-po-create-total { display: flex; align-items: center; justify-content: space-between; gap: 12px; color: #475569; }
+.mobile-po-draft-total strong,
+.mobile-po-create-total strong { color: #0f172a; }
+.mobile-po-create-total.is-due { padding: 12px; border-radius: 10px; background: #eff6ff; color: #1d4ed8; }
+.mobile-po-create-total.is-due strong { color: #0062eb; font-size: 18px; }
+.mobile-po-create-actions { position: fixed; z-index: var(--mobile-layer-sticky, 30); right: 0; bottom: var(--mobile-bottomnav-h, 60px); left: 0; display: grid; grid-template-columns: 1fr 1.25fr; gap: 10px; padding: 10px 12px calc(10px + var(--mobile-safe-bottom, 0px)); border-top: 1px solid #dbe4f0; background: rgba(255,255,255,.96); }
+.mobile-po-create-actions button { min-height: 46px; }
 
 /* 5. Floating Action Button (FAB) */
 .mobile-inventory-fab-btn {
@@ -443,7 +544,7 @@
   box-shadow: 0 4px 16px rgba(0, 98, 235, 0.4);
   border: none;
   cursor: pointer;
-  z-index: 40;
+  z-index: 75;
   transition: transform 0.15s ease, background 0.15s ease;
   text-decoration: none;
 }
@@ -455,14 +556,26 @@
 
 /* 6. Inset Detail View (Screenshots 1 style) */
 .mobile-detail-page-container,
-.mobile-po-detail-wrapper,
-.mobile-pricebook-detail-wrapper {
+.mobile-po-detail-wrapper {
   display: flex;
   flex-direction: column;
   min-height: 100%;
   background-color: #f2f4f8;
   padding: 12px 14px calc(var(--mobile-safe-bottom, 0px) + 30px);
   gap: 12px;
+}
+
+/* The detail sheet already owns the outer inset.  Avoid a second container
+   * around price details so this view matches the product and order sheets. */
+.mobile-pricebook-detail-wrapper {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+  width: 100%;
+  min-width: 0;
+  gap: 12px;
+  padding: 0 0 calc(var(--mobile-safe-bottom, 0px) + 8px);
+  box-sizing: border-box;
 }
 
 .mobile-detail-section-card,
@@ -475,6 +588,8 @@
   flex-direction: column;
   gap: 12px;
   box-shadow: 0 1px 3px rgba(15, 23, 42, 0.03);
+  min-width: 0;
+  box-sizing: border-box;
 }
 
 .mobile-detail-card-header,
@@ -644,7 +759,7 @@
 
 .mobile-po-action-print-btn {
   flex: 1;
-  height: 42px;
+  min-height: 44px;
   border-radius: 10px;
   background: #ffffff;
   border: 1px solid #e2e8f0;
@@ -661,7 +776,7 @@
 .mobile-po-action-edit-btn,
 .mobile-pricebook-action-edit-btn {
   flex: 1;
-  height: 42px;
+  min-height: 44px;
   border-radius: 10px;
   background: #0062eb;
   border: none;
@@ -690,7 +805,7 @@
 
 .mobile-pricebook-compare-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
 }
 
@@ -702,6 +817,7 @@
   border-radius: 10px;
   padding: 10px 12px;
   border: 1px solid #e2e8f0;
+  min-width: 0;
 }
 
 .mobile-pricebook-compare-cell.is-highlight {
@@ -713,12 +829,14 @@
   font-size: 11.5px;
   color: #64748b;
   font-weight: 600;
+  overflow-wrap: anywhere;
 }
 
 .mobile-pricebook-compare-val {
   font-size: 15px;
   font-weight: 750;
   color: #0f172a;
+  overflow-wrap: anywhere;
 }
 
 .mobile-pricebook-margin-box {
@@ -748,7 +866,86 @@
   background: none;
   border: none;
   cursor: pointer;
-  padding: 0;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0 8px;
+  margin: -10px -8px -10px 0;
+  border-radius: 10px;
+}
+
+.mobile-detail-edit-link:focus-visible,
+.mobile-detail-edit-link:active {
+  background: #eff6ff;
+}
+
+.mobile-create-type-list {
+  display: grid;
+  gap: 10px;
+  padding: 4px 0 16px;
+}
+
+.mobile-create-type-option {
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr) 20px;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 68px;
+  padding: 10px 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  background: #ffffff;
+  color: #0f172a;
+  text-align: left;
+}
+
+.mobile-create-type-option:active {
+  border-color: #93c5fd;
+  background: #f8fbff;
+}
+
+.mobile-create-type-icon {
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  background: #e0f2fe;
+  color: #0284c7;
+  font-size: 23px;
+}
+
+.mobile-create-type-icon.is-service,
+.mobile-create-type-icon.is-package {
+  background: #f5f3ff;
+  color: #7c3aed;
+}
+
+.mobile-create-type-icon.is-account_card {
+  background: #ecfdf5;
+  color: #059669;
+}
+
+.mobile-create-type-copy {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.mobile-create-type-copy strong {
+  font-size: 15px;
+}
+
+.mobile-create-type-copy small,
+.mobile-detail-supporting-text {
+  color: #64748b;
+  font-size: 12.5px;
+  line-height: 1.4;
+}
+
+.mobile-detail-nav-row.is-static strong {
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
 }
 
 .mobile-detail-main-name {
@@ -833,9 +1030,12 @@
   color: #0062eb;
   font-size: 14.5px;
   font-weight: 650;
+  min-height: 44px;
   padding: 6px 0;
   background: none;
   border: none;
   cursor: pointer;
   text-align: left;
+  display: inline-flex;
+  align-items: center;
 }

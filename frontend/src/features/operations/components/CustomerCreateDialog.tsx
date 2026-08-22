@@ -1,23 +1,28 @@
-import { useEffect, useRef, useState } from 'react';
-import type { FormEvent } from 'react';
+import { useRef, useState } from 'react';
+import type { FormEvent, RefObject } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Select } from '@/components/ui/Select/Select';
 import { useToast } from '@/components/ui/Toast/ToastProvider';
-import { createCustomer } from '../operations.api';
+import { createCustomer, updateCustomer } from '../operations.api';
 import type { ApiRecord } from '@/types/api';
+import { useMobileDialog } from '@/features/mobile-common/useMobileDialog';
+
+type CustomerMutationInput = {
+  name: string;
+  code?: string;
+  phone?: string;
+  dob?: string | null;
+  gender?: string | null;
+  email?: string | null;
+  facebook?: string | null;
+  customerGroup?: string;
+};
 
 interface CustomerCreateDialogProps {
   onClose: () => void;
   onSuccess?: (createdCustomer: ApiRecord) => void;
-  customMutationFn?: (body: {
-    name: string;
-    code?: string;
-    phone?: string;
-    dob?: string | null;
-    gender?: string | null;
-    email?: string | null;
-    facebook?: string | null;
-  }) => Promise<{ data: ApiRecord }>;
+  initialData?: ApiRecord;
+  customMutationFn?: (body: CustomerMutationInput) => Promise<{ data: ApiRecord }>;
 }
 
 const initialForm = {
@@ -28,36 +33,41 @@ const initialForm = {
   gender: '',
   email: '',
   facebook: '',
+  customerGroup: 'Cá nhân',
 };
 
-export function CustomerCreateDialog({ onClose, onSuccess, customMutationFn }: CustomerCreateDialogProps) {
-  const [form, setForm] = useState(initialForm);
+function formFromCustomer(customer?: ApiRecord) {
+  if (!customer) return initialForm;
+  return {
+    name: String(customer.name || ''),
+    code: String(customer.code || ''),
+    phone: String(customer.phone || ''),
+    dob: customer.dob ? String(customer.dob).slice(0, 10) : '',
+    gender: String(customer.gender || ''),
+    email: String(customer.email || ''),
+    facebook: String(customer.facebook || ''),
+    customerGroup: String(customer.group || customer.customerGroup || 'Cá nhân'),
+  };
+}
+
+export function CustomerCreateDialog({ onClose, onSuccess, customMutationFn, initialData }: CustomerCreateDialogProps) {
+  const isEdit = Boolean(initialData?.id);
+  const [form, setForm] = useState(() => formFromCustomer(initialData));
   const [errors, setErrors] = useState<Record<string, string>>({});
   const nameRef = useRef<HTMLInputElement>(null);
+  const { dialogRef, titleId } = useMobileDialog({ isOpen: true, onClose, initialFocusRef: nameRef });
   const queryClient = useQueryClient();
   const { notify } = useToast();
 
-  useEffect(() => {
-    nameRef.current?.focus();
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    const closeOnEscape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') onClose();
-    };
-    document.addEventListener('keydown', closeOnEscape);
-    return () => {
-      document.body.style.overflow = previousOverflow;
-      document.removeEventListener('keydown', closeOnEscape);
-    };
-  }, [onClose]);
-
-  const mutation = useMutation({
-    mutationFn: customMutationFn ?? createCustomer,
+  const mutation = useMutation<{ data: ApiRecord }, Error, CustomerMutationInput>({
+    mutationFn: customMutationFn ?? ((body) => isEdit
+      ? updateCustomer(Number(initialData?.id), body)
+      : createCustomer(body)),
     onSuccess: (payload) => {
       queryClient.invalidateQueries({ queryKey: ['customers'] });
       queryClient.invalidateQueries({ queryKey: ['pos-customers'] });
       queryClient.invalidateQueries({ queryKey: ['pos-appointment-customers'] });
-      notify('Đã thêm khách hàng', `${payload.data.name} (${payload.data.code}) đã được lưu vào hệ thống.`);
+      notify(isEdit ? 'Đã cập nhật khách hàng' : 'Đã thêm khách hàng', `${payload.data.name} (${payload.data.code}) đã được lưu vào hệ thống.`);
       if (onSuccess) {
         onSuccess(payload.data);
       }
@@ -96,6 +106,7 @@ export function CustomerCreateDialog({ onClose, onSuccess, customMutationFn }: C
       gender: form.gender || null,
       email: form.email.trim() || null,
       facebook: form.facebook.trim() || null,
+      customerGroup: form.customerGroup || 'Cá nhân',
     });
   };
 
@@ -106,9 +117,9 @@ export function CustomerCreateDialog({ onClose, onSuccess, customMutationFn }: C
         if (event.target === event.currentTarget && !mutation.isPending) onClose();
       }}
     >
-      <section className="goods-dialog customer-create-dialog" role="dialog" aria-modal="true" aria-labelledby="customer-dialog-title">
+      <section ref={dialogRef as RefObject<HTMLElement>} className="goods-dialog customer-create-dialog" role="dialog" aria-modal="true" aria-labelledby={titleId} tabIndex={-1}>
         <header className="goods-dialog-header">
-          <h2 id="customer-dialog-title">Thêm khách hàng</h2>
+          <h2 id={titleId}>{isEdit ? 'Sửa thông tin khách hàng' : 'Thêm khách hàng'}</h2>
           <button type="button" onClick={onClose} disabled={mutation.isPending} aria-label="Đóng">
             <i className="ph ph-x" />
           </button>
@@ -206,6 +217,20 @@ export function CustomerCreateDialog({ onClose, onSuccess, customMutationFn }: C
                 </div>
 
                 <div className="customer-field-row">
+                  <div className="goods-field">
+                    <label htmlFor="customer-group">Nhóm khách hàng</label>
+                    <Select
+                      id="customer-group"
+                      value={form.customerGroup}
+                      onChange={(val) => update('customerGroup', val)}
+                      fullWidth
+                      options={[
+                        { value: 'Cá nhân', label: 'Cá nhân' },
+                        { value: 'Công ty', label: 'Công ty' },
+                      ]}
+                    />
+                  </div>
+
                   <div className={`goods-field ${errors.email ? 'has-error' : ''}`}>
                     <label htmlFor="customer-email">Email</label>
                     <input
@@ -234,7 +259,7 @@ export function CustomerCreateDialog({ onClose, onSuccess, customMutationFn }: C
 
           <footer className="goods-dialog-footer">
             <button className="secondary-button" type="button" onClick={onClose} disabled={mutation.isPending}>
-              Bỏ qua
+              Hủy
             </button>
             <button className="primary-button" type="submit" disabled={mutation.isPending}>
               {mutation.isPending ? 'Đang lưu...' : 'Lưu'}

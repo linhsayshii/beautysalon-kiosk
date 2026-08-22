@@ -1,8 +1,9 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef, type RefObject } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { formatNumber, initials } from '@/lib/format';
 import { getPosStaff } from '@/features/pos/pos.api';
 import { MobileTimePickerSheet } from './MobileTimePickerSheet';
+import { useMobileDialog } from './useMobileDialog';
 import './mobile-common.css';
 
 export interface ConfiguredServiceItem {
@@ -98,6 +99,10 @@ export function MobileServiceItemDetailSheet({
   const [isTimePickerOpen, setIsTimePickerOpen] = useState(false);
   const [staffSearch, setStaffSearch] = useState('');
   const [customPosition, setCustomPosition] = useState('');
+  const staffSearchRef = useRef<HTMLInputElement>(null);
+  const mainDialog = useMobileDialog({ isOpen: isOpen && Boolean(item), onClose });
+  const staffDialog = useMobileDialog({ isOpen: isStaffPickerOpen, onClose: () => setIsStaffPickerOpen(false), initialFocusRef: staffSearchRef });
+  const positionDialog = useMobileDialog({ isOpen: isPositionPickerOpen, onClose: () => setIsPositionPickerOpen(false) });
 
   // Sync state with incoming item
   useEffect(() => {
@@ -162,11 +167,8 @@ export function MobileServiceItemDetailSheet({
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
-      role="dialog"
-      aria-modal="true"
-      aria-label="Chi tiết lịch dịch vụ"
     >
-      <div className="mobile-item-detail-sheet">
+      <div ref={mainDialog.dialogRef as RefObject<HTMLDivElement>} className="mobile-item-detail-sheet" role="dialog" aria-modal="true" aria-labelledby={mainDialog.titleId} tabIndex={-1}>
         {/* Header */}
         <header className="mobile-item-detail-header">
           <button
@@ -177,7 +179,7 @@ export function MobileServiceItemDetailSheet({
           >
             <i className="ph ph-caret-left" />
           </button>
-          <h2 className="mobile-item-detail-title">Chi tiết lịch dịch vụ</h2>
+          <h2 id={mainDialog.titleId} className="mobile-item-detail-title">Chi tiết lịch dịch vụ</h2>
           <div style={{ width: 36 }} />
         </header>
 
@@ -214,7 +216,7 @@ export function MobileServiceItemDetailSheet({
                   type="button"
                   className="mobile-stepper-btn"
                   onClick={() => setQuantity((prev) => Math.max(1, prev - 1))}
-                  aria-label="-"
+                  aria-label={`Giảm số lượng ${item.name}`}
                 >
                   -
                 </button>
@@ -223,7 +225,7 @@ export function MobileServiceItemDetailSheet({
                   type="button"
                   className="mobile-stepper-btn"
                   onClick={() => setQuantity((prev) => prev + 1)}
-                  aria-label="+"
+                  aria-label={`Tăng số lượng ${item.name}`}
                 >
                   +
                 </button>
@@ -264,11 +266,10 @@ export function MobileServiceItemDetailSheet({
             </div>
 
             {/* Row: Chọn nhân viên */}
-            <div
+            <button
+              type="button"
               className="mobile-item-picker-row"
               onClick={() => setIsStaffPickerOpen(true)}
-              role="button"
-              tabIndex={0}
             >
               <div className="mobile-picker-row-left">
                 <i className="ph ph-user-circle mobile-picker-row-icon" />
@@ -285,14 +286,13 @@ export function MobileServiceItemDetailSheet({
                 </span>
                 <i className="ph ph-caret-right" />
               </div>
-            </div>
+            </button>
 
             {/* Row: Chọn vị trí */}
-            <div
+            <button
+              type="button"
               className="mobile-item-picker-row"
               onClick={() => setIsPositionPickerOpen(true)}
-              role="button"
-              tabIndex={0}
             >
               <div className="mobile-picker-row-left">
                 <i className="ph ph-map-pin mobile-picker-row-icon" />
@@ -309,7 +309,7 @@ export function MobileServiceItemDetailSheet({
                 </span>
                 <i className="ph ph-caret-right" />
               </div>
-            </div>
+            </button>
           </div>
         </div>
 
@@ -333,7 +333,7 @@ export function MobileServiceItemDetailSheet({
             if (e.target === e.currentTarget) setIsStaffPickerOpen(false);
           }}
         >
-          <div className="mobile-sub-sheet">
+          <div ref={staffDialog.dialogRef as RefObject<HTMLDivElement>} className="mobile-sub-sheet" role="dialog" aria-modal="true" aria-labelledby={staffDialog.titleId} tabIndex={-1}>
             <header className="mobile-sub-sheet-header">
               <button
                 type="button"
@@ -343,14 +343,16 @@ export function MobileServiceItemDetailSheet({
               >
                 <i className="ph ph-caret-left" />
               </button>
-              <h3 className="mobile-sub-sheet-title">Chọn nhân viên</h3>
+              <h3 id={staffDialog.titleId} className="mobile-sub-sheet-title">Chọn nhân viên</h3>
               <div style={{ width: 36 }} />
             </header>
 
             <div className="mobile-sub-sheet-search">
               <i className="ph ph-magnifying-glass" />
               <input
+                ref={staffSearchRef}
                 type="text"
+                aria-label="Tìm nhân viên"
                 placeholder="Tìm nhân viên..."
                 value={staffSearch}
                 onChange={(e) => setStaffSearch(e.target.value)}
@@ -425,7 +427,7 @@ export function MobileServiceItemDetailSheet({
             if (e.target === e.currentTarget) setIsPositionPickerOpen(false);
           }}
         >
-          <div className="mobile-sub-sheet">
+          <div ref={positionDialog.dialogRef as RefObject<HTMLDivElement>} className="mobile-sub-sheet" role="dialog" aria-modal="true" aria-labelledby={positionDialog.titleId} tabIndex={-1}>
             <header className="mobile-sub-sheet-header">
               <button
                 type="button"
@@ -435,7 +437,7 @@ export function MobileServiceItemDetailSheet({
               >
                 <i className="ph ph-caret-left" />
               </button>
-              <h3 className="mobile-sub-sheet-title">Chọn vị trí làm dịch vụ</h3>
+              <h3 id={positionDialog.titleId} className="mobile-sub-sheet-title">Chọn vị trí làm dịch vụ</h3>
               <div style={{ width: 36 }} />
             </header>
 
@@ -443,6 +445,7 @@ export function MobileServiceItemDetailSheet({
               <div className="mobile-position-custom-row">
                 <input
                   type="text"
+                  aria-label="Tên phòng hoặc giường"
                   placeholder="Nhập tên phòng / giường..."
                   value={customPosition}
                   onChange={(e) => setCustomPosition(e.target.value)}

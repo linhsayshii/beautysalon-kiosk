@@ -276,8 +276,8 @@ export function MobilePricebooksView() {
             onChange={setSortValue}
           />
 
-          <div className="mobile-inventory-count-summary">
-            {rawRows.length} mặt hàng
+          <div className="mobile-inventory-count-summary" aria-live="polite">
+            {rawRows.length} mặt hàng{mutation.isPending ? ' · Đang lưu giá…' : ''}
           </div>
         </div>
       </div>
@@ -314,6 +314,7 @@ export function MobilePricebooksView() {
                         onClick={() => setSelectedItem(row)}
                         role="button"
                         tabIndex={0}
+                        onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); setSelectedItem(row); } }}
                       >
                         {/* Square rounded avatar */}
                         <div className={`mobile-row-avatar is-${row.itemType}`}>
@@ -512,18 +513,6 @@ export function MobilePricebooksView() {
                 )}
               </div>
 
-              {/* Actions Card: Sửa chi tiết */}
-              <div className="mobile-pricebook-detail-card">
-                <button
-                  type="button"
-                  className="mobile-pricebook-action-edit-btn"
-                  onClick={() => {
-                    notify('Thông tin hàng hóa', `Mặt hàng: ${selectedItem.name} (${formatMoney(book)})`);
-                  }}
-                >
-                  Xem chi tiết hàng hóa
-                </button>
-              </div>
             </div>
           );
         })()}

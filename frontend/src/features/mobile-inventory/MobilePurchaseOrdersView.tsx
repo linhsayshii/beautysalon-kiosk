@@ -308,6 +308,7 @@ export function MobilePurchaseOrdersView() {
                       onClick={() => setSelectedOrderId(row.id)}
                       role="button"
                       tabIndex={0}
+                      onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); setSelectedOrderId(row.id); } }}
                     >
                       {/* Square Rounded Avatar */}
                       <div className="mobile-row-avatar is-product">
@@ -572,16 +573,9 @@ export function MobilePurchaseOrdersView() {
                 <button
                   type="button"
                   className="mobile-po-action-print-btn"
-                  onClick={() => alert(`Đang chuẩn bị in phiếu nhập ${activeOrder.code}`)}
+                  onClick={() => window.print()}
                 >
                   <i className="ph ph-printer" /> In phiếu nhập
-                </button>
-                <button
-                  type="button"
-                  className="mobile-po-action-edit-btn"
-                  onClick={() => alert(`Chức năng chỉnh sửa phiếu nhập ${activeOrder.code}`)}
-                >
-                  Sửa phiếu
                 </button>
               </div>
             </div>

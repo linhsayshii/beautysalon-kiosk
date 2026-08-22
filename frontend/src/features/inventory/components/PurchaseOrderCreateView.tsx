@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { appConfig } from '@/app/config';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { EmptyState, ErrorState, LoadingState } from '@/components/data-display/DataState';
 import { MoneyInput } from '@/components/forms/MoneyInput';
 import { Select } from '@/components/ui/Select/Select';
@@ -15,6 +15,9 @@ interface DraftItem extends ApiRecord { quantity: number; unitCost: number }
 
 export function PurchaseOrderCreateView() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const isMobileRoute = location.pathname.startsWith('/m/');
+  const listPath = isMobileRoute ? '/m/purchase-orders' : '/purchase-orders';
   const { notify } = useToast();
   const [search, setSearch] = useState('');
   const [items, setItems] = useState<DraftItem[]>([]);
@@ -27,7 +30,7 @@ export function PurchaseOrderCreateView() {
   const metadata = useMetadata();
   const products = useQuery({ queryKey: ['purchase-catalog'], queryFn: () => getProducts({ type: 'product', status: 'active', page: 1, pageSize: appConfig.purchaseCatalogPageSize }) });
   const suppliers = useQuery({ queryKey: ['suppliers'], queryFn: getSuppliers });
-  const mutation = useMutation({ mutationFn: createPurchaseOrder, onSuccess: (payload) => { notify('Lưu phiếu thành công', `${payload.data.code} đã được lưu.`); navigate('/purchase-orders'); }, onError: (error) => notify('Không thể lưu phiếu', error.message) });
+  const mutation = useMutation({ mutationFn: createPurchaseOrder, onSuccess: (payload) => { notify('Lưu phiếu thành công', `${payload.data.code} đã được lưu.`); navigate(listPath); }, onError: (error) => notify('Không thể lưu phiếu', error.message) });
   const results = useMemo(() => !search.trim() ? [] : (products.data?.data ?? []).filter((item) => `${item.code} ${item.name}`.toLowerCase().includes(search.trim().toLowerCase())).slice(0, 8), [products.data, search]);
   const subtotal = items.reduce((sum, item) => sum + item.quantity * item.unitCost, 0);
   const due = Math.max(0, subtotal - discount + otherCost);
@@ -50,6 +53,8 @@ export function PurchaseOrderCreateView() {
             placeholder="Chọn nhà cung cấp"
             variant="filter"
             fullWidth
+            align="right"
+            menuClassName="purchase-supplier-select-menu"
             options={[
               { value: '', label: 'Chọn nhà cung cấp' },
               ...(suppliers.data?.data.map((supplier) => ({

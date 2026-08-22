@@ -52,7 +52,7 @@ function renderWithClient(ui: React.ReactElement) {
 }
 
 describe('MobileCustomerSelectSheet', () => {
-  it('renders search input, barcode scan button, and cancel button', async () => {
+  it('renders an accessible customer picker without an inactive scanner action', async () => {
     const onClose = vi.fn();
     const onSelect = vi.fn();
 
@@ -62,7 +62,8 @@ describe('MobileCustomerSelectSheet', () => {
 
     expect(screen.getByPlaceholderText('Tìm khách hàng')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /hủy/i })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /quét mã|qr|barcode/i })).toBeInTheDocument();
+    expect(screen.getByRole('dialog', { name: /chọn khách hàng/i })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /quét mã|qr|barcode/i })).not.toBeInTheDocument();
   });
 
   it('renders customer list with remaining package units and debt badges', async () => {

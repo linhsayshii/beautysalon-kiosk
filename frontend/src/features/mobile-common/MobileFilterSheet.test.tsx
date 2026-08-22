@@ -71,4 +71,18 @@ describe('MobileFilterSheet', () => {
     fireEvent.click(backdrop);
     expect(handleClose).toHaveBeenCalledTimes(1);
   });
+
+  it('exposes modal semantics and closes with Escape', () => {
+    const handleClose = vi.fn();
+    render(
+      <MobileFilterSheet isOpen title="Bộ lọc" onClose={handleClose} onApply={() => {}}>
+        <button>Tùy chọn</button>
+      </MobileFilterSheet>
+    );
+
+    const dialog = screen.getByRole('dialog', { name: 'Bộ lọc' });
+    expect(dialog).toHaveAttribute('aria-modal', 'true');
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(handleClose).toHaveBeenCalledTimes(1);
+  });
 });

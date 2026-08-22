@@ -77,7 +77,7 @@ export function MobileStaffManagementView() {
 
   // Create Staff Mutation
   const createMutation = useMutation({
-    mutationFn: (data: { name: string; role: string; phone?: string }) =>
+    mutationFn: (data: { name: string; role: string; phone?: string; profile?: ApiRecord }) =>
       createStaff(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['mobile-staff-list'] });
@@ -180,6 +180,7 @@ export function MobileStaffManagementView() {
       name: newName.trim(),
       role: newRole,
       phone: newPhone.trim(),
+      profile: { phone: newPhone.trim() },
     });
   };
 
@@ -466,10 +467,11 @@ export function MobileStaffManagementView() {
       >
         <form onSubmit={handleCreateStaff} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
           <div>
-            <label style={{ display: 'block', fontSize: 13, fontWeight: 700, color: '#0f172a', marginBottom: 6 }}>
+            <label htmlFor="mobile-staff-name" style={{ display: 'block', fontSize: 13, fontWeight: 700, color: '#0f172a', marginBottom: 6 }}>
               Họ và tên <span style={{ color: '#ef4444' }}>*</span>
             </label>
             <input
+              id="mobile-staff-name"
               type="text"
               value={newName}
               onChange={(e) => setNewName(e.target.value)}
@@ -481,17 +483,18 @@ export function MobileStaffManagementView() {
                 padding: '0 12px',
                 borderRadius: 10,
                 border: '1px solid #cbd5e1',
-                fontSize: 14,
+                fontSize: 16,
                 boxSizing: 'border-box',
               }}
             />
           </div>
 
           <div>
-            <label style={{ display: 'block', fontSize: 13, fontWeight: 700, color: '#0f172a', marginBottom: 6 }}>
+            <label htmlFor="mobile-staff-role" style={{ display: 'block', fontSize: 13, fontWeight: 700, color: '#0f172a', marginBottom: 6 }}>
               Vai trò / Chức vụ
             </label>
             <select
+              id="mobile-staff-role"
               value={newRole}
               onChange={(e) => setNewRole(e.target.value)}
               style={{
@@ -500,7 +503,7 @@ export function MobileStaffManagementView() {
                 padding: '0 12px',
                 borderRadius: 10,
                 border: '1px solid #cbd5e1',
-                fontSize: 14,
+                fontSize: 16,
                 background: '#ffffff',
                 boxSizing: 'border-box',
               }}
@@ -514,10 +517,11 @@ export function MobileStaffManagementView() {
           </div>
 
           <div>
-            <label style={{ display: 'block', fontSize: 13, fontWeight: 700, color: '#0f172a', marginBottom: 6 }}>
+            <label htmlFor="mobile-staff-phone" style={{ display: 'block', fontSize: 13, fontWeight: 700, color: '#0f172a', marginBottom: 6 }}>
               Số điện thoại
             </label>
             <input
+              id="mobile-staff-phone"
               type="tel"
               value={newPhone}
               onChange={(e) => setNewPhone(e.target.value)}
@@ -528,7 +532,7 @@ export function MobileStaffManagementView() {
                 padding: '0 12px',
                 borderRadius: 10,
                 border: '1px solid #cbd5e1',
-                fontSize: 14,
+                fontSize: 16,
                 boxSizing: 'border-box',
               }}
             />

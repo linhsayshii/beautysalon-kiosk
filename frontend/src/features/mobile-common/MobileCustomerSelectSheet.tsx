@@ -4,6 +4,8 @@ import { getCustomers } from '@/features/operations/operations.api';
 import { CustomerCreateDialog } from '@/features/operations/components/CustomerCreateDialog';
 import { formatNumber, initials } from '@/lib/format';
 import type { ApiRecord } from '@/types/api';
+import type { RefObject } from 'react';
+import { useMobileDialog } from './useMobileDialog';
 import './mobile-common.css';
 
 export interface MobileCustomer {
@@ -32,6 +34,7 @@ export function MobileCustomerSelectSheet({
 }: MobileCustomerSelectSheetProps) {
   const [search, setSearch] = useState('');
   const [isAddCustomerOpen, setIsAddCustomerOpen] = useState(false);
+  const { dialogRef, titleId } = useMobileDialog({ isOpen, onClose });
 
   const { data: customerResponse, isLoading, refetch } = useQuery({
     queryKey: ['mobile-customer-select', search],
@@ -65,11 +68,9 @@ export function MobileCustomerSelectSheet({
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
-      role="dialog"
-      aria-modal="true"
-      aria-label="Chọn khách hàng"
     >
-      <div className="mobile-customer-sheet" style={{ width: '100%' }}>
+      <div ref={dialogRef as RefObject<HTMLDivElement>} className="mobile-customer-sheet" style={{ width: '100%' }} role="dialog" aria-modal="true" aria-labelledby={titleId} tabIndex={-1}>
+        <h2 id={titleId} className="sr-only">Chọn khách hàng</h2>
         {/* Header Search & Cancel */}
         <header className="mobile-customer-sheet-header">
           <div className="mobile-customer-search-box">
@@ -80,18 +81,9 @@ export function MobileCustomerSelectSheet({
               placeholder="Tìm khách hàng"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
+              aria-label="Tìm khách hàng"
               autoFocus
             />
-            <button
-              type="button"
-              className="mobile-customer-barcode-btn"
-              aria-label="Quét mã QR / Barcode"
-              onClick={() => {
-                // Feature for camera barcode scanning (if supported)
-              }}
-            >
-              <i className="ph ph-barcode" />
-            </button>
           </div>
           <button
             type="button"
@@ -121,7 +113,8 @@ export function MobileCustomerSelectSheet({
               const debt = c.debtBalance ?? 0;
 
               return (
-                <div
+                <button
+                  type="button"
                   key={c.id}
                   className={`mobile-customer-card ${isSelected ? 'is-selected' : ''}`}
                   onClick={() => {
@@ -165,7 +158,7 @@ export function MobileCustomerSelectSheet({
                   <div className="mobile-customer-card-action">
                     <i className={`ph ${isSelected ? 'ph-check-circle' : 'ph-caret-right'}`} />
                   </div>
-                </div>
+                </button>
               );
             })
           )}

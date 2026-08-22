@@ -254,6 +254,7 @@ export function MobileCustomerCardsView() {
                       }}
                       role="button"
                       tabIndex={0}
+                      onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); setSelectedCardId(row.id); setSelectedCardType(row.itemType); } }}
                     >
                       {/* Square rounded avatar */}
                       <div className={`mobile-card-square-avatar is-${row.itemType}`}>
@@ -371,13 +372,6 @@ export function MobileCustomerCardsView() {
                 <span className="mobile-detail-card-title">
                   {activeCard.itemType === 'package' ? 'Gói dịch vụ' : 'Thẻ tài khoản'}
                 </span>
-                <button
-                  type="button"
-                  className="mobile-detail-edit-link"
-                  onClick={() => alert('Chức năng sửa thông tin gói/thẻ')}
-                >
-                  Sửa
-                </button>
               </div>
 
               <h2 className="mobile-detail-main-name">{activeCard.itemName}</h2>

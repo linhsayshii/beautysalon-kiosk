@@ -4,7 +4,6 @@ import { useNavigate } from 'react-router-dom';
 import { formatMoney, formatNumber } from '@/lib/format';
 import { GoodsCreateDialog } from '@/features/inventory/components/GoodsCreateDialog';
 import { getProducts, type InventoryItemType } from '@/features/inventory/inventory.api';
-import { MobileProductEditSheet } from './MobileProductEditSheet';
 import {
   MobileSearchBar,
   MobileFilterSheet,
@@ -57,6 +56,8 @@ export function MobileProductsView() {
   const [selectedItem, setSelectedItem] = useState<ApiRecord | null>(null);
   const [editingItem, setEditingItem] = useState<ApiRecord | null>(null);
   const [isCreatingType, setIsCreatingType] = useState<InventoryItemType | null>(null);
+  const [isCreateMenuOpen, setIsCreateMenuOpen] = useState(false);
+  const [editInitialTab, setEditInitialTab] = useState<'information' | 'details'>('information');
 
   const { data: productsData, isLoading } = useQuery({
     queryKey: ['mobile-products', search, typeFilter, categoryFilter, stockStatusFilter],
@@ -273,6 +274,7 @@ export function MobileProductsView() {
                       onClick={() => setSelectedItem(row)}
                       role="button"
                       tabIndex={0}
+                      onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); setSelectedItem(row); } }}
                     >
                       <div className={`mobile-row-avatar is-${row.itemType}`}>
                         <i className={getItemIcon(row.itemType)} />
@@ -311,12 +313,42 @@ export function MobileProductsView() {
       <button
         type="button"
         className="mobile-inventory-fab-btn"
-        onClick={() => setIsCreatingType('service')}
+        onClick={() => setIsCreateMenuOpen(true)}
         aria-label="Thêm hàng hóa"
         title="Thêm hàng hóa / Dịch vụ"
       >
         <i className="ph ph-plus" />
       </button>
+
+      <MobileDetailSheet
+        isOpen={isCreateMenuOpen}
+        title="Chọn loại hàng hóa"
+        subtitle="Loại đã chọn quyết định các trường thông tin cần nhập"
+        onClose={() => setIsCreateMenuOpen(false)}
+      >
+        <div className="mobile-create-type-list">
+          {([
+            ['product', 'ph ph-package', 'Sản phẩm', 'Có tồn kho, giá vốn và đơn vị tính'],
+            ['service', 'ph ph-sparkle', 'Dịch vụ', 'Có thời lượng và hoa hồng thực hiện'],
+            ['package', 'ph ph-stack', 'Gói dịch vụ', 'Gồm nhiều dịch vụ hoặc liệu trình'],
+            ['account_card', 'ph ph-credit-card', 'Thẻ tài khoản', 'Có mệnh giá và phạm vi thanh toán'],
+          ] as const).map(([type, icon, label, description]) => (
+            <button
+              key={type}
+              type="button"
+              className="mobile-create-type-option"
+              onClick={() => {
+                setIsCreateMenuOpen(false);
+                setIsCreatingType(type);
+              }}
+            >
+              <span className={`mobile-create-type-icon is-${type}`}><i className={icon} /></span>
+              <span className="mobile-create-type-copy"><strong>{label}</strong><small>{description}</small></span>
+              <i className="ph ph-caret-right" aria-hidden="true" />
+            </button>
+          ))}
+        </div>
+      </MobileDetailSheet>
 
       {/* Filter Bottom Sheet */}
       <MobileFilterSheet
@@ -327,8 +359,9 @@ export function MobileProductsView() {
         onApply={handleApplyFilter}
       >
         <div className="mobile-filter-field">
-          <label className="mobile-filter-field-label">Loại hàng</label>
+          <label htmlFor="mobile-product-type-filter" className="mobile-filter-field-label">Loại hàng</label>
           <select
+            id="mobile-product-type-filter"
             className="mobile-filter-select"
             value={draftType}
             onChange={(e) => setDraftType(e.target.value)}
@@ -342,8 +375,9 @@ export function MobileProductsView() {
         </div>
 
         <div className="mobile-filter-field">
-          <label className="mobile-filter-field-label">Nhóm hàng</label>
+          <label htmlFor="mobile-product-category-filter" className="mobile-filter-field-label">Nhóm hàng</label>
           <select
+            id="mobile-product-category-filter"
             className="mobile-filter-select"
             value={draftCategory}
             onChange={(e) => setDraftCategory(e.target.value)}
@@ -358,8 +392,9 @@ export function MobileProductsView() {
         </div>
 
         <div className="mobile-filter-field">
-          <label className="mobile-filter-field-label">Tồn kho</label>
+          <label htmlFor="mobile-product-stock-filter" className="mobile-filter-field-label">Tồn kho</label>
           <select
+            id="mobile-product-stock-filter"
             className="mobile-filter-select"
             value={draftStockStatus}
             onChange={(e) => setDraftStockStatus(e.target.value)}
@@ -387,7 +422,10 @@ export function MobileProductsView() {
                 <button
                   type="button"
                   className="mobile-detail-edit-link"
-                  onClick={() => setEditingItem(selectedItem)}
+                  onClick={() => {
+                    setEditInitialTab('information');
+                    setEditingItem(selectedItem);
+                  }}
                 >
                   Sửa
                 </button>
@@ -451,16 +489,19 @@ export function MobileProductsView() {
             {/* THẺ KHO / QUẢN LÝ TỒN */}
             {selectedItem.itemType === 'product' && (
               <div className="mobile-detail-section-card" style={{ padding: '12px 16px' }}>
-                <div className="mobile-detail-nav-row" style={{ border: 'none', padding: 0 }}>
-                  <span>Thẻ kho</span>
-                  <i className="ph ph-caret-right" />
+                <div className="mobile-detail-nav-row is-static" style={{ border: 'none', padding: 0 }}>
+                  <span>Quản lý tồn kho</span>
+                  <strong>{formatNumber(selectedItem.stockQuantity || 0)} {selectedItem.unit || ''}</strong>
                 </div>
               </div>
             )}
 
             {/* THÊM HÌNH ẢNH */}
             <div className="mobile-detail-section-card" style={{ padding: '14px 16px' }}>
-              <button type="button" className="mobile-detail-blue-action">
+              <button type="button" className="mobile-detail-blue-action" onClick={() => {
+                setEditInitialTab('details');
+                setEditingItem(selectedItem);
+              }}>
                 + Thêm hình ảnh
               </button>
             </div>
@@ -469,7 +510,10 @@ export function MobileProductsView() {
             <div className="mobile-detail-section-card">
               <div className="mobile-detail-card-header">
                 <span className="mobile-detail-card-title">Thời hạn</span>
-                <button type="button" className="mobile-detail-edit-link">Sửa</button>
+                <button type="button" className="mobile-detail-edit-link" onClick={() => {
+                  setEditInitialTab('information');
+                  setEditingItem(selectedItem);
+                }}>Sửa</button>
               </div>
 
               <div className="mobile-detail-nav-row" style={{ border: 'none', padding: '4px 0 0' }}>
@@ -482,20 +526,17 @@ export function MobileProductsView() {
             <div className="mobile-detail-section-card">
               <div className="mobile-detail-card-header">
                 <span className="mobile-detail-card-title">Phạm vi thanh toán</span>
-                <button type="button" className="mobile-detail-edit-link">Sửa</button>
+                <button type="button" className="mobile-detail-edit-link" onClick={() => {
+                  setEditInitialTab('information');
+                  setEditingItem(selectedItem);
+                }}>Sửa</button>
               </div>
 
               <div style={{ fontSize: '15px', fontWeight: 650, color: '#0f172a' }}>
                 Tất cả loại hàng
               </div>
 
-              <button
-                type="button"
-                className="mobile-detail-blue-action"
-                style={{ textAlign: 'center', marginTop: '6px' }}
-              >
-                Xem chi tiết
-              </button>
+              <div className="mobile-detail-supporting-text">Áp dụng cho tất cả loại hàng.</div>
             </div>
           </div>
         )}
@@ -509,17 +550,15 @@ export function MobileProductsView() {
         />
       )}
 
-      {/* Edit Sheet (Styled after the modern card form) */}
-      <MobileProductEditSheet
-        isOpen={editingItem !== null}
-        item={editingItem}
-        onClose={() => setEditingItem(null)}
-        onSuccess={() => {
-          setEditingItem(null);
-          setSelectedItem(null);
-        }}
-      />
+      {editingItem && (
+        <GoodsCreateDialog
+          type={editingItem.itemType as InventoryItemType}
+          itemId={Number(editingItem.itemId || editingItem.id)}
+          initialData={editingItem}
+          initialTab={editInitialTab}
+          onClose={() => setEditingItem(null)}
+        />
+      )}
     </div>
   );
 }
-

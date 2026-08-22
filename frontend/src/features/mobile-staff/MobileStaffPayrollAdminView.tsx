@@ -161,14 +161,15 @@ export function MobileStaffPayrollAdminView() {
 
           {rawPeriods.length > 0 && (
             <select
+              aria-label="Kỳ lương"
               value={activePeriod?.id ?? ''}
               onChange={(e) => setSelectedPeriodId(Number(e.target.value))}
               style={{
-                height: 36,
+                minHeight: 44,
                 borderRadius: 10,
                 border: '1px solid #e2e8f0',
                 padding: '0 10px',
-                fontSize: 13,
+                fontSize: 16,
                 fontWeight: 600,
                 background: '#ffffff',
                 color: '#334155',
