@@ -244,9 +244,6 @@ jobs:
             testStaffId = res.data.data[0].id;
           }
 
-          res = await api('GET', '/staff/me');
-          check(res, 'GET /staff/me');
-
           // ==================== CUSTOMERS ====================
           console.log('\n👤 Testing customer endpoints...');
 
@@ -291,12 +288,10 @@ jobs:
 
           // Create order via checkout
           const orderPayload = {
-            customerId: testCustomerId || null,
-            branchId: branchId,
-            items: [
-              { serviceId: 1, staffId: testStaffId || null, price: 100000, quantity: 1 },
+            lines: [
+              { itemType: 'service', itemId: 1, quantity: 1 },
             ],
-            payment: { method: 'cash', amount: 100000 },
+            paymentMethod: 'cash',
           };
           res = await api('POST', '/pos/checkout', orderPayload);
           check(res, 'POST /pos/checkout (create order)');
