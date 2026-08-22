@@ -16,9 +16,10 @@ const loginLimiter = createRateLimiter({
   key: loginRateLimitKey,
   skipSuccessfulRequests: true,
 });
-const validatePassword = (password, label = 'Mật khẩu') => {
-  if (password.length < 6 || password.length > 128) {
-    throw new HttpError(400, 'INVALID_PASSWORD', `${label} cần từ 6 đến 128 ký tự`);
+export const validatePassword = (password, label = 'Mật khẩu') => {
+  if (password.length < 12 || password.length > 128
+    || !/[a-z]/.test(password) || !/[A-Z]/.test(password) || !/\d/.test(password)) {
+    throw new HttpError(400, 'INVALID_PASSWORD', `${label} cần 12–128 ký tự, gồm chữ thường, chữ hoa và số`);
   }
 };
 

@@ -23,6 +23,8 @@ import {
   updateWorkScheduleSettings,
   updateStaff,
 } from './staff.service.js';
+import { listAppointments } from '../dashboard/dashboard.service.js';
+import { listOrders } from '../orders/orders.service.js';
 
 const router = Router();
 export const staffSelfRoutes = Router();
@@ -66,6 +68,41 @@ staffSelfRoutes.get('/schedule', asyncRoute(async (request, response) => {
   const staffId = requireLinkedStaff(request);
   const startDate = parseIsoDate(request.query.startDate, 'startDate', currentDate());
   response.json({ data: await getStaffSchedule({ branchId: request.account.branchId, staffId, startDate }) });
+}));
+
+// Keep an employee's daily agenda behind the self-service boundary.  The
+// corresponding POS and orders endpoints are deliberately broader and are not
+// available to the staff role.
+staffSelfRoutes.get('/work-items', asyncRoute(async (request, response) => {
+  const staffId = requireLinkedStaff(request);
+  const dateFrom = parseIsoDate(request.query.dateFrom, 'dateFrom', currentDate());
+  const dateTo = parseIsoDate(request.query.dateTo, 'dateTo', dateFrom);
+  if (dateTo < dateFrom) {
+    throw new HttpError(400, 'INVALID_DATE_RANGE', 'dateTo phải cùng hoặc sau dateFrom');
+  }
+
+  const [appointments, drafts] = await Promise.all([
+    listAppointments({ branchId: request.account.branchId, dateFrom, dateTo }),
+    listOrders({
+      branchId: request.account.branchId,
+      search: '',
+      status: 'draft',
+      paymentMethod: '',
+      staffId,
+      dateFrom,
+      dateTo,
+      page: 1,
+      pageSize: 100,
+      offset: 0,
+    }),
+  ]);
+
+  response.json({
+    data: {
+      appointments: appointments.filter((appointment) => appointment.staff?.id === staffId),
+      drafts: drafts.rows,
+    },
+  });
 }));
 
 router.post('/', asyncRoute(async (request, response) => {

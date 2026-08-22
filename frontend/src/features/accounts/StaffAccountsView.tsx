@@ -71,7 +71,7 @@ function AccountDialog({ onClose }: { onClose: () => void }) {
           <div className="account-form-grid">
             <label><span>Tên hiển thị</span><input required value={form.displayName} onChange={(event) => setForm({ ...form, displayName: event.target.value })} placeholder="Nguyễn Minh Anh" /></label>
             <label><span>Tên đăng nhập</span><input required minLength={3} pattern="[a-zA-Z0-9._-]+" value={form.username} onChange={(event) => setForm({ ...form, username: event.target.value })} placeholder="minhanh" /></label>
-            <label><span>Mật khẩu ban đầu</span><input required minLength={6} maxLength={128} type="password" autoComplete="new-password" value={form.password} onChange={(event) => setForm({ ...form, password: event.target.value })} placeholder="Tối thiểu 6 ký tự" /></label>
+            <label><span>Mật khẩu ban đầu</span><input required minLength={12} maxLength={128} type="password" autoComplete="new-password" value={form.password} onChange={(event) => setForm({ ...form, password: event.target.value })} placeholder="Ít nhất 12 ký tự, gồm hoa, thường và số" /></label>
             <div className="form-field">
               <span className="field-label">Loại tài khoản</span>
               <Select

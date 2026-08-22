@@ -13,7 +13,7 @@ export function usePosSocket() {
   useEffect(() => {
     if (!account?.branchId) return;
 
-    const connection = createPosSocketConnection(account.branchId, (event, data) => {
+    const connection = createPosSocketConnection((event, data) => {
       if (event === 'pos:order_created') {
         queryClient.invalidateQueries({ queryKey: ['orders'] });
         queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });

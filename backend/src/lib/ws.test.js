@@ -2,7 +2,30 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { EventEmitter } from 'node:events';
 import { WebSocket } from 'ws';
-import { initWebSocketServer, broadcastToBranch } from './ws.js';
+import { authorizeWebSocketUpgrade, initWebSocketServer, broadcastToBranch } from './ws.js';
+
+test('WebSocket upgrade requires a trusted origin and authenticated session', async () => {
+  const authenticated = async (token) => token === 'valid-token' ? { id: 7, branchId: 2 } : null;
+  const options = { authenticate: authenticated, trustedOrigins: ['https://app.example.com'] };
+
+  const accepted = await authorizeWebSocketUpgrade({
+    url: '/api/v1/ws?branchId=999&token=leaked-token',
+    headers: { origin: 'https://app.example.com', cookie: 'annachill_session=valid-token' },
+  }, options);
+  assert.deepEqual(accepted.account, { id: 7, branchId: 2 });
+
+  const missingSession = await authorizeWebSocketUpgrade({
+    url: '/api/v1/ws?token=valid-token',
+    headers: { origin: 'https://app.example.com' },
+  }, options);
+  assert.equal(missingSession.statusCode, 401);
+
+  const untrustedOrigin = await authorizeWebSocketUpgrade({
+    url: '/api/v1/ws',
+    headers: { origin: 'https://attacker.example', cookie: 'annachill_session=valid-token' },
+  }, options);
+  assert.equal(untrustedOrigin.statusCode, 403);
+});
 
 test('WebSocket server connects and broadcasts events by branch', async (t) => {
   const fakeServer = new EventEmitter();

@@ -20,49 +20,12 @@ pool.on('error', (error) => {
 
 export async function runMigrations() {
   try {
-    // 1. Seed fallback branch if missing
-    await pool.query(`
-      INSERT INTO branches (code, name, address, phone, email, timezone, latitude, longitude, attendance_radius_m, active)
-      VALUES ('CN-TT', 'Chi nhánh Trung tâm', 'Mipec Rubik 360, 122 Xuân Thủy, Phường Dịch Vọng Hậu, Quận Cầu Giấy, Hà Nội', '0989080866', 'contact@annachillbeauty.vn', 'Asia/Ho_Chi_Minh', 21.0375000, 105.7825000, 100, TRUE)
-      ON CONFLICT (code) DO NOTHING;
-    `);
-
-    // 2. Seed fallback user accounts if missing
-    await pool.query(`
-      INSERT INTO user_accounts (branch_id, staff_id, username, password_hash, display_name, role, phone, email, active)
-      SELECT b.id, s.id, x.username, x.password_hash, x.display_name, x.role, x.phone, x.email, TRUE
-      FROM branches b
-      JOIN (VALUES
-        (NULL::varchar, 'admin', 'scrypt$_6JsIiDp2GDJrZs1B2xKFg$VxLtnWDXsfk2UDdKRttaiphUquyvEja1Ew1KitMa3BCvoAekfQoLGfQBPVFUEgHWYEIyQO67dq2fzZ2DuvKWWQ', 'Quản trị hệ thống', 'manager', '0989080866', 'admin@annachillbeauty.vn'),
-        ('NV000009', 'manager', 'scrypt$_6JsIiDp2GDJrZs1B2xKFg$VxLtnWDXsfk2UDdKRttaiphUquyvEja1Ew1KitMa3BCvoAekfQoLGfQBPVFUEgHWYEIyQO67dq2fzZ2DuvKWWQ', 'AnnaChill Beauty', 'manager', '0989080866', 'manager@annachillbeauty.vn'),
-        ('NV000016', 'cashier', 'scrypt$_6JsIiDp2GDJrZs1B2xKFg$VxLtnWDXsfk2UDdKRttaiphUquyvEja1Ew1KitMa3BCvoAekfQoLGfQBPVFUEgHWYEIyQO67dq2fzZ2DuvKWWQ', 'Thu Phương', 'cashier', '0368291032', 'thuphuong@annachillbeauty.vn'),
-        ('NV000015', 'staff', 'scrypt$_6JsIiDp2GDJrZs1B2xKFg$VxLtnWDXsfk2UDdKRttaiphUquyvEja1Ew1KitMa3BCvoAekfQoLGfQBPVFUEgHWYEIyQO67dq2fzZ2DuvKWWQ', 'Yến', 'staff', '0901823886', 'yen@annachillbeauty.vn'),
-        ('NV000012', 'trangvu', 'scrypt$_6JsIiDp2GDJrZs1B2xKFg$VxLtnWDXsfk2UDdKRttaiphUquyvEja1Ew1KitMa3BCvoAekfQoLGfQBPVFUEgHWYEIyQO67dq2fzZ2DuvKWWQ', 'Trang Vũ', 'staff', '0987704052', 'trangvu@annachillbeauty.vn'),
-        ('NV000010', 'hau', 'scrypt$_6JsIiDp2GDJrZs1B2xKFg$VxLtnWDXsfk2UDdKRttaiphUquyvEja1Ew1KitMa3BCvoAekfQoLGfQBPVFUEgHWYEIyQO67dq2fzZ2DuvKWWQ', 'Hậu', 'staff', '0123456', 'hau@annachillbeauty.vn'),
-        ('NV000005', 'emhue', 'scrypt$_6JsIiDp2GDJrZs1B2xKFg$VxLtnWDXsfk2UDdKRttaiphUquyvEja1Ew1KitMa3BCvoAekfQoLGfQBPVFUEgHWYEIyQO67dq2fzZ2DuvKWWQ', 'Em Huệ', 'staff', '0353141214', 'emhue@annachillbeauty.vn')
-      ) AS x(staff_code, username, password_hash, display_name, role, phone, email) ON TRUE
-      LEFT JOIN staff s ON s.code = x.staff_code AND s.branch_id = b.id
-      WHERE b.code = 'CN-TT'
-      ON CONFLICT (LOWER(username)) DO UPDATE SET
-        password_hash = EXCLUDED.password_hash,
-        display_name = EXCLUDED.display_name,
-        role = EXCLUDED.role,
-        phone = EXCLUDED.phone,
-        email = EXCLUDED.email,
-        active = EXCLUDED.active,
-        updated_at = NOW();
-    `);
-
     await pool.query(`
       ALTER TABLE commission_records
         ADD COLUMN IF NOT EXISTS commission_type VARCHAR(30) DEFAULT 'service';
 
       ALTER TABLE invoice_items
         ADD COLUMN IF NOT EXISTS staff_id BIGINT REFERENCES staff(id) ON DELETE SET NULL;
-
-      UPDATE user_accounts
-      SET password_hash = 'scrypt$_6JsIiDp2GDJrZs1B2xKFg$VxLtnWDXsfk2UDdKRttaiphUquyvEja1Ew1KitMa3BCvoAekfQoLGfQBPVFUEgHWYEIyQO67dq2fzZ2DuvKWWQ'
-      WHERE username IN ('admin', 'manager', 'cashier', 'staff', 'trangvu', 'hau', 'emhue');
 
       ALTER TABLE payroll_periods
         ADD COLUMN IF NOT EXISTS period_type VARCHAR(20) NOT NULL DEFAULT 'monthly',
@@ -185,6 +148,7 @@ export async function closeDatabase() {
 }
 
 const demoPasswordHashes = [
+  'scrypt$_6JsIiDp2GDJrZs1B2xKFg$VxLtnWDXsfk2UDdKRttaiphUquyvEja1Ew1KitMa3BCvoAekfQoLGfQBPVFUEgHWYEIyQO67dq2fzZ2DuvKWWQ',
   'scrypt$yAZRAcM0GLD7RH71SoOZCg$Bv1E8mUQXtuTdQFgQd3fAXiVCTA8d0o9CUpqQ2EksKNqbkRy3CvzPv2w8Ag0ngDEmtiLulcXZIwqdb2XZjOzpg',
   'scrypt$R-5j4weNgSw-iVUs97lNKw$Net9dLsyTc3hfvxu3-3gdaVAgDnBM9J46HClrk8js2cwQq0lAG0X9kBy-JRcBacnHuWHXTQYXqAP0h8_leuEWw',
   'scrypt$DDCEV_DzVfDXUmXjeRsa7A$Gl3xhk8NlxjUAtzMyxXy4D-F2ptGDqOVZ0hfvCXypWUxsg6UVnXsxTHy0SYy6WRC9WLEkeyqLHayB8OZVRdCZw',

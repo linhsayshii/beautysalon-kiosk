@@ -14,7 +14,7 @@ describe('createPosSocketConnection', () => {
     vi.stubGlobal('WebSocket', vi.fn().mockImplementation(() => mockWs));
 
     const onEvent = vi.fn();
-    const conn = createPosSocketConnection(1, onEvent);
+    const conn = createPosSocketConnection(onEvent);
 
     mockWs.onopen();
     expect(conn.isConnected()).toBe(true);

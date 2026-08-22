@@ -1,9 +1,29 @@
 import { WebSocketServer, WebSocket } from 'ws';
-import { parse as parseUrl } from 'node:url';
-import { accountFromToken } from '../modules/auth/auth.service.js';
+import { accountFromToken, readSessionCookie } from '../modules/auth/auth.service.js';
+import { config } from '../config.js';
 
 let wssInstance = null;
 let heartbeatInterval = null;
+
+function rejectUpgrade(socket, statusCode, message) {
+  socket.write(`HTTP/1.1 ${statusCode} ${message}\r\nConnection: close\r\n\r\n`);
+  socket.destroy();
+}
+
+export async function authorizeWebSocketUpgrade(request, {
+  authenticate = accountFromToken,
+  trustedOrigins = config.http.trustedOrigins,
+} = {}) {
+  const pathname = new URL(request.url, 'http://localhost').pathname;
+  if (pathname !== '/api/v1/ws') return { statusCode: 404, message: 'Not Found' };
+
+  const origin = request.headers.origin;
+  if (!origin || !trustedOrigins.includes(origin)) return { statusCode: 403, message: 'Forbidden' };
+
+  const account = await authenticate(readSessionCookie(request));
+  if (!account) return { statusCode: 401, message: 'Unauthorized' };
+  return { account };
+}
 
 export function initWebSocketServer(httpServer) {
   const wss = new WebSocketServer({ noServer: true });
@@ -11,23 +31,21 @@ export function initWebSocketServer(httpServer) {
 
   httpServer.on('upgrade', async (request, socket, head) => {
     try {
-      const { query } = parseUrl(request.url, true);
-      // Support cookie auth or query token/branchId for flexible connection
-      const cookieHeader = request.headers.cookie || '';
-      const match = cookieHeader.match(/annachill_session=([^;]+)/);
-      const token = match ? match[1] : (query.token || null);
-      let account = token ? await accountFromToken(token) : null;
-      const branchId = account ? account.branchId : Number(query.branchId || 1);
+      const authorization = await authorizeWebSocketUpgrade(request);
+      if (!authorization.account) {
+        rejectUpgrade(socket, authorization.statusCode, authorization.message);
+        return;
+      }
 
       wss.handleUpgrade(request, socket, head, (ws) => {
-        ws.branchId = branchId;
-        ws.accountId = account?.id ?? null;
+        ws.branchId = authorization.account.branchId;
+        ws.accountId = authorization.account.id;
         ws.isAlive = true;
         ws.on('pong', () => { ws.isAlive = true; });
         wss.emit('connection', ws, request);
       });
-    } catch (err) {
-      socket.destroy();
+    } catch {
+      rejectUpgrade(socket, 401, 'Unauthorized');
     }
   });
 

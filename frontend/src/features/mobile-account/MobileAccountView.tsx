@@ -406,7 +406,7 @@ export function MobileAccountView() {
                 </span>
                 <div>
                   <h2>Đổi mật khẩu</h2>
-                  <p>Tối thiểu 6 ký tự để bảo vệ tài khoản</p>
+                  <p>Tối thiểu 12 ký tự, gồm chữ hoa, chữ thường và số</p>
                 </div>
               </header>
               <form onSubmit={savePassword} className="mobile-settings-form">
@@ -428,13 +428,13 @@ export function MobileAccountView() {
                     <span>Mật khẩu mới *</span>
                     <input
                       required
-                      minLength={6}
+                      minLength={12}
                       maxLength={128}
                       type="password"
                       autoComplete="new-password"
                       value={passwords.newPassword}
                       onChange={(event) => setPasswords({ ...passwords, newPassword: event.target.value })}
-                      placeholder="Tối thiểu 6 ký tự"
+                      placeholder="Ít nhất 12 ký tự, gồm hoa, thường và số"
                     />
                   </label>
                 </div>
@@ -443,7 +443,7 @@ export function MobileAccountView() {
                     <span>Xác nhận mật khẩu mới *</span>
                     <input
                       required
-                      minLength={6}
+                      minLength={12}
                       maxLength={128}
                       type="password"
                       autoComplete="new-password"
@@ -997,13 +997,13 @@ function MobileAccountDialog({
               <span>Mật khẩu ban đầu *</span>
               <input
                 required
-                minLength={6}
+                minLength={12}
                 maxLength={128}
                 type="password"
                 autoComplete="new-password"
                 value={form.password}
                 onChange={(event) => setForm({ ...form, password: event.target.value })}
-                placeholder="Tối thiểu 6 ký tự"
+                placeholder="Ít nhất 12 ký tự, gồm hoa, thường và số"
               />
             </label>
             <div className="form-field">

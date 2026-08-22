@@ -136,6 +136,9 @@ export const createShift = (body: CreateShiftInput) => apiRequest<ApiEnvelope<Ap
 export const assignShift = (body: AssignShiftInput) => apiRequest<ApiEnvelope<ApiRecord>>('/staff/schedule/assign', { method: 'POST', body: JSON.stringify(body) });
 export const getSchedule = (startDate: string) => apiRequest<ApiEnvelope<ApiRecord>>(`/staff/schedule?${toQueryString({ startDate })}`);
 export const getMySchedule = (startDate: string) => apiRequest<ApiEnvelope<ApiRecord>>(`/staff/me/schedule?${toQueryString({ startDate })}`);
+export const getMyWorkItems = (dateFrom: string, dateTo: string) => apiRequest<ApiEnvelope<ApiRecord>>(
+  `/staff/me/work-items?${toQueryString({ dateFrom, dateTo })}`,
+);
 export const getAttendance = (dateFrom: string, dateTo: string) => apiRequest<ApiEnvelope<ApiRecord[]>>(`/staff/attendance?${toQueryString({ dateFrom, dateTo })}`);
 export const getCommissions = (dateFrom: string, dateTo: string) => apiRequest<ApiEnvelope<{ rows: ApiRecord[]; byStaff: ApiRecord[] }>>(`/staff/commissions?${toQueryString({ dateFrom, dateTo })}`);
 

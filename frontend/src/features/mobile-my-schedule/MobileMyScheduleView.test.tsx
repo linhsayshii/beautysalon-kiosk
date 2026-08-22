@@ -6,15 +6,10 @@ import { MobileMyScheduleView } from './MobileMyScheduleView';
 import * as AuthProvider from '@/features/auth/AuthProvider';
 
 // Module-level hoisted mocks — these are stable across all tests
-const mockGetPosAppointments = vi.hoisted(() => vi.fn());
-const mockGetOrders = vi.hoisted(() => vi.fn());
+const mockGetMyWorkItems = vi.hoisted(() => vi.fn());
 
-vi.mock('@/features/pos/pos.api', () => ({
-  getPosAppointments: mockGetPosAppointments,
-}));
-
-vi.mock('@/features/operations/operations.api', () => ({
-  getOrders: mockGetOrders,
+vi.mock('@/features/staff/staff.api', () => ({
+  getMyWorkItems: mockGetMyWorkItems,
 }));
 
 const mockAccount = {
@@ -62,11 +57,7 @@ describe('MobileMyScheduleView', () => {
     );
 
   it('shows empty state when no appointments', async () => {
-    mockGetPosAppointments.mockResolvedValue({ data: [] as any[], meta: {} });
-    mockGetOrders.mockResolvedValue({
-      data: [] as any[],
-      meta: {},
-    } as any);
+    mockGetMyWorkItems.mockResolvedValue({ data: { appointments: [], drafts: [] }, meta: {} } as any);
 
     renderComponent();
     await waitFor(() => {
@@ -75,19 +66,15 @@ describe('MobileMyScheduleView', () => {
   });
 
   it('renders page title', () => {
-    mockGetPosAppointments.mockResolvedValue({ data: [] as any[], meta: {} });
-    mockGetOrders.mockResolvedValue({
-      data: [] as any[],
-      meta: {},
-    } as any);
+    mockGetMyWorkItems.mockResolvedValue({ data: { appointments: [], drafts: [] }, meta: {} } as any);
 
     renderComponent();
     expect(screen.getByText('Lịch của tôi')).toBeInTheDocument();
   });
 
   it('renders appointment items for the current staff', async () => {
-    mockGetPosAppointments.mockResolvedValue({
-      data: [
+    mockGetMyWorkItems.mockResolvedValue({
+      data: { appointments: [
         {
           id: 11,
           startsAt: '2026-08-21T09:00:00Z',
@@ -106,13 +93,9 @@ describe('MobileMyScheduleView', () => {
           staff: { id: 3, name: 'Người khác' },
           service: { id: 2, name: 'Massage body' },
         },
-      ] as any[],
+      ] as any[], drafts: [] },
       meta: {},
     });
-    mockGetOrders.mockResolvedValue({
-      data: [] as any[],
-      meta: {},
-    } as any);
 
     renderComponent();
     await waitFor(() => {
@@ -123,8 +106,8 @@ describe('MobileMyScheduleView', () => {
   });
 
   it('shows checkout button for appointments with invoiceId', async () => {
-    mockGetPosAppointments.mockResolvedValue({
-      data: [
+    mockGetMyWorkItems.mockResolvedValue({
+      data: { appointments: [
         {
           id: 21,
           startsAt: '2026-08-21T09:00:00Z',
@@ -145,13 +128,9 @@ describe('MobileMyScheduleView', () => {
           service: { name: 'Nhuộm tóc' },
           // no invoiceId — should not show checkout
         },
-      ] as any[],
+      ] as any[], drafts: [] },
       meta: {},
     });
-    mockGetOrders.mockResolvedValue({
-      data: [] as any[],
-      meta: {},
-    } as any);
 
     renderComponent();
     await waitFor(() => {

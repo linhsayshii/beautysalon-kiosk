@@ -2,8 +2,7 @@ import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/features/auth/AuthProvider';
-import { getPosAppointments } from '@/features/pos/pos.api';
-import { getOrders } from '@/features/operations/operations.api';
+import { getMyWorkItems } from '@/features/staff/staff.api';
 import './mobile-my-schedule.css';
 
 interface ScheduleItem {
@@ -60,25 +59,15 @@ export function MobileMyScheduleView() {
   const dateFrom = selectedDate;
   const dateTo = selectedDate;
 
-  const appointmentsQuery = useQuery({
-    queryKey: ['pos-appointments', dateFrom, dateTo],
-    queryFn: () => getPosAppointments(dateFrom, dateTo),
-    enabled: !!account?.staffId,
-  });
-
-  const draftsQuery = useQuery({
-    queryKey: ['orders-drafts', dateFrom, dateTo, account?.staffId],
-    queryFn: () => getOrders({
-      status: 'draft',
-      staffId: account?.staffId ?? undefined,
-      dateFrom,
-      dateTo,
-    }),
+  const workItemsQuery = useQuery({
+    queryKey: ['my-work-items', dateFrom, dateTo],
+    queryFn: () => getMyWorkItems(dateFrom, dateTo),
     enabled: !!account?.staffId,
   });
 
   const items = useMemo((): ScheduleItem[] => {
-    const aptItems: ScheduleItem[] = (appointmentsQuery.data?.data ?? [])
+    const workItems = workItemsQuery.data?.data ?? {};
+    const aptItems: ScheduleItem[] = (workItems.appointments ?? [])
       .filter((apt: any) => String(apt.staff?.id) === String(account?.staffId))
       .map((apt: any) => ({
         type: 'appointment' as const,
@@ -90,7 +79,7 @@ export function MobileMyScheduleView() {
         invoiceId: apt.invoiceId,
       }));
 
-    const draftItems: ScheduleItem[] = (draftsQuery.data?.data ?? []).map((inv: any) => ({
+    const draftItems: ScheduleItem[] = (workItems.drafts ?? []).map((inv: any) => ({
       type: 'invoice' as const,
       id: inv.id,
       time: inv.issuedAt,
@@ -102,10 +91,10 @@ export function MobileMyScheduleView() {
     return [...aptItems, ...draftItems].sort(
       (a, b) => new Date(a.time).getTime() - new Date(b.time).getTime()
     );
-  }, [appointmentsQuery.data, draftsQuery.data, account?.staffId]);
+  }, [workItemsQuery.data, account?.staffId]);
 
-  const isLoading = appointmentsQuery.isLoading || draftsQuery.isLoading;
-  const error = appointmentsQuery.error || draftsQuery.error;
+  const isLoading = workItemsQuery.isLoading;
+  const error = workItemsQuery.error;
 
   return (
     <div className="mobile-my-schedule-view">

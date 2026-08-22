@@ -5,7 +5,6 @@ export interface WsEventPayload<T = unknown> {
 }
 
 export function createPosSocketConnection(
-  branchId: number,
   onEvent: (event: string, data: any) => void
 ) {
   let ws: WebSocket | null = null;
@@ -17,7 +16,7 @@ export function createPosSocketConnection(
     if (typeof window === 'undefined') return;
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     const host = window.location.host;
-    const wsUrl = `${protocol}//${host}/api/v1/ws?branchId=${branchId}`;
+    const wsUrl = `${protocol}//${host}/api/v1/ws`;
 
     try {
       ws = new WebSocket(wsUrl);
