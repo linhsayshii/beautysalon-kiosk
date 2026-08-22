@@ -303,10 +303,10 @@ export async function updateInventoryItem({
     } else if (type === 'account_card') {
       if (scopeItems) {
         await validateScopedItems(client, branchId, scopeItems);
-        await client.query('DELETE FROM account_card_scopes WHERE account_card_id = $1', [id]);
+        await client.query('DELETE FROM account_card_scope_items WHERE account_card_id = $1', [id]);
         for (const item of scopeItems) {
           await client.query(
-            'INSERT INTO account_card_scopes (account_card_id, item_type, item_id) VALUES ($1, $2, $3)',
+            'INSERT INTO account_card_scope_items (account_card_id, item_type, item_id) VALUES ($1, $2, $3)',
             [id, item.itemType, item.itemId],
           );
         }
