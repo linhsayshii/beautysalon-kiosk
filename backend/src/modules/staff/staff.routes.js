@@ -23,7 +23,7 @@ import {
   updateWorkScheduleSettings,
   updateStaff,
 } from './staff.service.js';
-import { listAppointments } from '../dashboard/dashboard.service.js';
+import { listAppointments, transitionAppointmentWorkStatus } from '../dashboard/dashboard.service.js';
 import { listOrders } from '../orders/orders.service.js';
 
 const router = Router();
@@ -97,11 +97,32 @@ staffSelfRoutes.get('/work-items', asyncRoute(async (request, response) => {
     }),
   ]);
 
+  const staffAppointments = appointments.filter((appointment) => appointment.staff?.id === staffId);
+  const appointmentInvoiceIds = new Set(
+    staffAppointments.flatMap((appointment) => appointment.invoiceId ? [Number(appointment.invoiceId)] : []),
+  );
   response.json({
     data: {
-      appointments: appointments.filter((appointment) => appointment.staff?.id === staffId),
-      drafts: drafts.rows,
+      appointments: staffAppointments,
+      // An appointment and its linked draft are one work item in the employee
+      // agenda. The invoice remains available to POS, but is not a duplicate
+      // card in My Schedule.
+      drafts: drafts.rows.filter((draft) => !appointmentInvoiceIds.has(Number(draft.id))),
     },
+  });
+}));
+
+staffSelfRoutes.patch('/work-items/:id/status', asyncRoute(async (request, response) => {
+  const staffId = requireLinkedStaff(request);
+  const id = parsePositiveInteger(request.params.id, 'id');
+  const status = parseEnum(request.body.status, 'status', ['in_service', 'completed']);
+  response.json({
+    data: await transitionAppointmentWorkStatus({
+      branchId: request.account.branchId,
+      staffId,
+      id,
+      status,
+    }),
   });
 }));
 
@@ -114,11 +135,6 @@ router.post('/', asyncRoute(async (request, response) => {
   if (code && !/^[A-Z0-9._-]+$/.test(code)) {
     throw new HttpError(400, 'INVALID_CODE', 'Mã nhân viên chỉ gồm chữ, số, dấu chấm, gạch ngang hoặc gạch dưới');
   }
-  const defaultCommissionRate = nonNegative(request.body.defaultCommissionRate, 'defaultCommissionRate');
-  if (defaultCommissionRate > 1) {
-    throw new HttpError(400, 'INVALID_COMMISSION_RATE', 'Hoa hồng mặc định không được lớn hơn 100%');
-  }
-
   const data = await createStaff({
     branchId: request.account.branchId,
     name,
@@ -129,7 +145,6 @@ router.post('/', asyncRoute(async (request, response) => {
     salaryType: parseEnum(request.body.salaryType, 'salaryType', ['monthly', 'hourly', 'shift'], 'monthly'),
     baseSalary: nonNegative(request.body.baseSalary, 'baseSalary'),
     hourlyRate: nonNegative(request.body.hourlyRate, 'hourlyRate'),
-    defaultCommissionRate,
     canSell: typeof request.body.canSell === 'boolean' ? request.body.canSell : true,
     canManageInventory: request.body.canManageInventory === true,
     profile: staffProfile(request.body),
@@ -311,11 +326,6 @@ router.patch('/:id', asyncRoute(async (request, response) => {
   if (!/^[A-Z0-9._-]+$/.test(code)) {
     throw new HttpError(400, 'INVALID_CODE', 'Mã nhân viên chỉ gồm chữ, số, dấu chấm, gạch ngang hoặc gạch dưới');
   }
-  const defaultCommissionRate = nonNegative(request.body.defaultCommissionRate, 'defaultCommissionRate');
-  if (defaultCommissionRate > 1) {
-    throw new HttpError(400, 'INVALID_COMMISSION_RATE', 'Hoa hồng mặc định không được lớn hơn 100%');
-  }
-
   const data = await updateStaff({
     branchId: request.account.branchId,
     staffId: parsePositiveInteger(request.params.id, 'id'),
@@ -327,7 +337,6 @@ router.patch('/:id', asyncRoute(async (request, response) => {
     salaryType: parseEnum(request.body.salaryType, 'salaryType', ['monthly', 'hourly', 'shift'], 'monthly'),
     baseSalary: nonNegative(request.body.baseSalary, 'baseSalary'),
     hourlyRate: nonNegative(request.body.hourlyRate, 'hourlyRate'),
-    defaultCommissionRate,
     canSell: typeof request.body.canSell === 'boolean' ? request.body.canSell : true,
     canManageInventory: request.body.canManageInventory === true,
     profile: staffProfile(request.body),

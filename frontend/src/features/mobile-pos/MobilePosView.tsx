@@ -1,10 +1,9 @@
 import { useState, useMemo, useEffect } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { formatMoney, formatNumber } from '@/lib/format';
 import { LoadingState, ErrorState } from '@/components/data-display/DataState';
-import { getPosCatalog, getPosStaff, type PosReceiptData } from '@/features/pos/pos.api';
-import { getOrder } from '@/features/operations/operations.api';
+import { getPosCatalog, getPosInvoice, getPosPaymentRequests, getPosStaff, type PosReceiptData } from '@/features/pos/pos.api';
 import { PosReceiptPrint } from '@/features/pos/components/PosReceiptPrint';
 import { MobileCartBottomSheet } from './MobileCartBottomSheet';
 import '@/features/mobile-pos/mobile-pos.css';
@@ -45,6 +44,7 @@ const filterTabs: Array<{ value: CatalogFilter; label: string }> = [
 
 export function MobilePosView() {
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
   const invoiceIdParam = searchParams.get('invoice');
   const appointmentIdParam = searchParams.get('appointment');
 
@@ -62,9 +62,18 @@ export function MobilePosView() {
   // Fetch invoice if editing existing draft
   const invoiceQuery = useQuery({
     queryKey: ['pos-invoice', invoiceId],
-    queryFn: () => getOrder(invoiceId!),
+    queryFn: () => getPosInvoice(invoiceId!),
     enabled: !!invoiceId,
   });
+  const paymentRequestsQuery = useQuery({
+    queryKey: ['pos-payment-requests'],
+    queryFn: getPosPaymentRequests,
+    refetchInterval: 10_000,
+  });
+  const incompleteServiceCount = useMemo(() => {
+    const progress = (invoiceQuery.data?.data as any)?.serviceProgress;
+    return Math.max(0, Number(progress?.total || 0) - Number(progress?.completed || 0));
+  }, [invoiceQuery.data]);
 
   // Populate cart from invoice when loaded
   useEffect(() => {
@@ -80,7 +89,13 @@ export function MobilePosView() {
       }
       // Map invoice items to cart lines
       const lines: PosLine[] = (invoice.items || []).map((item: any) => ({
-        itemId: item.id,
+        itemId: item.itemType === 'service'
+          ? item.serviceId
+          : item.itemType === 'product'
+          ? item.productId
+          : item.itemType === 'package'
+          ? item.packageId
+          : item.accountCardId,
         itemType: item.itemType as Exclude<CatalogFilter, ''>,
         code: item.code || '',
         name: item.name,
@@ -228,6 +243,26 @@ export function MobilePosView() {
 
   return (
     <div className="mobile-pos-container">
+      {paymentRequestsQuery.data?.data?.length ? (
+        <section className="mobile-pos-payment-requests" aria-label="Hóa đơn chờ thanh toán">
+          <div className="mobile-pos-payment-requests-head">
+            <strong>Chờ thanh toán</strong>
+            <span>{paymentRequestsQuery.data.data.length} hóa đơn</span>
+          </div>
+          <div className="mobile-pos-payment-request-list">
+            {paymentRequestsQuery.data.data.map((request) => (
+              <article key={request.id} className="mobile-pos-payment-request">
+                <div>
+                  <strong>{request.customer.name}</strong>
+                  <span>{request.serviceProgress.completed}/{request.serviceProgress.total} dịch vụ đã xong</span>
+                  {request.requestedByName && <small>Chuyển bởi {request.requestedByName}</small>}
+                </div>
+                <button type="button" onClick={() => navigate(`/m/pos?invoice=${request.id}`)}>Thanh toán</button>
+              </article>
+            ))}
+          </div>
+        </section>
+      ) : null}
       {/* Sticky Top Controls Cluster */}
       <div className="mobile-pos-sticky-top-controls">
         {/* Top Search & Actions */}
@@ -439,6 +474,8 @@ export function MobilePosView() {
           lines={cartLines}
           customer={customer}
           appointmentId={appointmentId}
+          invoiceId={invoiceId}
+          incompleteServiceCount={incompleteServiceCount}
           onSelectCustomer={setCustomer}
           onUpdateQuantity={handleUpdateQuantity}
           onUpdateLineStaff={handleUpdateLineStaff}

@@ -27,6 +27,20 @@ export const getPosAppointments = (dateFrom: string, dateTo: string) => apiReque
   `/pos/appointments?dateFrom=${encodeURIComponent(dateFrom)}&dateTo=${encodeURIComponent(dateTo)}`,
 );
 
+export interface PosPaymentRequest {
+  id: number;
+  code: string;
+  total: number;
+  issuedAt: string;
+  paymentRequestedAt: string;
+  requestedByName: string | null;
+  customer: { name: string; phone: string | null };
+  serviceProgress: { total: number; completed: number };
+}
+
+export const getPosPaymentRequests = () => apiRequest<ApiEnvelope<PosPaymentRequest[]>>('/pos/payment-requests');
+export const getPosInvoice = (id: number) => apiRequest<ApiEnvelope<ApiRecord>>(`/pos/invoices/${id}`);
+
 export const getPosStaff = () => apiRequest<ApiEnvelope<ApiRecord[]>>('/pos/staff');
 
 export const createPosAppointment = (body: ApiRecord) => apiRequest<ApiEnvelope<ApiRecord>>('/pos/appointments', {
@@ -65,6 +79,7 @@ export interface PosCheckoutPayload {
   amountPaid?: number | null;
   note?: string;
   appointmentId?: number | null;
+  invoiceId?: number | null;
   lines: Array<{
     itemType: 'product' | 'service' | 'package' | 'account_card';
     itemId: number;
@@ -116,4 +131,3 @@ export const checkoutPosInvoice = (body: PosCheckoutPayload) => apiRequest<ApiEn
   method: 'POST',
   body: JSON.stringify(body),
 });
-

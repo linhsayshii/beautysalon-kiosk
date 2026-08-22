@@ -108,8 +108,8 @@ describe('MobileAppointmentCreateView Component', () => {
     expect(screen.getByText(/Bắt đầu làm/i)).toBeInTheDocument();
 
     // Card 2: Empty items state
-    expect(screen.getByText('Chưa có dịch vụ, sản phẩm')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Thêm dịch vụ, sản phẩm' })).toBeInTheDocument();
+    expect(screen.getByText('Chưa có dịch vụ')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Thêm dịch vụ' })).toBeInTheDocument();
 
     // Card 3: Status pills
     expect(screen.getByText('Chờ xác nhận')).toBeInTheDocument();
@@ -146,7 +146,7 @@ describe('MobileAppointmentCreateView Component', () => {
     renderComponent();
 
     // Click add item
-    fireEvent.click(screen.getByRole('button', { name: 'Thêm dịch vụ, sản phẩm' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Thêm dịch vụ' }));
 
     // Catalog modal should show items
     await waitFor(() => {
@@ -189,7 +189,7 @@ describe('MobileAppointmentCreateView Component', () => {
     fireEvent.click(screen.getByText('Nguyễn Thị Hoa'));
 
     // 2. Add Service
-    fireEvent.click(screen.getByRole('button', { name: 'Thêm dịch vụ, sản phẩm' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Thêm dịch vụ' }));
     await waitFor(() => expect(screen.getByText('Chăm sóc da chuyên sâu')).toBeInTheDocument());
     fireEvent.click(screen.getByText('Chăm sóc da chuyên sâu'));
 
@@ -204,10 +204,42 @@ describe('MobileAppointmentCreateView Component', () => {
       expect(posApi.createPosAppointment).toHaveBeenCalledWith(
         expect.objectContaining({
           customerId: 101,
-          serviceId: 1,
+          items: [expect.objectContaining({ serviceId: 1 })],
         })
       );
       expect(mockNavigate).toHaveBeenCalledWith(-1);
+    });
+  });
+
+  it('submits every configured service into the same appointment batch', async () => {
+    renderComponent();
+
+    fireEvent.click(screen.getByText('Thêm khách hàng'));
+    await waitFor(() => expect(screen.getByText('Nguyễn Thị Hoa')).toBeInTheDocument());
+    fireEvent.click(screen.getByText('Nguyễn Thị Hoa'));
+
+    fireEvent.click(screen.getByRole('button', { name: 'Thêm dịch vụ' }));
+    await waitFor(() => expect(screen.getByText('Chăm sóc da chuyên sâu')).toBeInTheDocument());
+    fireEvent.click(screen.getByText('Chăm sóc da chuyên sâu'));
+    await waitFor(() => expect(screen.getByText('Chi tiết lịch dịch vụ')).toBeInTheDocument());
+    fireEvent.click(screen.getByRole('button', { name: 'Xong' }));
+
+    fireEvent.click(screen.getByRole('button', { name: 'Thêm dịch vụ' }));
+    await waitFor(() => expect(screen.getByText('Gội đầu dưỡng sinh')).toBeInTheDocument());
+    fireEvent.click(screen.getByText('Gội đầu dưỡng sinh'));
+    await waitFor(() => expect(screen.getByText('Chi tiết lịch dịch vụ')).toBeInTheDocument());
+    fireEvent.click(screen.getByRole('button', { name: 'Xong' }));
+
+    fireEvent.click(screen.getByRole('button', { name: 'Lưu' }));
+
+    await waitFor(() => {
+      expect(posApi.createPosAppointment).toHaveBeenCalledWith(expect.objectContaining({
+        customerId: 101,
+        items: [
+          expect.objectContaining({ serviceId: 1, quantity: 1 }),
+          expect.objectContaining({ serviceId: 2, quantity: 1 }),
+        ],
+      }));
     });
   });
 });

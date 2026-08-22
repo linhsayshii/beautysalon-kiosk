@@ -1,11 +1,12 @@
 import { useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { ErrorState } from '@/components/data-display/DataState';
 import { useToast } from '@/components/ui/Toast/ToastProvider';
 import { useAuth } from '@/features/auth/AuthProvider';
 import { formatMoney } from '@/lib/format';
-import { createPosAppointment, updatePosAppointment, createPosCustomer, getPosAppointments, getPosCatalog, getPosStaff, searchPosCustomers, getPosCustomerAvailablePackages, type PosReceiptData } from '../pos.api';
+import { createPosAppointment, updatePosAppointment, createPosCustomer, getPosAppointments, getPosCatalog, getPosInvoice, getPosPaymentRequests, getPosStaff, searchPosCustomers, getPosCustomerAvailablePackages, type PosReceiptData } from '../pos.api';
 import { layoutOverlappingAppointments } from '../calendar-layout';
 import { CustomerCreateDialog } from '@/features/operations/components/CustomerCreateDialog';
 import { PosCheckoutModal } from './PosCheckoutModal';
@@ -43,6 +44,7 @@ interface PosCustomer {
 
 interface InvoiceDraft {
   id: number;
+  serverInvoiceId?: number;
   name: string;
   customerSearch: string;
   customer: PosCustomer | null;
@@ -91,6 +93,8 @@ function loadDrafts(accountId: number): InvoiceDraft[] {
 }
 
 export function PosView() {
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
   const { account } = useAuth();
   const accountId = account?.id ?? 0;
   const [invoices, setInvoices] = useState<InvoiceDraft[]>(() => loadDrafts(accountId));
@@ -118,6 +122,37 @@ export function PosView() {
     queryKey: ['pos-catalog', deferredCatalogSearch, catalogFilter],
     queryFn: () => getPosCatalog(deferredCatalogSearch, catalogFilter),
   });
+  const requestedInvoiceId = searchParams.get('invoice') ? Number(searchParams.get('invoice')) : null;
+  const requestedInvoice = useQuery({
+    queryKey: ['pos-invoice', requestedInvoiceId],
+    queryFn: () => getPosInvoice(requestedInvoiceId!),
+    enabled: Boolean(requestedInvoiceId),
+  });
+  const paymentRequests = useQuery({
+    queryKey: ['pos-payment-requests'],
+    queryFn: getPosPaymentRequests,
+    refetchInterval: 10_000,
+  });
+
+  useEffect(() => {
+    const invoice = requestedInvoice.data?.data as any;
+    if (!invoice) return;
+    updateActive(() => ({
+      id: activeId,
+      serverInvoiceId: invoice.id,
+      name: invoice.code,
+      customerSearch: invoice.customer?.name || '',
+      customer: invoice.customer?.id ? { id: invoice.customer.id, name: invoice.customer.name, phone: invoice.customer.phone } : null,
+      lines: (invoice.items || []).map((item: any) => ({
+        itemId: item.itemType === 'service' ? item.serviceId : item.itemType === 'product' ? item.productId : item.itemType === 'package' ? item.packageId : item.accountCardId,
+        itemType: item.itemType,
+        code: item.code || '', name: item.name, category: '', unit: item.unit || 'lần', salePrice: item.unitPrice,
+        stockQuantity: null, quantity: item.quantity, staffId: item.staffId || null,
+        commissionType: item.commissionType || null, commissionRate: item.commissionRate || 0,
+      })),
+    }));
+    setMode('invoice');
+  }, [requestedInvoice.data]);
 
   const customers = useQuery({
     queryKey: ['pos-customers', deferredCustomerSearch],
@@ -241,6 +276,7 @@ export function PosView() {
     queryClient.invalidateQueries({ queryKey: ['customers'] });
     queryClient.invalidateQueries({ queryKey: ['customer-packages'] });
     queryClient.invalidateQueries({ queryKey: ['staff-commissions'] });
+    queryClient.invalidateQueries({ queryKey: ['pos-payment-requests'] });
 
     if (shouldPrint) {
       setReceiptToPrint(receipt);
@@ -265,6 +301,20 @@ export function PosView() {
         <button className="pos-add-invoice" type="button" onClick={addInvoice} aria-label="Thêm hóa đơn"><i className="ph ph-plus" aria-hidden="true" /></button>
         <div className="pos-shift-status"><i className="ph ph-storefront" aria-hidden="true" /><span>Chi nhánh trung tâm</span></div>
       </section>
+
+      {paymentRequests.data?.data?.length ? (
+        <section className="pos-payment-requests" aria-label="Hóa đơn chờ thanh toán">
+          <div><strong>Chờ thanh toán</strong><span>{paymentRequests.data.data.length} hóa đơn đã hoàn thành dịch vụ</span></div>
+          <div className="pos-payment-request-list">
+            {paymentRequests.data.data.map((request) => (
+              <article key={request.id}>
+                <div><strong>{request.customer.name}</strong><span>{request.serviceProgress.completed}/{request.serviceProgress.total} dịch vụ đã xong</span></div>
+                <button type="button" onClick={() => navigate(`/pos?invoice=${request.id}`)}>Thanh toán</button>
+              </article>
+            ))}
+          </div>
+        </section>
+      ) : null}
 
       {mode === 'calendar' ? <PosCalendar /> : <div className="pos-layout">
         <section className="pos-catalog" aria-label="Danh mục bán hàng">
@@ -358,6 +408,7 @@ export function PosView() {
           customer={activeInvoice.customer}
           lines={activeInvoice.lines}
           staffList={staffList}
+          invoiceId={activeInvoice.serverInvoiceId}
           onClose={() => setIsCheckoutOpen(false)}
           onSuccess={handleCheckoutSuccess}
         />
@@ -414,6 +465,7 @@ function isSameDay(first: Date, second: Date) {
 
 interface AppointmentItem {
   id: number;
+  invoiceId: number | null;
   startsAt: string;
   endsAt: string;
   status: string;
@@ -552,6 +604,20 @@ const APPOINTMENT_STATUS_OPTIONS = [
   { value: 'completed', label: 'Đã xong', dotClass: 'is-completed' },
 ];
 
+type AppointmentServiceLine = {
+  lineId: string;
+  appointmentId?: number;
+  id: number;
+  name: string;
+  salePrice: number;
+  staffId: number | null;
+  commissionType?: 'percent' | 'fixed' | null;
+  commissionRate?: number;
+  fromPackageId?: number | null;
+  packageName?: string;
+  remainingUnits?: number;
+};
+
 function AppointmentDrawer({
   selection,
   initialAppointment,
@@ -579,15 +645,15 @@ function AppointmentDrawer({
   const [customerOpen, setCustomerOpen] = useState(false);
   const [isAddingCustomer, setIsAddingCustomer] = useState(false);
 
-  const [selectedService, setSelectedService] = useState<{
-    id: number;
-    name: string;
-    salePrice: number;
-    fromPackageId?: number | null;
-    packageName?: string;
-    remainingUnits?: number;
-  } | null>(
-    initialAppointment?.service.id ? { id: initialAppointment.service.id, name: initialAppointment.service.name || 'Dịch vụ', salePrice: initialAppointment.service.salePrice || 0 } : null,
+  const [selectedServices, setSelectedServices] = useState<AppointmentServiceLine[]>(
+    initialAppointment?.service.id ? [{
+      lineId: `appointment-${initialAppointment.id}`,
+      appointmentId: initialAppointment.id,
+      id: initialAppointment.service.id,
+      name: initialAppointment.service.name || 'Dịch vụ',
+      salePrice: initialAppointment.service.salePrice || 0,
+      staffId: initialAppointment.staff.id ?? null,
+    }] : [],
   );
 
   const [startsAt, setStartsAt] = useState(toDateTimeLocal(initialStart));
@@ -600,6 +666,7 @@ function AppointmentDrawer({
 
   const [isTimeModalOpen, setIsTimeModalOpen] = useState(false);
   const [isServiceModalOpen, setIsServiceModalOpen] = useState(false);
+  const [replaceServiceLineId, setReplaceServiceLineId] = useState<string | null>(null);
   const [serviceSearch, setServiceSearch] = useState('');
 
   const deferredCustomerSearch = useDeferredValue(customerSearch.trim());
@@ -634,30 +701,96 @@ function AppointmentDrawer({
   const services = useQuery({
     queryKey: ['pos-appointment-services', deferredServiceSearch],
     queryFn: () => getPosCatalog(deferredServiceSearch, 'service'),
-    enabled: isServiceModalOpen || !selectedService,
+    enabled: isServiceModalOpen || selectedServices.length === 0,
+  });
+  const staffQuery = useQuery({ queryKey: ['pos-staff'], queryFn: getPosStaff });
+  const staffList = (staffQuery.data?.data ?? []) as Array<{ id: number; name: string; role: string }>;
+  const groupedInvoice = useQuery({
+    queryKey: ['pos-invoice', initialAppointment?.invoiceId],
+    queryFn: () => getPosInvoice(initialAppointment!.invoiceId!),
+    enabled: isEditing && Boolean(initialAppointment?.invoiceId),
   });
 
-  const createMutation = useMutation({
-    mutationFn: createPosAppointment,
+  useEffect(() => {
+    const invoice = groupedInvoice.data?.data as any;
+    if (!invoice?.items?.length) return;
+    const serviceLines = invoice.items
+      .filter((item: any) => item.itemType === 'service' && item.appointment)
+      .map((item: any) => ({
+        lineId: `appointment-${item.appointment.id}`,
+        appointmentId: item.appointment.id,
+        id: item.serviceId,
+        name: item.name,
+        salePrice: item.unitPrice,
+        staffId: item.appointment.staff?.id ?? item.staffId ?? null,
+        commissionType: item.commissionType ?? null,
+        commissionRate: item.commissionRate ?? 0,
+      }));
+    if (serviceLines.length) setSelectedServices(serviceLines);
+  }, [groupedInvoice.data]);
+
+  const saveMutation = useMutation({
+    mutationFn: async ({ services: nextServices, removedAppointmentIds }: { services: AppointmentServiceLine[]; removedAppointmentIds: number[] }) => {
+      const existing = nextServices.filter((service) => service.appointmentId);
+      const additions = nextServices.filter((service) => !service.appointmentId);
+      if (isEditing) {
+        await Promise.all(existing.map((service) => updatePosAppointment(service.appointmentId!, {
+          customerId: customer!.id,
+          serviceId: service.id,
+          staffId: service.staffId,
+          status: service.appointmentId === initialAppointment!.id ? status : undefined,
+          note: service.appointmentId === initialAppointment!.id ? note : undefined,
+          startsAt: service.appointmentId === initialAppointment!.id ? new Date(startsAt).toISOString() : undefined,
+          endsAt: service.appointmentId === initialAppointment!.id
+            ? new Date(new Date(startsAt).getTime() + duration * 60_000).toISOString()
+            : undefined,
+        })));
+        if (additions.length) {
+          await createPosAppointment({
+            invoiceId: initialAppointment!.invoiceId,
+            customerId: customer!.id,
+            startsAt: new Date(startsAt).toISOString(),
+            endsAt: new Date(new Date(startsAt).getTime() + duration * 60_000).toISOString(),
+            status,
+            note,
+            items: additions.map((service) => ({ serviceId: service.id, staffId: service.staffId, quantity: 1 })),
+          });
+        }
+        await Promise.all(removedAppointmentIds.map((appointmentId) => updatePosAppointment(appointmentId, { status: 'cancelled' })));
+        return;
+      }
+      await createPosAppointment({
+        customerId: customer!.id,
+        startsAt: new Date(startsAt).toISOString(),
+        endsAt: new Date(new Date(startsAt).getTime() + duration * 60_000).toISOString(),
+        status,
+        note,
+        items: additions.map((service) => ({ serviceId: service.id, staffId: service.staffId, quantity: 1 })),
+      });
+    },
     onSuccess: () => {
-      notify('Đã tạo lịch hẹn', `${customer?.name ?? 'Khách hàng'} đã được thêm vào lịch.`);
+      notify(isEditing ? 'Đã cập nhật lịch hẹn' : 'Đã tạo lịch hẹn', isEditing ? 'Các dịch vụ trong hóa đơn đã được lưu.' : `${customer?.name ?? 'Khách hàng'} đã được thêm vào lịch.`);
       onSaved();
     },
   });
 
-  const updateMutation = useMutation({
-    mutationFn: (body: any) => updatePosAppointment(initialAppointment!.id, body),
-    onSuccess: () => {
-      notify('Đã cập nhật lịch hẹn', `Thông tin lịch hẹn đã được lưu.`);
-      onSaved();
-    },
-  });
-
-  const isPending = createMutation.isPending || updateMutation.isPending;
+  const isPending = saveMutation.isPending;
   const currentStart = new Date(startsAt);
   const dateTitle = currentStart.toLocaleDateString('vi-VN', { weekday: 'long', day: '2-digit', month: '2-digit' });
   const timeTitle = currentStart.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', hour12: false });
   const currentStatusObj = APPOINTMENT_STATUS_OPTIONS.find((opt) => opt.value === status) ?? APPOINTMENT_STATUS_OPTIONS[1];
+  const addOrReplaceService = (service: Omit<AppointmentServiceLine, 'lineId' | 'appointmentId' | 'staffId'>) => {
+    setSelectedServices((current) => {
+      if (!replaceServiceLineId) {
+        return [...current, { ...service, lineId: crypto.randomUUID(), staffId: null }];
+      }
+      return current.map((item) => item.lineId === replaceServiceLineId
+        ? { ...service, lineId: item.lineId, appointmentId: item.appointmentId, staffId: item.staffId }
+        : item);
+    });
+    setReplaceServiceLineId(null);
+    setIsServiceModalOpen(false);
+  };
 
   const submit = (event: FormEvent) => {
     event.preventDefault();
@@ -665,28 +798,20 @@ function AppointmentDrawer({
       notify('Chưa chọn khách hàng', 'Vui lòng tìm hoặc tạo khách hàng cho lịch hẹn.');
       return;
     }
-    const start = new Date(startsAt);
-    const end = new Date(start.getTime() + duration * 60_000);
-
-    const payload = {
-      customerId: customer.id,
-      serviceId: selectedService ? selectedService.id : (initialAppointment?.service.id ?? null),
-      staffId: null,
-      startsAt: start.toISOString(),
-      endsAt: end.toISOString(),
-      status,
-      note,
-    };
-
-    if (isEditing) {
-      updateMutation.mutate(payload);
-    } else {
-      if (!selectedService) {
+    if (!isEditing && !selectedServices.length) {
         notify('Chưa chọn dịch vụ', 'Vui lòng chọn ít nhất một dịch vụ cho lịch hẹn.');
         return;
-      }
-      createMutation.mutate(payload);
     }
+    const loadedInvoiceItems = (groupedInvoice.data?.data as any)?.items as any[] | undefined;
+    const originalAppointmentIds = (loadedInvoiceItems?.length ? loadedInvoiceItems : [])
+      .filter((item: any) => item.itemType === 'service' && item.appointment)
+      .map((item: any) => Number(item.appointment.id));
+    if (!originalAppointmentIds.length && initialAppointment) originalAppointmentIds.push(initialAppointment.id);
+    const remainingAppointmentIds = new Set(selectedServices.flatMap((service) => service.appointmentId ? [service.appointmentId] : []));
+    saveMutation.mutate({
+      services: selectedServices,
+      removedAppointmentIds: originalAppointmentIds.filter((id: number) => !remainingAppointmentIds.has(id)),
+    });
   };
 
   const catalogServices = (services.data?.data ?? []) as CatalogItem[];
@@ -765,7 +890,7 @@ function AppointmentDrawer({
                       onClick={() => {
                         setCustomer(null);
                         setCustomerSearch('');
-                        setSelectedService(null);
+                        setSelectedServices([]);
                       }}
                     >
                       <i className="ph ph-x" />
@@ -828,7 +953,7 @@ function AppointmentDrawer({
             </div>
 
             {/* Thẻ thông báo gói dịch vụ khả dụng của khách hàng */}
-            {customer && availablePackages.data?.data && availablePackages.data.data.length > 0 && !selectedService && (
+            {customer && availablePackages.data?.data && availablePackages.data.data.length > 0 && selectedServices.length === 0 && (
               <div style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -859,7 +984,7 @@ function AppointmentDrawer({
                     fontWeight: 700,
                     cursor: 'pointer'
                   }}
-                  onClick={() => setIsServiceModalOpen(true)}
+                  onClick={() => { setReplaceServiceLineId(null); setIsServiceModalOpen(true); }}
                 >
                   Chọn gói
                 </button>
@@ -868,7 +993,7 @@ function AppointmentDrawer({
 
             {/* Services List / Empty State */}
             <div className="kv-services-card-area">
-              {!selectedService ? (
+              {selectedServices.length === 0 ? (
                 <div className="kv-empty-services">
                   <div className="kv-empty-illustration">
                     <i className="ph ph-receipt" />
@@ -877,53 +1002,80 @@ function AppointmentDrawer({
                   <button
                     type="button"
                     className="kv-add-service-btn"
-                    onClick={() => setIsServiceModalOpen(true)}
+                    onClick={() => { setReplaceServiceLineId(null); setIsServiceModalOpen(true); }}
                   >
                     Thêm dịch vụ, sản phẩm
                   </button>
                 </div>
               ) : (
                 <div className="kv-selected-services-list">
-                  <div className="kv-service-row">
-                    <div className="kv-service-row-main">
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        {selectedService.fromPackageId && (
-                          <span className="kv-package-badge">Trừ gói</span>
-                        )}
-                        <span className="kv-service-title">{selectedService.name}</span>
+                  {selectedServices.map((service) => {
+                    const commission = !service.staffId || !service.commissionType || !service.commissionRate
+                      ? 0
+                      : Math.round(service.commissionType === 'percent'
+                        ? service.salePrice * service.commissionRate
+                        : service.commissionRate);
+                    return (
+                      <div key={service.lineId} className="kv-service-row">
+                        <div className="kv-service-row-main">
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            {service.fromPackageId && <span className="kv-package-badge">Trừ gói</span>}
+                            <span className="kv-service-title">{service.name}</span>
+                          </div>
+                          {service.packageName && (
+                            <small style={{ color: '#047857', fontWeight: 600, fontSize: '11.5px' }}>
+                              Gói: {service.packageName} (Còn {service.remainingUnits} buổi)
+                            </small>
+                          )}
+                          <div className="kv-service-meta">
+                            <span className="kv-service-price">
+                              {service.fromPackageId ? '0đ (Theo gói)' : formatMoney(service.salePrice)}
+                            </span>
+                            <span>{duration} phút</span>
+                          </div>
+                          <button
+                            type="button"
+                            className="kv-service-change-btn"
+                            onClick={() => {
+                              setReplaceServiceLineId(service.lineId);
+                              setIsServiceModalOpen(true);
+                            }}
+                          >
+                            Đổi dịch vụ
+                          </button>
+                          <div className="kv-service-assignment">
+                            <select
+                              aria-label={`Nhân viên thực hiện ${service.name}`}
+                              value={service.staffId ?? ''}
+                              onChange={(event) => setSelectedServices((current) => current.map((item) => (
+                                item.lineId === service.lineId ? { ...item, staffId: event.target.value ? Number(event.target.value) : null } : item
+                              )))}
+                            >
+                              <option value="">Chưa phân công</option>
+                              {staffList.map((staff) => <option key={staff.id} value={staff.id}>{staff.name}</option>)}
+                            </select>
+                            <span className="kv-service-commission">Hoa hồng: <strong>{formatMoney(commission)}</strong></span>
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          className="kv-service-remove-btn"
+                          onClick={() => setSelectedServices((current) => current.filter((item) => item.lineId !== service.lineId))}
+                          title="Xóa dịch vụ"
+                        >
+                          <i className="ph ph-trash" />
+                        </button>
                       </div>
-                      {selectedService.packageName && (
-                        <small style={{ color: '#047857', fontWeight: 600, fontSize: '11.5px' }}>
-                          Gói: {selectedService.packageName} (Còn {selectedService.remainingUnits} buổi)
-                        </small>
-                      )}
-                      <div className="kv-service-meta">
-                        <span className="kv-service-price">
-                          {selectedService.fromPackageId ? '0đ (Theo gói)' : formatMoney(selectedService.salePrice)}
-                        </span>
-                        <span>{duration} phút</span>
-                      </div>
-                    </div>
-                    <button
-                      type="button"
-                      className="kv-service-remove-btn"
-                      onClick={() => setSelectedService(null)}
-                      title="Xóa dịch vụ"
-                    >
-                      <i className="ph ph-trash" />
-                    </button>
-                  </div>
-
-                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                    <button
-                      type="button"
-                      className="kv-add-service-btn"
-                      style={{ fontSize: '12.5px', padding: '6px 14px' }}
-                      onClick={() => setIsServiceModalOpen(true)}
-                    >
-                      Đổi dịch vụ
-                    </button>
-                  </div>
+                    );
+                  })}
+                  <button
+                    type="button"
+                    className="kv-add-service-btn"
+                    style={{ alignSelf: 'flex-start', fontSize: '12.5px', padding: '6px 14px' }}
+                    onClick={() => { setReplaceServiceLineId(null); setIsServiceModalOpen(true); }}
+                  >
+                    Thêm dịch vụ
+                  </button>
                 </div>
               )}
             </div>
@@ -950,10 +1102,10 @@ function AppointmentDrawer({
               )}
             </div>
 
-            {(createMutation.error || updateMutation.error) && (
+            {saveMutation.error && (
               <div style={{ padding: '10px 12px', borderRadius: '10px', background: '#fee2e2', color: '#dc2626', fontSize: '12px' }}>
                 <i className="ph ph-warning-circle" style={{ marginRight: '6px' }} />
-                {(createMutation.error || updateMutation.error)?.message || 'Có lỗi xảy ra khi lưu lịch hẹn'}
+                {saveMutation.error?.message || 'Có lỗi xảy ra khi lưu lịch hẹn'}
               </div>
             )}
           </div>
@@ -1059,15 +1211,16 @@ function AppointmentDrawer({
                       key={`pkg-${pkg.customerPackageId}-${pkg.service.id}`}
                       className="kv-package-card-item"
                       onClick={() => {
-                        setSelectedService({
+                        addOrReplaceService({
                           id: pkg.service.id,
                           name: pkg.service.name,
                           salePrice: 0,
+                          commissionType: null,
+                          commissionRate: 0,
                           fromPackageId: pkg.customerPackageId,
                           packageName: pkg.packageName,
                           remainingUnits: pkg.remainingUnits,
                         });
-                        setIsServiceModalOpen(false);
                       }}
                     >
                       <div>
@@ -1101,13 +1254,14 @@ function AppointmentDrawer({
                     key={svc.itemId}
                     className="kv-service-picker-item"
                     onClick={() => {
-                      setSelectedService({
+                      addOrReplaceService({
                         id: svc.itemId,
                         name: svc.name,
                         salePrice: svc.salePrice,
+                        commissionType: svc.commissionType,
+                        commissionRate: svc.commissionRate,
                         fromPackageId: null,
                       });
-                      setIsServiceModalOpen(false);
                     }}
                   >
                     <div>

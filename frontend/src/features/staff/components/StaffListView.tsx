@@ -8,7 +8,7 @@ import { SummaryStrip } from '@/components/data-display/SummaryStrip';
 import { SearchToolbar } from '@/components/forms/SearchToolbar';
 import { PageHeader } from '@/components/ui/PageHeader/PageHeader';
 import { exportCsv } from '@/lib/export';
-import { formatMoney, formatNumber, formatPercent } from '@/lib/format';
+import { formatMoney, formatNumber } from '@/lib/format';
 import type { ApiRecord } from '@/types/api';
 import { statusLabels } from '@/types/api';
 import { getStaff } from '../staff.api';
@@ -81,7 +81,7 @@ export function StaffListView() {
           <div className="table-scroll"><table className="data-table staff-list-table">
             <thead><tr>
               <th className="mobile-hide"><input ref={selectAllRef} className="table-checkbox" type="checkbox" checked={allVisibleSelected} onChange={toggleAllVisible} aria-label="Chọn tất cả nhân viên" /></th>
-              <th>Mã nhân viên</th><th>Nhân viên</th><th>Vai trò</th><th>Hình thức lương</th><th>Hoa hồng mặc định</th><th>Đơn tháng này</th><th>Doanh thu tháng</th><th>Trạng thái</th>
+              <th>Mã nhân viên</th><th>Nhân viên</th><th>Vai trò</th><th>Hình thức lương</th><th>Đơn tháng này</th><th>Doanh thu tháng</th><th>Trạng thái</th>
             </tr></thead>
             <tbody>{rows.map((row) => {
               const rowId = String(row.id);
@@ -100,12 +100,11 @@ export function StaffListView() {
                   <td data-label="Nhân viên"><AvatarName name={row.name} subtitle={row.role} tone={row.avatarTone} /></td>
                   <td data-label="Vai trò">{row.role}</td>
                   <td data-label="Hình thức lương">{statusLabels[row.salaryType] ?? row.salaryType ?? '-'}</td>
-                  <td data-label="Hoa hồng">{formatPercent(row.defaultCommissionRate)}</td>
                   <td data-label="Số đơn" className="numeric-cell">{formatNumber(row.monthOrders)}</td>
                   <td data-label="Doanh thu" className="money-cell">{formatMoney(row.monthRevenue)}</td>
                   <td data-label="Trạng thái"><StatusBadge status={row.active ? 'active' : 'cancelled'} /></td>
                 </tr>
-                {isExpanded && <tr id={detailId} className="staff-detail-row expandable-detail-row"><td colSpan={9}><StaffDetail staff={row} onEdit={(initialTab) => setEditingStaff({ staff: row, initialTab })} /></td></tr>}
+                {isExpanded && <tr id={detailId} className="staff-detail-row expandable-detail-row"><td colSpan={8}><StaffDetail staff={row} onEdit={(initialTab) => setEditingStaff({ staff: row, initialTab })} /></td></tr>}
               </Fragment>;
             })}</tbody>
           </table></div>

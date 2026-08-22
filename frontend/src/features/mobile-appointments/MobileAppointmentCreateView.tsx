@@ -105,9 +105,11 @@ export function MobileAppointmentCreateView() {
   // Create Mutation
   const createMutation = useMutation({
     mutationFn: (payload: Parameters<typeof createPosAppointment>[0]) => createPosAppointment(payload),
-    onSuccess: () => {
+    onSuccess: (response) => {
       queryClient.invalidateQueries({ queryKey: ['pos-appointments'] });
-      notify('Tạo lịch hẹn thành công', `${customer?.name || 'Khách hàng'} đã được thêm vào lịch.`);
+      queryClient.invalidateQueries({ queryKey: ['my-work-items'] });
+      const count = response.data?.appointments?.length || configuredItems.length;
+      notify('Tạo lịch hẹn thành công', `${customer?.name || 'Khách hàng'} có ${count} công việc dịch vụ trong cùng hóa đơn nháp.`);
       navigate(-1);
     },
     onError: (err: any) => {
@@ -180,26 +182,25 @@ export function MobileAppointmentCreateView() {
       return;
     }
     if (configuredItems.length === 0) {
-      notify('Chưa có dịch vụ', 'Vui lòng thêm ít nhất một dịch vụ hoặc sản phẩm.');
+      notify('Chưa có dịch vụ', 'Vui lòng thêm ít nhất một dịch vụ.');
       return;
     }
 
-    const firstItem = configuredItems[0];
-    const totalDuration = configuredItems.reduce(
-      (sum, item) => sum + (item.durationMinutes || 60) * item.quantity,
-      0
-    );
-    const itemStartsAt = firstItem.startsAt ? new Date(firstItem.startsAt) : startTime;
-    const endsAt = new Date(itemStartsAt.getTime() + totalDuration * 60_000);
-
     const payload = {
       customerId: customer.id,
-      serviceId: firstItem.itemId,
-      staffId: firstItem.staffId || null,
-      startsAt: itemStartsAt.toISOString(),
-      endsAt: endsAt.toISOString(),
       status,
       note: note.trim() || undefined,
+      items: configuredItems.map((item) => {
+        const itemStartsAt = item.startsAt ? new Date(item.startsAt) : startTime;
+        const endsAt = new Date(itemStartsAt.getTime() + (item.durationMinutes || 60) * 60_000);
+        return {
+          serviceId: item.itemId,
+          staffId: item.staffId || null,
+          quantity: item.quantity,
+          startsAt: itemStartsAt.toISOString(),
+          endsAt: endsAt.toISOString(),
+        };
+      }),
     };
 
     createMutation.mutate(payload);
@@ -328,14 +329,14 @@ export function MobileAppointmentCreateView() {
               <div className="mobile-form-empty-icon">
                 <i className="ph ph-calendar-x" />
               </div>
-              <div className="mobile-form-empty-text">Chưa có dịch vụ, sản phẩm</div>
+              <div className="mobile-form-empty-text">Chưa có dịch vụ</div>
               <button
                 type="button"
                 className="mobile-form-add-btn"
                 onClick={handleOpenCatalog}
               >
                 <i className="ph ph-plus-circle" />
-                <span>Thêm dịch vụ, sản phẩm</span>
+                <span>Thêm dịch vụ</span>
               </button>
             </div>
           ) : (
@@ -418,7 +419,7 @@ export function MobileAppointmentCreateView() {
                 onClick={handleOpenCatalog}
               >
                 <i className="ph ph-plus" />
-                <span>Thêm dịch vụ, sản phẩm</span>
+                <span>Thêm dịch vụ</span>
               </button>
             </div>
           )}
@@ -496,7 +497,7 @@ export function MobileAppointmentCreateView() {
         >
           <div ref={catalogDialog.dialogRef as RefObject<HTMLDivElement>} className="mobile-catalog-sheet" role="dialog" aria-modal="true" aria-labelledby={catalogDialog.titleId} tabIndex={-1}>
             <header className="mobile-catalog-sheet-header">
-              <h3 id={catalogDialog.titleId}>Chọn dịch vụ, sản phẩm</h3>
+              <h3 id={catalogDialog.titleId}>Chọn dịch vụ</h3>
               <button
                 type="button"
                 className="mobile-appointment-back-btn"
@@ -512,8 +513,8 @@ export function MobileAppointmentCreateView() {
               <input
                 ref={catalogSearchRef}
                 type="text"
-                aria-label="Tìm dịch vụ, sản phẩm"
-                placeholder="Tìm tên dịch vụ, sản phẩm..."
+                aria-label="Tìm dịch vụ"
+                placeholder="Tìm tên dịch vụ..."
                 value={catalogSearch}
                 onChange={(e) => setCatalogSearch(e.target.value)}
                 autoFocus

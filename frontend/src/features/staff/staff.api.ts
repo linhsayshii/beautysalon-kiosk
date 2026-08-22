@@ -139,6 +139,10 @@ export const getMySchedule = (startDate: string) => apiRequest<ApiEnvelope<ApiRe
 export const getMyWorkItems = (dateFrom: string, dateTo: string) => apiRequest<ApiEnvelope<ApiRecord>>(
   `/staff/me/work-items?${toQueryString({ dateFrom, dateTo })}`,
 );
+export const updateMyWorkItemStatus = (id: number, status: 'in_service' | 'completed') => apiRequest<ApiEnvelope<ApiRecord>>(
+  `/staff/me/work-items/${id}/status`,
+  { method: 'PATCH', body: JSON.stringify({ status }) },
+);
 export const getAttendance = (dateFrom: string, dateTo: string) => apiRequest<ApiEnvelope<ApiRecord[]>>(`/staff/attendance?${toQueryString({ dateFrom, dateTo })}`);
 export const getCommissions = (dateFrom: string, dateTo: string) => apiRequest<ApiEnvelope<{ rows: ApiRecord[]; byStaff: ApiRecord[] }>>(`/staff/commissions?${toQueryString({ dateFrom, dateTo })}`);
 

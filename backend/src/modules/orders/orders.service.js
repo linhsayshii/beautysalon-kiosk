@@ -19,6 +19,7 @@ export async function listOrders({ branchId, search, status, paymentMethod, staf
     pool.query(
       `SELECT
          i.id, i.code, i.status, i.subtotal, i.discount, i.total, i.payment_method, i.sales_channel, i.issued_at,
+         i.appointment_id,
          c.code AS customer_code, COALESCE(c.name, 'Khách lẻ') AS customer_name, c.phone AS customer_phone,
          s.name AS staff_name,
          COUNT(*) OVER() AS filtered_total
@@ -56,6 +57,7 @@ export async function listOrders({ branchId, search, status, paymentMethod, staf
       paymentMethod: row.payment_method,
       salesChannel: row.sales_channel,
       issuedAt: row.issued_at,
+      appointmentId: row.appointment_id ? number(row.appointment_id) : null,
       customer: {
         code: row.customer_code,
         name: row.customer_name,
@@ -84,7 +86,7 @@ export async function getOrder({ branchId, id }) {
        i.id, i.code, i.status, i.subtotal, i.discount, i.total, i.payment_method,
        i.sales_channel, i.issued_at, i.created_at,
        b.name AS branch_name,
-       c.code AS customer_code, COALESCE(c.name, 'Khách lẻ') AS customer_name,
+       c.id AS customer_id, c.code AS customer_code, COALESCE(c.name, 'Khách lẻ') AS customer_name,
        c.phone AS customer_phone,
        s.code AS staff_code, s.name AS staff_name
      FROM invoices i
@@ -100,7 +102,10 @@ export async function getOrder({ branchId, id }) {
   const itemsResult = await pool.query(
     `SELECT
        ii.id, ii.item_type, ii.description, ii.quantity, ii.unit_price, ii.line_total,
-       ii.staff_id, st.name AS line_staff_name,
+       ii.service_id, ii.product_id, ii.package_id, ii.account_card_id,
+       ii.staff_id, st.name AS line_staff_name, ii.appointment_id,
+       a.status AS appointment_status, a.starts_at AS appointment_starts_at, a.ends_at AS appointment_ends_at,
+       ast.id AS appointment_staff_id, ast.name AS appointment_staff_name,
        COALESCE(s.code, p.sku, '-') AS item_code,
        COALESCE(s.name, p.name, ii.description) AS item_name,
        CASE WHEN ii.item_type = 'service' THEN 'lần' ELSE COALESCE(p.unit, 'sản phẩm') END AS unit
@@ -108,10 +113,42 @@ export async function getOrder({ branchId, id }) {
      LEFT JOIN services s ON s.id = ii.service_id
      LEFT JOIN products p ON p.id = ii.product_id
      LEFT JOIN staff st ON st.id = ii.staff_id
+     LEFT JOIN appointments a ON a.id = ii.appointment_id
+     LEFT JOIN staff ast ON ast.id = a.staff_id
      WHERE ii.invoice_id = $1
      ORDER BY ii.id`,
     [id],
   );
+
+  const items = itemsResult.rows.map((item) => ({
+    id: number(item.id),
+    itemType: item.item_type,
+    code: item.item_code,
+    name: item.item_name,
+    description: item.description,
+    serviceId: item.service_id ? number(item.service_id) : null,
+    productId: item.product_id ? number(item.product_id) : null,
+    packageId: item.package_id ? number(item.package_id) : null,
+    accountCardId: item.account_card_id ? number(item.account_card_id) : null,
+    staffId: item.staff_id ? number(item.staff_id) : null,
+    staffName: item.line_staff_name || null,
+    unit: item.unit,
+    quantity: number(item.quantity),
+    unitPrice: number(item.unit_price),
+    discount: Math.max(0, number(item.quantity) * number(item.unit_price) - number(item.line_total)),
+    lineTotal: number(item.line_total),
+    appointment: item.appointment_id ? {
+      id: number(item.appointment_id),
+      status: item.appointment_status,
+      startsAt: item.appointment_starts_at,
+      endsAt: item.appointment_ends_at,
+      staff: {
+        id: item.appointment_staff_id ? number(item.appointment_staff_id) : null,
+        name: item.appointment_staff_name || item.line_staff_name || null,
+      },
+    } : null,
+  }));
+  const scheduledServices = items.filter((item) => item.itemType === 'service' && item.appointment);
 
   return {
     id: number(row.id),
@@ -126,6 +163,7 @@ export async function getOrder({ branchId, id }) {
     createdAt: row.created_at,
     branchName: row.branch_name,
     customer: {
+      id: row.customer_id ? number(row.customer_id) : null,
       code: row.customer_code,
       name: row.customer_name,
       phone: row.customer_phone,
@@ -134,19 +172,10 @@ export async function getOrder({ branchId, id }) {
       code: row.staff_code,
       name: row.staff_name,
     },
-    items: itemsResult.rows.map((item) => ({
-      id: number(item.id),
-      itemType: item.item_type,
-      code: item.item_code,
-      name: item.item_name,
-      description: item.description,
-      staffId: item.staff_id ? number(item.staff_id) : null,
-      staffName: item.line_staff_name || null,
-      unit: item.unit,
-      quantity: number(item.quantity),
-      unitPrice: number(item.unit_price),
-      discount: Math.max(0, number(item.quantity) * number(item.unit_price) - number(item.line_total)),
-      lineTotal: number(item.line_total),
-    })),
+    serviceProgress: {
+      total: scheduledServices.length,
+      completed: scheduledServices.filter((item) => item.appointment.status === 'completed').length,
+    },
+    items,
   };
 }

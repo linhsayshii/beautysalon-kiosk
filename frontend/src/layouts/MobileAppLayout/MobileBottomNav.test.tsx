@@ -37,7 +37,8 @@ describe('MobileBottomNav Component', () => {
 
     render(<MemoryRouter><MobileBottomNav /></MemoryRouter>);
     expect(screen.getByText('Bán hàng')).toBeInTheDocument();
-    expect(screen.getByText('Đơn hàng')).toBeInTheDocument();
+    expect(screen.getByText('Chờ thanh toán')).toBeInTheDocument();
+    expect(screen.getByText('Chờ thanh toán').closest('a')).toHaveAttribute('href', '/m/pos?queue=1');
     expect(screen.getByText('Khách hàng')).toBeInTheDocument();
     expect(screen.getByText('Tài khoản')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /tạo mới|action|quick action/i })).toBeInTheDocument();

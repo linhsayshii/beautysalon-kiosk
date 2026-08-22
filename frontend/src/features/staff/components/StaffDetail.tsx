@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { EmptyState, ErrorState, LoadingState } from '@/components/data-display/DataState';
 import { StatusBadge } from '@/components/data-display/Badges';
-import { formatDate, formatMoney, formatNumber, formatPercent } from '@/lib/format';
+import { formatDate, formatMoney, formatNumber } from '@/lib/format';
 import type { ApiRecord } from '@/types/api';
 import { statusLabels } from '@/types/api';
 import { getPayroll, getSchedule } from '../staff.api';
@@ -111,12 +111,6 @@ function StaffSalaryTab({ staff, onEdit }: { staff: ApiRecord; onEdit: (initialT
           <span style={{ color: '#64748b', display: 'block', marginBottom: 2 }}>Lương làm thêm giờ:</span>
           <strong style={{ color: '#1e293b' }}>
             {Number(staff.hourlyRate) > 0 ? `${formatMoney(staff.hourlyRate)} / giờ` : 'Không áp dụng'}
-          </strong>
-        </div>
-        <div>
-          <span style={{ color: '#64748b', display: 'block', marginBottom: 2 }}>Hoa hồng mặc định:</span>
-          <strong style={{ color: '#7c3aed' }}>
-            {Number(staff.defaultCommissionRate) > 0 ? formatPercent(staff.defaultCommissionRate) : 'Không áp dụng'}
           </strong>
         </div>
         <div style={{ gridColumn: 'span 4' }}>
@@ -368,10 +362,6 @@ export function StaffDetail({ staff, onEdit }: { staff: ApiRecord; onEdit: (init
             <span style={{ color: '#64748b' }}>Lương cơ bản: </span>
             <strong style={{ color: '#059669' }}>{formatMoney(staff.baseSalary || 0)}</strong>
           </div>
-          <div>
-            <span style={{ color: '#64748b' }}>Hoa hồng mặc định: </span>
-            <strong style={{ color: '#7c3aed' }}>{formatPercent(staff.defaultCommissionRate || 0)}</strong>
-          </div>
         </div>
 
         {/* Layer 5: Tab Contents */}
@@ -468,4 +458,3 @@ export function StaffDetail({ staff, onEdit }: { staff: ApiRecord; onEdit: (init
     </div>
   );
 }
-

@@ -25,7 +25,41 @@ export async function runMigrations() {
         ADD COLUMN IF NOT EXISTS commission_type VARCHAR(30) DEFAULT 'service';
 
       ALTER TABLE invoice_items
-        ADD COLUMN IF NOT EXISTS staff_id BIGINT REFERENCES staff(id) ON DELETE SET NULL;
+        ADD COLUMN IF NOT EXISTS staff_id BIGINT REFERENCES staff(id) ON DELETE SET NULL,
+        ADD COLUMN IF NOT EXISTS appointment_id BIGINT REFERENCES appointments(id) ON DELETE SET NULL;
+
+      ALTER TABLE invoices
+        ADD COLUMN IF NOT EXISTS payment_requested_at TIMESTAMPTZ,
+        ADD COLUMN IF NOT EXISTS payment_requested_by_staff_id BIGINT REFERENCES staff(id) ON DELETE SET NULL;
+
+      CREATE INDEX IF NOT EXISTS idx_invoices_payment_requested
+        ON invoices(branch_id, payment_requested_at DESC)
+        WHERE status = 'draft' AND payment_requested_at IS NOT NULL;
+
+      ALTER TABLE appointments DROP CONSTRAINT IF EXISTS appointments_status_check;
+      ALTER TABLE appointments ADD CONSTRAINT appointments_status_check
+        CHECK (status IN ('pending', 'confirmed', 'waiting', 'in_service', 'completed', 'cancelled', 'no_show'));
+
+      CREATE INDEX IF NOT EXISTS idx_invoice_items_appointment
+        ON invoice_items(appointment_id) WHERE appointment_id IS NOT NULL;
+
+      -- Backfill only unambiguous legacy service rows. Ambiguous historical
+      -- rows are intentionally left untouched rather than guessed.
+      WITH candidates AS (
+        SELECT ii.id AS invoice_item_id, MIN(a.id) AS appointment_id
+        FROM invoice_items ii
+        JOIN appointments a
+          ON a.invoice_id = ii.invoice_id
+         AND a.service_id = ii.service_id
+        WHERE ii.item_type = 'service'
+          AND ii.appointment_id IS NULL
+        GROUP BY ii.id
+        HAVING COUNT(*) = 1
+      )
+      UPDATE invoice_items ii
+      SET appointment_id = candidates.appointment_id
+      FROM candidates
+      WHERE ii.id = candidates.invoice_item_id;
 
       ALTER TABLE payroll_periods
         ADD COLUMN IF NOT EXISTS period_type VARCHAR(20) NOT NULL DEFAULT 'monthly',

@@ -406,7 +406,7 @@ CREATE TABLE appointments (
   starts_at TIMESTAMPTZ NOT NULL,
   ends_at TIMESTAMPTZ NOT NULL,
   status VARCHAR(24) NOT NULL DEFAULT 'confirmed'
-    CHECK (status IN ('pending', 'confirmed', 'in_service', 'completed', 'cancelled', 'no_show')),
+    CHECK (status IN ('pending', 'confirmed', 'waiting', 'in_service', 'completed', 'cancelled', 'no_show')),
   note TEXT,
   invoice_id BIGINT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -433,6 +433,8 @@ CREATE TABLE invoices (
   sales_channel VARCHAR(30) NOT NULL DEFAULT 'salon'
     CHECK (sales_channel IN ('salon', 'online', 'phone')),
   issued_at TIMESTAMPTZ NOT NULL,
+  payment_requested_at TIMESTAMPTZ,
+  payment_requested_by_staff_id BIGINT REFERENCES staff(id) ON DELETE SET NULL,
   appointment_id BIGINT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
@@ -450,6 +452,7 @@ CREATE TABLE invoice_items (
   package_id BIGINT REFERENCES service_packages(id) ON DELETE SET NULL,
   account_card_id BIGINT REFERENCES account_cards(id) ON DELETE SET NULL,
   staff_id BIGINT REFERENCES staff(id) ON DELETE SET NULL,
+  appointment_id BIGINT REFERENCES appointments(id) ON DELETE SET NULL,
   description VARCHAR(220) NOT NULL,
   quantity NUMERIC(12, 2) NOT NULL DEFAULT 1 CHECK (quantity > 0),
   unit_price NUMERIC(14, 2) NOT NULL CHECK (unit_price >= 0),
@@ -461,6 +464,8 @@ CREATE TABLE invoice_items (
     OR (item_type = 'account_card' AND account_card_id IS NOT NULL AND service_id IS NULL AND product_id IS NULL AND package_id IS NULL)
   )
 );
+
+CREATE INDEX idx_invoice_items_appointment ON invoice_items(appointment_id) WHERE appointment_id IS NOT NULL;
 
 CREATE TABLE customer_packages (
   id BIGSERIAL PRIMARY KEY,

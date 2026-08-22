@@ -71,8 +71,7 @@ describe('StaffDetail Component', () => {
     expect(screen.getByText('15')).toBeInTheDocument();
     expect(screen.getAllByText(/Lương cơ bản:/i).length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText('8.000.000đ').length).toBeGreaterThanOrEqual(1);
-    expect(screen.getByText(/Hoa hồng mặc định:/i)).toBeInTheDocument();
-    expect(screen.getByText('10%')).toBeInTheDocument();
+    expect(screen.queryByText(/Hoa hồng mặc định:/i)).not.toBeInTheDocument();
 
     // Layer 5 (Tab info): 4-column grid fields
     expect(screen.getByText('Số điện thoại:')).toBeInTheDocument();

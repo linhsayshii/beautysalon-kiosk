@@ -3,9 +3,10 @@ import { asyncRoute, HttpError, parseDateTime, parseEnum, parseIsoDate, parsePos
 import { listProducts } from '../inventory/inventory.service.js';
 import { createCustomer, listCustomers } from '../customers/customers.service.js';
 import { listStaff } from '../staff/staff.service.js';
-import { createAppointment, listAppointments, updateAppointment } from '../dashboard/dashboard.service.js';
-import { checkoutPosInvoice } from './pos.service.js';
+import { createAppointments, listAppointments, updateAppointment } from '../dashboard/dashboard.service.js';
+import { checkoutPosInvoice, listPosPaymentRequests } from './pos.service.js';
 import { pool } from '../../db.js';
+import { getOrder } from '../orders/orders.service.js';
 
 const router = Router();
 const itemTypes = ['product', 'service', 'package', 'account_card'];
@@ -133,18 +134,40 @@ router.get('/appointments', asyncRoute(async (request, response) => {
   response.json({ data: await listAppointments({ branchId: request.account.branchId, dateFrom, dateTo }) });
 }));
 
+router.get('/payment-requests', asyncRoute(async (request, response) => {
+  response.json({ data: await listPosPaymentRequests({ branchId: request.account.branchId }) });
+}));
+
+router.get('/invoices/:id', asyncRoute(async (request, response) => {
+  response.json({
+    data: await getOrder({
+      branchId: request.account.branchId,
+      id: parsePositiveInteger(request.params.id, 'id'),
+    }),
+  });
+}));
+
 router.post('/appointments', asyncRoute(async (request, response) => {
-  const startsAt = parseDateTime(request.body.startsAt, 'startsAt');
-  const endsAt = parseDateTime(request.body.endsAt, 'endsAt');
-  if (endsAt <= startsAt || endsAt.getTime() - startsAt.getTime() > 8 * 60 * 60 * 1000) {
-    throw new HttpError(400, 'INVALID_TIME_RANGE', 'Thời gian lịch hẹn không hợp lệ');
-  }
-  const data = await createAppointment({
+  const rawItems = Array.isArray(request.body.items) ? request.body.items : [request.body];
+  const items = rawItems.map((item) => {
+    const startsAt = parseDateTime(item.startsAt || request.body.startsAt, 'startsAt');
+    const endsAt = parseDateTime(item.endsAt || request.body.endsAt, 'endsAt');
+    if (endsAt <= startsAt || endsAt.getTime() - startsAt.getTime() > 8 * 60 * 60 * 1000) {
+      throw new HttpError(400, 'INVALID_TIME_RANGE', 'Thời gian lịch hẹn không hợp lệ');
+    }
+    return {
+      serviceId: parsePositiveInteger(item.serviceId, 'serviceId'),
+      staffId: item.staffId ? parsePositiveInteger(item.staffId, 'staffId') : null,
+      quantity: Math.max(1, Math.floor(Number(item.quantity || 1))),
+      startsAt,
+      endsAt,
+    };
+  });
+  const data = await createAppointments({
     branchId: request.account.branchId,
     customerId: parsePositiveInteger(request.body.customerId, 'customerId'),
-    serviceId: parsePositiveInteger(request.body.serviceId, 'serviceId'),
-    staffId: request.body.staffId ? parsePositiveInteger(request.body.staffId, 'staffId') : null,
-    startsAt, endsAt,
+    invoiceId: request.body.invoiceId ? parsePositiveInteger(request.body.invoiceId, 'invoiceId') : null,
+    items,
     status: parseEnum(request.body.status, 'status', appointmentStatuses, 'confirmed'),
     note: text(request.body.note, 500),
   });
@@ -181,6 +204,7 @@ router.post('/checkout', asyncRoute(async (request, response) => {
 
   const customerId = request.body.customerId ? parsePositiveInteger(request.body.customerId, 'customerId') : null;
   const staffId = request.body.staffId ? parsePositiveInteger(request.body.staffId, 'staffId') : null;
+  const invoiceId = request.body.invoiceId ? parsePositiveInteger(request.body.invoiceId, 'invoiceId') : null;
   const appointmentId = request.body.appointmentId ? parsePositiveInteger(request.body.appointmentId, 'appointmentId') : null;
   const discount = Math.max(0, Number(request.body.discount || 0));
   const amountPaid = request.body.amountPaid !== undefined && request.body.amountPaid !== null
@@ -212,6 +236,7 @@ router.post('/checkout', asyncRoute(async (request, response) => {
     amountPaid,
     note,
     appointmentId,
+    invoiceId,
   });
 
   response.status(201).json({ data });

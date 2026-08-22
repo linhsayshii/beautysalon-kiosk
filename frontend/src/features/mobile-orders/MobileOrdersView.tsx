@@ -22,6 +22,15 @@ const salesChannelLabels: Record<string, string> = {
   phone: 'Qua điện thoại',
 };
 
+const workStatusLabels: Record<string, string> = {
+  confirmed: 'Chờ phục vụ',
+  waiting: 'Đang chờ',
+  in_service: 'Đang làm',
+  completed: 'Đã xong',
+  cancelled: 'Đã hủy',
+  no_show: 'Không đến',
+};
+
 const datePresets = COMMON_DATE_PRESETS;
 
 export function MobileOrdersView() {
@@ -511,6 +520,11 @@ export function MobileOrdersView() {
                   <StatusBadge status={activeOrder.status} />
                 </div>
               </div>
+              {Number(activeOrder.serviceProgress?.total || 0) > 0 && (
+                <div className="mobile-orders-service-progress">
+                  {activeOrder.serviceProgress.completed}/{activeOrder.serviceProgress.total} dịch vụ đã xong
+                </div>
+              )}
 
               {/* Customer Avatar & Phone */}
               <div className="mobile-orders-detail-cust-row">
@@ -596,6 +610,12 @@ export function MobileOrdersView() {
                               </span>
                             )}
                           </span>
+                          {item.appointment && (
+                            <span className="mobile-orders-item-work-state">
+                              <i className="ph ph-user" /> {item.appointment.staff?.name || item.staffName || 'Chưa phân công'}
+                              <span>{workStatusLabels[item.appointment.status] || item.appointment.status}</span>
+                            </span>
+                          )}
                         </div>
                         <div className="mobile-orders-item-total">
                           {formatMoney(lineTotal)}

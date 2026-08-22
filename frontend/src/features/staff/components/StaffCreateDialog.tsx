@@ -14,13 +14,6 @@ interface StaffCreateDialogProps {
   initialTab?: 'info' | 'salary';
 }
 
-interface CommissionItem {
-  id: string;
-  type: 'service' | 'consulting';
-  minRevenue: string;
-  table: string;
-}
-
 interface AllowanceItem {
   id: string;
   name: string;
@@ -70,8 +63,6 @@ const initialForm = {
   salaryTemplate: 'default',
   // Thưởng
   enableBonus: false,
-  // Hoa hồng
-  enableCommission: true,
   // Phụ cấp
   enableAllowance: true,
   // Giảm trừ
@@ -91,7 +82,6 @@ const getInitialForm = (staff?: ApiRecord) => staff ? {
   salaryType: String(staff.salaryType ?? initialForm.salaryType),
   baseSalary: String(staff.baseSalary ?? 7000000),
   hourlyRate: String(staff.hourlyRate ?? 35000),
-  enableCommission: Number(staff.defaultCommissionRate ?? 0) > 0,
   avatarUrl: String(staff.avatarUrl ?? ''),
   department: String(staff.department ?? ''),
   startDate: String(staff.startDate ?? initialForm.startDate),
@@ -122,12 +112,6 @@ export function StaffCreateDialog({ onClose, staff, initialTab = 'info' }: Staff
     bank: false,
     personal: false,
   });
-
-  // Commission dynamic rows
-  const [commissions, setCommissions] = useState<CommissionItem[]>([
-    { id: '1', type: 'service', minRevenue: '0', table: 'bang tua dich vu' },
-    { id: '2', type: 'consulting', minRevenue: '0', table: 'Bảng hoa hồng chung' },
-  ]);
 
   // Allowance dynamic rows
   const [allowances, setAllowances] = useState<AllowanceItem[]>([
@@ -210,17 +194,6 @@ export function StaffCreateDialog({ onClose, staff, initialTab = 'info' }: Staff
     }
   };
 
-  const addCommission = () => {
-    setCommissions((prev) => [
-      ...prev,
-      { id: String(Date.now()), type: 'service', minRevenue: '0', table: 'Bảng hoa hồng chung' },
-    ]);
-  };
-
-  const removeCommission = (id: string) => {
-    setCommissions((prev) => prev.filter((item) => item.id !== id));
-  };
-
   const addAllowance = () => {
     setAllowances((prev) => [
       ...prev,
@@ -280,9 +253,6 @@ export function StaffCreateDialog({ onClose, staff, initialTab = 'info' }: Staff
       salaryType: form.salaryType,
       baseSalary: form.salaryType === 'monthly' ? numeric(form.baseSalary) : 0,
       hourlyRate: form.salaryType === 'hourly' ? numeric(form.hourlyRate) : 0,
-      defaultCommissionRate: form.enableCommission
-        ? Number(staff?.defaultCommissionRate || 0.05)
-        : 0,
       canSell: staff?.canSell !== false,
       canManageInventory: staff
         ? staff.canManageInventory === true
@@ -294,9 +264,9 @@ export function StaffCreateDialog({ onClose, staff, initialTab = 'info' }: Staff
         bankName: form.bankName, bankAccountHolder: form.bankAccountHolder, idNumber: form.idNumber,
         dob: form.dob, gender: form.gender, address: form.address, province: form.province,
         district: form.district, email: form.email.trim(), facebook: form.facebook.trim(),
-        enableBonus: form.enableBonus, enableCommission: form.enableCommission,
+        enableBonus: form.enableBonus,
         enableAllowance: form.enableAllowance, enableDeduction: form.enableDeduction,
-        commissions, allowances, deductions,
+        allowances, deductions,
       },
     });
   };
@@ -847,7 +817,7 @@ export function StaffCreateDialog({ onClose, staff, initialTab = 'info' }: Staff
                       fullWidth
                       options={[
                         { value: 'default', label: 'Chọn mẫu lương có sẵn' },
-                        { value: 'ktv', label: 'Mẫu Kỹ thuật viên (Cơ bản + Hoa hồng DV 5%)' },
+                        { value: 'ktv', label: 'Mẫu Kỹ thuật viên (Lương cơ bản)' },
                         { value: 'letan', label: 'Mẫu Lễ tân (Cố định + Phụ cấp ăn trưa)' },
                       ]}
                     />
@@ -878,118 +848,7 @@ export function StaffCreateDialog({ onClose, staff, initialTab = 'info' }: Staff
 
                 <hr style={{ border: 0, borderTop: '1px solid var(--line)', margin: '4px 0' }} />
 
-                {/* 3. Hoa hồng */}
-                <div className="staff-commission-section">
-                  <div className="staff-compensation-heading">
-                    <div>
-                      <div>Hoa hồng</div>
-                      <small>
-                        Thiết lập mức hoa hồng theo sản phẩm hoặc dịch vụ
-                      </small>
-                    </div>
-                    <label className="toggle-switch" style={{ cursor: 'pointer' }}>
-                      <input
-                        type="checkbox"
-                        checked={form.enableCommission}
-                        onChange={(e) => update('enableCommission', e.target.checked)}
-                        style={{ width: '18px', height: '18px', accentColor: 'var(--blue-600)' }}
-                      />
-                    </label>
-                  </div>
-
-                  {form.enableCommission && (
-                    <div className="staff-commission-table">
-                      <div className="staff-commission-table-head">
-                        <div>Loại hình</div>
-                        <div>Doanh thu <i className="ph ph-info" /></div>
-                        <div>Hoa hồng thụ hưởng</div>
-                        <div />
-                        <div />
-                      </div>
-
-                      {commissions.map((item) => (
-                        <div
-                          key={item.id}
-                          className="staff-commission-table-row"
-                        >
-                          <Select
-                            id={`comm-type-${item.id}`}
-                            value={item.type}
-                            onChange={(val) => {
-                              setCommissions((prev) =>
-                                prev.map((c) => (c.id === item.id ? { ...c, type: val as any } : c))
-                              );
-                            }}
-                            fullWidth
-                            options={[
-                              { value: 'service', label: 'Thực hiện dịch vụ' },
-                              { value: 'consulting', label: 'Tư vấn bán hàng' },
-                            ]}
-                          />
-
-                          <div className="staff-commission-revenue-input">
-                            <span>Từ</span>
-                            <MoneyInput
-                              suffix="đ"
-                              value={item.minRevenue}
-                              onChange={(val) => {
-                                setCommissions((prev) =>
-                                  prev.map((c) => (c.id === item.id ? { ...c, minRevenue: String(val) } : c))
-                                );
-                              }}
-                              wrapperClassName="staff-commission-money-input"
-                            />
-                          </div>
-
-                          <Select
-                            id={`comm-table-${item.id}`}
-                            value={item.table}
-                            onChange={(val) => {
-                              setCommissions((prev) =>
-                                prev.map((c) => (c.id === item.id ? { ...c, table: val } : c))
-                              );
-                            }}
-                            fullWidth
-                            options={[
-                              { value: 'bang tua dich vu', label: 'bang tua dich vu' },
-                              { value: 'Bảng hoa hồng chung', label: 'Bảng hoa hồng chung' },
-                              { value: 'Hoa hồng VIP', label: 'Bảng hoa hồng VIP' },
-                            ]}
-                          />
-
-                          <button
-                            type="button"
-                            className="row-action staff-commission-action"
-                            title="Mở bảng hoa hồng"
-                          >
-                            <i className="ph ph-arrow-square-out" />
-                          </button>
-
-                          <button
-                            type="button"
-                            className="row-action staff-commission-action is-muted"
-                            onClick={() => removeCommission(item.id)}
-                            title="Xóa dòng"
-                          >
-                            <i className="ph ph-trash" />
-                          </button>
-                        </div>
-                      ))}
-
-                      <button
-                        type="button"
-                        onClick={addCommission}
-                        className="staff-commission-add"
-                      >
-                        <i className="ph ph-plus" /> Thêm hoa hồng
-                      </button>
-                    </div>
-                  )}
-                </div>
-
-                <hr style={{ border: 0, borderTop: '1px solid var(--line)', margin: '4px 0' }} />
-
-                {/* 4. Phụ cấp */}
+                {/* 3. Phụ cấp */}
                 <div style={{ display: 'grid', gap: '12px' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <div>

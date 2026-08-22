@@ -30,6 +30,8 @@ interface MobileCartBottomSheetProps {
   lines: PosLine[];
   customer: PosCustomer | null;
   appointmentId?: number | null;
+  invoiceId?: number | null;
+  incompleteServiceCount?: number;
   onSelectCustomer: (cust: PosCustomer | null) => void;
   onUpdateQuantity: (itemId: number, itemType: string, delta: number) => void;
   onUpdateLineStaff: (itemId: number, itemType: string, staffId: number | null) => void;
@@ -43,6 +45,8 @@ export function MobileCartBottomSheet({
   lines,
   customer,
   appointmentId,
+  invoiceId,
+  incompleteServiceCount = 0,
   onSelectCustomer,
   onUpdateQuantity,
   onUpdateLineStaff,
@@ -120,6 +124,9 @@ export function MobileCartBottomSheet({
 
   const handleCheckout = () => {
     if (lines.length === 0) return;
+    if (incompleteServiceCount > 0 && !window.confirm(
+      `Hóa đơn còn ${incompleteServiceCount} dịch vụ chưa hoàn thành. Bạn vẫn muốn thanh toán?`,
+    )) return;
     checkoutMutation.mutate({
       customerId: customer?.id ?? null,
       staffId: null,
@@ -127,6 +134,7 @@ export function MobileCartBottomSheet({
       paymentMethod,
       amountPaid: total,
       appointmentId,
+      invoiceId,
       lines: lines.map((l) => ({
         itemId: l.itemId,
         itemType: l.itemType,

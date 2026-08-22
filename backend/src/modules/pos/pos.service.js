@@ -14,6 +14,44 @@ function generateInvoiceCode() {
   return `HD${dateStr}-${randomSuffix}`;
 }
 
+export async function listPosPaymentRequests({ branchId }) {
+  const result = await pool.query(
+    `SELECT
+       i.id, i.code, i.total, i.issued_at, i.payment_requested_at,
+       COALESCE(c.name, 'Khách lẻ') AS customer_name, c.phone AS customer_phone,
+       requester.name AS requested_by_name,
+       COUNT(*) FILTER (WHERE ii.item_type = 'service' AND ii.appointment_id IS NOT NULL) AS service_total,
+       COUNT(*) FILTER (
+         WHERE ii.item_type = 'service' AND ii.appointment_id IS NOT NULL AND a.status = 'completed'
+       ) AS service_completed
+     FROM invoices i
+     LEFT JOIN customers c ON c.id = i.customer_id
+     LEFT JOIN staff requester ON requester.id = i.payment_requested_by_staff_id
+     LEFT JOIN invoice_items ii ON ii.invoice_id = i.id
+     LEFT JOIN appointments a ON a.id = ii.appointment_id
+     WHERE i.branch_id = $1
+       AND i.status = 'draft'
+       AND i.payment_requested_at IS NOT NULL
+     GROUP BY i.id, c.name, c.phone, requester.name
+     ORDER BY i.payment_requested_at ASC, i.id ASC`,
+    [branchId],
+  );
+
+  return result.rows.map((row) => ({
+    id: number(row.id),
+    code: row.code,
+    total: number(row.total),
+    issuedAt: row.issued_at,
+    paymentRequestedAt: row.payment_requested_at,
+    requestedByName: row.requested_by_name || null,
+    customer: { name: row.customer_name, phone: row.customer_phone || null },
+    serviceProgress: {
+      total: number(row.service_total),
+      completed: number(row.service_completed),
+    },
+  }));
+}
+
 export async function checkoutPosInvoice({
   branchId,
   actorAccountId,
@@ -26,6 +64,7 @@ export async function checkoutPosInvoice({
   amountPaid,
   note,
   appointmentId,
+  invoiceId: requestedInvoiceId,
 }) {
   if (!Array.isArray(lines) || lines.length === 0) {
     throw new HttpError(400, 'EMPTY_CART', 'Hóa đơn phải có ít nhất một dịch vụ hoặc sản phẩm');
@@ -98,7 +137,8 @@ export async function checkoutPosInvoice({
 
       if (itemType === 'service') {
         const sResult = await client.query(
-          'SELECT id, code, name, price FROM services WHERE id = $1 AND branch_id = $2 AND active = TRUE',
+          `SELECT id, code, name, price, commission_type, commission_rate
+           FROM services WHERE id = $1 AND branch_id = $2 AND active = TRUE`,
           [itemId, branchId],
         );
         if (!sResult.rows[0]) {
@@ -120,10 +160,13 @@ export async function checkoutPosInvoice({
           quantity,
           unitPrice: price,
           lineTotal: price * quantity,
+          commissionType: sResult.rows[0].commission_type,
+          commissionRate: number(sResult.rows[0].commission_rate),
         });
       } else if (itemType === 'product') {
         const pResult = await client.query(
-          `SELECT p.id, p.sku, p.name, p.sale_price, p.unit, COALESCE(ib.quantity, 0) AS stock_quantity
+          `SELECT p.id, p.sku, p.name, p.sale_price, p.unit, p.commission_type, p.commission_rate,
+                  COALESCE(ib.quantity, 0) AS stock_quantity
            FROM products p
            LEFT JOIN inventory_balances ib ON ib.product_id = p.id AND ib.branch_id = p.branch_id
            WHERE p.id = $1 AND p.branch_id = $2 AND p.active = TRUE
@@ -164,6 +207,8 @@ export async function checkoutPosInvoice({
           quantity,
           unitPrice: price,
           lineTotal: price * quantity,
+          commissionType: row.commission_type,
+          commissionRate: number(row.commission_rate),
         });
       } else if (itemType === 'package') {
         const pkgResult = await client.query(
@@ -180,9 +225,11 @@ export async function checkoutPosInvoice({
         unit = 'gói';
 
         validatedItems.push({
-          itemType: 'service',
+          itemType: 'package',
           serviceId: null,
           productId: null,
+          packageId: itemId,
+          accountCardId: null,
           staffId: lineStaffId || staffId || null,
           code,
           name: `[Gói] ${name}`,
@@ -190,6 +237,8 @@ export async function checkoutPosInvoice({
           quantity,
           unitPrice: price,
           lineTotal: price * quantity,
+          commissionType: null,
+          commissionRate: 0,
         });
 
         if (customerId) {
@@ -217,9 +266,11 @@ export async function checkoutPosInvoice({
         unit = 'thẻ';
 
         validatedItems.push({
-          itemType: 'service',
+          itemType: 'account_card',
           serviceId: null,
           productId: null,
+          packageId: null,
+          accountCardId: itemId,
           staffId: lineStaffId || staffId || null,
           code,
           name: `[Thẻ] ${name}`,
@@ -227,6 +278,8 @@ export async function checkoutPosInvoice({
           quantity,
           unitPrice: price,
           lineTotal: price * quantity,
+          commissionType: null,
+          commissionRate: 0,
         });
 
         if (customerId) {
@@ -246,6 +299,9 @@ export async function checkoutPosInvoice({
 
     const discountAmount = Math.max(0, Math.min(subtotal, number(discount)));
     const total = Math.max(0, subtotal - discountAmount);
+    if (amountPaid !== null && amountPaid < total) {
+      throw new HttpError(400, 'PARTIAL_PAYMENT_UNSUPPORTED', 'Hóa đơn hiện cần được thanh toán đủ');
+    }
 
     // 4. Validate wallet payment has sufficient balance
     let cardBalance = 0;
@@ -274,78 +330,113 @@ export async function checkoutPosInvoice({
       }
     }
 
-    // 5. Generate unique invoice code
-    let invoiceCode = generateInvoiceCode();
-    let isUnique = false;
-    for (let attempts = 0; attempts < 5; attempts++) {
-      const existing = await client.query('SELECT id FROM invoices WHERE code = $1', [invoiceCode]);
-      if (!existing.rows[0]) {
-        isUnique = true;
-        break;
-      }
-      invoiceCode = generateInvoiceCode();
-    }
-    if (!isUnique) {
-      invoiceCode = `HD${Date.now().toString().slice(-8)}`;
-    }
+    // 5. A linked draft is paid in place. Checkout never updates a service
+    // work status, and it never creates then discards a second invoice.
+    let invoice;
+    let invoiceId = requestedInvoiceId || null;
+    const appointmentByService = new Map();
 
-    // 5. Create invoice
-    const invoiceResult = await client.query(
-      `INSERT INTO invoices (
-         branch_id, customer_id, staff_id, code, status,
-         subtotal, discount, total, payment_method, sales_channel, issued_at
-       ) VALUES ($1, $2, $3, $4, 'paid', $5, $6, $7, $8, 'salon', NOW())
-       RETURNING id, code, status, subtotal, discount, total, payment_method, sales_channel, issued_at, created_at`,
-      [branchId, customerId || null, staffId || null, invoiceCode, subtotal, discountAmount, total, paymentMethod],
-    );
-    const invoice = invoiceResult.rows[0];
-    const invoiceId = Number(invoice.id);
-
-    // 5b. Handle appointmentId if provided
-    let usedExistingInvoice = false;
-    if (appointmentId) {
-      const aptResult = await client.query(
-        'SELECT id, invoice_id, status FROM appointments WHERE id = $1 AND branch_id = $2',
+    if (!invoiceId && appointmentId) {
+      const appointmentResult = await client.query(
+        'SELECT invoice_id FROM appointments WHERE id = $1 AND branch_id = $2 FOR UPDATE',
         [appointmentId, branchId],
       );
-
-      if (!aptResult.rows[0]) {
-        throw new HttpError(404, 'NOT_FOUND', 'Không tìm thấy lịch hẹn');
-      }
-
-      // If appointment already has a draft invoice, delete the new one and use the existing
-      if (aptResult.rows[0].invoice_id && aptResult.rows[0].invoice_id !== invoiceId) {
-        await client.query('DELETE FROM invoices WHERE id = $1', [invoiceId]);
-        usedExistingInvoice = true;
-      }
-
-      // Update appointment: link invoice_id and set status to completed
-      await client.query(
-        `UPDATE appointments SET status = 'completed', invoice_id = $1 WHERE id = $2`,
-        [usedExistingInvoice ? aptResult.rows[0].invoice_id : invoiceId, appointmentId],
-      );
-
-      // If using existing invoice, reassign invoiceId to the existing one so the rest
-      // of the flow (items, commissions, cash tx, etc.) uses it correctly
-      if (usedExistingInvoice) {
-        invoiceId = Number(aptResult.rows[0].invoice_id);
-      }
+      if (!appointmentResult.rows[0]) throw new HttpError(404, 'NOT_FOUND', 'Không tìm thấy lịch hẹn');
+      invoiceId = appointmentResult.rows[0].invoice_id ? Number(appointmentResult.rows[0].invoice_id) : null;
     }
+
+    if (invoiceId) {
+      const existingInvoiceResult = await client.query(
+        `SELECT id, code, status FROM invoices
+         WHERE id = $1 AND branch_id = $2 FOR UPDATE`,
+        [invoiceId, branchId],
+      );
+      const existingInvoice = existingInvoiceResult.rows[0];
+      if (!existingInvoice) throw new HttpError(404, 'INVOICE_NOT_FOUND', 'Không tìm thấy hóa đơn');
+      if (existingInvoice.status !== 'draft') {
+        throw new HttpError(409, 'INVOICE_NOT_DRAFT', 'Hóa đơn này không còn ở trạng thái nháp');
+      }
+
+      if (appointmentId) {
+        const appointmentResult = await client.query(
+          'SELECT id FROM appointments WHERE id = $1 AND branch_id = $2 AND invoice_id = $3 FOR UPDATE',
+          [appointmentId, branchId, invoiceId],
+        );
+        if (!appointmentResult.rows[0]) {
+          throw new HttpError(409, 'APPOINTMENT_INVOICE_MISMATCH', 'Lịch hẹn không thuộc hóa đơn đang thanh toán');
+        }
+      }
+
+      const existingItemsResult = await client.query(
+        `SELECT item_type, service_id, appointment_id
+         FROM invoice_items WHERE invoice_id = $1 ORDER BY id`,
+        [invoiceId],
+      );
+      for (const item of existingItemsResult.rows) {
+        if (item.item_type === 'service' && item.service_id && item.appointment_id) {
+          const key = String(item.service_id);
+          const queue = appointmentByService.get(key) || [];
+          queue.push(Number(item.appointment_id));
+          appointmentByService.set(key, queue);
+        }
+      }
+      await client.query('DELETE FROM invoice_items WHERE invoice_id = $1', [invoiceId]);
+      const updatedInvoiceResult = await client.query(
+        `UPDATE invoices
+         SET customer_id = $1, staff_id = $2, status = 'paid', subtotal = $3,
+             discount = $4, total = $5, payment_method = $6, issued_at = NOW()
+         WHERE id = $7
+         RETURNING id, code, status, subtotal, discount, total, payment_method, sales_channel, issued_at`,
+        [customerId || null, staffId || null, subtotal, discountAmount, total, paymentMethod, invoiceId],
+      );
+      invoice = updatedInvoiceResult.rows[0];
+    } else {
+      let invoiceCode = generateInvoiceCode();
+      let isUnique = false;
+      for (let attempts = 0; attempts < 5; attempts++) {
+        const existing = await client.query('SELECT id FROM invoices WHERE code = $1', [invoiceCode]);
+        if (!existing.rows[0]) {
+          isUnique = true;
+          break;
+        }
+        invoiceCode = generateInvoiceCode();
+      }
+      if (!isUnique) invoiceCode = `HD${Date.now().toString().slice(-8)}`;
+      const invoiceResult = await client.query(
+        `INSERT INTO invoices (
+           branch_id, customer_id, staff_id, code, status,
+           subtotal, discount, total, payment_method, sales_channel, issued_at
+         ) VALUES ($1, $2, $3, $4, 'paid', $5, $6, $7, $8, 'salon', NOW())
+         RETURNING id, code, status, subtotal, discount, total, payment_method, sales_channel, issued_at`,
+        [branchId, customerId || null, staffId || null, invoiceCode, subtotal, discountAmount, total, paymentMethod],
+      );
+      invoice = invoiceResult.rows[0];
+      invoiceId = Number(invoice.id);
+    }
+    const invoiceCode = invoice.code;
 
     // 6. Insert invoice items and collect their IDs
     const invoiceItemIds = [];
     for (const item of validatedItems) {
+      const appointmentQueue = item.itemType === 'service' && item.serviceId
+        ? appointmentByService.get(String(item.serviceId))
+        : null;
+      const linkedAppointmentId = appointmentQueue?.shift() || null;
       const itemResult = await client.query(
         `INSERT INTO invoice_items (
-           invoice_id, item_type, service_id, product_id, staff_id, description, quantity, unit_price, line_total
-         ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+           invoice_id, item_type, service_id, product_id, package_id, account_card_id,
+           staff_id, appointment_id, description, quantity, unit_price, line_total
+         ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
          RETURNING id`,
         [
           invoiceId,
           item.itemType,
           item.serviceId,
           item.productId,
+          item.packageId || null,
+          item.accountCardId || null,
           item.staffId || null,
+          linkedAppointmentId,
           item.name,
           item.quantity,
           item.unitPrice,
@@ -360,7 +451,20 @@ export async function checkoutPosInvoice({
         quantity: item.quantity,
         lineTotal: item.lineTotal,
         name: item.name,
+        itemType: item.itemType,
+        commissionType: item.commissionType,
+        commissionRate: item.commissionRate,
       });
+    }
+
+    const missingScheduledServices = [...appointmentByService.values()]
+      .reduce((totalCount, queue) => totalCount + queue.length, 0);
+    if (missingScheduledServices > 0) {
+      throw new HttpError(
+        409,
+        'DRAFT_SERVICE_MISSING',
+        'Hóa đơn đang có dịch vụ đã đặt lịch. Không thể bỏ dịch vụ này khi thanh toán.',
+      );
     }
 
     // 7. Auto-activate customer packages & account cards if applicable
@@ -436,40 +540,19 @@ export async function checkoutPosInvoice({
 
     // 8. Create per-line commission records for staff assigned to each item
     if (invoiceItemIds.length > 0) {
-      // Fetch product commission settings for items with product_id
-      const productIds = invoiceItemIds.filter((i) => i.productId).map((i) => i.productId);
-      const productCommissions = {};
-      if (productIds.length > 0) {
-        const commResult = await client.query(
-          `SELECT id, commission_type, commission_rate FROM products WHERE id = ANY($1)`,
-          [productIds],
-        );
-        for (const row of commResult.rows) {
-          productCommissions[row.id] = {
-            commissionType: row.commission_type,
-            commissionRate: parseFloat(row.commission_rate) || 0,
-          };
-        }
-      }
-
-      // Create commission for each line with assigned staff
+      // The catalog item is the single source of truth for commission. Staff
+      // profiles never contribute a default rate.
       for (const item of invoiceItemIds) {
         if (!item.staffId) continue;
 
         const revenue = item.lineTotal;
         let amount = 0;
-        let rate = 0;
+        const rate = item.commissionRate || 0;
 
-        if (item.productId && productCommissions[item.productId]) {
-          const comm = productCommissions[item.productId];
-          const calcType = comm.commissionType; // 'percent' or 'fixed'
-          rate = comm.commissionRate || 0;
-
-          if (calcType === 'percent') {
-            amount = Math.round(revenue * rate);
-          } else if (calcType === 'fixed') {
-            amount = item.quantity * rate;
-          }
+        if (item.commissionType === 'percent') {
+          amount = Math.round(revenue * rate);
+        } else if (item.commissionType === 'fixed') {
+          amount = item.quantity * rate;
         }
 
         if (amount > 0) {

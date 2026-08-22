@@ -55,7 +55,7 @@ export function getStandardWorkDaysForMonth(year, month, activeWeekdays = [1, 2,
 
 export async function createStaff({
   branchId, name, role, code: requestedCode, avatarTone, active, salaryType,
-  baseSalary, hourlyRate, defaultCommissionRate, canSell, canManageInventory, profile, accountId,
+  baseSalary, hourlyRate, canSell, canManageInventory, profile, accountId,
 }) {
   const client = await pool.connect();
   try {
@@ -77,7 +77,7 @@ export async function createStaff({
          staff_id, salary_type, base_salary, hourly_rate, default_commission_rate,
          can_sell, can_manage_inventory
        ) VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-      [staff.id, salaryType, baseSalary, hourlyRate, defaultCommissionRate, canSell, canManageInventory],
+      [staff.id, salaryType, baseSalary, hourlyRate, 0, canSell, canManageInventory],
     );
     await saveStaffProfile(client, { branchId, staffId: staff.id, profile, accountId });
     await client.query(
@@ -89,7 +89,7 @@ export async function createStaff({
     return {
       id: number(staff.id), code: staff.code, name: staff.name, role: staff.role,
       avatarTone: staff.avatar_tone, active: staff.active, salaryType,
-      baseSalary, hourlyRate, defaultCommissionRate, canSell, canManageInventory,
+      baseSalary, hourlyRate, canSell, canManageInventory,
       monthRevenue: 0, monthOrders: 0, createdAt: staff.created_at,
     };
   } catch (error) {
@@ -105,7 +105,7 @@ export async function createStaff({
 
 export async function updateStaff({
   branchId, staffId, name, role, code, avatarTone, active, salaryType,
-  baseSalary, hourlyRate, defaultCommissionRate, canSell, canManageInventory, profile, accountId,
+  baseSalary, hourlyRate, canSell, canManageInventory, profile, accountId,
 }) {
   const client = await pool.connect();
   try {
@@ -133,7 +133,7 @@ export async function updateStaff({
          can_sell = EXCLUDED.can_sell,
          can_manage_inventory = EXCLUDED.can_manage_inventory,
          updated_at = NOW()`,
-      [staffId, salaryType, baseSalary, hourlyRate, defaultCommissionRate, canSell, canManageInventory],
+      [staffId, salaryType, baseSalary, hourlyRate, 0, canSell, canManageInventory],
     );
     await saveStaffProfile(client, { branchId, staffId, profile, accountId });
     await client.query(
@@ -146,7 +146,7 @@ export async function updateStaff({
     return {
       id: number(staff.id), code: staff.code, name: staff.name, role: staff.role,
       avatarTone: staff.avatar_tone, active: staff.active, salaryType,
-      baseSalary, hourlyRate, defaultCommissionRate, canSell, canManageInventory,
+      baseSalary, hourlyRate, canSell, canManageInventory,
       createdAt: staff.created_at,
     };
   } catch (error) {
@@ -165,7 +165,7 @@ export async function listStaff({ branchId, search, active }) {
   let query = `
     SELECT
       s.id, s.code, s.name, s.role, s.avatar_tone, s.active, s.created_at,
-      ss.salary_type, ss.base_salary, ss.hourly_rate, ss.default_commission_rate,
+      ss.salary_type, ss.base_salary, ss.hourly_rate,
       ss.can_sell, ss.can_manage_inventory,
       COALESCE((SELECT sp.data FROM staff_profiles sp WHERE sp.staff_id = s.id), '{}'::jsonb) AS profile,
       (SELECT ua.id FROM user_accounts ua WHERE ua.branch_id = s.branch_id AND ua.staff_id = s.id ORDER BY ua.id LIMIT 1) AS account_id,
@@ -191,7 +191,7 @@ export async function listStaff({ branchId, search, active }) {
   }
 
   query += `
-    GROUP BY s.id, ss.salary_type, ss.base_salary, ss.hourly_rate, ss.default_commission_rate, ss.can_sell, ss.can_manage_inventory
+    GROUP BY s.id, ss.salary_type, ss.base_salary, ss.hourly_rate, ss.can_sell, ss.can_manage_inventory
     ORDER BY s.active DESC, s.name
   `;
 
@@ -206,7 +206,6 @@ export async function listStaff({ branchId, search, active }) {
     salaryType: row.salary_type ?? 'monthly',
     baseSalary: number(row.base_salary),
     hourlyRate: number(row.hourly_rate),
-    defaultCommissionRate: number(row.default_commission_rate),
     canSell: row.can_sell ?? true,
     canManageInventory: row.can_manage_inventory ?? false,
     ...(row.profile ?? {}),

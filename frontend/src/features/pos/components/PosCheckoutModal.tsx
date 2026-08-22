@@ -29,6 +29,7 @@ interface PosCheckoutModalProps {
   customer: PosCustomer | null;
   lines: PosLine[];
   staffList: Array<{ id: number; name: string; role: string }>;
+  invoiceId?: number;
   onClose: () => void;
   onSuccess: (receipt: PosReceiptData, shouldPrint: boolean) => void;
 }
@@ -39,6 +40,7 @@ export function PosCheckoutModal({
   customer,
   lines,
   staffList,
+  invoiceId,
   onClose,
   onSuccess,
 }: PosCheckoutModalProps) {
@@ -119,6 +121,7 @@ export function PosCheckoutModal({
         paymentMethod,
         amountPaid: paymentMethod === 'cash' ? amountPaid : total,
         note: note.trim() || undefined,
+        invoiceId,
         lines: lines.map((line) => ({
           itemType: line.itemType,
           itemId: line.itemId,

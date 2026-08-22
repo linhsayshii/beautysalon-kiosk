@@ -105,8 +105,8 @@ export function MobileBottomNav() {
             <NavLink to="/m/pos" className={({ isActive }) => `mobile-nav-item ${isActive ? 'is-active' : ''}`}>
               <i className="ph ph-shopping-cart" /><span>Bán hàng</span>
             </NavLink>
-            <NavLink to="/m/orders" className={({ isActive }) => `mobile-nav-item ${isActive ? 'is-active' : ''}`}>
-              <i className="ph ph-receipt" /><span>Đơn hàng</span>
+            <NavLink to="/m/pos?queue=1" className={({ isActive }) => `mobile-nav-item ${isActive ? 'is-active' : ''}`}>
+              <i className="ph ph-credit-card" /><span>Chờ thanh toán</span>
             </NavLink>
             {renderCenterButton()}
             <NavLink to="/m/customers" className={({ isActive }) => `mobile-nav-item ${isActive ? 'is-active' : ''}`}>

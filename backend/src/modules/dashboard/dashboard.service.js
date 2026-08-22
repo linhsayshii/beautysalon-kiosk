@@ -62,6 +62,7 @@ export async function listAppointments({ branchId, dateFrom, dateTo }) {
        FROM branches b WHERE b.id = $1
      )
      SELECT a.id, a.starts_at, a.ends_at, a.status, a.note, a.invoice_id,
+            ii.id AS invoice_item_id, i.status AS invoice_status, i.payment_requested_at,
             c.id AS customer_id, c.name AS customer_name, c.phone AS customer_phone,
             s.id AS staff_id, s.name AS staff_name,
             sv.id AS service_id, sv.name AS service_name
@@ -70,6 +71,8 @@ export async function listAppointments({ branchId, dateFrom, dateTo }) {
      LEFT JOIN customers c ON c.id = a.customer_id
      LEFT JOIN staff s ON s.id = a.staff_id
      LEFT JOIN services sv ON sv.id = a.service_id
+     LEFT JOIN invoice_items ii ON ii.appointment_id = a.id
+     LEFT JOIN invoices i ON i.id = a.invoice_id
      WHERE a.branch_id = $1
        AND a.starts_at >= bounds.range_start
        AND a.starts_at < bounds.range_end
@@ -85,116 +88,319 @@ export async function listAppointments({ branchId, dateFrom, dateTo }) {
     status: row.status,
     note: row.note,
     invoiceId: row.invoice_id || null,
+    invoiceItemId: row.invoice_item_id ? number(row.invoice_item_id) : null,
+    invoiceStatus: row.invoice_status || null,
+    paymentRequestedAt: row.payment_requested_at || null,
     customer: { id: row.customer_id ? number(row.customer_id) : null, name: row.customer_name ?? 'Khách lẻ', phone: row.customer_phone },
     staff: { id: row.staff_id ? number(row.staff_id) : null, name: row.staff_name },
     service: { id: row.service_id ? number(row.service_id) : null, name: row.service_name },
   }));
 }
 
-export async function createAppointment({ branchId, customerId, serviceId, staffId, startsAt, endsAt, status, note }) {
+function appError(status, code, message) {
+  const error = new Error(message);
+  error.status = status;
+  error.code = code;
+  return error;
+}
+
+function draftInvoiceCode() {
+  return `INV-${Date.now()}-${Math.floor(Math.random() * 1_000_000)}`;
+}
+
+async function recalculateDraftInvoice(client, invoiceId) {
+  await client.query(
+    `UPDATE invoices i
+     SET subtotal = totals.subtotal,
+         discount = LEAST(i.discount, totals.subtotal),
+         total = GREATEST(0, totals.subtotal - LEAST(i.discount, totals.subtotal))
+     FROM (
+       SELECT COALESCE(SUM(line_total), 0) AS subtotal
+       FROM invoice_items
+       WHERE invoice_id = $1
+     ) totals
+     WHERE i.id = $1 AND i.status = 'draft'`,
+    [invoiceId],
+  );
+}
+
+async function refreshInvoicePaymentReadiness(client, { invoiceId, triggeredByStaffId = null }) {
+  if (!invoiceId) return { paymentRequestedAt: null };
+
+  const invoiceResult = await client.query(
+    `SELECT id, status, payment_requested_at
+     FROM invoices WHERE id = $1 FOR UPDATE`,
+    [invoiceId],
+  );
+  const invoice = invoiceResult.rows[0];
+  if (!invoice || invoice.status !== 'draft') return { paymentRequestedAt: null };
+
+  const progressResult = await client.query(
+    `SELECT
+       COUNT(*) FILTER (WHERE ii.item_type = 'service' AND ii.appointment_id IS NOT NULL) AS total,
+       COUNT(*) FILTER (
+         WHERE ii.item_type = 'service' AND ii.appointment_id IS NOT NULL AND a.status = 'completed'
+       ) AS completed
+     FROM invoice_items ii
+     LEFT JOIN appointments a ON a.id = ii.appointment_id
+     WHERE ii.invoice_id = $1`,
+    [invoiceId],
+  );
+  const total = number(progressResult.rows[0]?.total);
+  const completed = number(progressResult.rows[0]?.completed);
+
+  if (total > 0 && total === completed) {
+    const updated = await client.query(
+      `UPDATE invoices
+       SET payment_requested_at = COALESCE(payment_requested_at, NOW()),
+           payment_requested_by_staff_id = COALESCE(payment_requested_by_staff_id, $2)
+       WHERE id = $1
+       RETURNING payment_requested_at`,
+      [invoiceId, triggeredByStaffId],
+    );
+    return { paymentRequestedAt: updated.rows[0]?.payment_requested_at || null };
+  }
+
+  await client.query(
+    `UPDATE invoices
+     SET payment_requested_at = NULL, payment_requested_by_staff_id = NULL
+     WHERE id = $1`,
+    [invoiceId],
+  );
+  return { paymentRequestedAt: null };
+}
+
+async function syncDraftInvoiceItemForAppointment(client, {
+  invoiceId,
+  appointmentId,
+  customerId,
+  staffId,
+  service,
+  status,
+}) {
+  if (!invoiceId) return;
+
+  const invoiceResult = await client.query(
+    'SELECT id, customer_id, status FROM invoices WHERE id = $1 FOR UPDATE',
+    [invoiceId],
+  );
+  const invoice = invoiceResult.rows[0];
+  if (!invoice || invoice.status !== 'draft') return;
+
+  if (invoice.customer_id && Number(invoice.customer_id) !== Number(customerId)) {
+    throw appError(409, 'INVOICE_CUSTOMER_LOCKED', 'Không thể đổi khách của một dịch vụ trong hóa đơn chung');
+  }
+
+  if (status === 'cancelled') {
+    await client.query(
+      'DELETE FROM invoice_items WHERE invoice_id = $1 AND appointment_id = $2',
+      [invoiceId, appointmentId],
+    );
+    await recalculateDraftInvoice(client, invoiceId);
+    const remainingItems = await client.query('SELECT COUNT(*) AS total FROM invoice_items WHERE invoice_id = $1', [invoiceId]);
+    if (number(remainingItems.rows[0]?.total) === 0) {
+      await client.query("UPDATE invoices SET status = 'cancelled', subtotal = 0, discount = 0, total = 0 WHERE id = $1", [invoiceId]);
+    }
+    return;
+  }
+
+  if (!service) return;
+  const itemResult = await client.query(
+    `UPDATE invoice_items
+     SET service_id = $1, staff_id = $2, description = $3,
+         unit_price = $4, line_total = $4 * quantity
+     WHERE invoice_id = $5 AND appointment_id = $6 AND item_type = 'service'
+     RETURNING id`,
+    [service.id, staffId, service.name, service.price, invoiceId, appointmentId],
+  );
+  if (itemResult.rows[0]) await recalculateDraftInvoice(client, invoiceId);
+}
+
+export async function createAppointments({ branchId, customerId, items, status, note, invoiceId = null }) {
+  if (!Array.isArray(items) || items.length === 0) {
+    throw appError(400, 'SERVICES_REQUIRED', 'Cần chọn ít nhất một dịch vụ');
+  }
+
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
-    const [customerResult, serviceResult, staffResult] = await Promise.all([
-      client.query('SELECT id, name, phone FROM customers WHERE id = $1 AND branch_id = $2', [customerId, branchId]),
-      client.query('SELECT id, name FROM services WHERE id = $1 AND branch_id = $2 AND active', [serviceId, branchId]),
-      staffId ? client.query('SELECT id, name FROM staff WHERE id = $1 AND branch_id = $2 AND active', [staffId, branchId]) : Promise.resolve({ rows: [] }),
-    ]);
-    if (!customerResult.rows[0]) {
-      const error = new Error('Không tìm thấy khách hàng');
-      error.status = 404;
-      error.code = 'CUSTOMER_NOT_FOUND';
-      throw error;
-    }
-    if (!serviceResult.rows[0]) {
-      const error = new Error('Không tìm thấy dịch vụ');
-      error.status = 404;
-      error.code = 'SERVICE_NOT_FOUND';
-      throw error;
-    }
-    if (staffId && !staffResult.rows[0]) {
-      const error = new Error('Không tìm thấy nhân viên');
-      error.status = 404;
-      error.code = 'STAFF_NOT_FOUND';
-      throw error;
-    }
-
-    if (staffId) {
-      const overlap = await client.query(
-        `SELECT id FROM appointments
-         WHERE branch_id = $1 AND staff_id = $2 AND status <> 'cancelled'
-           AND starts_at < $4 AND ends_at > $3
-         LIMIT 1`,
-        [branchId, staffId, startsAt, endsAt],
-      );
-      if (overlap.rows[0]) {
-        const error = new Error('Nhân viên đã có lịch trong khung giờ này');
-        error.status = 409;
-        error.code = 'STAFF_SCHEDULE_CONFLICT';
-        throw error;
-      }
-    }
-
-    const result = await client.query(
-      `INSERT INTO appointments (branch_id, customer_id, staff_id, service_id, starts_at, ends_at, status, note)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-       RETURNING id, starts_at, ends_at, status, note`,
-      [branchId, customerId, staffId, serviceId, startsAt, endsAt, status, note || null],
+    const customerResult = await client.query(
+      'SELECT id, name, phone FROM customers WHERE id = $1 AND branch_id = $2',
+      [customerId, branchId],
     );
-    await client.query('COMMIT');
-    const appointment = result.rows[0];
-
-    // Auto-create draft invoice for appointment
-    try {
-      const servicePriceResult = await pool.query(
-        'SELECT name, price FROM services WHERE id = $1',
-        [serviceId]
-      );
-      const serviceName = servicePriceResult.rows[0]?.name || 'Dịch vụ';
-      const servicePrice = servicePriceResult.rows[0]?.price || 0;
-
-      // Create invoice draft
-      const invoiceResult = await pool.query(`
-        INSERT INTO invoices (branch_id, customer_id, staff_id, code, status, subtotal, discount, total, payment_method, issued_at, appointment_id)
-        VALUES ($1, $2, $3, $4, 'draft', 0, 0, 0, 'cash', $5, $6)
-        RETURNING id
-      `, [
-        branchId,
-        customerId,
-        staffId || null,
-        `INV-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
-        startsAt,
-        appointment.id,
-      ]);
-
-      const invoiceId = invoiceResult.rows[0].id;
-
-      // Link invoice to appointment
-      await pool.query(
-        'UPDATE appointments SET invoice_id = $1 WHERE id = $2',
-        [invoiceId, appointment.id]
-      );
-
-      // Create invoice_item for service
-      await pool.query(`
-        INSERT INTO invoice_items (invoice_id, item_type, service_id, description, quantity, unit_price, line_total)
-        VALUES ($1, 'service', $2, $3, 1, $4, $4)
-      `, [invoiceId, serviceId, serviceName, servicePrice]);
-
-    } catch (err) {
-      // Log but don't fail appointment — invoice is a side-effect
-      console.error('Failed to create draft invoice for appointment:', err);
+    if (!customerResult.rows[0]) {
+      throw appError(404, 'CUSTOMER_NOT_FOUND', 'Không tìm thấy khách hàng');
     }
 
+    const normalizedItems = [];
+    for (const item of items) {
+      const { serviceId, staffId, startsAt, endsAt } = item;
+      const quantity = Math.max(1, Math.floor(Number(item.quantity || 1)));
+      const [serviceResult, staffResult] = await Promise.all([
+        client.query('SELECT id, name, price FROM services WHERE id = $1 AND branch_id = $2 AND active', [serviceId, branchId]),
+        staffId ? client.query('SELECT id, name FROM staff WHERE id = $1 AND branch_id = $2 AND active', [staffId, branchId]) : Promise.resolve({ rows: [] }),
+      ]);
+      if (!serviceResult.rows[0]) throw appError(404, 'SERVICE_NOT_FOUND', 'Không tìm thấy dịch vụ');
+      if (staffId && !staffResult.rows[0]) throw appError(404, 'STAFF_NOT_FOUND', 'Không tìm thấy nhân viên');
+
+      if (staffId) {
+        const overlap = await client.query(
+          `SELECT id FROM appointments
+           WHERE branch_id = $1 AND staff_id = $2 AND status NOT IN ('cancelled', 'no_show')
+             AND starts_at < $4 AND ends_at > $3
+           LIMIT 1`,
+          [branchId, staffId, startsAt, endsAt],
+        );
+        if (overlap.rows[0]) throw appError(409, 'STAFF_SCHEDULE_CONFLICT', 'Nhân viên đã có lịch trong khung giờ này');
+      }
+
+      const conflictsWithRequest = normalizedItems.some((existing) => (
+        staffId && existing.staffId === staffId && existing.startsAt < endsAt && existing.endsAt > startsAt
+      ));
+      if (conflictsWithRequest) {
+        throw appError(409, 'STAFF_SCHEDULE_CONFLICT', 'Nhân viên bị trùng lịch giữa các dịch vụ đang tạo');
+      }
+
+      normalizedItems.push({
+        serviceId,
+        staffId: staffId || null,
+        startsAt,
+        endsAt,
+        quantity,
+        service: serviceResult.rows[0],
+        staff: staffResult.rows[0] || null,
+      });
+    }
+
+    const subtotal = normalizedItems.reduce((sum, item) => sum + number(item.service.price) * item.quantity, 0);
+    let invoice;
+    if (invoiceId) {
+      const existingInvoice = await client.query(
+        `SELECT id, code, status, subtotal, discount, total, payment_method, sales_channel, issued_at
+         FROM invoices
+         WHERE id = $1 AND branch_id = $2 AND customer_id = $3 AND status = 'draft'
+         FOR UPDATE`,
+        [invoiceId, branchId, customerId],
+      );
+      invoice = existingInvoice.rows[0];
+      if (!invoice) throw appError(409, 'INVOICE_NOT_EDITABLE', 'Hóa đơn không còn có thể thêm dịch vụ');
+    } else {
+      const invoiceResult = await client.query(
+        `INSERT INTO invoices (
+           branch_id, customer_id, staff_id, code, status, subtotal, discount, total,
+           payment_method, sales_channel, issued_at
+         ) VALUES ($1, $2, NULL, $3, 'draft', $4, 0, $4, 'cash', 'salon', $5)
+         RETURNING id, code, status, subtotal, discount, total, payment_method, sales_channel, issued_at`,
+        [branchId, customerId, draftInvoiceCode(), subtotal, normalizedItems[0].startsAt],
+      );
+      invoice = invoiceResult.rows[0];
+    }
+    const appointments = [];
+
+    for (const item of normalizedItems) {
+      const appointmentResult = await client.query(
+        `INSERT INTO appointments (
+           branch_id, customer_id, staff_id, service_id, starts_at, ends_at, status, note, invoice_id
+         ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+         RETURNING id, starts_at, ends_at, status, note`,
+        [branchId, customerId, item.staffId, item.serviceId, item.startsAt, item.endsAt, status, note || null, invoice.id],
+      );
+      const appointment = appointmentResult.rows[0];
+      const invoiceItemResult = await client.query(
+        `INSERT INTO invoice_items (
+           invoice_id, item_type, service_id, staff_id, appointment_id,
+           description, quantity, unit_price, line_total
+         ) VALUES ($1, 'service', $2, $3, $4, $5, $6, $7, $6 * $7)
+         RETURNING id`,
+        [invoice.id, item.serviceId, item.staffId, appointment.id, item.service.name, item.quantity, item.service.price],
+      );
+      appointments.push({
+        id: number(appointment.id),
+        startsAt: appointment.starts_at,
+        endsAt: appointment.ends_at,
+        status: appointment.status,
+        note: appointment.note,
+        invoiceId: number(invoice.id),
+        invoiceItemId: number(invoiceItemResult.rows[0].id),
+        customer: { id: customerId, name: customerResult.rows[0].name, phone: customerResult.rows[0].phone },
+        staff: { id: item.staffId, name: item.staff?.name ?? null },
+        service: { id: item.serviceId, name: item.service.name },
+      });
+    }
+
+    if (status === 'completed') {
+      await refreshInvoicePaymentReadiness(client, {
+        invoiceId: invoice.id,
+        triggeredByStaffId: normalizedItems.at(-1)?.staffId || null,
+      });
+    }
+
+    if (invoiceId) {
+      await recalculateDraftInvoice(client, invoice.id);
+      const refreshedInvoice = await client.query(
+        `SELECT id, code, status, subtotal, discount, total, payment_method, sales_channel, issued_at
+         FROM invoices WHERE id = $1`,
+        [invoice.id],
+      );
+      invoice = refreshedInvoice.rows[0];
+    }
+
+    await client.query('COMMIT');
     return {
-      id: number(appointment.id),
-      startsAt: appointment.starts_at,
-      endsAt: appointment.ends_at,
-      status: appointment.status,
-      note: appointment.note,
-      customer: { id: customerId, name: customerResult.rows[0].name, phone: customerResult.rows[0].phone },
-      staff: { id: staffId, name: staffResult.rows[0]?.name ?? null },
-      service: { id: serviceId, name: serviceResult.rows[0].name },
+      invoice: {
+        id: number(invoice.id), code: invoice.code, status: invoice.status,
+        subtotal: number(invoice.subtotal), discount: number(invoice.discount), total: number(invoice.total),
+      },
+      appointments,
+    };
+  } catch (error) {
+    await client.query('ROLLBACK');
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
+export async function createAppointment(input) {
+  const result = await createAppointments({
+    branchId: input.branchId,
+    customerId: input.customerId,
+    status: input.status,
+    note: input.note,
+    items: [{ serviceId: input.serviceId, staffId: input.staffId, startsAt: input.startsAt, endsAt: input.endsAt }],
+  });
+  return result.appointments[0];
+}
+
+export async function transitionAppointmentWorkStatus({ branchId, staffId, id, status }) {
+  const expectedCurrentStatuses = status === 'in_service' ? ['confirmed', 'waiting'] : ['in_service'];
+  if (!['in_service', 'completed'].includes(status)) {
+    throw appError(400, 'INVALID_WORK_STATUS', 'Trạng thái công việc không hợp lệ');
+  }
+
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    const result = await client.query(
+      `UPDATE appointments
+       SET status = $1
+       WHERE id = $2 AND branch_id = $3 AND staff_id = $4
+         AND status = ANY($5::varchar[])
+       RETURNING id, status, invoice_id`,
+      [status, id, branchId, staffId, expectedCurrentStatuses],
+    );
+    if (!result.rows[0]) {
+      throw appError(409, 'WORK_STATUS_TRANSITION_INVALID', 'Công việc không còn ở trạng thái có thể cập nhật');
+    }
+    const paymentReadiness = await refreshInvoicePaymentReadiness(client, {
+      invoiceId: result.rows[0].invoice_id,
+      triggeredByStaffId: status === 'completed' ? staffId : null,
+    });
+    await client.query('COMMIT');
+    return {
+      id: number(result.rows[0].id),
+      status: result.rows[0].status,
+      paymentRequestedAt: paymentReadiness.paymentRequestedAt,
     };
   } catch (error) {
     await client.query('ROLLBACK');
@@ -210,7 +416,7 @@ export async function updateAppointment({ branchId, id, customerId, serviceId, s
     await client.query('BEGIN');
 
     const existingResult = await client.query(
-      'SELECT id, customer_id, service_id, staff_id, starts_at, ends_at, status, note FROM appointments WHERE id = $1 AND branch_id = $2',
+    'SELECT id, customer_id, service_id, staff_id, starts_at, ends_at, status, note, invoice_id FROM appointments WHERE id = $1 AND branch_id = $2',
       [id, branchId],
     );
     if (!existingResult.rows[0]) {
@@ -229,9 +435,13 @@ export async function updateAppointment({ branchId, id, customerId, serviceId, s
     const targetStatus = status || existing.status;
     const targetNote = note !== undefined ? (note || null) : existing.note;
 
+    if (existing.invoice_id && !targetServiceId) {
+      throw appError(409, 'INVOICE_SERVICE_REQUIRED', 'Không thể bỏ dịch vụ khi lịch hẹn đang thuộc hóa đơn');
+    }
+
     const [customerResult, serviceResult, staffResult] = await Promise.all([
       targetCustomerId ? client.query('SELECT id, name, phone FROM customers WHERE id = $1 AND branch_id = $2', [targetCustomerId, branchId]) : Promise.resolve({ rows: [] }),
-      targetServiceId ? client.query('SELECT id, name FROM services WHERE id = $1 AND branch_id = $2 AND active', [targetServiceId, branchId]) : Promise.resolve({ rows: [] }),
+      targetServiceId ? client.query('SELECT id, name, price FROM services WHERE id = $1 AND branch_id = $2 AND active', [targetServiceId, branchId]) : Promise.resolve({ rows: [] }),
       targetStaffId ? client.query('SELECT id, name FROM staff WHERE id = $1 AND branch_id = $2 AND active', [targetStaffId, branchId]) : Promise.resolve({ rows: [] }),
     ]);
 
@@ -270,25 +480,6 @@ export async function updateAppointment({ branchId, id, customerId, serviceId, s
       }
     }
 
-    // Handle no_show status - skip overlap check and update directly
-    if (targetStatus === 'no_show') {
-      await client.query(
-        'UPDATE appointments SET status = $1 WHERE id = $2',
-        ['no_show', id]
-      );
-      await client.query('COMMIT');
-      return {
-        id: number(id),
-        startsAt: existing.starts_at,
-        endsAt: existing.ends_at,
-        status: 'no_show',
-        note: existing.note,
-        customer: { id: targetCustomerId, name: customerResult.rows[0]?.name ?? 'Khách lẻ', phone: customerResult.rows[0]?.phone },
-        staff: { id: targetStaffId, name: staffResult.rows[0]?.name ?? null },
-        service: { id: targetServiceId, name: serviceResult.rows[0]?.name ?? null },
-      };
-    }
-
     const result = await client.query(
       `UPDATE appointments
        SET customer_id = $1, staff_id = $2, service_id = $3, starts_at = $4, ends_at = $5, status = $6, note = $7
@@ -296,6 +487,19 @@ export async function updateAppointment({ branchId, id, customerId, serviceId, s
        RETURNING id, starts_at, ends_at, status, note`,
       [targetCustomerId, targetStaffId, targetServiceId, targetStartsAt, targetEndsAt, targetStatus, targetNote, id, branchId],
     );
+
+    await syncDraftInvoiceItemForAppointment(client, {
+      invoiceId: existing.invoice_id,
+      appointmentId: id,
+      customerId: targetCustomerId,
+      staffId: targetStaffId,
+      service: serviceResult.rows[0] || null,
+      status: targetStatus,
+    });
+    await refreshInvoicePaymentReadiness(client, {
+      invoiceId: existing.invoice_id,
+      triggeredByStaffId: null,
+    });
 
     await client.query('COMMIT');
     const appointment = result.rows[0];

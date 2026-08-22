@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter } from 'react-router-dom';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
@@ -23,6 +23,7 @@ describe('MobilePosView Component', () => {
       meta: {},
     });
     vi.spyOn(posApi, 'getPosStaff').mockResolvedValue({ data: [], meta: {} });
+    vi.spyOn(posApi, 'getPosPaymentRequests').mockResolvedValue({ data: [], meta: {} });
   });
 
   it('renders search bar, category tabs, and grouped item cards correctly', async () => {
@@ -66,5 +67,30 @@ describe('MobilePosView Component', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /^Thanh toán$/i }));
     expect(screen.getByText('Chi tiết giỏ hàng & Thanh toán')).toBeInTheDocument();
+  });
+
+  it('shows an actionable payment request for cashier or manager', async () => {
+    vi.spyOn(posApi, 'getPosPaymentRequests').mockResolvedValue({
+      data: [{
+        id: 51, code: 'INV-51', total: 300000, issuedAt: '2026-08-22T09:00:00Z',
+        paymentRequestedAt: '2026-08-22T10:00:00Z', requestedByName: 'KTV An',
+        customer: { name: 'Nguyễn Thị Hoa', phone: '0901234567' },
+        serviceProgress: { total: 2, completed: 2 },
+      }],
+      meta: {},
+    });
+
+    render(
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter>
+          <MobilePosView />
+        </MemoryRouter>
+      </QueryClientProvider>
+    );
+
+    await waitFor(() => expect(screen.getByText('Nguyễn Thị Hoa')).toBeInTheDocument());
+    expect(
+      within(screen.getByLabelText('Hóa đơn chờ thanh toán')).getByRole('button', { name: 'Thanh toán' }),
+    ).toBeInTheDocument();
   });
 });

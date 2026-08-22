@@ -12,6 +12,15 @@ const salesChannelLabels: Record<string, string> = {
   phone: 'Qua điện thoại',
 };
 
+const workStatusLabels: Record<string, string> = {
+  confirmed: 'Chờ phục vụ',
+  waiting: 'Đang chờ',
+  in_service: 'Đang làm',
+  completed: 'Đã xong',
+  cancelled: 'Đã hủy',
+  no_show: 'Không đến',
+};
+
 type OrderTab = 'items' | 'info' | 'payment';
 
 export function OrderDetail({ id }: { id: number }) {
@@ -118,6 +127,12 @@ export function OrderDetail({ id }: { id: number }) {
           </div>
         </div>
 
+        {Number(order.serviceProgress?.total || 0) > 0 && (
+          <div style={{ marginBottom: 12, color: '#15803d', fontSize: 13, fontWeight: 700 }}>
+            Tiến độ dịch vụ: {order.serviceProgress.completed}/{order.serviceProgress.total} đã xong
+          </div>
+        )}
+
         {/* Layer 4: 4-Column Value Strip */}
         <div
           className="order-value-strip"
@@ -161,6 +176,7 @@ export function OrderDetail({ id }: { id: number }) {
                     <th>Mã hàng</th>
                     <th>Tên hàng / Dịch vụ</th>
                     <th>Loại</th>
+                    <th>Thực hiện</th>
                     <th style={{ textAlign: 'right' }}>Số lượng</th>
                     <th style={{ textAlign: 'right' }}>Đơn giá</th>
                     <th style={{ textAlign: 'right' }}>Giảm giá</th>
@@ -178,6 +194,16 @@ export function OrderDetail({ id }: { id: number }) {
                         )}
                       </td>
                       <td>{statusLabels[item.itemType] ?? item.itemType}</td>
+                      <td>
+                        {item.appointment ? (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                            <span>{item.appointment.staff?.name || item.staffName || 'Chưa phân công'}</span>
+                            <span style={{ color: '#0062eb', fontSize: 12, fontWeight: 650 }}>
+                              {workStatusLabels[item.appointment.status] || item.appointment.status}
+                            </span>
+                          </div>
+                        ) : '-'}
+                      </td>
                       <td style={{ textAlign: 'right' }}>
                         {formatNumber(item.quantity)} {item.unit}
                       </td>

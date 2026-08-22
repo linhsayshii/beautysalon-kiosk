@@ -598,3 +598,32 @@
 .mobile-orders-action-detail-btn:active {
   background: #0050c2;
 }
+
+.mobile-orders-service-progress {
+  display: inline-flex;
+  margin-top: 8px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  background: #ecfdf5;
+  color: #15803d;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.mobile-orders-item-work-state {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 5px;
+  color: #475569;
+  font-size: 12px;
+}
+
+.mobile-orders-item-work-state span {
+  padding: 2px 6px;
+  border-radius: 5px;
+  background: #eff6ff;
+  color: #0062eb;
+  font-weight: 700;
+}

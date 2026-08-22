@@ -1,15 +1,18 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter } from 'react-router-dom';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { MobileMyScheduleView } from './MobileMyScheduleView';
 import * as AuthProvider from '@/features/auth/AuthProvider';
+import { ToastProvider } from '@/components/ui/Toast/ToastProvider';
 
 // Module-level hoisted mocks — these are stable across all tests
 const mockGetMyWorkItems = vi.hoisted(() => vi.fn());
+const mockUpdateMyWorkItemStatus = vi.hoisted(() => vi.fn());
 
 vi.mock('@/features/staff/staff.api', () => ({
   getMyWorkItems: mockGetMyWorkItems,
+  updateMyWorkItemStatus: mockUpdateMyWorkItemStatus,
 }));
 
 const mockAccount = {
@@ -40,6 +43,7 @@ describe('MobileMyScheduleView', () => {
       switchBranch: vi.fn(),
       updateLocalAccount: vi.fn(),
     });
+    mockUpdateMyWorkItemStatus.mockResolvedValue({ data: { id: 21, status: 'in_service' }, meta: {} });
   });
 
   afterEach(() => {
@@ -50,9 +54,11 @@ describe('MobileMyScheduleView', () => {
   const renderComponent = () =>
     render(
       <QueryClientProvider client={queryClient}>
-        <MemoryRouter>
-          <MobileMyScheduleView />
-        </MemoryRouter>
+        <ToastProvider>
+          <MemoryRouter>
+            <MobileMyScheduleView />
+          </MemoryRouter>
+        </ToastProvider>
       </QueryClientProvider>
     );
 
@@ -105,7 +111,7 @@ describe('MobileMyScheduleView', () => {
     expect(screen.queryByText('Lê Văn Minh')).not.toBeInTheDocument();
   });
 
-  it('shows checkout button for appointments with invoiceId', async () => {
+  it('starts only the employee work item before the service is completed', async () => {
     mockGetMyWorkItems.mockResolvedValue({
       data: { appointments: [
         {
@@ -134,8 +140,93 @@ describe('MobileMyScheduleView', () => {
 
     renderComponent();
     await waitFor(() => {
-      const checkoutBtns = screen.getAllByRole('button', { name: 'Thanh toán' });
-      expect(checkoutBtns).toHaveLength(1);
+      expect(screen.getAllByRole('button', { name: 'Bắt đầu' })).toHaveLength(2);
     });
+    fireEvent.click(screen.getAllByRole('button', { name: 'Bắt đầu' })[0]);
+    await waitFor(() => {
+      expect(mockUpdateMyWorkItemStatus).toHaveBeenCalledWith(21, 'in_service');
+    });
+    expect(screen.queryByRole('button', { name: 'Thanh toán' })).not.toBeInTheDocument();
+  });
+
+  it('shows only a waiting state when this employee finishes before another service', async () => {
+    mockGetMyWorkItems.mockResolvedValue({
+      data: { appointments: [{
+        id: 25, startsAt: '2026-08-21T09:00:00Z', status: 'completed',
+        customer: { name: 'Trần Thị B' }, staff: { id: 5 }, service: { name: 'Gội đầu' },
+        invoiceId: 101, invoiceStatus: 'draft',
+      }], drafts: [] },
+      meta: {},
+    } as any);
+
+    renderComponent();
+    await waitFor(() => {
+      expect(screen.getByText('Chờ dịch vụ khác hoàn thành')).toBeInTheDocument();
+    });
+    expect(screen.queryByRole('button', { name: 'Thanh toán' })).not.toBeInTheDocument();
+  });
+
+  it('shows that the invoice was transferred to cashier after all services complete', async () => {
+    mockGetMyWorkItems.mockResolvedValue({
+      data: { appointments: [{
+        id: 27, startsAt: '2026-08-21T09:00:00Z', status: 'completed',
+        customer: { name: 'Trần Thị B' }, staff: { id: 5 }, service: { name: 'Gội đầu' },
+        invoiceId: 102, invoiceStatus: 'draft', paymentRequestedAt: '2026-08-21T10:00:00Z',
+      }], drafts: [] },
+      meta: {},
+    } as any);
+
+    renderComponent();
+    await waitFor(() => expect(screen.getByText('Đã chuyển thu ngân')).toBeInTheDocument());
+    expect(screen.queryByRole('button', { name: 'Thanh toán' })).not.toBeInTheDocument();
+  });
+
+  it('marks an in-progress service completed before exposing checkout', async () => {
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+    mockGetMyWorkItems.mockResolvedValue({
+      data: { appointments: [{
+        id: 26, startsAt: '2026-08-21T09:00:00Z', status: 'in_service',
+        customer: { name: 'Trần Thị B' }, staff: { id: 5 }, service: { name: 'Gội đầu' },
+        invoiceId: 101, invoiceStatus: 'draft',
+      }], drafts: [] },
+      meta: {},
+    } as any);
+
+    renderComponent();
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Hoàn thành' })).toBeInTheDocument());
+    fireEvent.click(screen.getByRole('button', { name: 'Hoàn thành' }));
+    await waitFor(() => {
+      expect(mockUpdateMyWorkItemStatus).toHaveBeenCalledWith(26, 'completed');
+    });
+    expect(screen.queryByRole('button', { name: 'Thanh toán' })).not.toBeInTheDocument();
+  });
+
+  it('keeps the appointment and hides its linked draft invoice', async () => {
+    mockGetMyWorkItems.mockResolvedValue({
+      data: {
+        appointments: [{
+          id: 31,
+          startsAt: '2026-08-21T09:00:00Z',
+          status: 'confirmed',
+          customer: { name: 'Hoàng Khánh Linh' },
+          staff: { id: 5 },
+          service: { name: 'Nhuộm tóc' },
+          invoiceId: 201,
+        }],
+        drafts: [
+          { id: 201, issuedAt: '2026-08-21T09:00:00Z', customer: { name: 'Hoàng Khánh Linh' } },
+          { id: 202, issuedAt: '2026-08-21T10:00:00Z', customer: { name: 'Khách mua lẻ' } },
+        ],
+      },
+      meta: {},
+    } as any);
+
+    renderComponent();
+    await waitFor(() => {
+      expect(screen.getByText('Chờ phục vụ')).toBeInTheDocument();
+    });
+    expect(screen.queryByText('Đơn nháp')).toBeInTheDocument();
+    expect(screen.getByText('Khách mua lẻ')).toBeInTheDocument();
+    expect(screen.getAllByText('Hoàng Khánh Linh')).toHaveLength(1);
   });
 });
