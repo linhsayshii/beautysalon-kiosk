@@ -27,7 +27,7 @@ describe('MobileStaffScheduleAdminView Component', () => {
 
   const mockScheduleResponse = {
     data: {
-      shifts: [
+      schedules: [
         {
           id: 101,
           staffId: 3,
@@ -111,5 +111,11 @@ describe('MobileStaffScheduleAdminView Component', () => {
     await waitFor(() => {
       expect(staffApi.assignShift).toHaveBeenCalled();
     });
+    expect(staffApi.assignShift).toHaveBeenCalledWith(expect.objectContaining({
+      staffId: 1,
+      shiftName: 'Ca Partime',
+      startsAt: '18:00',
+      endsAt: '22:00',
+    }));
   });
 });

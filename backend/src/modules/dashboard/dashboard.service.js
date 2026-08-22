@@ -208,7 +208,7 @@ async function syncDraftInvoiceItemForAppointment(client, {
   const itemResult = await client.query(
     `UPDATE invoice_items
      SET service_id = $1, staff_id = $2, description = $3,
-         unit_price = $4, line_total = $4 * quantity
+         unit_price = $4, line_total = $4::numeric * quantity
      WHERE invoice_id = $5 AND appointment_id = $6 AND item_type = 'service'
      RETURNING id`,
     [service.id, staffId, service.name, service.price, invoiceId, appointmentId],
@@ -310,7 +310,7 @@ export async function createAppointments({ branchId, customerId, items, status, 
         `INSERT INTO invoice_items (
            invoice_id, item_type, service_id, staff_id, appointment_id,
            description, quantity, unit_price, line_total
-         ) VALUES ($1, 'service', $2, $3, $4, $5, $6, $7, $6 * $7)
+         ) VALUES ($1, 'service', $2, $3, $4, $5, $6, $7, $6::numeric * $7::numeric)
          RETURNING id`,
         [invoice.id, item.serviceId, item.staffId, appointment.id, item.service.name, item.quantity, item.service.price],
       );

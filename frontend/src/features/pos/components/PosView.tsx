@@ -397,9 +397,15 @@ export function PosView() {
           </div>
 
           <footer className="pos-bill-footer">
-            <div className="pos-bill-note"><button type="button"><i className="ph ph-note-pencil" />Ghi chú</button><span>{activeInvoice.customer?.name ?? 'Khách lẻ'}</span></div>
+            <div className="pos-bill-note"><button type="button"><i className="ph ph-note-pencil" />Ghi chú</button><span>{activeInvoice.customer?.name ?? 'Chưa chọn khách hàng'}</span></div>
             <div className="pos-total-row"><span>Tổng thanh toán</span><strong>{formatMoney(subtotal)}</strong></div>
-            <button className="pos-pay-button" type="button" disabled={!activeInvoice.lines.length} onClick={() => setIsCheckoutOpen(true)}><i className="ph ph-credit-card" aria-hidden="true" />Thanh toán {formatMoney(subtotal)}</button>
+            <button className="pos-pay-button" type="button" disabled={!activeInvoice.lines.length} onClick={() => {
+              if (!activeInvoice.customer) {
+                notify('Cần chọn khách hàng', 'Vui lòng chọn hoặc thêm khách hàng trước khi thanh toán.');
+                return;
+              }
+              setIsCheckoutOpen(true);
+            }}><i className="ph ph-credit-card" aria-hidden="true" />Thanh toán {formatMoney(subtotal)}</button>
           </footer>
         </section>
       </div>}
@@ -407,7 +413,6 @@ export function PosView() {
         <PosCheckoutModal
           customer={activeInvoice.customer}
           lines={activeInvoice.lines}
-          staffList={staffList}
           invoiceId={activeInvoice.serverInvoiceId}
           onClose={() => setIsCheckoutOpen(false)}
           onSuccess={handleCheckoutSuccess}

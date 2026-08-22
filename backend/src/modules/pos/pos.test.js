@@ -8,7 +8,7 @@ test('POS permissions are assigned properly to roles', () => {
   assert.equal(hasPermission('staff', permissions.usePos), false);
 });
 
-test('listCustomers includes remaining package units and checkout accepts per-line staff', () => {
+test('listCustomers includes remaining package units and checkout keeps staff on each line', () => {
   // Test schema / logic mapping contract
   const customerRow = {
     id: 1,
@@ -32,14 +32,13 @@ test('listCustomers includes remaining package units and checkout accepts per-li
     { itemType: 'service', itemId: 1, quantity: 1, staffId: 10 },
     { itemType: 'product', itemId: 2, quantity: 2, staffId: null },
   ];
-  const headerStaffId = 15;
   const processedItems = linesInput.map((line) => ({
     itemType: line.itemType,
     itemId: line.itemId,
     quantity: line.quantity,
-    staffId: line.staffId || headerStaffId || null,
+    staffId: line.staffId || null,
   }));
 
   assert.equal(processedItems[0].staffId, 10);
-  assert.equal(processedItems[1].staffId, 15);
+  assert.equal(processedItems[1].staffId, null);
 });

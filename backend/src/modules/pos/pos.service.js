@@ -69,27 +69,29 @@ export async function checkoutPosInvoice({
   if (!Array.isArray(lines) || lines.length === 0) {
     throw new HttpError(400, 'EMPTY_CART', 'Hóa đơn phải có ít nhất một dịch vụ hoặc sản phẩm');
   }
+  if (!customerId) {
+    throw new HttpError(400, 'CUSTOMER_REQUIRED', 'Vui lòng chọn khách hàng trước khi thanh toán');
+  }
 
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
 
-    // 1. Validate Customer if provided
-    let customerName = 'Khách lẻ';
+    // 1. A sale must always belong to a customer so packages and account cards
+    // can be tracked against the correct customer record.
+    let customerName;
     let customerPhone = null;
     let customerCode = null;
-    if (customerId) {
-      const custResult = await client.query(
-        'SELECT id, code, name, phone FROM customers WHERE id = $1 AND branch_id = $2 FOR UPDATE',
-        [customerId, branchId],
-      );
-      if (!custResult.rows[0]) {
-        throw new HttpError(404, 'CUSTOMER_NOT_FOUND', 'Khách hàng không tồn tại hoặc không thuộc chi nhánh này');
-      }
-      customerName = custResult.rows[0].name;
-      customerPhone = custResult.rows[0].phone;
-      customerCode = custResult.rows[0].code;
+    const custResult = await client.query(
+      'SELECT id, code, name, phone FROM customers WHERE id = $1 AND branch_id = $2 FOR UPDATE',
+      [customerId, branchId],
+    );
+    if (!custResult.rows[0]) {
+      throw new HttpError(404, 'CUSTOMER_NOT_FOUND', 'Khách hàng không tồn tại hoặc không thuộc chi nhánh này');
     }
+    customerName = custResult.rows[0].name;
+    customerPhone = custResult.rows[0].phone;
+    customerCode = custResult.rows[0].code;
 
     // 2. Validate Staff if provided
     let staffName = null;
@@ -387,7 +389,7 @@ export async function checkoutPosInvoice({
              discount = $4, total = $5, payment_method = $6, issued_at = NOW()
          WHERE id = $7
          RETURNING id, code, status, subtotal, discount, total, payment_method, sales_channel, issued_at`,
-        [customerId || null, staffId || null, subtotal, discountAmount, total, paymentMethod, invoiceId],
+        [customerId, staffId || null, subtotal, discountAmount, total, paymentMethod, invoiceId],
       );
       invoice = updatedInvoiceResult.rows[0];
     } else {
@@ -408,7 +410,7 @@ export async function checkoutPosInvoice({
            subtotal, discount, total, payment_method, sales_channel, issued_at
          ) VALUES ($1, $2, $3, $4, 'paid', $5, $6, $7, $8, 'salon', NOW())
          RETURNING id, code, status, subtotal, discount, total, payment_method, sales_channel, issued_at`,
-        [branchId, customerId || null, staffId || null, invoiceCode, subtotal, discountAmount, total, paymentMethod],
+        [branchId, customerId, staffId || null, invoiceCode, subtotal, discountAmount, total, paymentMethod],
       );
       invoice = invoiceResult.rows[0];
       invoiceId = Number(invoice.id);
@@ -614,7 +616,7 @@ export async function checkoutPosInvoice({
         phone: branchInfo.phone || '',
       },
       customer: {
-        id: customerId || null,
+        id: customerId,
         code: customerCode,
         name: customerName,
         phone: customerPhone,

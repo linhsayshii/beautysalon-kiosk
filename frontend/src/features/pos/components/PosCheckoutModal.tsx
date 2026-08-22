@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from 'react';
 import type { FormEvent } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { MoneyInput } from '@/components/forms/MoneyInput';
-import { Select } from '@/components/ui/Select/Select';
 import { formatMoney, formatNumber } from '@/lib/format';
 import { useMetadata } from '@/services/metadata';
 import { checkoutPosInvoice, type PosCheckoutPayload, type PosReceiptData } from '../pos.api';
@@ -28,7 +27,6 @@ interface PosCustomer {
 interface PosCheckoutModalProps {
   customer: PosCustomer | null;
   lines: PosLine[];
-  staffList: Array<{ id: number; name: string; role: string }>;
   invoiceId?: number;
   onClose: () => void;
   onSuccess: (receipt: PosReceiptData, shouldPrint: boolean) => void;
@@ -39,12 +37,10 @@ type PaymentMethod = 'cash' | 'bank_transfer' | 'card' | 'wallet';
 export function PosCheckoutModal({
   customer,
   lines,
-  staffList,
   invoiceId,
   onClose,
   onSuccess,
 }: PosCheckoutModalProps) {
-  const [selectedStaffId, setSelectedStaffId] = useState<string>('');
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('cash');
   const [discountType, setDiscountType] = useState<'amount' | 'percent'>('amount');
   const [discountValue, setDiscountValue] = useState<number>(0);
@@ -116,7 +112,6 @@ export function PosCheckoutModal({
       setShouldPrintReceipt(print);
       const payload: PosCheckoutPayload = {
         customerId: customer?.id ?? null,
-        staffId: selectedStaffId ? Number(selectedStaffId) : null,
         discount: calculatedDiscount,
         paymentMethod,
         amountPaid: paymentMethod === 'cash' ? amountPaid : total,
@@ -139,6 +134,7 @@ export function PosCheckoutModal({
   const handleSubmit = (event: FormEvent, print: boolean) => {
     event.preventDefault();
     if (checkoutMutation.isPending) return;
+    if (!customer) return;
     checkoutMutation.mutate(print);
   };
 
@@ -162,7 +158,7 @@ export function PosCheckoutModal({
             </span>
             <div>
               <h2 id="checkout-modal-title">Thanh toán đơn hàng</h2>
-              <p>Khách hàng: <strong>{customer ? `${customer.name} ${customer.phone ? `(${customer.phone})` : ''}` : 'Khách lẻ'}</strong></p>
+              <p>Khách hàng: <strong>{customer ? `${customer.name} ${customer.phone ? `(${customer.phone})` : ''}` : 'Chưa chọn khách hàng'}</strong></p>
             </div>
           </div>
           <button type="button" className="pos-checkout-close" onClick={onClose} aria-label="Đóng">
@@ -264,24 +260,6 @@ export function PosCheckoutModal({
             <section className="pos-checkout-payment-section">
               <div className="checkout-section-header">
                 <h3>Phương thức & Thu tiền</h3>
-              </div>
-
-              {/* Nhân viên phục vụ */}
-              <div className="checkout-field-group">
-                <label className="checkout-label">Nhân viên phục vụ / tư vấn</label>
-                <Select
-                  value={selectedStaffId}
-                  onChange={setSelectedStaffId}
-                  placeholder="Chọn nhân viên (để tính hoa hồng)"
-                  fullWidth
-                  options={[
-                    { value: '', label: 'Không chỉ định nhân viên' },
-                    ...staffList.map((st) => ({
-                      value: String(st.id),
-                      label: `${st.name} (${st.role})`,
-                    })),
-                  ]}
-                />
               </div>
 
               {/* Chọn phương thức thanh toán */}
@@ -386,7 +364,7 @@ export function PosCheckoutModal({
                   <i className="ph ph-wallet info-icon" />
                   <div>
                     <strong>Thanh toán bằng Thẻ tài khoản</strong>
-                    <p>Khấu trừ số dư thẻ thành viên của khách <strong>{customer?.name || 'Khách lẻ'}</strong> với số tiền <strong>{formatMoney(total)}</strong>.</p>
+                    <p>Khấu trừ số dư thẻ thành viên của khách <strong>{customer?.name || 'Chưa chọn khách hàng'}</strong> với số tiền <strong>{formatMoney(total)}</strong>.</p>
                   </div>
                 </div>
               )}
@@ -418,7 +396,7 @@ export function PosCheckoutModal({
               <button
                 type="button"
                 className="pos-btn-pay-print"
-                disabled={checkoutMutation.isPending || lines.length === 0}
+                disabled={checkoutMutation.isPending || lines.length === 0 || !customer}
                 onClick={(e) => handleSubmit(e, true)}
               >
                 <i className="ph ph-printer" />
@@ -428,7 +406,7 @@ export function PosCheckoutModal({
               <button
                 type="submit"
                 className="pos-btn-pay-direct"
-                disabled={checkoutMutation.isPending || lines.length === 0}
+                disabled={checkoutMutation.isPending || lines.length === 0 || !customer}
                 onClick={(e) => handleSubmit(e, false)}
               >
                 <i className="ph ph-check-circle" />

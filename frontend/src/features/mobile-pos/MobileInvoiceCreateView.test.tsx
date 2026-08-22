@@ -144,8 +144,8 @@ describe('MobileInvoiceCreateView Component', () => {
     // Header title
     expect(screen.getByText('Tạo hóa đơn')).toBeInTheDocument();
 
-    // Default Customer / Khách lẻ
-    expect(screen.getByText('Khách lẻ / Vãng lai')).toBeInTheDocument();
+    // Customer selection is required before checkout
+    expect(screen.getByText('Chọn khách hàng')).toBeInTheDocument();
 
     // Item List trigger / empty state
     expect(screen.getByText('Chưa có dịch vụ, sản phẩm trong hóa đơn')).toBeInTheDocument();
@@ -164,7 +164,7 @@ describe('MobileInvoiceCreateView Component', () => {
   it('allows picking a registered customer from sheet and updates display', async () => {
     renderComponent();
 
-    const customerRow = screen.getByText('Khách lẻ / Vãng lai');
+    const customerRow = screen.getByText('Chọn khách hàng');
     fireEvent.click(customerRow);
 
     // Customer selection sheet appears
@@ -222,7 +222,7 @@ describe('MobileInvoiceCreateView Component', () => {
     renderComponent();
 
     // 1. Select Customer
-    fireEvent.click(screen.getByText('Khách lẻ / Vãng lai'));
+    fireEvent.click(screen.getByText('Chọn khách hàng'));
     await waitFor(() => expect(screen.getByText('Lê Thị Mai')).toBeInTheDocument());
     fireEvent.click(screen.getByText('Lê Thị Mai'));
 

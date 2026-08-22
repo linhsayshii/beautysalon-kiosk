@@ -1285,6 +1285,16 @@
   color: #15803d;
 }
 
+.legend-chip.chip-purple {
+  background-color: #f3e8ff;
+  color: #7e22ce;
+}
+
+.legend-chip.chip-blue {
+  background-color: #e0f2fe;
+  color: #0369a1;
+}
+
 /* ==========================================================================
    KIOTVIET WORK DAYS & HOLIDAYS SETTINGS MODAL
    ========================================================================== */
@@ -1484,5 +1494,4 @@
 .kiotviet-payroll-table tbody tr:hover {
   background-color: #f8fafc !important;
 }
-
 

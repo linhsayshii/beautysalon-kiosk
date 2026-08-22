@@ -164,17 +164,25 @@ export function StaffScheduleView() {
     { id: 6, name: 'Yến', code: 'NV000015', role: 'Kỹ thuật viên', salaryType: 'monthly', baseSalary: 5032400, hourlyRate: 40000 },
   ]) as ApiRecord[];
 
-  const workShifts = (shiftsQuery.data?.data ?? [
-    { name: 'Ca Partime', startsAt: '18:00', endsAt: '22:00' },
-    { name: 'Ca Full', startsAt: '09:00', endsAt: '21:00' },
-    { name: 'Ca sáng chuẩn', startsAt: '09:00', endsAt: '20:00' },
-    { name: 'Ca sáng Smile', startsAt: '09:00', endsAt: '19:00' },
-    { name: 'Ca Sáng', startsAt: '09:30', endsAt: '20:00' },
-    { name: 'Ca Chiều', startsAt: '11:00', endsAt: '22:00' },
-    { name: 'Ca tối Smile', startsAt: '14:00', endsAt: '22:00' },
-  ]) as Array<{ name: string; startsAt: string; endsAt: string }>;
+  const workShifts = (shiftsQuery.data?.data ?? scheduleQuery.data?.data?.shifts ?? []) as Array<{
+    name: string;
+    startsAt: string;
+    endsAt: string;
+    color?: string;
+  }>;
 
-  const schedules = (scheduleQuery.data?.data?.shifts ?? []) as ApiRecord[];
+  // The schedule API returns its assignments in `schedules` and uses `shiftDate`.
+  // Normalize the legacy aliases too, so existing cached payloads continue to render.
+  const schedules = useMemo<ApiRecord[]>(
+    () => {
+      const rawSchedules = (scheduleQuery.data?.data?.schedules ?? scheduleQuery.data?.data?.shifts ?? []) as ApiRecord[];
+      return rawSchedules.map((schedule) => ({
+        ...schedule,
+        date: schedule.shiftDate ?? schedule.date,
+      }));
+    },
+    [scheduleQuery.data],
+  );
   const isLoading = staffQuery.isLoading || shiftsQuery.isLoading || scheduleQuery.isLoading;
 
   // Filter staff by search term
@@ -189,9 +197,8 @@ export function StaffScheduleView() {
   // Generate or lookup shift for a staff on a date
   const getStaffDateShift = (staff: ApiRecord, date: Date) => {
     const dateStr = toIsoDate(date);
-    const dayOfWeek = date.getDay(); // 0 = Sunday, 1 = Mon...
 
-    const matched = schedules.find((s) => s.staffId === staff.id && s.date === dateStr);
+    const matched = schedules.find((s) => Number(s.staffId) === Number(staff.id) && s.date === dateStr);
     if (matched) {
       return {
         id: matched.id,
@@ -200,24 +207,6 @@ export function StaffScheduleView() {
         endsAt: matched.endsAt,
         status: matched.status,
       };
-    }
-
-    // Default mock data to mirror KiotViet screenshot when empty
-    if (staff.code === 'NV000010' || staff.name === 'Hậu') {
-      // Mon to Fri Partime
-      if (dayOfWeek >= 1 && dayOfWeek <= 5) {
-        return { id: `mock-hau-${dayOfWeek}`, shiftName: 'Ca Partime', startsAt: '18:00', endsAt: '22:00', status: 'scheduled' };
-      }
-    }
-
-    if (staff.code === 'NV000016' || staff.name === 'Thu Phương') {
-      // 7 days Ca Full
-      return { id: `mock-tp-${dayOfWeek}`, shiftName: 'Ca Full', startsAt: '09:00', endsAt: '21:00', status: 'scheduled' };
-    }
-
-    if (staff.code === 'NV000015' || staff.name === 'Yến') {
-      // 7 days Ca sáng chuẩn
-      return { id: `mock-yen-${dayOfWeek}`, shiftName: 'Ca sáng chuẩn', startsAt: '09:00', endsAt: '20:00', status: 'scheduled' };
     }
 
     return null;
@@ -533,18 +522,14 @@ export function StaffScheduleView() {
 
             {/* Bottom Legend Bar (Chú thích màu các ca) */}
             <div className="schedule-legend-bar">
-              <div className="legend-item">
-                <span className="legend-chip chip-orange">Ca Partime</span>
-                <span>Ca bán thời gian</span>
-              </div>
-              <div className="legend-item">
-                <span className="legend-chip chip-pink">Ca Full</span>
-                <span>Ca cả ngày</span>
-              </div>
-              <div className="legend-item">
-                <span className="legend-chip chip-green">Ca sáng chuẩn</span>
-                <span>Ca làm ban ngày</span>
-              </div>
+              {workShifts.map((shift) => (
+                <div className="legend-item" key={`${shift.name}-${shift.startsAt}`}>
+                  <span className={`legend-chip ${getShiftThemeClass(shift.name).replace('theme-', 'chip-')}`}>
+                    {shift.name}
+                  </span>
+                  <span>{shift.startsAt} - {shift.endsAt}</span>
+                </div>
+              ))}
               <div className="legend-item" style={{ marginLeft: 'auto', color: '#64748b', fontSize: 12 }}>
                 <span>Ngày công chuẩn trong tháng: <strong>{workDaysPerMonth} ngày</strong></span>
               </div>

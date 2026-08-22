@@ -124,11 +124,12 @@ export function MobileCartBottomSheet({
 
   const handleCheckout = () => {
     if (lines.length === 0) return;
+    if (!customer) return;
     if (incompleteServiceCount > 0 && !window.confirm(
       `Hóa đơn còn ${incompleteServiceCount} dịch vụ chưa hoàn thành. Bạn vẫn muốn thanh toán?`,
     )) return;
     checkoutMutation.mutate({
-      customerId: customer?.id ?? null,
+      customerId: customer.id,
       staffId: null,
       discount: discountValue,
       paymentMethod,
@@ -208,7 +209,7 @@ export function MobileCartBottomSheet({
                     }}
                     onClick={() => setShowCustomerSearch(true)}
                   >
-                    <i className="ph ph-user-plus" /> Thêm khách hàng (Tùy chọn)
+                    <i className="ph ph-user-plus" /> Chọn khách hàng
                   </button>
                 ) : (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
@@ -464,7 +465,7 @@ export function MobileCartBottomSheet({
           <button
             type="button"
             className="mobile-checkout-submit-btn"
-            disabled={checkoutMutation.isPending || lines.length === 0}
+            disabled={checkoutMutation.isPending || lines.length === 0 || !customer}
             onClick={handleCheckout}
           >
             {checkoutMutation.isPending ? (

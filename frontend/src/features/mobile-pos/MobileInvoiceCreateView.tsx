@@ -190,9 +190,13 @@ export function MobileInvoiceCreateView() {
       notify('Chưa có dịch vụ, sản phẩm', 'Vui lòng thêm ít nhất một món vào hóa đơn.');
       return;
     }
+    if (!customer) {
+      notify('Cần chọn khách hàng', 'Vui lòng chọn hoặc thêm khách hàng trước khi thanh toán.');
+      return;
+    }
 
     const payload: PosCheckoutPayload = {
-      customerId: customer?.id ?? null,
+      customerId: customer.id,
       staffId: configuredItems[0]?.staffId || null,
       discount: discountAmount,
       paymentMethod,
@@ -282,7 +286,7 @@ export function MobileInvoiceCreateView() {
                   </>
                 ) : (
                   <>
-                    <span className="mobile-form-row-title">Khách lẻ / Vãng lai</span>
+                    <span className="mobile-form-row-title">Chọn khách hàng</span>
                     <span className="mobile-form-row-subtitle">
                       Chạm để tìm hoặc thêm khách hàng
                     </span>
@@ -574,7 +578,7 @@ export function MobileInvoiceCreateView() {
           type="button"
           className="mobile-form-submit-btn"
           onClick={handleCheckout}
-          disabled={checkoutMutation.isPending || configuredItems.length === 0}
+          disabled={checkoutMutation.isPending || configuredItems.length === 0 || !customer}
           style={{
             background: '#2563eb',
             boxShadow: '0 4px 12px rgba(37, 99, 235, 0.3)',

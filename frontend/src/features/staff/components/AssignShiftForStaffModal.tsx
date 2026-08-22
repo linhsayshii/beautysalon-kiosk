@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { ApiRecord } from '@/types/api';
 import './AttendanceTimekeeping.css';
 
@@ -26,6 +26,11 @@ export function AssignShiftForStaffModal({
   onRemove,
 }: AssignShiftForStaffModalProps) {
   const [selectedShiftName, setSelectedShiftName] = useState(currentShiftName || workShifts[0]?.name || '');
+
+  useEffect(() => {
+    if (!isOpen) return;
+    setSelectedShiftName(currentShiftName || workShifts[0]?.name || '');
+  }, [isOpen, currentShiftName, workShifts]);
 
   if (!isOpen || !staff) return null;
 
@@ -100,7 +105,7 @@ export function AssignShiftForStaffModal({
               <button type="button" onClick={onClose} className="btn-secondary">
                 Bỏ qua
               </button>
-              <button type="submit" className="btn-primary">
+              <button type="submit" className="btn-primary" disabled={!selectedShiftName}>
                 Lưu lịch
               </button>
             </div>
