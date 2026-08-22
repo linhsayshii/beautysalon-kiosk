@@ -1,7 +1,9 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { formatMoney, formatNumber } from '@/lib/format';
 import { getPosCatalog, getPosStaff, type PosReceiptData } from '@/features/pos/pos.api';
+import { getOrder } from '@/features/operations/operations.api';
 import { PosReceiptPrint } from '@/features/pos/components/PosReceiptPrint';
 import { MobileCartBottomSheet } from './MobileCartBottomSheet';
 import '@/features/mobile-pos/mobile-pos.css';
@@ -41,6 +43,10 @@ const filterTabs: Array<{ value: CatalogFilter; label: string }> = [
 ];
 
 export function MobilePosView() {
+  const [searchParams] = useSearchParams();
+  const invoiceIdParam = searchParams.get('invoice');
+  const appointmentIdParam = searchParams.get('appointment');
+
   const [search, setSearch] = useState('');
   const [activeTab, setActiveTab] = useState<CatalogFilter>('');
   const [selectedSubCategory, setSelectedSubCategory] = useState<string>('');
@@ -48,6 +54,48 @@ export function MobilePosView() {
   const [customer, setCustomer] = useState<PosCustomer | null>(null);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isCartExpanded, setIsCartExpanded] = useState(true);
+
+  const invoiceId = invoiceIdParam ? Number(invoiceIdParam) : null;
+  const appointmentId = appointmentIdParam ? Number(appointmentIdParam) : null;
+
+  // Fetch invoice if editing existing draft
+  const invoiceQuery = useQuery({
+    queryKey: ['pos-invoice', invoiceId],
+    queryFn: () => getOrder(invoiceId!),
+    enabled: !!invoiceId,
+  });
+
+  // Populate cart from invoice when loaded
+  useEffect(() => {
+    if (invoiceQuery.data?.data) {
+      const invoice = invoiceQuery.data.data as any;
+      // Set customer from invoice
+      if (invoice.customer) {
+        setCustomer({
+          id: invoice.customer.id,
+          name: invoice.customer.name,
+          phone: invoice.customer.phone,
+        });
+      }
+      // Map invoice items to cart lines
+      const lines: PosLine[] = (invoice.items || []).map((item: any) => ({
+        itemId: item.id,
+        itemType: item.itemType as Exclude<CatalogFilter, ''>,
+        code: item.code || '',
+        name: item.name,
+        category: item.category || '',
+        unit: item.unit || 'lần',
+        salePrice: item.unitPrice,
+        stockQuantity: null,
+        commissionType: item.commissionType || null,
+        commissionRate: item.commissionRate || 0,
+        quantity: item.quantity,
+        staffId: item.staffId || null,
+      }));
+      setCartLines(lines);
+      setIsCartExpanded(true);
+    }
+  }, [invoiceQuery.data]);
   const [receiptToPrint, setReceiptToPrint] = useState<PosReceiptData | null>(null);
 
   // Fetch Pos Catalog
@@ -384,6 +432,7 @@ export function MobilePosView() {
         <MobileCartBottomSheet
           lines={cartLines}
           customer={customer}
+          appointmentId={appointmentId}
           onSelectCustomer={setCustomer}
           onUpdateQuantity={handleUpdateQuantity}
           onUpdateLineStaff={handleUpdateLineStaff}

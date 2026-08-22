@@ -64,7 +64,7 @@ export function MobileMyScheduleView() {
     queryKey: ['orders-drafts', dateFrom, dateTo, account?.staffId],
     queryFn: () => getOrders({
       status: 'draft',
-      staffId: account?.staffId,
+      staffId: account?.staffId ?? undefined,
       dateFrom,
       dateTo,
     }),
@@ -160,7 +160,7 @@ export function MobileMyScheduleView() {
                     {item.invoiceId && (
                       <button
                         className="my-schedule-checkout-btn"
-                        onClick={() => navigate(`/pos?invoice=${item.invoiceId}`)}
+                        onClick={() => navigate(`/m/pos?invoice=${item.invoiceId}&appointment=${item.id}`)}
                       >
                         Thanh toán
                       </button>
@@ -186,7 +186,7 @@ export function MobileMyScheduleView() {
                   </div>
                   <button
                     className="my-schedule-checkout-btn"
-                    onClick={() => navigate(`/pos?invoice=${item.id}`)}
+                    onClick={() => navigate(`/m/pos?invoice=${item.id}`)}
                   >
                     Thanh toán
                   </button>

@@ -64,6 +64,7 @@ export interface PosCheckoutPayload {
   paymentMethod: 'cash' | 'bank_transfer' | 'card' | 'wallet' | 'mixed';
   amountPaid?: number | null;
   note?: string;
+  appointmentId?: number | null;
   lines: Array<{
     itemType: 'product' | 'service' | 'package' | 'account_card';
     itemId: number;

@@ -27,6 +27,7 @@ interface PosCustomer {
 interface MobileCartBottomSheetProps {
   lines: PosLine[];
   customer: PosCustomer | null;
+  appointmentId?: number | null;
   onSelectCustomer: (cust: PosCustomer | null) => void;
   onUpdateQuantity: (itemId: number, itemType: string, delta: number) => void;
   onUpdateLineStaff: (itemId: number, itemType: string, staffId: number | null) => void;
@@ -39,6 +40,7 @@ type PaymentMethod = 'cash' | 'bank_transfer' | 'card' | 'wallet';
 export function MobileCartBottomSheet({
   lines,
   customer,
+  appointmentId,
   onSelectCustomer,
   onUpdateQuantity,
   onUpdateLineStaff,
@@ -121,13 +123,14 @@ export function MobileCartBottomSheet({
       discount: discountValue,
       paymentMethod,
       amountPaid: total,
+      appointmentId,
       lines: lines.map((l) => ({
         itemId: l.itemId,
         itemType: l.itemType,
         quantity: l.quantity,
         staffId: l.staffId || null,
       })),
-    });
+    } as any);
   };
 
   return (
