@@ -1,6 +1,5 @@
 # CI-specific compose overrides
 # Usage: docker compose -f compose.yaml -f compose.ci.yaml up
-version: '3.8'
 
 services:
   database:
@@ -22,8 +21,8 @@ services:
       DB_POOL_SIZE: 5
       AUTH_COOKIE_SECURE: 'false'
       AUTH_TRUSTED_ORIGINS: '*'
-    ports:
-      - "${API_PORT:-3000}:3000"
+    # No port exposure - use internal network
+    ports: []
     healthcheck:
       test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/api/v1/ready').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"]
       interval: 5s
@@ -32,8 +31,8 @@ services:
       start_period: 5s
 
   frontend:
-    ports:
-      - "${WEB_PORT:-8080}:80"
+    # No port exposure - use internal network
+    ports: []
 
 volumes:
   ci-db-data:
