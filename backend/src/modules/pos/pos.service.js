@@ -247,7 +247,34 @@ export async function checkoutPosInvoice({
     const discountAmount = Math.max(0, Math.min(subtotal, number(discount)));
     const total = Math.max(0, subtotal - discountAmount);
 
-    // 4. Generate unique invoice code
+    // 4. Validate wallet payment has sufficient balance
+    let cardBalance = 0;
+    if (paymentMethod === 'wallet') {
+      if (!customerId) {
+        throw new HttpError(400, 'WALLET_REQUIRES_CUSTOMER', 'Thanh toán bằng thẻ tài khoản yêu cầu chọn khách hàng');
+      }
+
+      const balanceResult = await client.query(
+        `SELECT COALESCE(SUM(cac.current_balance), 0) AS card_balance
+         FROM customer_account_cards cac
+         WHERE cac.customer_id = $1
+           AND cac.branch_id = $2
+           AND cac.status = 'active'
+           AND (cac.expires_at IS NULL OR cac.expires_at > NOW())`,
+        [customerId, branchId],
+      );
+      cardBalance = number(balanceResult.rows[0]?.card_balance || 0);
+
+      if (cardBalance < total) {
+        throw new HttpError(
+          400,
+          'INSUFFICIENT_BALANCE',
+          `Số dư thẻ không đủ (Số dư: ${cardBalance.toLocaleString('vi-VN')}đ, Cần: ${total.toLocaleString('vi-VN')}đ)`,
+        );
+      }
+    }
+
+    // 5. Generate unique invoice code
     let invoiceCode = generateInvoiceCode();
     let isUnique = false;
     for (let attempts = 0; attempts < 5; attempts++) {
@@ -359,6 +386,54 @@ export async function checkoutPosInvoice({
       );
     }
 
+    // 7b. Deduct from wallet/card balance for wallet payments
+    if (paymentMethod === 'wallet' && total > 0 && cardBalance > 0) {
+      let remaining = total;
+
+      // Get all active cards with balance, ordered by expiry (nearest first)
+      const cardsWithBalance = await client.query(
+        `SELECT id, current_balance
+         FROM customer_account_cards
+         WHERE customer_id = $1
+           AND branch_id = $2
+           AND status = 'active'
+           AND current_balance > 0
+           AND (expires_at IS NULL OR expires_at > NOW())
+         ORDER BY expires_at ASC NULLS LAST`,
+        [customerId, branchId],
+      );
+
+      for (const card of cardsWithBalance.rows) {
+        if (remaining <= 0) break;
+
+        const deduction = Math.min(card.current_balance, remaining);
+        await client.query(
+          `UPDATE customer_account_cards
+           SET current_balance = current_balance - $1,
+               updated_at = NOW()
+           WHERE id = $2`,
+          [deduction, card.id],
+        );
+        remaining -= deduction;
+      }
+
+      // Mark cards as depleted if balance reaches 0
+      await client.query(
+        `UPDATE customer_account_cards
+         SET status = 'depleted'
+         WHERE customer_id = $1 AND current_balance <= 0 AND status = 'active'`,
+        [customerId],
+      );
+
+      // Record wallet transaction
+      await client.query(
+        `INSERT INTO cash_transactions (
+           branch_id, transaction_type, category, amount, note, occurred_at
+         ) VALUES ($1, 'income', 'Thu tiền qua thẻ tài khoản', $2, $3, NOW())`,
+        [branchId, total, `Thu tiền hóa đơn ${invoiceCode} qua thẻ tài khoản (Số dư trước: ${cardBalance.toLocaleString('vi-VN')}đ)`],
+      );
+    }
+
     // 8. Create per-line commission records for staff assigned to each item
     if (invoiceItemIds.length > 0) {
       // Fetch product commission settings for items with product_id
@@ -408,8 +483,8 @@ export async function checkoutPosInvoice({
       }
     }
 
-    // 9. Record cash transaction
-    if (total > 0) {
+    // 9. Record cash transaction (skip for wallet - recorded separately above)
+    if (total > 0 && paymentMethod !== 'wallet') {
       await client.query(
         `INSERT INTO cash_transactions (
            branch_id, transaction_type, category, amount, note, occurred_at
