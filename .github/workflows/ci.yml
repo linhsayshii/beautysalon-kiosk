@@ -158,22 +158,27 @@ jobs:
           const ADMIN_CREDS = { username: 'admin', password: '12345678' };
 
           let errors = [];
-          let authToken = null;
+          let authCookie = '';
           let testCustomerId = null;
           let testOrderId = null;
           let testStaffId = null;
 
-          // Helper for API calls
-          async function api(method, path, body, token) {
+          // Helper for API calls (uses cookies, not Bearer tokens)
+          async function api(method, path, body) {
             const opts = {
               method,
               headers: { 'Content-Type': 'application/json' },
             };
-            if (token) opts.headers['Authorization'] = `Bearer ${token}`;
+            if (authCookie) opts.headers['Cookie'] = authCookie;
             if (body) opts.body = JSON.stringify(body);
 
             try {
               const res = await fetch(`${BASE}${path}`, opts);
+              // Capture cookie from Set-Cookie header
+              const setCookie = res.headers.get('set-cookie');
+              if (setCookie) {
+                authCookie = setCookie.split(';')[0];
+              }
               const data = await res.json().catch(() => ({}));
               return { status: res.status, data, ok: res.ok };
             } catch (e) {
@@ -204,12 +209,9 @@ jobs:
           // ==================== AUTHENTICATION ====================
           console.log('\n🔐 Testing authentication...');
 
-          // Test login with valid credentials
+          // Test login with valid credentials (this sets the cookie)
           res = await api('POST', '/auth/login', ADMIN_CREDS);
           check(res, 'POST /auth/login (valid)');
-          if (res.ok && res.data.data?.session?.token) {
-            authToken = res.data.data.session.token;
-          }
 
           // Test login with invalid credentials
           res = await api('POST', '/auth/login', { username: 'admin', password: 'wrongpassword' });
@@ -219,35 +221,38 @@ jobs:
           res = await api('GET', '/staff');
           check(res, 'GET /staff (no token)', res.status === 401 && res.data.error?.code === 'AUTH_REQUIRED');
 
+          // Re-login to get fresh cookie for remaining tests
+          res = await api('POST', '/auth/login', ADMIN_CREDS);
+
           // ==================== META & BRANCHES ====================
           console.log('\n🏢 Testing meta and branches...');
 
-          res = await api('GET', '/meta', null, authToken);
+          res = await api('GET', '/meta', null);
           check(res, 'GET /meta');
 
-          res = await api('GET', '/branches', null, authToken);
+          res = await api('GET', '/branches', null);
           check(res, 'GET /branches');
           const branchId = res.data?.data?.[0]?.id || 1;
 
           // ==================== STAFF ====================
           console.log('\n👥 Testing staff endpoints...');
 
-          res = await api('GET', '/staff', null, authToken);
+          res = await api('GET', '/staff', null);
           check(res, 'GET /staff');
           if (res.ok && res.data.data?.length > 0) {
             testStaffId = res.data.data[0].id;
           }
 
-          res = await api('GET', '/staff/me', null, authToken);
+          res = await api('GET', '/staff/me', null);
           check(res, 'GET /staff/me');
 
           // ==================== CUSTOMERS ====================
           console.log('\n👤 Testing customer endpoints...');
 
-          res = await api('GET', '/customers', null, authToken);
+          res = await api('GET', '/customers', null);
           check(res, 'GET /customers');
 
-          res = await api('GET', '/customers?search=test', null, authToken);
+          res = await api('GET', '/customers?search=test', null);
           check(res, 'GET /customers?search=test');
 
           res = await api('POST', '/customers', {
@@ -255,7 +260,7 @@ jobs:
             phone: '0900000001',
             customer_type: 'walk_in',
             customer_group: 'Cá nhân',
-          }, authToken);
+          });
           check(res, 'POST /customers (create)');
           if (res.ok && res.data.data?.id) {
             testCustomerId = res.data.data.id;
@@ -264,35 +269,35 @@ jobs:
           if (testCustomerId) {
             res = await api('PUT', `/customers/${testCustomerId}`, {
               name: 'Test Customer CI Updated',
-            }, authToken);
+            });
             check(res, 'PUT /customers/:id (update)');
 
-            res = await api('GET', `/customers/${testCustomerId}`, null, authToken);
+            res = await api('GET', `/customers/${testCustomerId}`, null);
             check(res, 'GET /customers/:id (get by id)');
           }
 
           // ==================== DASHBOARD ====================
           console.log('\n📊 Testing dashboard...');
 
-          res = await api('GET', '/dashboard', null, authToken);
+          res = await api('GET', '/dashboard', null);
           check(res, 'GET /dashboard');
 
-          res = await api('GET', '/dashboard/revenue?period=today', null, authToken);
+          res = await api('GET', '/dashboard/revenue?period=today', null);
           check(res, 'GET /dashboard/revenue?period=today');
 
-          res = await api('GET', '/dashboard/top-services?period=today', null, authToken);
+          res = await api('GET', '/dashboard/top-services?period=today', null);
           check(res, 'GET /dashboard/top-services');
 
           // ==================== POS & ORDERS ====================
           console.log('\n💳 Testing POS and orders...');
 
-          res = await api('GET', '/pos', null, authToken);
+          res = await api('GET', '/pos', null);
           check(res, 'GET /pos');
 
-          res = await api('GET', '/pos/services', null, authToken);
+          res = await api('GET', '/pos/services', null);
           check(res, 'GET /pos/services');
 
-          res = await api('GET', '/pos/products', null, authToken);
+          res = await api('GET', '/pos/products', null);
           check(res, 'GET /pos/products');
 
           // Create order
@@ -305,41 +310,41 @@ jobs:
             payment: { method: 'cash', amount: 100000 },
             notes: 'CI Test Order',
           };
-          res = await api('POST', '/pos/invoices', orderPayload, authToken);
+          res = await api('POST', '/pos/invoices', orderPayload);
           check(res, 'POST /pos/invoices (create order)');
           if (res.ok && res.data.data?.id) {
             testOrderId = res.data.data.id;
           }
 
           // List orders
-          res = await api('GET', '/orders', null, authToken);
+          res = await api('GET', '/orders', null);
           check(res, 'GET /orders');
 
-          res = await api('GET', '/orders?status=completed', null, authToken);
+          res = await api('GET', '/orders?status=completed', null);
           check(res, 'GET /orders?status=completed');
 
           // Get order by ID
           if (testOrderId) {
-            res = await api('GET', `/orders/${testOrderId}`, null, authToken);
+            res = await api('GET', `/orders/${testOrderId}`, null);
             check(res, 'GET /orders/:id');
           }
 
           // ==================== INVENTORY ====================
           console.log('\n📦 Testing inventory...');
 
-          res = await api('GET', '/inventory/products', null, authToken);
+          res = await api('GET', '/inventory/products', null);
           check(res, 'GET /inventory/products');
 
-          res = await api('GET', '/inventory/services', null, authToken);
+          res = await api('GET', '/inventory/services', null);
           check(res, 'GET /inventory/services');
 
-          res = await api('GET', '/inventory/pricebooks', null, authToken);
+          res = await api('GET', '/inventory/pricebooks', null);
           check(res, 'GET /inventory/pricebooks');
 
-          res = await api('GET', '/inventory/suppliers', null, authToken);
+          res = await api('GET', '/inventory/suppliers', null);
           check(res, 'GET /inventory/suppliers');
 
-          res = await api('GET', '/inventory/purchase-orders', null, authToken);
+          res = await api('GET', '/inventory/purchase-orders', null);
           check(res, 'GET /inventory/purchase-orders');
 
           // Create purchase order
@@ -349,34 +354,34 @@ jobs:
             items: [
               { product_id: 1, quantity: 10, unit_cost: 50000 },
             ],
-          }, authToken);
+          });
           check(res, 'POST /inventory/purchase-orders');
 
           // Get purchase order by ID
-          res = await api('GET', '/inventory/purchase-orders/1', null, authToken);
+          res = await api('GET', '/inventory/purchase-orders/1', null);
           check(res, 'GET /inventory/purchase-orders/:id');
 
           // ==================== ATTENDANCE ====================
           console.log('\n📅 Testing attendance...');
 
-          res = await api('GET', '/attendance', null, authToken);
+          res = await api('GET', '/attendance', null);
           check(res, 'GET /attendance');
 
-          res = await api('GET', '/attendance?date=2026-08-01', null, authToken);
+          res = await api('GET', '/attendance?date=2026-08-01', null);
           check(res, 'GET /attendance?date=...');
 
-          res = await api('GET', '/attendance/summary?month=2026-08', null, authToken);
+          res = await api('GET', '/attendance/summary?month=2026-08', null);
           check(res, 'GET /attendance/summary');
 
           // ==================== ERROR HANDLING ====================
           console.log('\n⚠️  Testing error handling...');
 
           // 404 for non-existent route
-          res = await api('GET', '/nonexistent-route', null, authToken);
+          res = await api('GET', '/nonexistent-route', null);
           check(res, '404 for non-existent route', res.status === 404 && res.data.error?.code === 'ROUTE_NOT_FOUND');
 
           // 400 for invalid request
-          res = await api('POST', '/customers', {}, authToken);
+          res = await api('POST', '/customers', {});
           check(res, 'POST /customers (validation error)', res.status === 400);
 
           // ==================== REPORT ====================
