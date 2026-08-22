@@ -100,21 +100,8 @@ export function StaffAttendanceView() {
     onError: (cause) => notify('Không thể phân ca', errorMessage(cause, 'Vui lòng thử lại')),
   });
 
-  const staffList = (staffQuery.data?.data ?? [
-    { id: 1, name: 'Nguyễn Minh Anh', code: 'NV-001', role: 'Quản lý salon' },
-    { id: 2, name: 'Trần Ngọc Hân', code: 'NV-002', role: 'Kỹ thuật viên' },
-    { id: 3, name: 'Lê Khánh Vy', code: 'NV-003', role: 'Kỹ thuật viên' },
-    { id: 4, name: 'Phạm Gia Linh', code: 'NV-004', role: 'Lễ tân' },
-  ]) as ApiRecord[];
-  const workShifts = (shiftsQuery.data?.data ?? [
-    { name: 'Ca sáng Smile', startsAt: '09:00', endsAt: '19:00' },
-    { name: 'Ca sáng chuẩn', startsAt: '09:00', endsAt: '20:00' },
-    { name: 'Ca Full', startsAt: '09:00', endsAt: '21:00' },
-    { name: 'Ca Sáng', startsAt: '09:30', endsAt: '20:00' },
-    { name: 'Ca Chiều', startsAt: '11:00', endsAt: '22:00' },
-    { name: 'Ca tối Smile', startsAt: '14:00', endsAt: '22:00' },
-    { name: 'Ca Partime', startsAt: '18:00', endsAt: '22:00' },
-  ]) as Array<{ name: string; startsAt: string; endsAt: string }>;
+  const staffList = (staffQuery.data?.data ?? []) as ApiRecord[];
+  const workShifts = (shiftsQuery.data?.data ?? []) as Array<{ name: string; startsAt: string; endsAt: string }>;
 
   // `getSchedule` returns the definitions in `shifts` and the staff assignments
   // in `schedules`. Keep the latter as the single source for the attendance grid.
@@ -139,11 +126,9 @@ export function StaffAttendanceView() {
     );
   }, [staffList, searchTerm]);
 
-  // Demo fallback attendance mock generator for realistic KiotViet feel
+  // Attendance is derived only from the shifts assigned in the work schedule.
   const getSlotData = (shift: { name: string; startsAt: string; endsAt: string }, date: Date) => {
     const dateStr = toIsoDate(date);
-    const dayOfWeek = date.getDay(); // 0 = Sunday, 1 = Monday...
-
     const matchedSchedules = schedules.filter(
       (s) => s.date === dateStr && (s.shiftName === shift.name || (s.startsAt === shift.startsAt && s.endsAt === shift.endsAt))
     );
@@ -195,58 +180,6 @@ export function StaffAttendanceView() {
           subText,
         };
       });
-    }
-
-    // Realistic Demo fallback matching KiotViet screenshot when empty
-    if (shift.name.includes('sáng chuẩn')) {
-      if (dayOfWeek === 1) {
-        return [{ id: 'mock-1', staffId: 1, staffName: 'Yến', staffCode: 'NV000015', status: 'missing' as const, detailText: '-- 20:01', subText: 'Chưa chấm vào' }];
-      }
-      if (dayOfWeek === 2) {
-        return [{ id: 'mock-2', staffId: 1, staffName: 'Yến', staffCode: 'NV000015', status: 'late' as const, detailText: '11:00 - 21:01', subText: 'Đi muộn 1h 50p, Làm thêm SC 1h 1p' }];
-      }
-      if (dayOfWeek === 3) {
-        return [{ id: 'mock-3', staffId: 1, staffName: 'Yến', staffCode: 'NV000015', status: 'late' as const, detailText: '10:58 - 21:01', subText: 'Đi muộn 1h 48p, Làm thêm SC 1h 1p' }];
-      }
-      if (dayOfWeek === 4) {
-        return [{ id: 'mock-4', staffId: 1, staffName: 'Yến', staffCode: 'NV000015', status: 'late' as const, detailText: '10:45 - 21:14', subText: 'Đi muộn 1h 35p, Làm thêm SC 1h 14p' }];
-      }
-      if (dayOfWeek === 5) {
-        return [{ id: 'mock-5', staffId: 1, staffName: 'Yến', staffCode: 'NV000015', status: 'ontime' as const, detailText: '08:58 - 20:18', subText: 'Làm thêm TC 2p, Làm thêm SC 18p' }];
-      }
-      if (dayOfWeek === 6) {
-        return [{ id: 'mock-6', staffId: 1, staffName: 'Yến', staffCode: 'NV000015', status: 'ontime' as const, detailText: '09:06 --', subText: '' }];
-      }
-      if (dayOfWeek === 0) {
-        return [{ id: 'mock-7', staffId: 1, staffName: 'Yến', staffCode: 'NV000015', status: 'leave' as const, detailText: '', subText: '' }];
-      }
-    }
-
-    if (shift.name.includes('Ca Full')) {
-      if (dayOfWeek === 1 || dayOfWeek === 2) {
-        return [{ id: 'mock-f1', staffId: 2, staffName: 'Thu Phương', staffCode: 'NV000016', status: 'ontime' as const, detailText: '09:00 - 21:00', subText: '' }];
-      }
-      if (dayOfWeek === 3) {
-        return [{ id: 'mock-f3', staffId: 2, staffName: 'Thu Phương', staffCode: 'NV000016', status: 'missing' as const, detailText: '09:00 --', subText: 'Chưa chấm ra' }];
-      }
-      if (dayOfWeek === 4) {
-        return [{ id: 'mock-f4', staffId: 2, staffName: 'Thu Phương', staffCode: 'NV000016', status: 'ontime' as const, detailText: '09:00 - 20:59', subText: '' }];
-      }
-      if (dayOfWeek === 5) {
-        return [{ id: 'mock-f5', staffId: 2, staffName: 'Thu Phương', staffCode: 'NV000016', status: 'ontime' as const, detailText: '09:00 - 21:02', subText: 'Làm thêm SC 2p' }];
-      }
-      if (dayOfWeek === 6) {
-        return [{ id: 'mock-f6', staffId: 2, staffName: 'Thu Phương', staffCode: 'NV000016', status: 'ontime' as const, detailText: '08:59 --', subText: 'Làm thêm TC 1p' }];
-      }
-      if (dayOfWeek === 0) {
-        return [{ id: 'mock-f7', staffId: 2, staffName: 'Thu Phương', staffCode: 'NV000016', status: 'leave' as const, detailText: '', subText: '' }];
-      }
-    }
-
-    if (shift.name.includes('Partime')) {
-      if (dayOfWeek >= 1 && dayOfWeek <= 5) {
-        return [{ id: `mock-p${dayOfWeek}`, staffId: 3, staffName: 'Hậu', staffCode: 'NV000010', status: 'unclocked' as const, detailText: '-- --', subText: 'Chưa chấm công' }];
-      }
     }
 
     return [];
@@ -503,59 +436,14 @@ export function StaffAttendanceView() {
                 </thead>
                 <tbody>
                   {filteredStaffList.map((staff) => {
-                    const isThuPhuong = staff.name.includes('Thu Phương') || staff.code.includes('016');
-                    const isYen = staff.name.includes('Yến') || staff.code.includes('015');
                     const isExpanded = expandedStaffId === staff.id;
                     const detailId = `staff-attendance-detail-${staff.id}`;
 
-                    let salaryTypeText = 'Theo ngày công chuẩn';
-                    let workedSummary: React.ReactNode = null;
-                    let lateSummary: React.ReactNode = null;
-                    let overtimeSummary: React.ReactNode = null;
-                    let hasData = false;
-
-                    if (isThuPhuong) {
-                      hasData = true;
-                      salaryTypeText = 'Theo ngày công chuẩn';
-                      workedSummary = (
-                        <div>
-                          <div className="summary-stat-bold">4 ngày</div>
-                          <div className="summary-stat-sub">48 giờ</div>
-                        </div>
-                      );
-                      overtimeSummary = (
-                        <div>
-                          <div className="summary-stat-bold">1 lần</div>
-                          <div className="summary-stat-sub">2 phút</div>
-                        </div>
-                      );
-                    } else if (isYen) {
-                      hasData = true;
-                      salaryTypeText = 'Theo ngày công chuẩn';
-                      workedSummary = (
-                        <div>
-                          <div className="summary-stat-bold">4 ngày</div>
-                          <div className="summary-stat-sub">41 giờ 53 phút</div>
-                        </div>
-                      );
-                      lateSummary = (
-                        <div>
-                          <div className="summary-stat-bold" style={{ color: '#6b21a8' }}>3 lần</div>
-                          <div className="summary-stat-sub" style={{ color: '#7e22ce' }}>5 giờ 13 phút</div>
-                        </div>
-                      );
-                      overtimeSummary = (
-                        <div>
-                          <div className="summary-stat-bold">4 lần</div>
-                          <div className="summary-stat-sub">3 giờ 36 phút</div>
-                        </div>
-                      );
-                    } else if (staff.salaryType === 'hourly' || staff.role?.includes('Kỹ thuật') || staff.role?.includes('Chính')) {
+                    let salaryTypeText = 'Chưa thiết lập';
+                    if (staff.salaryType === 'hourly' || staff.role?.includes('Kỹ thuật') || staff.role?.includes('Chính')) {
                       salaryTypeText = 'Theo giờ làm việc';
                     } else if (staff.salaryType === 'monthly') {
                       salaryTypeText = 'Theo ngày công chuẩn';
-                    } else {
-                      salaryTypeText = 'Chưa thiết lập';
                     }
 
                     return (
@@ -571,19 +459,9 @@ export function StaffAttendanceView() {
                             <div className="summary-staff-code">{staff.code}</div>
                           </td>
                           <td style={{ fontWeight: 500 }}>{salaryTypeText}</td>
-                          {hasData ? (
-                            <>
-                              <td>{workedSummary}</td>
-                              <td style={{ color: '#94a3b8' }}>—</td>
-                              <td>{lateSummary || '—'}</td>
-                              <td style={{ color: '#94a3b8' }}>—</td>
-                              <td>{overtimeSummary || '—'}</td>
-                            </>
-                          ) : (
-                            <td colSpan={5} style={{ color: '#94a3b8', fontStyle: 'italic' }}>
-                              Nhân viên chưa có dữ liệu chấm công
-                            </td>
-                          )}
+                          <td colSpan={5} style={{ color: '#94a3b8', fontStyle: 'italic' }}>
+                            Nhân viên chưa có dữ liệu chấm công
+                          </td>
                         </tr>
                         {isExpanded && (
                           <tr id={detailId} className="expandable-detail-row">

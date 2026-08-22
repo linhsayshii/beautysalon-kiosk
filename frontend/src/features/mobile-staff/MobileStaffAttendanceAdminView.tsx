@@ -59,13 +59,7 @@ export function MobileStaffAttendanceAdminView() {
     queryFn: () => getSchedule(dateFrom),
   });
 
-  const staffList = (staffQuery.data?.data ?? [
-    { id: 1, name: 'AnnaChillBeauty', code: 'NV000009', role: 'Quản trị viên' },
-    { id: 2, name: 'Em Huệ', code: 'NV000005', role: 'Kỹ thuật viên' },
-    { id: 3, name: 'Thu Phương', code: 'NV000016', role: 'Kỹ thuật viên chính' },
-    { id: 4, name: 'Trang Vũ', code: 'NV000012', role: 'Lễ tân' },
-    { id: 5, name: 'Yến', code: 'NV000015', role: 'Kỹ thuật viên' },
-  ]) as ApiRecord[];
+  const staffList = (staffQuery.data?.data ?? []) as ApiRecord[];
 
   const attendanceRecords = (attendanceQuery.data?.data ?? []) as ApiRecord[];
   const scheduleData = (scheduleQuery.data?.data ?? {}) as ApiRecord;

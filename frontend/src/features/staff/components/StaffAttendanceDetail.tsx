@@ -90,142 +90,51 @@ export function StaffAttendanceDetail({ staff, currentMonday }: StaffAttendanceD
     return attendanceRecords.filter((a) => Number(a.staff?.id ?? a.staffId) === Number(staff.id));
   }, [attendanceRecords, staff.id]);
 
-  // Demo fallback stats if Yen or Thu Phuong
-  const isThuPhuong = staff.name?.includes('Thu Phương') || staff.code?.includes('016');
-  const isYen = staff.name?.includes('Yến') || staff.code?.includes('015');
-
   // 7-day attendance grid calculation
   const daysData = useMemo(() => {
-    return weekDates.map((dateStr, idx) => {
+    return weekDates.map((dateStr) => {
       const schedule = staffSchedules.find((s) => s.date === dateStr);
       const att = staffAttendance.find(
         (a) => (a.workDate ? String(a.workDate).slice(0, 10) : '') === dateStr
       );
 
-      // Check realistic demo mock for fallback
       let shiftName = schedule?.shiftName;
       let checkIn = att?.checkIn ? String(att.checkIn).slice(11, 16) : '--';
       let checkOut = att?.checkOut ? String(att.checkOut).slice(11, 16) : '--';
       let lateMinutes = att?.lateMinutes ? Number(att.lateMinutes) : 0;
       let earlyMinutes = 0;
       let otMinutes = 0;
-      let status = 'ontime';
-      let statusText = 'Đúng giờ';
+      let status = 'unclocked';
+      let statusText = 'Chưa chấm công';
 
-      if (isYen && !schedule) {
-        shiftName = 'Ca sáng chuẩn (09:00 - 20:00)';
-        if (idx === 0) { // Monday
-          checkIn = '--';
-          checkOut = '20:01';
-          status = 'missing';
-          statusText = 'Chấm công thiếu';
-        } else if (idx === 1) { // Tuesday
-          checkIn = '11:00';
-          checkOut = '21:01';
-          lateMinutes = 110;
-          otMinutes = 61;
+      if (schedule) {
+        shiftName = `${schedule.shiftName} (${schedule.startsAt} - ${schedule.endsAt})`;
+      } else {
+        shiftName = 'Chưa xếp ca';
+      }
+
+      if (att) {
+        if (att.lateMinutes > 0) {
           status = 'late';
-          statusText = 'Đi muộn';
-        } else if (idx === 2) { // Wednesday
-          checkIn = '10:58';
-          checkOut = '21:01';
-          lateMinutes = 108;
-          otMinutes = 61;
-          status = 'late';
-          statusText = 'Đi muộn';
-        } else if (idx === 3) { // Thursday
-          checkIn = '10:45';
-          checkOut = '21:14';
-          lateMinutes = 95;
-          otMinutes = 74;
-          status = 'late';
-          statusText = 'Đi muộn';
-        } else if (idx === 4) { // Friday
-          checkIn = '08:58';
-          checkOut = '20:18';
-          otMinutes = 20;
-          status = 'ontime';
-          statusText = 'Đúng giờ';
-        } else if (idx === 5) { // Saturday
-          checkIn = '09:06';
-          checkOut = '--';
-          status = 'ontime';
-          statusText = 'Đang làm việc';
-        } else if (idx === 6) { // Sunday
-          checkIn = '--';
-          checkOut = '--';
-          shiftName = 'Nghỉ làm';
-          status = 'leave';
-          statusText = 'Nghỉ làm';
-        }
-      } else if (isThuPhuong && !schedule) {
-        shiftName = 'Ca Full (09:00 - 21:00)';
-        if (idx === 0 || idx === 1) {
-          checkIn = '09:00';
-          checkOut = '21:00';
-          status = 'ontime';
-          statusText = 'Đúng giờ';
-        } else if (idx === 2) {
-          checkIn = '09:00';
-          checkOut = '--';
+          statusText = `Đi muộn ${att.lateMinutes}p`;
+        } else if (att.checkIn && !att.checkOut) {
           status = 'missing';
           statusText = 'Chưa chấm ra';
-        } else if (idx === 3) {
-          checkIn = '09:00';
-          checkOut = '20:59';
+        } else if (!att.checkIn && att.checkOut) {
+          status = 'missing';
+          statusText = 'Chưa chấm vào';
+        } else if (att.checkIn && att.checkOut) {
           status = 'ontime';
           statusText = 'Đúng giờ';
-        } else if (idx === 4) {
-          checkIn = '09:00';
-          checkOut = '21:02';
-          otMinutes = 2;
-          status = 'ontime';
-          statusText = 'Đúng giờ';
-        } else if (idx === 5) {
-          checkIn = '08:59';
-          checkOut = '--';
-          otMinutes = 1;
-          status = 'ontime';
-          statusText = 'Đúng giờ';
-        } else if (idx === 6) {
-          checkIn = '--';
-          checkOut = '--';
-          shiftName = 'Nghỉ làm';
-          status = 'leave';
-          statusText = 'Nghỉ làm';
         }
-      } else {
-        if (schedule) {
-          shiftName = `${schedule.shiftName} (${schedule.startsAt} - ${schedule.endsAt})`;
-        } else {
-          shiftName = 'Chưa xếp ca';
-        }
-        if (att) {
-          if (att.lateMinutes > 0) {
-            status = 'late';
-            statusText = `Đi muộn ${att.lateMinutes}p`;
-          } else if (att.checkIn && !att.checkOut) {
-            status = 'missing';
-            statusText = 'Chưa chấm ra';
-          } else if (!att.checkIn && att.checkOut) {
-            status = 'missing';
-            statusText = 'Chưa chấm vào';
-          } else if (att.checkIn && att.checkOut) {
-            status = 'ontime';
-            statusText = 'Đúng giờ';
-          }
-        } else if (!schedule) {
-          status = 'leave';
-          statusText = 'Không có lịch';
-        } else {
-          status = 'unclocked';
-          statusText = 'Chưa chấm công';
-        }
+      } else if (!schedule) {
+        status = 'leave';
+        statusText = 'Không có lịch';
       }
 
       return {
         dateStr,
-        weekday: weekdayNames[idx],
+        weekday: weekdayNames[weekDates.indexOf(dateStr)],
         shiftName: shiftName || 'Chưa xếp ca',
         checkIn,
         checkOut,
@@ -236,41 +145,10 @@ export function StaffAttendanceDetail({ staff, currentMonday }: StaffAttendanceD
         statusText,
       };
     });
-  }, [weekDates, staffSchedules, staffAttendance, isYen, isThuPhuong]);
+  }, [weekDates, staffSchedules, staffAttendance]);
 
   // Aggregate stats for Layer 4
   const stats = useMemo(() => {
-    if (isThuPhuong) {
-      return {
-        workedDays: 4,
-        workedHoursText: '4 ngày / 48 giờ',
-        lateCount: 0,
-        lateText: '0 lần',
-        otCount: 1,
-        otText: '1 lần / 2 phút',
-        leaveDays: 0,
-        leaveText: '0 ngày',
-        totalWorkedMinutes: 48 * 60,
-        totalLateMinutes: 0,
-        totalOtMinutes: 2,
-      };
-    }
-    if (isYen) {
-      return {
-        workedDays: 4,
-        workedHoursText: '4 ngày / 41h 53p',
-        lateCount: 3,
-        lateText: '3 lần / 5h 13p',
-        otCount: 4,
-        otText: '4 lần / 3h 36p',
-        leaveDays: 0,
-        leaveText: '0 ngày',
-        totalWorkedMinutes: 41 * 60 + 53,
-        totalLateMinutes: 5 * 60 + 13,
-        totalOtMinutes: 3 * 60 + 36,
-      };
-    }
-
     // Dynamic calculate from daysData
     let workedDays = 0;
     let workedMinutes = 0;
@@ -312,7 +190,7 @@ export function StaffAttendanceDetail({ staff, currentMonday }: StaffAttendanceD
       totalLateMinutes: lateMinutes,
       totalOtMinutes: otMinutes,
     };
-  }, [isThuPhuong, isYen, daysData]);
+  }, [daysData]);
 
   const tabsList: { value: DetailTab; label: string }[] = [
     { value: 'timekeeping', label: 'Bảng chấm công tuần' },
@@ -560,7 +438,7 @@ export function StaffAttendanceDetail({ staff, currentMonday }: StaffAttendanceD
               </div>
               <div>
                 <div style={{ color: '#64748b', marginBottom: 2 }}>Số ca được phân:</div>
-                <div style={{ fontWeight: 600 }}>{staffSchedules.length > 0 ? staffSchedules.length : (isYen || isThuPhuong ? 6 : 0)} ca</div>
+                <div style={{ fontWeight: 600 }}>{staffSchedules.length} ca</div>
               </div>
               <div>
                 <div style={{ color: '#64748b', marginBottom: 2 }}>Trạng thái tuần:</div>

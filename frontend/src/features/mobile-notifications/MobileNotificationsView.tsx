@@ -11,59 +11,14 @@ export interface MobileNotificationItem {
   category: 'appointment' | 'system';
 }
 
-const DEFAULT_NOTIFICATIONS: MobileNotificationItem[] = [
-  {
-    id: 'n1',
-    type: 'appointment',
-    category: 'appointment',
-    title: 'Lịch hẹn mới',
-    detail: 'Khách hàng Nguyễn Thị Hoa đặt lịch Chăm sóc da lúc 14:30 hôm nay.',
-    timeAgo: '5 phút trước',
-    isRead: false,
-  },
-  {
-    id: 'n2',
-    type: 'invoice',
-    category: 'system',
-    title: 'Hóa đơn hoàn thành',
-    detail: 'Hóa đơn HD00421 đã thanh toán thành công 350.000đ (Tiền mặt).',
-    timeAgo: '30 phút trước',
-    isRead: false,
-  },
-  {
-    id: 'n3',
-    type: 'attendance',
-    category: 'system',
-    title: 'Nhắc nhở chấm công',
-    detail: 'Kỹ thuật viên Trần Thị Mai đã check-in ca sáng thành công.',
-    timeAgo: '2 giờ trước',
-    isRead: true,
-  },
-  {
-    id: 'n4',
-    type: 'appointment',
-    category: 'appointment',
-    title: 'Lịch hẹn sắp tới',
-    detail: 'Khách hàng Lê Văn Nam có lịch Gội đầu dưỡng sinh lúc 16:00.',
-    timeAgo: '4 giờ trước',
-    isRead: true,
-  },
-  {
-    id: 'n5',
-    type: 'system',
-    category: 'system',
-    title: 'Thông báo hệ thống',
-    detail: 'Đã sao lưu dữ liệu ca làm việc ngày hôm qua.',
-    timeAgo: '1 ngày trước',
-    isRead: true,
-  },
-];
-
 type FilterTab = 'all' | 'appointment' | 'system';
+
+// TODO: Integrate with backend notification API when available
+const EMPTY_NOTIFICATIONS: MobileNotificationItem[] = [];
 
 export function MobileNotificationsView() {
   const [activeTab, setActiveTab] = useState<FilterTab>('all');
-  const [notifications, setNotifications] = useState<MobileNotificationItem[]>(DEFAULT_NOTIFICATIONS);
+  const [notifications] = useState<MobileNotificationItem[]>(EMPTY_NOTIFICATIONS);
 
   const filteredNotifications = useMemo(() => {
     if (activeTab === 'all') return notifications;
@@ -73,16 +28,6 @@ export function MobileNotificationsView() {
   const unreadCount = useMemo(() => {
     return notifications.filter((item) => !item.isRead).length;
   }, [notifications]);
-
-  const handleMarkAllRead = () => {
-    setNotifications((prev) => prev.map((item) => ({ ...item, isRead: true })));
-  };
-
-  const handleToggleRead = (id: string) => {
-    setNotifications((prev) =>
-      prev.map((item) => (item.id === id ? { ...item, isRead: true } : item))
-    );
-  };
 
   const getIconClass = (type: MobileNotificationItem['type']) => {
     switch (type) {
@@ -108,15 +53,6 @@ export function MobileNotificationsView() {
             <span className="mobile-notifications-unread-count">{unreadCount}</span>
           )}
         </h1>
-        {unreadCount > 0 && (
-          <button
-            type="button"
-            className="mobile-notifications-readall-btn"
-            onClick={handleMarkAllRead}
-          >
-            Đọc tất cả
-          </button>
-        )}
       </header>
 
       {/* Tabs */}
@@ -161,7 +97,6 @@ export function MobileNotificationsView() {
             <article
               key={item.id}
               className={`mobile-notification-card ${!item.isRead ? 'is-unread' : ''}`}
-              onClick={() => handleToggleRead(item.id)}
             >
               <div className={`mobile-notification-icon ${item.type}`}>
                 <i className={getIconClass(item.type)} />

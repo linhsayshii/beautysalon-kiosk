@@ -37,6 +37,7 @@ describe('StaffAttendanceDetail Component', () => {
   it('renders 5-layer layout with tabs, profile head, 4-column value strip, and timekeeping table', async () => {
     vi.mocked(staffApi.getSchedule).mockResolvedValue({
       data: {
+        schedules: [],
         shifts: [],
       },
     } as any);
@@ -64,14 +65,14 @@ describe('StaffAttendanceDetail Component', () => {
     expect(screen.getByText('Chi nhánh Quận 1')).toBeInTheDocument();
     expect(screen.getByText(/Tuần:/i)).toBeInTheDocument();
 
-    // Layer 4: 4-Column Value Strip
+    // Layer 4: 4-Column Value Strip (empty state - no schedule/attendance data)
     expect(screen.getByText(/Ngày đi làm:/i)).toBeInTheDocument();
-    expect(screen.getByText(/4 ngày \/ 41h 53p/i)).toBeInTheDocument();
+    expect(screen.getByText(/0 ngày \/ 0 giờ/i)).toBeInTheDocument();
     expect(screen.getByText(/Đi muộn \/ Về sớm:/i)).toBeInTheDocument();
-    expect(screen.getByText(/3 lần \/ 5h 13p/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/0 lần/i)).toHaveLength(2); // Late and OT both show "0 lần"
     expect(screen.getByText(/Tăng ca \(OT\):/i)).toBeInTheDocument();
-    expect(screen.getByText(/4 lần \/ 3h 36p/i)).toBeInTheDocument();
     expect(screen.getByText(/Nghỉ làm \/ Vắng:/i)).toBeInTheDocument();
+    expect(screen.getByText(/7 ngày/i)).toBeInTheDocument();
 
     // Layer 5: Timekeeping Table Columns
     expect(screen.getByRole('columnheader', { name: 'Ngày / Thứ' })).toBeInTheDocument();
@@ -92,6 +93,7 @@ describe('StaffAttendanceDetail Component', () => {
   it('switches properly between summary tab and shifts tab', async () => {
     vi.mocked(staffApi.getSchedule).mockResolvedValue({
       data: {
+        schedules: [],
         shifts: [],
       },
     } as any);

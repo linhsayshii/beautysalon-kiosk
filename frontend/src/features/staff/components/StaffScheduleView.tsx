@@ -155,14 +155,7 @@ export function StaffScheduleView() {
     setHolidaysList((settings.holidays ?? []) as Array<{ id: number; name: string; fromDate: string; toDate: string; daysCount: number }>);
   }, [workSettingsQuery.data]);
 
-  const staffList = (staffQuery.data?.data ?? [
-    { id: 1, name: 'AnnaChillBeauty', code: 'NV000009', role: 'Quản trị viên' },
-    { id: 2, name: 'Em Huệ', code: 'NV000005', role: 'Kỹ thuật viên' },
-    { id: 3, name: 'Hậu', code: 'NV000010', role: 'Nhân viên bán thời gian' },
-    { id: 4, name: 'Thu Phương', code: 'NV000016', role: 'Kỹ thuật viên chính', salaryType: 'monthly', baseSalary: 5871000, hourlyRate: 45000 },
-    { id: 5, name: 'Trang Vũ', code: 'NV000012', role: 'Lễ tân' },
-    { id: 6, name: 'Yến', code: 'NV000015', role: 'Kỹ thuật viên', salaryType: 'monthly', baseSalary: 5032400, hourlyRate: 40000 },
-  ]) as ApiRecord[];
+  const staffList = (staffQuery.data?.data ?? []) as ApiRecord[];
 
   const workShifts = (shiftsQuery.data?.data ?? scheduleQuery.data?.data?.shifts ?? []) as Array<{
     name: string;
@@ -283,17 +276,6 @@ export function StaffScheduleView() {
       });
     }
 
-    // Default sample for by-shift view
-    const dayOfWeek = date.getDay();
-    if (shift.name.includes('Partime') && dayOfWeek >= 1 && dayOfWeek <= 5) {
-      return [{ id: `mock-p${dayOfWeek}`, staffId: 3, staffName: 'Hậu', staffCode: 'NV000010', status: 'ontime', detailText: '18:00 - 22:00' }];
-    }
-    if (shift.name.includes('Full')) {
-      return [{ id: `mock-f${dayOfWeek}`, staffId: 4, staffName: 'Thu Phương', staffCode: 'NV000016', status: 'ontime', detailText: '09:00 - 21:00' }];
-    }
-    if (shift.name.includes('sáng chuẩn')) {
-      return [{ id: `mock-s${dayOfWeek}`, staffId: 6, staffName: 'Yến', staffCode: 'NV000015', status: 'ontime', detailText: '09:00 - 20:00' }];
-    }
     return [];
   };
 
