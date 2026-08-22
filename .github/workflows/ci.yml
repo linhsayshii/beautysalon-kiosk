@@ -1,0 +1,533 @@
+name: CI
+
+on:
+  push:
+    branches: [master, main]
+  pull_request:
+    branches: [master, main]
+
+env:
+  # Use unique DB name per run to avoid conflicts
+  DB_NAME: annachill_ci_${{ github.run_id }}
+  DB_USER: annachill_ci
+  DB_PASSWORD: ci_test_password_${{ github.run_id }}_$(date +%s)
+  API_PORT: 3000
+  WEB_PORT: 8080
+
+jobs:
+  # ===========================================================================
+  # Job 1: Frontend Quality Checks
+  # ===========================================================================
+  frontend-quality:
+    name: Frontend TypeScript + Tests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: TypeScript type check
+        run: npm run typecheck
+
+      - name: Run unit tests
+        run: npm run test
+
+      - name: Build for production
+        run: npm run build
+
+  # ===========================================================================
+  # Job 2: Backend Quality Checks
+  # ===========================================================================
+  backend-quality:
+    name: Backend Quality Checks
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Syntax check (--check on all JS files)
+        run: npm run check
+
+      - name: Run backend unit tests
+        run: node --test src/**/*.test.js
+
+  # ===========================================================================
+  # Job 3: Integration Tests (Full Stack with Real Database)
+  # ===========================================================================
+  integration-tests:
+    name: Full Stack Integration Tests
+    runs-on: ubuntu-latest
+    needs: [frontend-quality, backend-quality]
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: ${{ env.DB_NAME }}
+          POSTGRES_USER: ${{ env.DB_USER }}
+          POSTGRES_PASSWORD: ${{ env.DB_PASSWORD }}
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      # ---------------------------------------------------------------------------
+      # Build Docker images with CI environment
+      # ---------------------------------------------------------------------------
+      - name: Build Docker images
+        env:
+          DB_NAME: ${{ env.DB_NAME }}
+          DB_USER: ${{ env.DB_USER }}
+          DB_PASSWORD: ${{ env.DB_PASSWORD }}
+        run: |
+          docker compose build api frontend
+
+      # ---------------------------------------------------------------------------
+      # Start services
+      # ---------------------------------------------------------------------------
+      - name: Start services
+        env:
+          DB_NAME: ${{ env.DB_NAME }}
+          DB_USER: ${{ env.DB_USER }}
+          DB_PASSWORD: ${{ env.DB_PASSWORD }}
+        run: |
+          docker compose up -d
+
+          # Wait for database
+          echo "Waiting for database..."
+          for i in {1..30}; do
+            if docker compose exec -T database pg_isready -U $DB_USER -d $DB_NAME 2>/dev/null; then
+              echo "Database ready!"
+              break
+            fi
+            sleep 2
+          done
+
+          # Wait for API health
+          echo "Waiting for API..."
+          for i in {1..30}; do
+            if curl -sf http://localhost:3000/api/v1/ready > /dev/null 2>&1; then
+              echo "API ready!"
+              break
+            fi
+            sleep 2
+          done
+
+          # Wait for frontend
+          echo "Waiting for frontend..."
+          for i in {1..30}; do
+            if curl -sf http://localhost:8080 > /dev/null 2>&1; then
+              echo "Frontend ready!"
+              break
+            fi
+            sleep 2
+          done
+
+      # ---------------------------------------------------------------------------
+      # API Integration Tests
+      # ---------------------------------------------------------------------------
+      - name: Run API Integration Tests
+        run: |
+          node --input-type=module << 'EOF'
+          const BASE = 'http://localhost:3000/api/v1';
+          const ADMIN_CREDS = { username: 'admin', password: '12345678' };
+
+          let errors = [];
+          let authToken = null;
+          let testCustomerId = null;
+          let testOrderId = null;
+          let testStaffId = null;
+
+          // Helper for API calls
+          async function api(method, path, body, token) {
+            const opts = {
+              method,
+              headers: { 'Content-Type': 'application/json' },
+            };
+            if (token) opts.headers['Authorization'] = `Bearer ${token}`;
+            if (body) opts.body = JSON.stringify(body);
+
+            try {
+              const res = await fetch(`${BASE}${path}`, opts);
+              const data = await res.json().catch(() => ({}));
+              return { status: res.status, data, ok: res.ok };
+            } catch (e) {
+              errors.push(`NETWORK ERROR: ${method} ${path} → ${e.message}`);
+              return { status: 0, data: {}, ok: false };
+            }
+          }
+
+          function check(res, name, condition = res.ok) {
+            if (condition) {
+              console.log(`  ✓ ${name}`);
+            } else {
+              const msg = res.data?.error?.message || JSON.stringify(res.data);
+              errors.push(`${name}: ${res.status} ${res.data?.error?.code || ''} ${msg}`);
+              console.log(`  ✗ ${name} → ${res.status} ${res.data?.error?.code || 'FAILED'}`);
+            }
+          }
+
+          // ==================== PUBLIC ENDPOINTS ====================
+          console.log('\n📋 Testing public endpoints...');
+
+          let res = await api('GET', '/health');
+          check(res, 'GET /health');
+
+          res = await api('GET', '/ready');
+          check(res, 'GET /ready', res.ok && res.data.status === 'ready');
+
+          // ==================== AUTHENTICATION ====================
+          console.log('\n🔐 Testing authentication...');
+
+          // Test login with valid credentials
+          res = await api('POST', '/auth/login', ADMIN_CREDS);
+          check(res, 'POST /auth/login (valid)');
+          if (res.ok && res.data.data?.session?.token) {
+            authToken = res.data.data.session.token;
+          }
+
+          // Test login with invalid credentials
+          res = await api('POST', '/auth/login', { username: 'admin', password: 'wrongpassword' });
+          check(res, 'POST /auth/login (invalid credentials)', res.status === 401);
+
+          // Test missing auth token
+          res = await api('GET', '/staff');
+          check(res, 'GET /staff (no token)', res.status === 401 && res.data.error?.code === 'AUTH_REQUIRED');
+
+          // ==================== META & BRANCHES ====================
+          console.log('\n🏢 Testing meta and branches...');
+
+          res = await api('GET', '/meta', null, authToken);
+          check(res, 'GET /meta');
+
+          res = await api('GET', '/branches', null, authToken);
+          check(res, 'GET /branches');
+          const branchId = res.data?.data?.[0]?.id || 1;
+
+          // ==================== STAFF ====================
+          console.log('\n👥 Testing staff endpoints...');
+
+          res = await api('GET', '/staff', null, authToken);
+          check(res, 'GET /staff');
+          if (res.ok && res.data.data?.length > 0) {
+            testStaffId = res.data.data[0].id;
+          }
+
+          res = await api('GET', '/staff/me', null, authToken);
+          check(res, 'GET /staff/me');
+
+          // ==================== CUSTOMERS ====================
+          console.log('\n👤 Testing customer endpoints...');
+
+          res = await api('GET', '/customers', null, authToken);
+          check(res, 'GET /customers');
+
+          res = await api('GET', '/customers?search=test', null, authToken);
+          check(res, 'GET /customers?search=test');
+
+          res = await api('POST', '/customers', {
+            name: 'Test Customer CI',
+            phone: '0900000001',
+            customer_type: 'walk_in',
+            customer_group: 'Cá nhân',
+          }, authToken);
+          check(res, 'POST /customers (create)');
+          if (res.ok && res.data.data?.id) {
+            testCustomerId = res.data.data.id;
+          }
+
+          if (testCustomerId) {
+            res = await api('PUT', `/customers/${testCustomerId}`, {
+              name: 'Test Customer CI Updated',
+            }, authToken);
+            check(res, 'PUT /customers/:id (update)');
+
+            res = await api('GET', `/customers/${testCustomerId}`, null, authToken);
+            check(res, 'GET /customers/:id (get by id)');
+          }
+
+          // ==================== DASHBOARD ====================
+          console.log('\n📊 Testing dashboard...');
+
+          res = await api('GET', '/dashboard', null, authToken);
+          check(res, 'GET /dashboard');
+
+          res = await api('GET', '/dashboard/revenue?period=today', null, authToken);
+          check(res, 'GET /dashboard/revenue?period=today');
+
+          res = await api('GET', '/dashboard/top-services?period=today', null, authToken);
+          check(res, 'GET /dashboard/top-services');
+
+          // ==================== POS & ORDERS ====================
+          console.log('\n💳 Testing POS and orders...');
+
+          res = await api('GET', '/pos', null, authToken);
+          check(res, 'GET /pos');
+
+          res = await api('GET', '/pos/services', null, authToken);
+          check(res, 'GET /pos/services');
+
+          res = await api('GET', '/pos/products', null, authToken);
+          check(res, 'GET /pos/products');
+
+          // Create order
+          const orderPayload = {
+            customer_id: testCustomerId || null,
+            branch_id: branchId,
+            items: [
+              { service_id: 1, staff_id: testStaffId || null, price: 100000, quantity: 1 },
+            ],
+            payment: { method: 'cash', amount: 100000 },
+            notes: 'CI Test Order',
+          };
+          res = await api('POST', '/pos/invoices', orderPayload, authToken);
+          check(res, 'POST /pos/invoices (create order)');
+          if (res.ok && res.data.data?.id) {
+            testOrderId = res.data.data.id;
+          }
+
+          // List orders
+          res = await api('GET', '/orders', null, authToken);
+          check(res, 'GET /orders');
+
+          res = await api('GET', '/orders?status=completed', null, authToken);
+          check(res, 'GET /orders?status=completed');
+
+          // Get order by ID
+          if (testOrderId) {
+            res = await api('GET', `/orders/${testOrderId}`, null, authToken);
+            check(res, 'GET /orders/:id');
+          }
+
+          // ==================== INVENTORY ====================
+          console.log('\n📦 Testing inventory...');
+
+          res = await api('GET', '/inventory/products', null, authToken);
+          check(res, 'GET /inventory/products');
+
+          res = await api('GET', '/inventory/services', null, authToken);
+          check(res, 'GET /inventory/services');
+
+          res = await api('GET', '/inventory/pricebooks', null, authToken);
+          check(res, 'GET /inventory/pricebooks');
+
+          res = await api('GET', '/inventory/suppliers', null, authToken);
+          check(res, 'GET /inventory/suppliers');
+
+          res = await api('GET', '/inventory/purchase-orders', null, authToken);
+          check(res, 'GET /inventory/purchase-orders');
+
+          // Create purchase order
+          res = await api('POST', '/inventory/purchase-orders', {
+            supplier_id: 1,
+            branch_id: branchId,
+            items: [
+              { product_id: 1, quantity: 10, unit_cost: 50000 },
+            ],
+          }, authToken);
+          check(res, 'POST /inventory/purchase-orders');
+
+          // Get purchase order by ID
+          res = await api('GET', '/inventory/purchase-orders/1', null, authToken);
+          check(res, 'GET /inventory/purchase-orders/:id');
+
+          // ==================== ATTENDANCE ====================
+          console.log('\n📅 Testing attendance...');
+
+          res = await api('GET', '/attendance', null, authToken);
+          check(res, 'GET /attendance');
+
+          res = await api('GET', '/attendance?date=2026-08-01', null, authToken);
+          check(res, 'GET /attendance?date=...');
+
+          res = await api('GET', '/attendance/summary?month=2026-08', null, authToken);
+          check(res, 'GET /attendance/summary');
+
+          // ==================== ERROR HANDLING ====================
+          console.log('\n⚠️  Testing error handling...');
+
+          // 404 for non-existent route
+          res = await api('GET', '/nonexistent-route', null, authToken);
+          check(res, '404 for non-existent route', res.status === 404 && res.data.error?.code === 'ROUTE_NOT_FOUND');
+
+          // 400 for invalid request
+          res = await api('POST', '/customers', {}, authToken);
+          check(res, 'POST /customers (validation error)', res.status === 400);
+
+          // ==================== REPORT ====================
+          console.log('\n' + '='.repeat(50));
+          if (errors.length === 0) {
+            console.log('✅ ALL INTEGRATION TESTS PASSED!');
+            console.log('='.repeat(50));
+          } else {
+            console.log(`❌ ${errors.length} test(s) failed:`);
+            errors.forEach(e => console.log('  - ' + e));
+            console.log('='.repeat(50));
+            process.exit(1);
+          }
+          EOF
+
+      # ---------------------------------------------------------------------------
+      # Cleanup
+      # ---------------------------------------------------------------------------
+      - name: Cleanup
+        if: always()
+        run: docker compose down -v || true
+
+  # ===========================================================================
+  # Job 4: Mobile Features Check
+  # ===========================================================================
+  mobile-features:
+    name: Mobile Features TypeScript Check
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: TypeScript check (mobile features)
+        run: |
+          npx tsc --noEmit --pretty false \
+            src/features/mobile-account/*.tsx \
+            src/features/mobile-appointments/*.tsx \
+            src/features/mobile-pos/*.tsx \
+            src/features/mobile-staff/*.tsx \
+            src/features/mobile-inventory/*.tsx \
+            src/features/mobile-dashboard/*.tsx \
+            src/features/mobile-common/*.tsx
+
+      - name: Run mobile-specific tests
+        run: |
+          npm run test -- \
+            --include="src/features/mobile-*/**/*.test.{ts,tsx}"
+
+  # ===========================================================================
+  # Job 5: Security & Performance Checks
+  # ===========================================================================
+  security-checks:
+    name: Security & Performance Checks
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build Docker images
+        run: docker compose build api
+
+      - name: Run API
+        env:
+          DB_NAME: annachill_test
+          DB_USER: annachill
+          DB_PASSWORD: annachill_dev
+        run: docker compose up -d api
+
+      - name: Wait for API
+        run: |
+          for i in {1..30}; do
+            if curl -sf http://localhost:3000/api/v1/ready > /dev/null 2>&1; then
+              echo "API ready!"
+              break
+            fi
+            sleep 2
+          done
+
+      - name: Security headers check
+        run: |
+          echo "🔒 Checking security headers..."
+          HEADERS=$(curl -sI http://localhost:3000/api/v1/health)
+
+          echo "$HEADERS" | grep -qi "X-Content-Type-Options" && echo "  ✓ X-Content-Type-Options" || echo "  ✗ X-Content-Type-Options MISSING"
+          echo "$HEADERS" | grep -qi "X-Frame-Options" && echo "  ✓ X-Frame-Options" || echo "  ✗ X-Frame-Options MISSING"
+          echo "$HEADERS" | grep -qi "X-Request-Id" && echo "  ✓ X-Request-Id" || echo "  ✗ X-Request-Id MISSING"
+
+      - name: API response time check
+        run: |
+          echo "⚡ Checking API response time..."
+          TIME=$(curl -o /dev/null -s -w "%{time_total}" http://localhost:3000/api/v1/health)
+          echo "  Response time: ${TIME}s"
+          if (( $(echo "$TIME < 0.5" | bc -l) )); then
+            echo "  ✓ Response time < 500ms"
+          else
+            echo "  ⚠ Response time > 500ms"
+          fi
+
+      - name: Rate limiting check
+        run: |
+          echo "🚦 Testing rate limiting..."
+          RATE_LIMITED=0
+          for i in {1..60}; do
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:3000/api/v1/health)
+            if [ "$STATUS" = "429" ]; then
+              RATE_LIMITED=1
+              echo "  ✓ Rate limiting working (triggered after $i requests)"
+              break
+            fi
+          done
+          if [ $RATE_LIMITED -eq 0 ]; then
+            echo "  ⚠ Rate limiting not triggered (may need adjustment)"
+          fi
+
+      - name: Error response format check
+        run: |
+          echo "📝 Checking error response format..."
+          RESP=$(curl -s http://localhost:3000/api/v1/nonexistent)
+          echo "$RESP" | grep -q '"error"' && echo "  ✓ Error response has 'error' field" || echo "  ✗ Error response missing 'error' field"
+          echo "$RESP" | grep -q '"code"' && echo "  ✓ Error response has 'code' field" || echo "  ✗ Error response missing 'code' field"
+          echo "$RESP" | grep -q '"message"' && echo "  ✓ Error response has 'message' field" || echo "  ✗ Error response missing 'message' field"
+
+      - name: Cleanup
+        if: always()
+        run: docker compose down -v || true

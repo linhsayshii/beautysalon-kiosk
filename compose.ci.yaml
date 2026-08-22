@@ -1,0 +1,39 @@
+# CI-specific compose overrides
+# Usage: docker compose -f compose.yaml -f compose.ci.yaml up
+version: '3.8'
+
+services:
+  database:
+    # Use ephemeral volume for CI to avoid persistence conflicts
+    volumes:
+      - ci-db-data:/var/lib/postgresql/data
+      - ./database/init:/docker-entrypoint-initdb.d:ro
+    # Remove port binding in CI (service container connects directly)
+    ports: []
+
+  api:
+    environment:
+      NODE_ENV: test
+      DB_HOST: database
+      DB_PORT: 5432
+      DB_NAME: ${DB_NAME:-annachill_ci}
+      DB_USER: ${DB_USER:-annachill_ci}
+      DB_PASSWORD: ${DB_PASSWORD:-ci_password}
+      DB_POOL_SIZE: 5
+      AUTH_COOKIE_SECURE: 'false'
+      AUTH_TRUSTED_ORIGINS: '*'
+    ports:
+      - "${API_PORT:-3000}:3000"
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/api/v1/ready').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+      start_period: 5s
+
+  frontend:
+    ports:
+      - "${WEB_PORT:-8080}:80"
+
+volumes:
+  ci-db-data:
