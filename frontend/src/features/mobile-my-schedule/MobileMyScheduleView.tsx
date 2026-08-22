@@ -47,6 +47,12 @@ const STATUS_LABELS: Record<string, string> = {
   no_show: 'Không đến',
 };
 
+export function Component() {
+  return <MobileMyScheduleView />;
+}
+
+export default Component;
+
 export function MobileMyScheduleView() {
   const { account } = useAuth();
   const navigate = useNavigate();

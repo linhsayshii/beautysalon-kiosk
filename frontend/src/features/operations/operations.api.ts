@@ -5,6 +5,7 @@ import type { ApiRecord, Pagination } from '@/types/api';
 export interface PagedMeta { pagination: Pagination; summary: ApiRecord; groups?: string[] }
 
 export interface OrderFilters {
+  [key: string]: string | number | undefined;
   status?: string;
   staffId?: number;
   dateFrom?: string;
