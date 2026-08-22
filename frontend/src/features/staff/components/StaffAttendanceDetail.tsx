@@ -72,7 +72,13 @@ export function StaffAttendanceDetail({ staff, currentMonday }: StaffAttendanceD
     queryFn: () => getAttendance(startDateIso, endDateIso),
   });
 
-  const schedules = (scheduleQuery.data?.data?.shifts ?? []) as ApiRecord[];
+  const schedules = useMemo<ApiRecord[]>(() => {
+    const rawSchedules = (scheduleQuery.data?.data?.schedules ?? []) as ApiRecord[];
+    return rawSchedules.map((schedule) => ({
+      ...schedule,
+      date: schedule.shiftDate ?? schedule.date,
+    }));
+  }, [scheduleQuery.data]);
   const attendanceRecords = (attendanceQuery.data?.data ?? []) as ApiRecord[];
 
   // Filter staff specific schedules and attendance
@@ -106,7 +112,7 @@ export function StaffAttendanceDetail({ staff, currentMonday }: StaffAttendanceD
       let status = 'ontime';
       let statusText = 'Đúng giờ';
 
-      if (isYen) {
+      if (isYen && !schedule) {
         shiftName = 'Ca sáng chuẩn (09:00 - 20:00)';
         if (idx === 0) { // Monday
           checkIn = '--';
@@ -152,7 +158,7 @@ export function StaffAttendanceDetail({ staff, currentMonday }: StaffAttendanceD
           status = 'leave';
           statusText = 'Nghỉ làm';
         }
-      } else if (isThuPhuong) {
+      } else if (isThuPhuong && !schedule) {
         shiftName = 'Ca Full (09:00 - 21:00)';
         if (idx === 0 || idx === 1) {
           checkIn = '09:00';

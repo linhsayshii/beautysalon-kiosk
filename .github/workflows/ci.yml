@@ -288,6 +288,7 @@ jobs:
 
           // Create order via checkout
           const orderPayload = {
+            customerId: testCustomerId,
             lines: [
               { itemType: 'service', itemId: 1, quantity: 1 },
             ],

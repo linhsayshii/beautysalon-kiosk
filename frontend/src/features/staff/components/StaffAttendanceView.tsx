@@ -116,7 +116,15 @@ export function StaffAttendanceView() {
     { name: 'Ca Partime', startsAt: '18:00', endsAt: '22:00' },
   ]) as Array<{ name: string; startsAt: string; endsAt: string }>;
 
-  const schedules = (scheduleQuery.data?.data?.shifts ?? []) as ApiRecord[];
+  // `getSchedule` returns the definitions in `shifts` and the staff assignments
+  // in `schedules`. Keep the latter as the single source for the attendance grid.
+  const schedules = useMemo<ApiRecord[]>(() => {
+    const rawSchedules = (scheduleQuery.data?.data?.schedules ?? []) as ApiRecord[];
+    return rawSchedules.map((schedule) => ({
+      ...schedule,
+      date: schedule.shiftDate ?? schedule.date,
+    }));
+  }, [scheduleQuery.data]);
   const attendanceRecords = (attendanceQuery.data?.data ?? []) as ApiRecord[];
 
   const isLoading = staffQuery.isLoading || shiftsQuery.isLoading || scheduleQuery.isLoading || attendanceQuery.isLoading;

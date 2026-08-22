@@ -43,9 +43,9 @@ describe('MobileStaffAttendanceAdminView Component', () => {
 
   const mockScheduleResponse = {
     data: {
-      shifts: [
-        { id: 101, staffId: 2, shiftName: 'Ca sáng', date: '2026-08-17' },
-        { id: 102, staffId: 3, shiftName: 'Ca Full', date: '2026-08-17' },
+      schedules: [
+        { id: 101, staffId: 2, shiftName: 'Ca sáng', shiftDate: '2026-08-17' },
+        { id: 102, staffId: 3, shiftName: 'Ca Full', shiftDate: '2026-08-17' },
       ],
     },
   };
@@ -79,6 +79,7 @@ describe('MobileStaffAttendanceAdminView Component', () => {
       expect(screen.getByText('AnnaChillBeauty')).toBeInTheDocument();
       expect(screen.getByText('Em Huệ')).toBeInTheDocument();
       expect(screen.getByText('Thu Phương')).toBeInTheDocument();
+      expect(screen.getAllByText('1/1 ca')).toHaveLength(2);
     });
   });
 

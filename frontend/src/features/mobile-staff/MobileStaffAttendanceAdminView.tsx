@@ -69,7 +69,7 @@ export function MobileStaffAttendanceAdminView() {
 
   const attendanceRecords = (attendanceQuery.data?.data ?? []) as ApiRecord[];
   const scheduleData = (scheduleQuery.data?.data ?? {}) as ApiRecord;
-  const scheduledShifts = (scheduleData.shifts ?? scheduleData.assignments ?? []) as ApiRecord[];
+  const scheduledShifts = (scheduleData.schedules ?? scheduleData.assignments ?? []) as ApiRecord[];
 
   // Filter staff by search term and role
   const filteredStaff = useMemo(() => {
