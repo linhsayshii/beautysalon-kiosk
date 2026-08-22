@@ -426,9 +426,7 @@ jobs:
         run: npm run typecheck
 
       - name: Run mobile-specific tests
-        run: |
-          npm run test -- \
-            --include="src/features/mobile-*/**/*.test.{ts,tsx}"
+        run: npm run test
 
   # ===========================================================================
   # Job 5: Security & Performance Checks
@@ -436,6 +434,7 @@ jobs:
   security-checks:
     name: Security & Performance Checks
     runs-on: ubuntu-latest
+    needs: [integration-tests]
 
     steps:
       - name: Checkout
