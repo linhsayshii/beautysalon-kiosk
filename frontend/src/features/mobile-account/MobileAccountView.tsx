@@ -1,9 +1,10 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import type { FormEvent, RefObject } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/components/ui/Toast/ToastProvider';
 import { useAuth } from '@/features/auth/AuthProvider';
+import { useWebSocket } from '@/hooks/useWebSocket';
 import { clientErrorMessage, errorMessage } from '@/services/api-client';
 import { changeMyPassword, updateMyProfile } from '@/features/account-settings/account-settings.api';
 import { getBranches, createBranch, updateBranch, deactivateBranch } from '@/features/branches/branches.api';

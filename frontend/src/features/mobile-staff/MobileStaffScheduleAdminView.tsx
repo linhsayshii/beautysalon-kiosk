@@ -1,6 +1,7 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useWebSocket } from '@/hooks/useWebSocket';
 import {
   MobileSearchBar,
   MobileDetailSheet,
@@ -32,6 +33,15 @@ export function MobileStaffScheduleAdminView() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { notify } = useToast();
+  const { subscribe } = useWebSocket();
+
+  // Invalidate schedule queries on WebSocket events
+  useEffect(() => {
+    const unsub = subscribe('staff:schedule_changed', () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-mobile-schedule'] });
+    });
+    return unsub;
+  }, [subscribe, queryClient]);
 
   const [currentMonday, setCurrentMonday] = useState(weekStartIso());
   const [selectedDateIso, setSelectedDateIso] = useState(todayIso());

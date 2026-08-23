@@ -5,6 +5,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { ErrorState } from '@/components/data-display/DataState';
 import { useToast } from '@/components/ui/Toast/ToastProvider';
 import { useAuth } from '@/features/auth/AuthProvider';
+import { useWebSocket } from '@/hooks/useWebSocket';
 import { formatMoney } from '@/lib/format';
 import { createPosAppointment, updatePosAppointment, createPosCustomer, getPosAppointments, getPosCatalog, getPosInvoice, getPosPaymentRequests, getPosStaff, searchPosCustomers, getPosCustomerAvailablePackages, type PosReceiptData } from '../pos.api';
 import { layoutOverlappingAppointments } from '../calendar-layout';

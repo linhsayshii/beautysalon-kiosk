@@ -1,6 +1,7 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useWebSocket } from '@/hooks/useWebSocket';
 import { getStaff, getAttendance, createStaff } from '@/features/staff/staff.api';
 import { todayIso } from '@/lib/date';
 import { initials } from '@/lib/format';
@@ -90,6 +91,15 @@ export function MobileStaffManagementView() {
       notify('Lỗi tạo nhân viên', 'Không thể tạo nhân viên mới.');
     },
   });
+
+  // WebSocket subscription for live updates
+  const { subscribe } = useWebSocket();
+  useEffect(() => {
+    const unsub = subscribe(['staff:created', 'staff:updated'], () => {
+      queryClient.invalidateQueries({ queryKey: ['mobile-staff-list'] });
+    });
+    return unsub;
+  }, [subscribe, queryClient]);
 
   // Extract unique roles for filters
   const roles = useMemo(() => {
