@@ -5,6 +5,7 @@ import { StatusBadge } from '@/components/data-display/Badges';
 import { formatMoney } from '@/lib/format';
 import { exportCsv } from '@/lib/export';
 import { useToast } from '@/components/ui/Toast/ToastProvider';
+import { Select } from '@/components/ui/Select/Select';
 import { useWebSocket } from '@/hooks/useWebSocket';
 import { getPayrollList, type PayrollPeriodListItem } from '../staff.api';
 import { StaffPayrollDetailAccordion } from './StaffPayrollDetailAccordion';
@@ -124,10 +125,11 @@ export function StaffPayrollView() {
               >
                 Kỳ hạn trả lương
               </label>
-              <select
+              <Select
                 value={periodTypeFilter}
-                onChange={(e) => setPeriodTypeFilter(e.target.value)}
-                style={{
+                onChange={setPeriodTypeFilter}
+                fullWidth
+                triggerStyle={{
                   width: '100%',
                   padding: '8px 12px',
                   borderRadius: 8,
@@ -137,11 +139,8 @@ export function StaffPayrollView() {
                   color: '#334155',
                   outline: 'none',
                 }}
-              >
-                <option value="monthly">Hàng tháng</option>
-                <option value="weekly">Hàng tuần</option>
-                <option value="semi_monthly">Nửa tháng</option>
-              </select>
+                options={[{ value: 'monthly', label: 'Hàng tháng' }, { value: 'weekly', label: 'Hàng tuần' }, { value: 'semi_monthly', label: 'Nửa tháng' }]}
+              />
             </div>
 
             {/* Filter 2: Trạng thái */}
@@ -427,21 +426,19 @@ export function StaffPayrollView() {
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <span>Hiển thị</span>
-                <select
+                <Select<number>
                   value={pageSize}
-                  onChange={(e) => setPageSize(Number(e.target.value))}
-                  style={{
+                  onChange={setPageSize}
+                  size="sm"
+                  triggerStyle={{
                     padding: '4px 8px',
                     borderRadius: 6,
                     border: '1px solid #cbd5e1',
                     fontSize: 13,
                     outline: 'none',
                   }}
-                >
-                  <option value={15}>15 bản ghi</option>
-                  <option value={30}>30 bản ghi</option>
-                  <option value={50}>50 bản ghi</option>
-                </select>
+                  options={[{ value: 15, label: '15 bản ghi' }, { value: 30, label: '30 bản ghi' }, { value: 50, label: '50 bản ghi' }]}
+                />
               </div>
 
               <div>

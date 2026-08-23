@@ -3,8 +3,10 @@ import type { RefObject } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { formatMoney } from '@/lib/format';
 import { MoneyInput } from '@/components/forms/MoneyInput';
+import { Select } from '@/components/ui/Select/Select';
 import { searchPosCustomers, checkoutPosInvoice, getPosStaff, type PosReceiptData } from '@/features/pos/pos.api';
 import { useMobileDialog } from '@/features/mobile-common/useMobileDialog';
+import { MobileDialogPortal } from '@/features/mobile-common/MobileDialogPortal';
 
 interface PosLine {
   itemId: number;
@@ -146,6 +148,7 @@ export function MobileCartBottomSheet({
   };
 
   return (
+    <MobileDialogPortal>
     <div className="mobile-bottom-sheet-backdrop" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
       <div ref={dialogRef as RefObject<HTMLDivElement>} className="mobile-bottom-sheet" style={{ maxHeight: '90dvh' }} role="dialog" aria-modal="true" aria-labelledby={titleId} tabIndex={-1}>
         <div className="mobile-sheet-drag-handle" />
@@ -327,27 +330,24 @@ export function MobileCartBottomSheet({
                       {line.quantity > 1 && <span style={{ fontSize: 11.5, color: 'var(--ink-500)', marginLeft: 6 }}>x{line.quantity}</span>}
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <select
+                      <Select<number | string>
                         aria-label={`Nhân viên thực hiện ${line.name}`}
                         value={line.staffId ?? ''}
-                        onChange={(e) => onUpdateLineStaff(line.itemId, line.itemType, e.target.value ? Number(e.target.value) : null)}
-                        style={{
+                        onChange={(staffId) => onUpdateLineStaff(line.itemId, line.itemType, staffId === '' ? null : Number(staffId))}
+                        size="sm"
+                        triggerStyle={{
                           padding: '4px 8px',
                           borderRadius: 8,
                           border: '1px solid var(--line, #e2e8f0)',
                           background: 'var(--surface, #ffffff)',
-                          fontSize: 12.5,
+                          fontSize: 13,
                           fontWeight: 600,
                           color: 'var(--ink-800)',
                           minWidth: 100,
                           maxWidth: 140
                         }}
-                      >
-                        <option value="">-- Chọn NV --</option>
-                        {staffList.map((st) => (
-                          <option key={st.id} value={st.id}>{st.name}</option>
-                        ))}
-                      </select>
+                        options={[{ value: '', label: '-- Chọn NV --' }, ...staffList.map((staff) => ({ value: staff.id, label: staff.name }))]}
+                      />
                       {line.staffId && (
                         <span style={{
                           fontSize: 11.5,
@@ -422,18 +422,7 @@ export function MobileCartBottomSheet({
               value={discountValue}
               onChange={(val) => setDiscountValue(val)}
               suffix="đ"
-              style={{
-                width: '100%',
-                minHeight: 44,
-                borderRadius: 12,
-                border: '1px solid #e2e8f0',
-                padding: '0 10px',
-                background: '#ffffff',
-                fontSize: 13.5,
-                fontWeight: 600,
-                color: 'var(--ink-950)',
-                boxSizing: 'border-box'
-              }}
+              wrapperClassName="input-suffix mobile-money-input"
             />
           </div>
 
@@ -480,5 +469,6 @@ export function MobileCartBottomSheet({
         </div>
       </div>
     </div>
+    </MobileDialogPortal>
   );
 }

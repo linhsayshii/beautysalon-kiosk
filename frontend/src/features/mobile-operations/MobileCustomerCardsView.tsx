@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { formatDate, formatDateTime, formatMoney, formatNumber } from '@/lib/format';
 import { getCustomerCards, getCustomerCard } from '@/features/operations/operations.api';
 import { StatusBadge } from '@/components/data-display/Badges';
+import { Select } from '@/components/ui/Select/Select';
 import {
   MobileSearchBar,
   MobileFilterSheet,
@@ -328,29 +329,28 @@ export function MobileCustomerCardsView() {
       >
         <div className="mobile-filter-field">
           <label className="mobile-filter-field-label">Loại hàng</label>
-          <select
-            className="mobile-filter-select"
+          <Select
+            aria-label="Loại hàng"
+            triggerClassName="mobile-filter-select"
+            variant="filter"
+            fullWidth
             value={draftItemType}
-            onChange={(e) => setDraftItemType(e.target.value)}
-          >
-            <option value="">Tất cả loại thẻ</option>
-            <option value="package">Gói dịch vụ</option>
-            <option value="account_card">Thẻ tài khoản</option>
-          </select>
+            onChange={setDraftItemType}
+            options={[{ value: '', label: 'Tất cả loại thẻ' }, { value: 'package', label: 'Gói dịch vụ' }, { value: 'account_card', label: 'Thẻ tài khoản' }]}
+          />
         </div>
 
         <div className="mobile-filter-field">
           <label className="mobile-filter-field-label">Trạng thái</label>
-          <select
-            className="mobile-filter-select"
+          <Select
+            aria-label="Trạng thái"
+            triggerClassName="mobile-filter-select"
+            variant="filter"
+            fullWidth
             value={draftStatus}
-            onChange={(e) => setDraftStatus(e.target.value)}
-          >
-            <option value="">Tất cả trạng thái</option>
-            <option value="active">Đang sử dụng</option>
-            <option value="completed">Đã dùng hết</option>
-            <option value="expired">Hết hạn</option>
-          </select>
+            onChange={setDraftStatus}
+            options={[{ value: '', label: 'Tất cả trạng thái' }, { value: 'active', label: 'Đang sử dụng' }, { value: 'completed', label: 'Đã dùng hết' }, { value: 'expired', label: 'Hết hạn' }]}
+          />
         </div>
       </MobileFilterSheet>
 

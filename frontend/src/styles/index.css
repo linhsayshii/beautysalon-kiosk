@@ -1611,11 +1611,16 @@ tr:hover .goods-row-edit,
 
   .branch-form-grid input,
   .coordinate-grid input,
-  .account-form-grid input,
-  .account-form-grid .app-select-trigger {
+  .account-form-grid input {
     min-height: var(--mobile-control-min, 44px);
     height: var(--mobile-control-min, 44px);
     font-size: 16px;
+  }
+
+  .account-form-grid .app-select-trigger {
+    min-height: var(--mobile-control-min, 44px);
+    height: var(--mobile-control-min, 44px);
+    font-size: 13px;
   }
 
   .branch-dialog form > footer,

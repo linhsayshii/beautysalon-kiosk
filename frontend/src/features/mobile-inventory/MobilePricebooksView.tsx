@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { MoneyInput } from '@/components/forms/MoneyInput';
+import { Select } from '@/components/ui/Select/Select';
 import { useToast } from '@/components/ui/Toast/ToastProvider';
 import { formatMoney } from '@/lib/format';
 import { createPricebook, deletePricebook, getPricebooks, updatePrice, updatePricebook } from '@/features/inventory/inventory.api';
@@ -513,6 +514,7 @@ export function MobilePricebooksView() {
                           <MoneyInput
                             defaultValue={currentPrice}
                             suffix="đ"
+                            wrapperClassName="input-suffix mobile-pricebook-money-input"
                             disabled={mutation.isPending}
                             aria-label={`Giá bán ${row.name}`}
                             onBlur={(event) => {
@@ -551,49 +553,41 @@ export function MobilePricebooksView() {
       >
         <div className="mobile-filter-field">
           <label className="mobile-filter-field-label">Bảng giá</label>
-          <select
-            className="mobile-filter-select"
+          <Select
+            triggerClassName="mobile-filter-select"
+            variant="filter"
+            fullWidth
             value={draftPricebookId}
             aria-label="Chọn bảng giá"
-            onChange={(e) => setDraftPricebookId(e.target.value)}
-          >
-            {pricebooksList.map((book) => (
-              <option key={book.id} value={String(book.id)}>
-                {book.name}
-              </option>
-            ))}
-          </select>
+            onChange={setDraftPricebookId}
+            options={pricebooksList.map((book) => ({ value: String(book.id), label: book.name }))}
+          />
         </div>
 
         <div className="mobile-filter-field">
           <label className="mobile-filter-field-label">Nhóm hàng</label>
-          <select
-            className="mobile-filter-select"
+          <Select
+            aria-label="Nhóm hàng"
+            triggerClassName="mobile-filter-select"
+            variant="filter"
+            fullWidth
             value={draftCategory}
-            onChange={(e) => setDraftCategory(e.target.value)}
-          >
-            <option value="">Tất cả nhóm</option>
-            {categories.map((cat) => (
-              <option key={cat} value={cat}>
-                {cat}
-              </option>
-            ))}
-          </select>
+            onChange={setDraftCategory}
+            options={[{ value: '', label: 'Tất cả nhóm' }, ...categories.map((category) => ({ value: category, label: category }))]}
+          />
         </div>
 
         <div className="mobile-filter-field">
           <label className="mobile-filter-field-label">Loại hàng</label>
-          <select
-            className="mobile-filter-select"
+          <Select
+            aria-label="Loại hàng"
+            triggerClassName="mobile-filter-select"
+            variant="filter"
+            fullWidth
             value={draftType}
-            onChange={(e) => setDraftType(e.target.value)}
-          >
-            <option value="">Tất cả loại</option>
-            <option value="product">Sản phẩm</option>
-            <option value="service">Dịch vụ</option>
-            <option value="package">Gói dịch vụ</option>
-            <option value="account_card">Thẻ tài khoản</option>
-          </select>
+            onChange={setDraftType}
+            options={[{ value: '', label: 'Tất cả loại' }, { value: 'product', label: 'Sản phẩm' }, { value: 'service', label: 'Dịch vụ' }, { value: 'package', label: 'Gói dịch vụ' }, { value: 'account_card', label: 'Thẻ tài khoản' }]}
+          />
         </div>
       </MobileFilterSheet>
 

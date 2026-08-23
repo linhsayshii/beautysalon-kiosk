@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { toIsoDate } from '@/lib/date';
+import { FloatingLayer } from '@/components/ui/FloatingLayer/FloatingLayer';
 import './AttendanceTimekeeping.css';
 
 interface WeekPickerProps {
@@ -10,6 +11,7 @@ interface WeekPickerProps {
 export function WeekPicker({ currentMonday, onChange }: WeekPickerProps) {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const popoverRef = useRef<HTMLDivElement>(null);
 
   const selectedDate = new Date(`${currentMonday}T00:00:00`);
   const [viewYear, setViewYear] = useState(selectedDate.getFullYear() || 2026);
@@ -18,7 +20,8 @@ export function WeekPicker({ currentMonday, onChange }: WeekPickerProps) {
   // Close when clicking outside
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+      const target = e.target as Node;
+      if (containerRef.current && !containerRef.current.contains(target) && !popoverRef.current?.contains(target)) {
         setIsOpen(false);
       }
     }
@@ -126,7 +129,7 @@ export function WeekPicker({ currentMonday, onChange }: WeekPickerProps) {
 
       {/* Popover Calendar */}
       {isOpen && (
-        <div className="week-popover">
+        <FloatingLayer anchorRef={containerRef} layerRef={popoverRef} className="week-popover">
           {/* Header with Month / Year and Navigation */}
           <div className="week-popover-header">
             <button
@@ -212,7 +215,7 @@ export function WeekPicker({ currentMonday, onChange }: WeekPickerProps) {
               );
             })}
           </div>
-        </div>
+        </FloatingLayer>
       )}
     </div>
   );

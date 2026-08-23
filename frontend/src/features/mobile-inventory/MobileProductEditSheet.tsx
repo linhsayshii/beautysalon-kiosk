@@ -4,8 +4,10 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/components/ui/Toast/ToastProvider';
 import { updateInventoryItem } from '@/features/inventory/inventory.api';
 import { MoneyInput } from '@/components/forms/MoneyInput';
+import { Select } from '@/components/ui/Select/Select';
 import type { ApiRecord } from '@/types/api';
 import { useMobileDialog } from '@/features/mobile-common/useMobileDialog';
+import { MobileDialogPortal } from '@/features/mobile-common/MobileDialogPortal';
 import '@/features/mobile-common/mobile-common.css';
 
 export interface MobileProductEditSheetProps {
@@ -104,6 +106,7 @@ export function MobileProductEditSheet({
   const isServiceOrPackage = item.itemType === 'service' || item.itemType === 'package';
 
   return (
+    <MobileDialogPortal>
     <div className="mobile-form-sheet-backdrop" data-testid="mobile-product-edit-sheet">
       <div ref={dialogRef as RefObject<HTMLDivElement>} className="mobile-form-sheet-container" role="dialog" aria-modal="true" aria-labelledby={titleId} tabIndex={-1}>
         {/* Sticky Header */}
@@ -214,22 +217,14 @@ export function MobileProductEditSheet({
               Nhóm hàng
             </label>
             <div className="mobile-form-card-row">
-              <select
+              <Select
                 id="product-edit-category"
-                className="mobile-form-card-select"
+                triggerClassName="mobile-form-card-select"
+                fullWidth
                 value={category}
-                onChange={(e) => setCategory(e.target.value)}
-              >
-                <option value="Chăm sóc salon">Chăm sóc salon</option>
-                <option value="Chăm sóc da">Chăm sóc da</option>
-                <option value="Trị liệu chuyên sâu">Trị liệu chuyên sâu</option>
-                <option value="Gói dịch vụ">Gói dịch vụ</option>
-                <option value="Mỹ phẩm cao cấp">Mỹ phẩm cao cấp</option>
-                <option value="Thẻ tài khoản">Thẻ tài khoản</option>
-              </select>
-              <div className="mobile-form-card-accessory">
-                <i className="ph ph-caret-right" />
-              </div>
+                onChange={setCategory}
+                options={['Chăm sóc salon', 'Chăm sóc da', 'Trị liệu chuyên sâu', 'Gói dịch vụ', 'Mỹ phẩm cao cấp', 'Thẻ tài khoản'].map((itemCategory) => ({ value: itemCategory, label: itemCategory }))}
+              />
             </div>
           </div>
 
@@ -243,6 +238,7 @@ export function MobileProductEditSheet({
                 <MoneyInput
                   id="product-edit-sale-price"
                   className="mobile-form-card-input"
+                  wrapperClassName="mobile-form-card-money-input"
                   value={salePrice}
                   onChange={(val) => setSalePrice(val)}
                   placeholder="0"
@@ -262,6 +258,7 @@ export function MobileProductEditSheet({
                 <MoneyInput
                   id="product-edit-cost-price"
                   className="mobile-form-card-input"
+                  wrapperClassName="mobile-form-card-money-input"
                   value={costPrice}
                   onChange={(val) => setCostPrice(val)}
                   placeholder="0"
@@ -298,5 +295,6 @@ export function MobileProductEditSheet({
         </footer>
       </div>
     </div>
+    </MobileDialogPortal>
   );
 }

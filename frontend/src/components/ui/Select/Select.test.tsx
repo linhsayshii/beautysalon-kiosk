@@ -39,7 +39,9 @@ describe('CustomSelect Component', () => {
     const trigger = screen.getByRole('button', { name: 'Kỳ tổng quan' });
     fireEvent.click(trigger);
 
-    expect(screen.getByRole('listbox')).toBeInTheDocument();
+    const listbox = screen.getByRole('listbox');
+    expect(listbox).toBeInTheDocument();
+    expect(listbox.closest('.app-select-popover')?.parentElement).toBe(document.body);
     expect(screen.getAllByRole('option')).toHaveLength(5);
   });
 

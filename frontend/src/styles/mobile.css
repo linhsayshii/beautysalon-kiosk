@@ -26,6 +26,11 @@ body:has(.mobile-form-sheet-backdrop) .mobile-bottom-nav {
   pointer-events: none;
 }
 
+body.mobile-overlay-open .mobile-main-content {
+  overflow: hidden;
+  touch-action: none;
+}
+
 body.mobile-overlay-open :is(.mobile-inventory-fab-btn, .mobile-operations-fab-btn, .mobile-staff-fab),
 body:has(.goods-dialog-backdrop) :is(.mobile-inventory-fab-btn, .mobile-operations-fab-btn, .mobile-staff-fab),
 body:has(.mobile-form-sheet-backdrop) :is(.mobile-inventory-fab-btn, .mobile-operations-fab-btn, .mobile-staff-fab) {
@@ -1365,7 +1370,10 @@ body:has(.mobile-form-sheet-backdrop) :is(.mobile-inventory-fab-btn, .mobile-ope
 /* Bottom Sheet Overlay & Drawer */
 .mobile-bottom-sheet-backdrop {
   position: fixed;
-  inset: 0;
+  top: var(--mobile-overlay-viewport-offset-top, 0px);
+  right: 0;
+  left: 0;
+  height: var(--mobile-overlay-viewport-height, 100dvh);
   z-index: 80;
   background: rgba(15, 23, 42, 0.45);
   backdrop-filter: blur(2px);
@@ -1373,6 +1381,9 @@ body:has(.mobile-form-sheet-backdrop) :is(.mobile-inventory-fab-btn, .mobile-ope
   flex-direction: column;
   justify-content: flex-end;
   overscroll-behavior: none;
+  overflow: hidden;
+  touch-action: none;
+  isolation: isolate;
   animation: mobileFadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
@@ -1387,6 +1398,10 @@ body:has(.mobile-form-sheet-backdrop) :is(.mobile-inventory-fab-btn, .mobile-ope
   flex-direction: column;
   min-height: 0;
   animation: mobileSlideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.mobile-bottom-sheet-backdrop :is(.mobile-bottom-sheet, .mobile-customer-sheet) {
+  touch-action: manipulation;
 }
 
 .mobile-sheet-drag-handle {

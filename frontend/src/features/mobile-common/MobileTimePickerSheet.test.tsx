@@ -103,12 +103,14 @@ describe('MobileTimePickerSheet', () => {
     expect(screen.getByRole('button', { name: /hủy bỏ/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /áp dụng giờ/i })).toBeInTheDocument();
 
-    // Select custom hour and minute via select inputs or roller controls
+    // Select custom hour and minute through the website dropdowns.
     const hourInput = screen.getByLabelText(/^giờ/i);
     const minuteInput = screen.getByLabelText(/^phút/i);
 
-    fireEvent.change(hourInput, { target: { value: '16' } });
-    fireEvent.change(minuteInput, { target: { value: '45' } });
+    fireEvent.click(hourInput);
+    fireEvent.click(screen.getByRole('option', { name: '16 giờ' }));
+    fireEvent.click(minuteInput);
+    fireEvent.click(screen.getByRole('option', { name: '45 phút' }));
 
     // Apply custom time
     fireEvent.click(screen.getByRole('button', { name: /áp dụng giờ/i }));

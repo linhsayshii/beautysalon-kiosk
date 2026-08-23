@@ -13,6 +13,8 @@ const FOCUSABLE_SELECTOR = [
 const dialogStack: symbol[] = [];
 let openDialogCount = 0;
 let bodyOverflowBeforeDialogs = '';
+let viewportHeightBeforeDialogs = '';
+let viewportOffsetBeforeDialogs = '';
 
 function findVerticalScrollContainer(target: EventTarget | null, dialog: HTMLElement) {
   let element = target instanceof Element ? target : null;
@@ -33,6 +35,8 @@ function findVerticalScrollContainer(target: EventTarget | null, dialog: HTMLEle
 function activateOverlay() {
   if (openDialogCount === 0) {
     bodyOverflowBeforeDialogs = document.body.style.overflow;
+    viewportHeightBeforeDialogs = document.documentElement.style.getPropertyValue('--mobile-overlay-viewport-height');
+    viewportOffsetBeforeDialogs = document.documentElement.style.getPropertyValue('--mobile-overlay-viewport-offset-top');
     document.body.classList.add('mobile-overlay-open');
     document.body.style.overflow = 'hidden';
   }
@@ -44,6 +48,8 @@ function deactivateOverlay() {
   if (openDialogCount === 0) {
     document.body.classList.remove('mobile-overlay-open');
     document.body.style.overflow = bodyOverflowBeforeDialogs;
+    document.documentElement.style.setProperty('--mobile-overlay-viewport-height', viewportHeightBeforeDialogs);
+    document.documentElement.style.setProperty('--mobile-overlay-viewport-offset-top', viewportOffsetBeforeDialogs);
   }
 }
 
@@ -70,6 +76,20 @@ export function useMobileDialog({ isOpen, onClose, initialFocusRef }: UseMobileD
       : null;
     dialogStack.push(instance);
     activateOverlay();
+
+    // iOS Safari does not consistently resize `dvh` when its software keyboard
+    // opens. Size modal surfaces from the visual viewport so their header and
+    // scroll area stay above the keyboard instead of exposing the page behind.
+    const syncVisualViewport = () => {
+      const viewport = window.visualViewport;
+      const height = Math.round(viewport?.height ?? window.innerHeight);
+      const offsetTop = Math.round(viewport?.offsetTop ?? 0);
+      document.documentElement.style.setProperty('--mobile-overlay-viewport-height', `${height}px`);
+      document.documentElement.style.setProperty('--mobile-overlay-viewport-offset-top', `${offsetTop}px`);
+    };
+    syncVisualViewport();
+    window.visualViewport?.addEventListener('resize', syncVisualViewport);
+    window.visualViewport?.addEventListener('scroll', syncVisualViewport);
 
     const focusTimer = window.setTimeout(() => {
       const dialog = dialogRef.current;
@@ -160,6 +180,8 @@ export function useMobileDialog({ isOpen, onClose, initialFocusRef }: UseMobileD
     document.addEventListener('wheel', handleWheel, { capture: true, passive: false });
     return () => {
       window.clearTimeout(focusTimer);
+      window.visualViewport?.removeEventListener('resize', syncVisualViewport);
+      window.visualViewport?.removeEventListener('scroll', syncVisualViewport);
       document.removeEventListener('keydown', handleKeyDown);
       document.removeEventListener('touchstart', handleTouchStart, true);
       document.removeEventListener('touchmove', handleTouchMove, true);

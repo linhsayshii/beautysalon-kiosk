@@ -140,10 +140,10 @@ export function MobilePurchaseOrderCreateView() {
         <h2 id="mobile-po-summary-title" className="mobile-po-create-title">Thông tin phiếu</h2>
         <label className="mobile-po-field"><span>Nhà cung cấp <em>*</em></span><Select aria-label="Nhà cung cấp" value={supplierId} onChange={setSupplierId} placeholder="Chọn nhà cung cấp" fullWidth options={[{ value: '', label: 'Chọn nhà cung cấp' }, ...(suppliers.data?.data.map((supplier) => ({ value: String(supplier.id), label: `${supplier.name}${supplier.phone ? ` - ${supplier.phone}` : ''}` })) ?? [])]} /></label>
         <div className="mobile-po-create-total"><span>Tổng tiền hàng</span><strong>{formatMoney(subtotal)}</strong></div>
-        <label className="mobile-po-field"><span>Giảm giá</span><MoneyInput value={discount} onChange={setDiscount} suffix="đ" /></label>
-        <label className="mobile-po-field"><span>Chi phí nhập khác</span><MoneyInput value={otherCost} onChange={setOtherCost} suffix="đ" /></label>
+        <label className="mobile-po-field"><span>Giảm giá</span><MoneyInput value={discount} onChange={setDiscount} suffix="đ" wrapperClassName="input-suffix mobile-po-money-input" /></label>
+        <label className="mobile-po-field"><span>Chi phí nhập khác</span><MoneyInput value={otherCost} onChange={setOtherCost} suffix="đ" wrapperClassName="input-suffix mobile-po-money-input" /></label>
         <div className="mobile-po-create-total is-due"><span>Cần trả nhà cung cấp</span><strong>{formatMoney(due)}</strong></div>
-        <label className="mobile-po-field"><span>Tiền trả nhà cung cấp</span><MoneyInput value={amountPaid} onChange={setAmountPaid} suffix="đ" /></label>
+        <label className="mobile-po-field"><span>Tiền trả nhà cung cấp</span><MoneyInput value={amountPaid} onChange={setAmountPaid} suffix="đ" wrapperClassName="input-suffix mobile-po-money-input" /></label>
         <label className="mobile-po-field"><span>Phương thức</span><Select aria-label="Phương thức thanh toán" value={paymentMethod} onChange={setPaymentMethod} fullWidth options={toOptions(metadata.data?.data.filters.purchaseOrders.paymentMethods ?? [], statusLabels)} /></label>
         <label className="mobile-po-field"><span>Ghi chú</span><textarea value={note} onChange={(event) => setNote(event.target.value)} placeholder="Ghi chú cho phiếu nhập" /></label>
       </section>

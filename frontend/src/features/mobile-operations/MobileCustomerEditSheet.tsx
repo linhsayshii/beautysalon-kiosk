@@ -2,9 +2,11 @@ import { useState, useEffect } from 'react';
 import type { FormEvent, RefObject } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/components/ui/Toast/ToastProvider';
+import { Select } from '@/components/ui/Select/Select';
 import { updateCustomer } from '@/features/operations/operations.api';
 import type { ApiRecord } from '@/types/api';
 import { useMobileDialog } from '@/features/mobile-common/useMobileDialog';
+import { MobileDialogPortal } from '@/features/mobile-common/MobileDialogPortal';
 import '@/features/mobile-common/mobile-common.css';
 
 export interface MobileCustomerEditSheetProps {
@@ -101,6 +103,7 @@ export function MobileCustomerEditSheet({
   };
 
   return (
+    <MobileDialogPortal>
     <div className="mobile-form-sheet-backdrop" data-testid="mobile-customer-edit-sheet">
       <div ref={dialogRef as RefObject<HTMLDivElement>} className="mobile-form-sheet-container" role="dialog" aria-modal="true" aria-labelledby={titleId} tabIndex={-1}>
         {/* Sticky Header */}
@@ -208,20 +211,14 @@ export function MobileCustomerEditSheet({
                 Giới tính
               </label>
               <div className="mobile-form-card-row">
-                <select
+                <Select
                   id="customer-edit-gender"
-                  className="mobile-form-card-select"
+                  triggerClassName="mobile-form-card-select"
+                  fullWidth
                   value={gender}
-                  onChange={(e) => setGender(e.target.value)}
-                >
-                  <option value="">Chưa chọn</option>
-                  <option value="Nữ">Nữ</option>
-                  <option value="Nam">Nam</option>
-                  <option value="Khác">Khác</option>
-                </select>
-                <div className="mobile-form-card-accessory">
-                  <i className="ph ph-caret-right" />
-                </div>
+                  onChange={setGender}
+                  options={[{ value: '', label: 'Chưa chọn' }, { value: 'Nữ', label: 'Nữ' }, { value: 'Nam', label: 'Nam' }, { value: 'Khác', label: 'Khác' }]}
+                />
               </div>
             </div>
           </div>
@@ -232,18 +229,14 @@ export function MobileCustomerEditSheet({
               Nhóm khách hàng
             </label>
             <div className="mobile-form-card-row">
-              <select
+              <Select
                 id="customer-edit-group"
-                className="mobile-form-card-select"
+                triggerClassName="mobile-form-card-select"
+                fullWidth
                 value={customerGroup}
-                onChange={(e) => setCustomerGroup(e.target.value)}
-              >
-                <option value="Cá nhân">Cá nhân</option>
-                <option value="Công ty">Công ty</option>
-              </select>
-              <div className="mobile-form-card-accessory">
-                <i className="ph ph-caret-right" />
-              </div>
+                onChange={setCustomerGroup}
+                options={[{ value: 'Cá nhân', label: 'Cá nhân' }, { value: 'Công ty', label: 'Công ty' }]}
+              />
             </div>
           </div>
 
@@ -304,5 +297,6 @@ export function MobileCustomerEditSheet({
         </footer>
       </div>
     </div>
+    </MobileDialogPortal>
   );
 }

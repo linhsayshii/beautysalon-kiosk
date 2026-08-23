@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate, Link } from 'react-router-dom';
 import { StatusBadge } from '@/components/data-display/Badges';
+import { Select } from '@/components/ui/Select/Select';
 import { monthStartIso, todayIso, toIsoDate, COMMON_DATE_PRESETS } from '@/lib/date';
 import { formatDateTime, formatDate, formatMoney, formatNumber } from '@/lib/format';
 import { statusLabels, type ApiRecord } from '@/types/api';
@@ -374,30 +375,28 @@ export function MobilePurchaseOrdersView() {
       >
         <div className="mobile-filter-field">
           <label className="mobile-filter-field-label">Khoảng thời gian</label>
-          <select
-            className="mobile-filter-select"
+          <Select
+            aria-label="Khoảng thời gian"
+            triggerClassName="mobile-filter-select"
+            variant="filter"
+            fullWidth
             value={draftDatePreset}
-            onChange={(e) => setDraftDatePreset(e.target.value)}
-          >
-            {datePresets.map((p) => (
-              <option key={p.value} value={p.value}>
-                {p.label}
-              </option>
-            ))}
-          </select>
+            onChange={setDraftDatePreset}
+            options={datePresets}
+          />
         </div>
 
         <div className="mobile-filter-field">
           <label className="mobile-filter-field-label">Trạng thái</label>
-          <select
-            className="mobile-filter-select"
+          <Select
+            aria-label="Trạng thái"
+            triggerClassName="mobile-filter-select"
+            variant="filter"
+            fullWidth
             value={draftStatus}
-            onChange={(e) => setDraftStatus(e.target.value)}
-          >
-            <option value="">Tất cả trạng thái</option>
-            <option value="draft">Phiếu tạm</option>
-            <option value="completed">Đã nhập hàng</option>
-          </select>
+            onChange={setDraftStatus}
+            options={[{ value: '', label: 'Tất cả trạng thái' }, { value: 'draft', label: 'Phiếu tạm' }, { value: 'completed', label: 'Đã nhập hàng' }]}
+          />
         </div>
       </MobileFilterSheet>
 

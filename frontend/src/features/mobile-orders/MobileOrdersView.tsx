@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { formatDateTime, formatMoney, formatNumber } from '@/lib/format';
 import { toIsoDate, todayIso, monthStartIso, COMMON_DATE_PRESETS, formatDayHeader } from '@/lib/date';
 import { StatusBadge } from '@/components/data-display/Badges';
+import { Select } from '@/components/ui/Select/Select';
 import { LoadingState, ErrorState } from '@/components/data-display/DataState';
 import { statusLabels, type ApiRecord } from '@/types/api';
 import { getOrders, getOrder } from '@/features/operations/operations.api';
@@ -438,65 +439,71 @@ export function MobileOrdersView() {
       >
         <div className="mobile-filter-field">
           <label htmlFor="mobile-orders-date-filter" className="mobile-filter-field-label">Khoảng thời gian</label>
-          <select
+          <Select
             id="mobile-orders-date-filter"
-            className="mobile-filter-select"
+            triggerClassName="mobile-filter-select"
+            variant="filter"
+            fullWidth
             value={draftDatePreset}
-            onChange={(e) => setDraftDatePreset(e.target.value)}
-          >
-            {datePresets.map((p) => (
-              <option key={p.value} value={p.value}>
-                {p.label}
-              </option>
-            ))}
-          </select>
+            onChange={setDraftDatePreset}
+            options={datePresets}
+          />
         </div>
 
         <div className="mobile-filter-field">
           <label htmlFor="mobile-orders-status-filter" className="mobile-filter-field-label">Trạng thái đơn hàng</label>
-          <select
+          <Select
             id="mobile-orders-status-filter"
-            className="mobile-filter-select"
+            triggerClassName="mobile-filter-select"
+            variant="filter"
+            fullWidth
             value={draftStatus}
-            onChange={(e) => setDraftStatus(e.target.value)}
-          >
-            <option value="">Tất cả trạng thái</option>
-            <option value="paid">Đã thanh toán</option>
-            <option value="draft">Đơn nháp</option>
-            <option value="refunded">Đã hoàn tiền</option>
-            <option value="cancelled">Đã hủy</option>
-          </select>
+            onChange={setDraftStatus}
+            options={[
+              { value: '', label: 'Tất cả trạng thái' },
+              { value: 'paid', label: 'Đã thanh toán' },
+              { value: 'draft', label: 'Đơn nháp' },
+              { value: 'refunded', label: 'Đã hoàn tiền' },
+              { value: 'cancelled', label: 'Đã hủy' },
+            ]}
+          />
         </div>
 
         <div className="mobile-filter-field">
           <label htmlFor="mobile-orders-channel-filter" className="mobile-filter-field-label">Kênh bán hàng</label>
-          <select
+          <Select
             id="mobile-orders-channel-filter"
-            className="mobile-filter-select"
+            triggerClassName="mobile-filter-select"
+            variant="filter"
+            fullWidth
             value={draftChannel}
-            onChange={(e) => setDraftChannel(e.target.value)}
-          >
-            <option value="">Tất cả kênh bán</option>
-            <option value="salon">Tại salon</option>
-            <option value="online">Bán online</option>
-            <option value="phone">Qua điện thoại</option>
-          </select>
+            onChange={setDraftChannel}
+            options={[
+              { value: '', label: 'Tất cả kênh bán' },
+              { value: 'salon', label: 'Tại salon' },
+              { value: 'online', label: 'Bán online' },
+              { value: 'phone', label: 'Qua điện thoại' },
+            ]}
+          />
         </div>
 
         <div className="mobile-filter-field">
           <label htmlFor="mobile-orders-payment-filter" className="mobile-filter-field-label">Hình thức thanh toán</label>
-          <select
+          <Select
             id="mobile-orders-payment-filter"
-            className="mobile-filter-select"
+            triggerClassName="mobile-filter-select"
+            variant="filter"
+            fullWidth
             value={draftPaymentMethod}
-            onChange={(e) => setDraftPaymentMethod(e.target.value)}
-          >
-            <option value="">Tất cả phương thức</option>
-            <option value="cash">Tiền mặt</option>
-            <option value="bank_transfer">Chuyển khoản</option>
-            <option value="card">Thẻ</option>
-            <option value="wallet">Ví điện tử</option>
-          </select>
+            onChange={setDraftPaymentMethod}
+            options={[
+              { value: '', label: 'Tất cả phương thức' },
+              { value: 'cash', label: 'Tiền mặt' },
+              { value: 'bank_transfer', label: 'Chuyển khoản' },
+              { value: 'card', label: 'Thẻ' },
+              { value: 'wallet', label: 'Ví điện tử' },
+            ]}
+          />
         </div>
       </MobileFilterSheet>
 

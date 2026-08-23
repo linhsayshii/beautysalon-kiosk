@@ -1,6 +1,8 @@
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import type { RefObject } from 'react';
+import { Select } from '@/components/ui/Select/Select';
 import { useMobileDialog } from './useMobileDialog';
+import { MobileDialogPortal } from './MobileDialogPortal';
 import './mobile-common.css';
 
 export interface MobileTimePickerSheetProps {
@@ -153,6 +155,7 @@ export function MobileTimePickerSheet({
   };
 
   return (
+    <MobileDialogPortal>
     <div
       className="mobile-bottom-sheet-backdrop"
       style={{ zIndex: 90 }}
@@ -340,18 +343,15 @@ export function MobileTimePickerSheet({
                 <label htmlFor="custom-wheel-date" className="mobile-wheel-label">
                   Ngày
                 </label>
-                <select
+                <Select<number>
                   id="custom-wheel-date"
-                  className="mobile-wheel-select"
+                  triggerClassName="mobile-wheel-select"
+                  fullWidth
+                  size="lg"
                   value={tempDateOffset}
-                  onChange={(e) => setTempDateOffset(Number(e.target.value))}
-                >
-                  {dateStrip.map((item) => (
-                    <option key={item.offset} value={item.offset}>
-                      {item.weekday} - {item.label}
-                    </option>
-                  ))}
-                </select>
+                  onChange={setTempDateOffset}
+                  options={dateStrip.map((item) => ({ value: item.offset, label: `${item.weekday} - ${item.label}` }))}
+                />
               </div>
 
               {/* Time Selection Columns */}
@@ -360,18 +360,15 @@ export function MobileTimePickerSheet({
                   <label htmlFor="custom-wheel-hour" className="mobile-wheel-label">
                     Giờ
                   </label>
-                  <select
+                  <Select<number>
                     id="custom-wheel-hour"
-                    className="mobile-wheel-select"
+                    triggerClassName="mobile-wheel-select"
+                    fullWidth
+                    size="lg"
                     value={tempHour}
-                    onChange={(e) => setTempHour(Number(e.target.value))}
-                  >
-                    {Array.from({ length: 24 }, (_, i) => (
-                      <option key={i} value={i}>
-                        {padZero(i)} giờ
-                      </option>
-                    ))}
-                  </select>
+                    onChange={setTempHour}
+                    options={Array.from({ length: 24 }, (_, hour) => ({ value: hour, label: `${padZero(hour)} giờ` }))}
+                  />
                 </div>
 
                 <div className="mobile-wheel-separator">:</div>
@@ -380,18 +377,15 @@ export function MobileTimePickerSheet({
                   <label htmlFor="custom-wheel-minute" className="mobile-wheel-label">
                     Phút
                   </label>
-                  <select
+                  <Select<number>
                     id="custom-wheel-minute"
-                    className="mobile-wheel-select"
+                    triggerClassName="mobile-wheel-select"
+                    fullWidth
+                    size="lg"
                     value={tempMinute}
-                    onChange={(e) => setTempMinute(Number(e.target.value))}
-                  >
-                    {Array.from({ length: 12 }, (_, i) => i * 5).map((m) => (
-                      <option key={m} value={m}>
-                        {padZero(m)} phút
-                      </option>
-                    ))}
-                  </select>
+                    onChange={setTempMinute}
+                    options={Array.from({ length: 12 }, (_, index) => index * 5).map((minute) => ({ value: minute, label: `${padZero(minute)} phút` }))}
+                  />
                 </div>
               </div>
             </div>
@@ -416,5 +410,6 @@ export function MobileTimePickerSheet({
         </div>
       )}
     </div>
+    </MobileDialogPortal>
   );
 }

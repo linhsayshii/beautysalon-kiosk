@@ -7,6 +7,7 @@ import { StaffCreateDialog } from '@/features/staff/components/StaffCreateDialog
 import { todayIso } from '@/lib/date';
 import { initials } from '@/lib/format';
 import { useToast } from '@/components/ui/Toast/ToastProvider';
+import { Select } from '@/components/ui/Select/Select';
 import {
   MobileSearchBar,
   MobileFilterSheet,
@@ -526,27 +527,24 @@ export function MobileStaffManagementView() {
             <label htmlFor="mobile-staff-role" style={{ display: 'block', fontSize: 13, fontWeight: 700, color: '#0f172a', marginBottom: 6 }}>
               Vai trò / Chức vụ
             </label>
-            <select
+            <Select
               id="mobile-staff-role"
               value={newRole}
-              onChange={(e) => setNewRole(e.target.value)}
-              style={{
+              onChange={setNewRole}
+              fullWidth
+              size="lg"
+              triggerStyle={{
                 width: '100%',
                 height: 44,
                 padding: '0 12px',
                 borderRadius: 10,
                 border: '1px solid #cbd5e1',
-                fontSize: 16,
+                fontSize: 13,
                 background: '#ffffff',
                 boxSizing: 'border-box',
               }}
-            >
-              <option value="Kỹ thuật viên">Kỹ thuật viên</option>
-              <option value="Kỹ thuật viên chính">Kỹ thuật viên chính</option>
-              <option value="Thu ngân">Thu ngân</option>
-              <option value="Lễ tân">Lễ tân</option>
-              <option value="Quản lý">Quản lý</option>
-            </select>
+              options={['Kỹ thuật viên', 'Kỹ thuật viên chính', 'Thu ngân', 'Lễ tân', 'Quản lý'].map((role) => ({ value: role, label: role }))}
+            />
           </div>
 
           <div>

@@ -1,5 +1,6 @@
 import type { ReactNode, RefObject } from 'react';
 import { useMobileDialog } from './useMobileDialog';
+import { MobileDialogPortal } from './MobileDialogPortal';
 import './mobile-common.css';
 
 export interface MobileFilterSheetProps {
@@ -23,6 +24,7 @@ export function MobileFilterSheet({
   if (!isOpen) return null;
 
   return (
+    <MobileDialogPortal>
     <div
       className="mobile-filter-sheet-backdrop"
       data-testid="mobile-filter-sheet-backdrop"
@@ -76,5 +78,6 @@ export function MobileFilterSheet({
         </div>
       </div>
     </div>
+    </MobileDialogPortal>
   );
 }

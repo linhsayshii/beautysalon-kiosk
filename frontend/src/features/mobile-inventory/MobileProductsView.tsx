@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { formatMoney, formatNumber } from '@/lib/format';
 import { GoodsCreateDialog } from '@/features/inventory/components/GoodsCreateDialog';
+import { Select } from '@/components/ui/Select/Select';
 import { getProducts, type InventoryItemType } from '@/features/inventory/inventory.api';
 import {
   MobileSearchBar,
@@ -360,50 +361,41 @@ export function MobileProductsView() {
       >
         <div className="mobile-filter-field">
           <label htmlFor="mobile-product-type-filter" className="mobile-filter-field-label">Loại hàng</label>
-          <select
+          <Select
             id="mobile-product-type-filter"
-            className="mobile-filter-select"
+            triggerClassName="mobile-filter-select"
+            variant="filter"
+            fullWidth
             value={draftType}
-            onChange={(e) => setDraftType(e.target.value)}
-          >
-            <option value="">Tất cả loại hàng</option>
-            <option value="product">Sản phẩm</option>
-            <option value="service">Dịch vụ</option>
-            <option value="package">Gói dịch vụ, liệu trình</option>
-            <option value="account_card">Thẻ tài khoản</option>
-          </select>
+            onChange={setDraftType}
+            options={[{ value: '', label: 'Tất cả loại hàng' }, { value: 'product', label: 'Sản phẩm' }, { value: 'service', label: 'Dịch vụ' }, { value: 'package', label: 'Gói dịch vụ, liệu trình' }, { value: 'account_card', label: 'Thẻ tài khoản' }]}
+          />
         </div>
 
         <div className="mobile-filter-field">
           <label htmlFor="mobile-product-category-filter" className="mobile-filter-field-label">Nhóm hàng</label>
-          <select
+          <Select
             id="mobile-product-category-filter"
-            className="mobile-filter-select"
+            triggerClassName="mobile-filter-select"
+            variant="filter"
+            fullWidth
             value={draftCategory}
-            onChange={(e) => setDraftCategory(e.target.value)}
-          >
-            <option value="">Tất cả nhóm</option>
-            {categories.map((cat) => (
-              <option key={cat} value={cat}>
-                {cat}
-              </option>
-            ))}
-          </select>
+            onChange={setDraftCategory}
+            options={[{ value: '', label: 'Tất cả nhóm' }, ...categories.map((category) => ({ value: category, label: category }))]}
+          />
         </div>
 
         <div className="mobile-filter-field">
           <label htmlFor="mobile-product-stock-filter" className="mobile-filter-field-label">Tồn kho</label>
-          <select
+          <Select
             id="mobile-product-stock-filter"
-            className="mobile-filter-select"
+            triggerClassName="mobile-filter-select"
+            variant="filter"
+            fullWidth
             value={draftStockStatus}
-            onChange={(e) => setDraftStockStatus(e.target.value)}
-          >
-            <option value="">Tất cả trạng thái tồn</option>
-            <option value="in_stock">Còn tồn kho (&gt; 0)</option>
-            <option value="out_of_stock">Hết hàng (tồn ≤ 0)</option>
-            <option value="below_min">Dưới định mức tồn</option>
-          </select>
+            onChange={setDraftStockStatus}
+            options={[{ value: '', label: 'Tất cả trạng thái tồn' }, { value: 'in_stock', label: 'Còn tồn kho (> 0)' }, { value: 'out_of_stock', label: 'Hết hàng (tồn ≤ 0)' }, { value: 'below_min', label: 'Dưới định mức tồn' }]}
+          />
         </div>
       </MobileFilterSheet>
 

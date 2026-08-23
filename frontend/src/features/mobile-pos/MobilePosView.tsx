@@ -4,6 +4,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useWebSocket } from '@/hooks/useWebSocket';
 import { formatMoney, formatNumber } from '@/lib/format';
 import { LoadingState, ErrorState } from '@/components/data-display/DataState';
+import { Select } from '@/components/ui/Select/Select';
 import { getPosCatalog, getPosInvoice, getPosPaymentRequests, getPosStaff, type PosReceiptData } from '@/features/pos/pos.api';
 import { PosReceiptPrint } from '@/features/pos/components/PosReceiptPrint';
 import { MobileCartBottomSheet } from './MobileCartBottomSheet';
@@ -326,18 +327,15 @@ export function MobilePosView() {
         <div className="mobile-pos-filter-row">
           <div className="mobile-pos-subcat-select">
             <i className="ph ph-funnel" />
-            <select
+            <Select
               aria-label="Nhóm hàng"
               value={selectedSubCategory}
-              onChange={(e) => setSelectedSubCategory(e.target.value)}
-            >
-              <option value="">Tất cả nhóm hàng ▼</option>
-              {subCategories.map((cat) => (
-                <option key={cat} value={cat}>
-                  {cat}
-                </option>
-              ))}
-            </select>
+              onChange={setSelectedSubCategory}
+              variant="ghost"
+              size="sm"
+              triggerClassName="mobile-pos-subcat-trigger"
+              options={[{ value: '', label: 'Tất cả nhóm hàng' }, ...subCategories.map((category) => ({ value: category, label: category }))]}
+            />
           </div>
           <span style={{ fontSize: 12, color: 'var(--ink-500)' }}>
             {filteredItems.length} mặt hàng
@@ -435,16 +433,14 @@ export function MobilePosView() {
                 <div className="item-meta">
                   <div className="staff-select">
                     <label>NV:</label>
-                    <select
+                    <Select<number | string>
                       aria-label={`Nhân viên thực hiện ${line.name}`}
                       value={line.staffId ?? ''}
-                      onChange={(e) => handleUpdateLineStaff(line.itemId, line.itemType, e.target.value ? Number(e.target.value) : null)}
-                    >
-                      <option value="">-- Chọn --</option>
-                      {staffList.map((st) => (
-                        <option key={st.id} value={st.id}>{st.name}</option>
-                      ))}
-                    </select>
+                      onChange={(staffId) => handleUpdateLineStaff(line.itemId, line.itemType, staffId === '' ? null : Number(staffId))}
+                      size="sm"
+                      triggerClassName="mobile-pos-staff-trigger"
+                      options={[{ value: '', label: '-- Chọn --' }, ...staffList.map((staff) => ({ value: staff.id, label: staff.name }))]}
+                    />
                   </div>
 
                   <div className="commission-badge">

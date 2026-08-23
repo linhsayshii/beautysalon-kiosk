@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { appConfig } from '@/app/config';
 import { MoneyInput } from '@/components/forms/MoneyInput';
 import { Select } from '@/components/ui/Select/Select';
+import { Combobox } from '@/components/ui/Combobox/Combobox';
 import { useToast } from '@/components/ui/Toast/ToastProvider';
 import { formatMoney } from '@/lib/format';
 import { createInventoryItem, getInventoryItem, getProducts, updateInventoryItem } from '../inventory.api';
@@ -237,7 +238,7 @@ export function GoodsCreateDialog({ type, onClose, itemId, initialData, initialT
             <div className="goods-form-grid">
               <div className="goods-field"><label htmlFor="goods-code">Mã hàng</label><input id="goods-code" value={form.code} onChange={(event) => update('code', event.target.value.toUpperCase())} placeholder="Tự động nếu để trống" /></div>
               {type === 'product' ? <div className="goods-field"><label htmlFor="goods-barcode">Mã vạch</label><input id="goods-barcode" value={form.barcode} onChange={(event) => update('barcode', event.target.value)} placeholder="Nhập mã vạch" /></div> : type === 'service' ? <div className="goods-field"><label htmlFor="goods-duration">Thời lượng</label><div className="input-suffix"><input id="goods-duration" type="number" min="1" value={form.durationMinutes} onChange={(event) => update('durationMinutes', event.target.value)} /><span>phút</span></div>{errors.durationMinutes && <small className="field-error">{errors.durationMinutes}</small>}</div> : <div className="goods-field"><label htmlFor="goods-validity">Thời hạn sử dụng</label><div className="input-suffix"><input id="goods-validity" type="number" min="1" value={form.validityDays} onChange={(event) => update('validityDays', event.target.value)} placeholder="Không giới hạn" /><span>ngày</span></div></div>}
-              <div className="goods-field"><label htmlFor="goods-category">Nhóm hàng</label><input id="goods-category" value={form.category} onChange={(event) => update('category', event.target.value)} placeholder="Nhập hoặc chọn nhóm hàng" list="goods-categories" /><datalist id="goods-categories">{(catalog.data?.meta.categories ?? []).map((category) => <option key={category} value={category} />)}</datalist></div>
+              <div className="goods-field"><label htmlFor="goods-category">Nhóm hàng</label><Combobox id="goods-category" value={form.category} onChange={(value) => update('category', value)} placeholder="Nhập hoặc chọn nhóm hàng" options={catalog.data?.meta.categories ?? []} /></div>
               <div className="goods-field"><label htmlFor="goods-brand">Thương hiệu</label><input id="goods-brand" value={form.brand} onChange={(event) => update('brand', event.target.value)} placeholder="Nhập thương hiệu" /></div>
             </div>
             <label className="goods-active-check"><input type="checkbox" checked={form.active} onChange={(event) => update('active', event.target.checked)} />Cho phép bán</label>

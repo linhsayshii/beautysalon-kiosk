@@ -6,6 +6,7 @@ import { useMetadata } from '@/services/metadata';
 import { useWebSocket } from '@/hooks/useWebSocket';
 import { getBranches } from '@/features/branches/branches.api';
 import type { ApiRecord } from '@/types/api';
+import { FloatingLayer } from '@/components/ui/FloatingLayer/FloatingLayer';
 
 // Sub-page titles and configuration
 const SUBPAGE_CONFIG: Record<string, { title: string; backTo?: string; hideTopBar?: boolean }> = {
@@ -52,6 +53,7 @@ export function MobileTopBar() {
   const { isConnected } = useWebSocket();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const dropdownMenuRef = useRef<HTMLDivElement>(null);
   const storeName = meta?.data?.system?.storeName || 'AnnaChill';
 
   const pathname = location.pathname.replace(/\/$/, '') || '/m';
@@ -70,7 +72,8 @@ export function MobileTopBar() {
   // Close dropdown on click outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+      const target = event.target as Node;
+      if (dropdownRef.current && !dropdownRef.current.contains(target) && !dropdownMenuRef.current?.contains(target)) {
         setIsDropdownOpen(false);
       }
     };
@@ -145,7 +148,7 @@ export function MobileTopBar() {
 
           {/* Dropdown Menu */}
           {isDropdownOpen && (
-            <div className="mobile-shop-dropdown-menu" role="menu">
+            <FloatingLayer anchorRef={dropdownRef} layerRef={dropdownMenuRef} align="right" className="mobile-shop-dropdown-menu" role="menu">
               <div className="mobile-dropdown-header">
                 <span>Chi nhánh làm việc</span>
                 <small>Đang chọn: <strong>{account?.branchName}</strong></small>
@@ -177,7 +180,7 @@ export function MobileTopBar() {
                   <div className="dropdown-loading">Đang tải danh sách...</div>
                 )}
               </div>
-            </div>
+            </FloatingLayer>
           )}
         </div>
 
@@ -188,6 +191,5 @@ export function MobileTopBar() {
     </header>
   );
 }
-
 
 

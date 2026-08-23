@@ -2,6 +2,7 @@ import { useState, useMemo, Fragment } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ErrorState, LoadingState } from '@/components/data-display/DataState';
 import { useToast } from '@/components/ui/Toast/ToastProvider';
+import { Select } from '@/components/ui/Select/Select';
 import { errorMessage } from '@/services/api-client';
 import { todayIso, toIsoDate, weekStartIso } from '@/lib/date';
 import type { ApiRecord } from '@/types/api';
@@ -198,15 +199,13 @@ export function StaffAttendanceView() {
 
             {/* Time Unit Selector (Theo tuần / Theo tháng) */}
             <div className="attendance-select-wrap">
-              <select
+              <Select<'week' | 'month'>
                 value={timeUnit}
-                onChange={(e) => setTimeUnit(e.target.value as 'week' | 'month')}
-                className="attendance-select"
-              >
-                <option value="week">Theo tuần</option>
-                <option value="month">Theo tháng</option>
-              </select>
-              <i className="ph ph-caret-down" />
+                onChange={setTimeUnit}
+                triggerClassName="attendance-select"
+                size="sm"
+                options={[{ value: 'week', label: 'Theo tuần' }, { value: 'month', label: 'Theo tháng' }]}
+              />
             </div>
 
             {/* WeekPicker Component */}

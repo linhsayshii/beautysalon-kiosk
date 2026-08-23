@@ -5,6 +5,7 @@ import { formatDateTime, formatDate, formatMoney, formatNumber, initials } from 
 import { getCustomers, getCustomer, getCustomerActivity } from '@/features/operations/operations.api';
 import { CustomerCreateDialog } from '@/features/operations/components/CustomerCreateDialog';
 import { StatusBadge } from '@/components/data-display/Badges';
+import { Select } from '@/components/ui/Select/Select';
 import { statusLabels } from '@/types/api';
 import {
   MobileSearchBar,
@@ -386,30 +387,28 @@ export function MobileCustomersView() {
       >
         <div className="mobile-filter-field">
           <label htmlFor="mobile-customer-group-filter" className="mobile-filter-field-label">Nhóm khách hàng</label>
-          <select
+          <Select
             id="mobile-customer-group-filter"
-            className="mobile-filter-select"
+            triggerClassName="mobile-filter-select"
+            variant="filter"
+            fullWidth
             value={draftGroup}
-            onChange={(e) => setDraftGroup(e.target.value)}
-          >
-            <option value="">Tất cả nhóm</option>
-            <option value="Cá nhân">Cá nhân</option>
-            <option value="Công ty">Công ty</option>
-          </select>
+            onChange={setDraftGroup}
+            options={[{ value: '', label: 'Tất cả nhóm' }, { value: 'Cá nhân', label: 'Cá nhân' }, { value: 'Công ty', label: 'Công ty' }]}
+          />
         </div>
 
         <div className="mobile-filter-field">
           <label htmlFor="mobile-customer-debt-filter" className="mobile-filter-field-label">Tình trạng công nợ</label>
-          <select
+          <Select
             id="mobile-customer-debt-filter"
-            className="mobile-filter-select"
+            triggerClassName="mobile-filter-select"
+            variant="filter"
+            fullWidth
             value={draftDebt}
-            onChange={(e) => setDraftDebt(e.target.value)}
-          >
-            <option value="">Tất cả</option>
-            <option value="with_debt">Đang có nợ</option>
-            <option value="no_debt">Không có nợ</option>
-          </select>
+            onChange={setDraftDebt}
+            options={[{ value: '', label: 'Tất cả' }, { value: 'with_debt', label: 'Đang có nợ' }, { value: 'no_debt', label: 'Không có nợ' }]}
+          />
         </div>
       </MobileFilterSheet>
 

@@ -1,11 +1,14 @@
 import {
+  type CSSProperties,
   type ReactNode,
   useCallback,
   useEffect,
   useId,
+  useLayoutEffect,
   useRef,
   useState,
 } from 'react';
+import { createPortal } from 'react-dom';
 
 export interface SelectOption<T = string | number> {
   value: T;
@@ -17,7 +20,7 @@ export interface SelectOption<T = string | number> {
 export interface SelectProps<T = string | number> {
   value?: T;
   onChange: (value: T) => void;
-  options: Array<SelectOption<T>>;
+  options: ReadonlyArray<SelectOption<T>>;
   placeholder?: string;
   disabled?: boolean;
   required?: boolean;
@@ -26,6 +29,8 @@ export interface SelectProps<T = string | number> {
   'aria-label'?: string;
   className?: string;
   triggerClassName?: string;
+  style?: CSSProperties;
+  triggerStyle?: CSSProperties;
   menuClassName?: string;
   variant?: 'default' | 'filter' | 'chart' | 'bordered' | 'ghost' | 'pill';
   size?: 'sm' | 'md' | 'lg';
@@ -33,6 +38,18 @@ export interface SelectProps<T = string | number> {
   fullWidth?: boolean;
   renderOption?: (option: SelectOption<T>, isSelected: boolean) => ReactNode;
 }
+
+interface SelectPopoverLayout {
+  bottom?: number;
+  left: number;
+  maxHeight: number;
+  minWidth: number;
+  top?: number;
+}
+
+const VIEWPORT_MARGIN = 8;
+const POPOVER_GAP = 5;
+const MAX_MENU_HEIGHT = 420;
 
 export function Select<T extends string | number = string>({
   value,
@@ -46,6 +63,8 @@ export function Select<T extends string | number = string>({
   'aria-label': ariaLabel,
   className = '',
   triggerClassName = '',
+  style,
+  triggerStyle,
   menuClassName = '',
   variant = 'default',
   size = 'md',
@@ -56,33 +75,56 @@ export function Select<T extends string | number = string>({
   const [isOpen, setIsOpen] = useState(false);
   const [highlightedIndex, setHighlightedIndex] = useState<number>(-1);
   const [placement, setPlacement] = useState<'bottom' | 'top'>('bottom');
+  const [popoverLayout, setPopoverLayout] = useState<SelectPopoverLayout | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
+  const popoverRef = useRef<HTMLDivElement>(null);
   const listboxRef = useRef<HTMLUListElement>(null);
   const generatedId = useId();
   const selectId = id || generatedId;
 
   const selectedOption = options.find((opt) => String(opt.value) === String(value));
 
-  // Determine placement (top vs bottom) based on available screen space
-  const updatePlacement = useCallback(() => {
+  // Rendered through a portal so scrolling filters, modals and sheets cannot
+  // clip the menu. Fixed viewport coordinates keep it anchored to its trigger.
+  const updatePopoverLayout = useCallback(() => {
     if (!triggerRef.current) return;
     const rect = triggerRef.current.getBoundingClientRect();
-    const spaceBelow = window.innerHeight - rect.bottom;
-    const spaceAbove = rect.top;
-    const estimatedMenuHeight = Math.min(options.length * 44 + 16, 280);
+    const viewport = window.visualViewport;
+    const viewportTop = viewport?.offsetTop ?? 0;
+    const viewportHeight = viewport?.height ?? window.innerHeight;
+    const viewportBottom = viewportTop + viewportHeight;
+    const spaceBelow = Math.max(0, viewportBottom - rect.bottom - POPOVER_GAP - VIEWPORT_MARGIN);
+    const spaceAbove = Math.max(0, rect.top - viewportTop - POPOVER_GAP - VIEWPORT_MARGIN);
+    const estimatedMenuHeight = Math.min(options.length * 40 + 12, MAX_MENU_HEIGHT);
+    const nextPlacement = spaceBelow < estimatedMenuHeight && spaceAbove > spaceBelow ? 'top' : 'bottom';
+    const availableHeight = nextPlacement === 'top' ? spaceAbove : spaceBelow;
+    const measuredWidth = popoverRef.current?.scrollWidth ?? rect.width;
+    const popoverWidth = Math.min(
+      Math.max(rect.width, measuredWidth),
+      Math.min(360, window.innerWidth - VIEWPORT_MARGIN * 2),
+    );
+    const preferredLeft = align === 'right' ? rect.right - popoverWidth : rect.left;
+    const left = Math.min(
+      Math.max(VIEWPORT_MARGIN, preferredLeft),
+      Math.max(VIEWPORT_MARGIN, window.innerWidth - popoverWidth - VIEWPORT_MARGIN),
+    );
 
-    if (spaceBelow < estimatedMenuHeight && spaceAbove > spaceBelow) {
-      setPlacement('top');
-    } else {
-      setPlacement('bottom');
-    }
-  }, [options.length]);
+    setPlacement(nextPlacement);
+    setPopoverLayout({
+      left,
+      minWidth: rect.width,
+      maxHeight: Math.max(80, Math.min(MAX_MENU_HEIGHT, availableHeight)),
+      ...(nextPlacement === 'top'
+        ? { bottom: window.innerHeight - rect.top + POPOVER_GAP }
+        : { top: rect.bottom + POPOVER_GAP }),
+    });
+  }, [align, options.length]);
 
   const handleToggle = () => {
     if (disabled) return;
     if (!isOpen) {
-      updatePlacement();
+      updatePopoverLayout();
       const currentIndex = options.findIndex((opt) => String(opt.value) === String(value));
       setHighlightedIndex(currentIndex >= 0 ? currentIndex : 0);
     }
@@ -101,7 +143,12 @@ export function Select<T extends string | number = string>({
     if (!isOpen) return;
 
     const handleClickOutside = (event: MouseEvent | TouchEvent) => {
-      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+      const target = event.target as Node;
+      if (
+        containerRef.current &&
+        !containerRef.current.contains(target) &&
+        !popoverRef.current?.contains(target)
+      ) {
         setIsOpen(false);
       }
     };
@@ -111,21 +158,30 @@ export function Select<T extends string | number = string>({
       if (listboxRef.current && listboxRef.current.contains(event.target as Node)) {
         return;
       }
-      updatePlacement();
+      updatePopoverLayout();
     };
 
     document.addEventListener('mousedown', handleClickOutside);
     document.addEventListener('touchstart', handleClickOutside);
     window.addEventListener('resize', handleScrollOrResize);
     window.addEventListener('scroll', handleScrollOrResize, true);
+    window.visualViewport?.addEventListener('resize', handleScrollOrResize);
+    window.visualViewport?.addEventListener('scroll', handleScrollOrResize);
 
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
       document.removeEventListener('touchstart', handleClickOutside);
       window.removeEventListener('resize', handleScrollOrResize);
       window.removeEventListener('scroll', handleScrollOrResize, true);
+      window.visualViewport?.removeEventListener('resize', handleScrollOrResize);
+      window.visualViewport?.removeEventListener('scroll', handleScrollOrResize);
     };
-  }, [isOpen, updatePlacement]);
+  }, [isOpen, updatePopoverLayout]);
+
+  useLayoutEffect(() => {
+    if (!isOpen) return;
+    updatePopoverLayout();
+  }, [isOpen, updatePopoverLayout]);
 
   // Keyboard navigation
   const handleKeyDown = (event: React.KeyboardEvent) => {
@@ -135,7 +191,7 @@ export function Select<T extends string | number = string>({
       if (['ArrowDown', 'ArrowUp', 'Enter', ' '].includes(event.key)) {
         event.preventDefault();
         setIsOpen(true);
-        updatePlacement();
+        updatePopoverLayout();
         const currentIndex = options.findIndex((opt) => String(opt.value) === String(value));
         setHighlightedIndex(currentIndex >= 0 ? currentIndex : 0);
       }
@@ -178,6 +234,7 @@ export function Select<T extends string | number = string>({
       }
       case 'Escape': {
         event.preventDefault();
+        event.stopPropagation();
         setIsOpen(false);
         triggerRef.current?.focus();
         break;
@@ -204,6 +261,7 @@ export function Select<T extends string | number = string>({
       ref={containerRef}
       className={`app-select-container variant-${variant} size-${size} ${isOpen ? 'is-open' : ''} ${disabled ? 'is-disabled' : ''} ${fullWidth ? 'full-width' : ''} ${className}`}
       onKeyDown={handleKeyDown}
+      style={style}
     >
       <button
         ref={triggerRef}
@@ -213,10 +271,12 @@ export function Select<T extends string | number = string>({
         disabled={disabled}
         aria-haspopup="listbox"
         aria-expanded={isOpen}
+        aria-controls={isOpen ? `${selectId}-listbox` : undefined}
         aria-label={ariaLabel}
         aria-required={required}
         onClick={handleToggle}
         className={`app-select-trigger ${triggerClassName}`}
+        style={triggerStyle}
       >
         <span className="app-select-value">
           {selectedOption ? selectedOption.label : <span className="app-select-placeholder">{placeholder}</span>}
@@ -226,10 +286,18 @@ export function Select<T extends string | number = string>({
         </span>
       </button>
 
-      {isOpen && (
+      {isOpen && popoverLayout && createPortal(
         <div
+          ref={popoverRef}
           className={`app-select-popover placement-${placement} align-${align} ${menuClassName}`}
           role="presentation"
+          style={{
+            '--app-select-menu-max-height': `${popoverLayout.maxHeight}px`,
+            bottom: popoverLayout.bottom,
+            left: popoverLayout.left,
+            minWidth: popoverLayout.minWidth,
+            top: popoverLayout.top,
+          } as CSSProperties}
         >
           <ul
             ref={listboxRef}
@@ -283,7 +351,8 @@ export function Select<T extends string | number = string>({
               );
             })}
           </ul>
-        </div>
+        </div>,
+        document.body,
       )}
     </div>
   );

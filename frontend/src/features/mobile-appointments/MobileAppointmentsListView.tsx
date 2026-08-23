@@ -5,6 +5,7 @@ import { getPosAppointments, updatePosAppointment } from '@/features/pos/pos.api
 import { getStaff } from '@/features/staff/staff.api';
 import { MobileDetailSheet, MobileSearchBar } from '@/features/mobile-common';
 import { useToast } from '@/components/ui/Toast/ToastProvider';
+import { Select } from '@/components/ui/Select/Select';
 import type { ApiRecord } from '@/types/api';
 import './mobile-appointments.css';
 
@@ -77,7 +78,6 @@ export function MobileAppointmentsListView() {
   const [search, setSearch] = useState('');
   const [isSearchVisible, setIsSearchVisible] = useState(false);
   const [selectedApt, setSelectedApt] = useState<AppointmentData | null>(null);
-  const [isStatusMenuOpen, setIsStatusMenuOpen] = useState(false);
   const { notify } = useToast();
   const queryClient = useQueryClient();
 
@@ -114,7 +114,6 @@ export function MobileAppointmentsListView() {
       status === 'completed' ? 'Xác nhận hoàn tất lịch hẹn này?' : 'Xác nhận hủy lịch hẹn này?'
     )) return;
 
-    setIsStatusMenuOpen(false);
     statusMutation.mutate({ id: selectedApt.id, status });
   };
 
@@ -194,27 +193,14 @@ export function MobileAppointmentsListView() {
 
           {/* Staff Filter Dropdown Chip */}
           <div className="mobile-appointments-chip-select-wrap">
-            <select
-              className="mobile-appointments-staff-select"
+            <Select
+              triggerClassName={`mobile-appointments-filter-chip ${staffFilter !== 'all' ? 'is-active' : ''}`}
+              variant="pill"
               value={staffFilter}
-              onChange={(e) => setStaffFilter(e.target.value)}
+              onChange={setStaffFilter}
               aria-label="Chọn nhân viên"
-            >
-              <option value="all">Tất cả nhân viên</option>
-              {staffList.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.name}
-                </option>
-              ))}
-            </select>
-            <div className={`mobile-appointments-filter-chip ${staffFilter !== 'all' ? 'is-active' : ''}`}>
-              <span>
-                {staffFilter === 'all'
-                  ? 'Tất cả nhân viên'
-                  : staffList.find((s) => Number(s.id) === Number(staffFilter))?.name || 'Nhân viên'}
-              </span>
-              <i className="ph ph-caret-down" />
-            </div>
+              options={[{ value: 'all', label: 'Tất cả nhân viên' }, ...staffList.map((staff) => ({ value: String(staff.id), label: staff.name }))]}
+            />
           </div>
         </div>
 
@@ -353,7 +339,6 @@ export function MobileAppointmentsListView() {
         isOpen={selectedApt !== null}
         title="Chi tiết lịch dịch vụ"
         onClose={() => {
-          setIsStatusMenuOpen(false);
           setSelectedApt(null);
         }}
       >
@@ -366,35 +351,17 @@ export function MobileAppointmentsListView() {
                   {selectedApt.code || `B00${selectedApt.id || '7979'}`}
                 </h2>
                 <div className="mobile-apt-status-control">
-                  <button
-                    type="button"
-                    className="mobile-apt-status-dropdown-btn"
-                    aria-haspopup="menu"
-                    aria-expanded={isStatusMenuOpen}
+                  <Select
+                    value={selectedApt.status}
+                    options={APPOINTMENT_STATUSES.map((status) => ({ value: status, label: STATUS_LABELS[status] }))}
+                    onChange={handleStatusChange}
                     aria-label="Đổi trạng thái lịch hẹn"
                     disabled={statusMutation.isPending}
-                    onClick={() => setIsStatusMenuOpen((open) => !open)}
-                  >
-                    <span>{statusMutation.isPending ? 'Đang lưu…' : STATUS_LABELS[selectedApt.status] || selectedApt.status}</span>
-                    <i className={`ph ph-caret-down ${isStatusMenuOpen ? 'is-open' : ''}`} />
-                  </button>
-                  {isStatusMenuOpen && (
-                    <div className="mobile-apt-status-menu" role="menu" aria-label="Chọn trạng thái lịch hẹn">
-                      {APPOINTMENT_STATUSES.map((status) => (
-                        <button
-                          key={status}
-                          type="button"
-                          role="menuitem"
-                          className={status === selectedApt.status ? 'is-current' : ''}
-                          disabled={status === selectedApt.status || statusMutation.isPending}
-                          onClick={() => handleStatusChange(status)}
-                        >
-                          <span className={`mobile-apt-status-dot is-${status}`} />
-                          {STATUS_LABELS[status]}
-                        </button>
-                      ))}
-                    </div>
-                  )}
+                    align="right"
+                    size="sm"
+                    triggerClassName="mobile-apt-status-dropdown-btn"
+                    renderOption={(option) => <><span className={`mobile-apt-status-dot is-${option.value}`} />{option.label}</>}
+                  />
                 </div>
               </div>
 

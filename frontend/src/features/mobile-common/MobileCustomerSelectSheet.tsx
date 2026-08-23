@@ -6,6 +6,7 @@ import { formatNumber, initials } from '@/lib/format';
 import type { ApiRecord } from '@/types/api';
 import type { RefObject } from 'react';
 import { useMobileDialog } from './useMobileDialog';
+import { MobileDialogPortal } from './MobileDialogPortal';
 import './mobile-common.css';
 
 export interface MobileCustomer {
@@ -62,6 +63,7 @@ export function MobileCustomerSelectSheet({
   };
 
   return (
+    <MobileDialogPortal>
     <div
       className="mobile-bottom-sheet-backdrop"
       style={{ zIndex: 90 }}
@@ -183,5 +185,6 @@ export function MobileCustomerSelectSheet({
         />
       )}
     </div>
+    </MobileDialogPortal>
   );
 }

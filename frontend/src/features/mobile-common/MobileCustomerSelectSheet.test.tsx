@@ -66,6 +66,19 @@ describe('MobileCustomerSelectSheet', () => {
     expect(screen.queryByRole('button', { name: /quét mã|qr|barcode/i })).not.toBeInTheDocument();
   });
 
+  it('mounts above the page scroller and locks the background while open', () => {
+    const { unmount } = renderWithClient(
+      <MobileCustomerSelectSheet isOpen={true} onClose={vi.fn()} onSelectCustomer={vi.fn()} />
+    );
+
+    const backdrop = screen.getByRole('dialog', { name: /chọn khách hàng/i }).closest('.mobile-bottom-sheet-backdrop');
+    expect(backdrop?.parentElement).toBe(document.body);
+    expect(document.body).toHaveClass('mobile-overlay-open');
+
+    unmount();
+    expect(document.body).not.toHaveClass('mobile-overlay-open');
+  });
+
   it('renders customer list with remaining package units and debt badges', async () => {
     const onClose = vi.fn();
     const onSelect = vi.fn();

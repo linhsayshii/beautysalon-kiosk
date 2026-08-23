@@ -516,17 +516,7 @@ export function MobileInvoiceCreateView() {
                 value={discountInput}
                 onChange={(val) => setDiscountInput(val)}
                 suffix="đ"
-                style={{
-                  width: '100%',
-                  height: 40,
-                  borderRadius: 10,
-                  border: '1px solid #cbd5e1',
-                  padding: '0 12px',
-                  fontSize: 14,
-                  fontWeight: 600,
-                  background: '#ffffff',
-                  boxSizing: 'border-box',
-                }}
+                wrapperClassName="input-suffix mobile-money-input"
               />
             ) : (
               <input

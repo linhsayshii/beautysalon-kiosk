@@ -3,6 +3,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { ErrorState, LoadingState } from '@/components/data-display/DataState';
+import { Select } from '@/components/ui/Select/Select';
 import { formatMoney } from '@/lib/format';
 import { useWebSocket } from '@/hooks/useWebSocket';
 import { getMyPayrollHistory, type MyPayrollResponse } from '@/features/staff/staff.api';
@@ -81,21 +82,21 @@ export function MobileStaffSalaryView() {
         </div>
         {records.length > 0 && (
           <div className="mobile-staff-filter-strip mobile-salary-month-menu">
-            <label className="mobile-filter-chip mobile-salary-month-control" htmlFor="my-payroll-month">
+            <div className="mobile-filter-chip mobile-salary-month-control">
               <i className="ph ph-calendar" />
               <span className="mobile-salary-month-label">Kỳ lương</span>
-              <select
+              <Select<number>
                 id="my-payroll-month"
-                value={activeRecord?.id ?? ''}
-                onChange={(event) => setSelectedRecordId(Number(event.target.value))}
+                value={activeRecord?.id}
+                onChange={setSelectedRecordId}
                 aria-label="Chọn tháng lương"
-              >
-                {records.map((record) => (
-                  <option value={record.id} key={record.id}>{monthLabel(record.period.startsOn)}</option>
-                ))}
-              </select>
-              <i className="ph ph-caret-down mobile-salary-month-caret" aria-hidden="true" />
-            </label>
+                variant="ghost"
+                size="sm"
+                className="mobile-salary-period-select"
+                triggerClassName="mobile-salary-period-trigger"
+                options={records.map((record) => ({ value: record.id, label: monthLabel(record.period.startsOn) }))}
+              />
+            </div>
           </div>
         )}
       </div>

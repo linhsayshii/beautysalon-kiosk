@@ -3,8 +3,8 @@
 .mobile-customer-sheet {
   display: flex;
   flex-direction: column;
-  height: 100dvh;
-  max-height: 100dvh;
+  height: 100%;
+  max-height: 100%;
   background: var(--canvas, #f8fafc);
   color: var(--ink-950, #0f172a);
   position: relative;
@@ -91,6 +91,7 @@
   overflow-y: auto;
   overscroll-behavior-y: contain;
   -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
   padding: 12px 14px 90px; /* Space for FAB */
   display: flex;
   flex-direction: column;
@@ -225,7 +226,7 @@
 
 /* Floating Action Button (Add Customer) */
 .mobile-customer-fab {
-  position: fixed;
+  position: absolute;
   right: 20px;
   bottom: calc(var(--mobile-safe-bottom, 0px) + 24px);
   z-index: 70;
@@ -747,7 +748,7 @@
   border: 1px solid var(--line, #e2e8f0);
   background: #f8fafc;
   padding: 0 10px;
-  font-size: 14.5px;
+  font-size: 13px;
   font-weight: 600;
   color: var(--ink-950, #0f172a);
   outline: none;
@@ -1141,7 +1142,10 @@
 /* Sub-sheet (Staff & Position Pickers) */
 .mobile-sub-sheet-backdrop {
   position: fixed;
-  inset: 0;
+  top: var(--mobile-overlay-viewport-offset-top, 0px);
+  right: 0;
+  left: 0;
+  height: var(--mobile-overlay-viewport-height, 100dvh);
   background: rgba(15, 23, 42, 0.5);
   backdrop-filter: blur(2px);
   z-index: 110;
@@ -1476,7 +1480,10 @@
 /* Mobile Filter Sheet */
 .mobile-filter-sheet-backdrop {
   position: fixed;
-  inset: 0;
+  top: var(--mobile-overlay-viewport-offset-top, 0px);
+  right: 0;
+  left: 0;
+  height: var(--mobile-overlay-viewport-height, 100dvh);
   background: rgba(15, 23, 42, 0.5);
   backdrop-filter: blur(2px);
   z-index: var(--mobile-layer-overlay, 100);
@@ -1496,6 +1503,14 @@
   overflow: hidden;
   animation: mobile-slide-up 0.22s cubic-bezier(0.16, 1, 0.3, 1);
   box-shadow: 0 -4px 24px rgba(15, 23, 42, 0.15);
+}
+
+/* All Select triggers rendered inside mobile sheets use the compact dropdown scale. */
+.mobile-filter-sheet-container .app-select-trigger,
+.mobile-detail-sheet-container .app-select-trigger,
+.mobile-form-sheet-container .app-select-trigger,
+.mobile-bottom-sheet .app-select-trigger {
+  font-size: 13px;
 }
 
 .mobile-sheet-drag-handle {
@@ -1830,7 +1845,10 @@
 /* Mobile Detail Sheet */
 .mobile-detail-sheet-backdrop {
   position: fixed;
-  inset: 0;
+  top: var(--mobile-overlay-viewport-offset-top, 0px);
+  right: 0;
+  left: 0;
+  height: var(--mobile-overlay-viewport-height, 100dvh);
   background: rgba(15, 23, 42, 0.5);
   backdrop-filter: blur(2px);
   z-index: var(--mobile-layer-overlay, 100);
@@ -1928,7 +1946,10 @@
 
 .mobile-form-sheet-backdrop {
   position: fixed;
-  inset: 0;
+  top: var(--mobile-overlay-viewport-offset-top, 0px);
+  right: 0;
+  left: 0;
+  height: var(--mobile-overlay-viewport-height, 100dvh);
   background: rgba(15, 23, 42, 0.6);
   backdrop-filter: blur(4px);
   z-index: var(--mobile-layer-overlay-nested, 110);
@@ -1941,8 +1962,8 @@
 .mobile-form-sheet-container {
   display: flex;
   flex-direction: column;
-  height: 100dvh;
-  max-height: 100dvh;
+  height: 100%;
+  max-height: 100%;
   width: 100%;
   background: #f8fafc;
   color: #0f172a;
@@ -2070,6 +2091,28 @@
 .mobile-form-card-input::placeholder {
   color: #94a3b8;
   font-weight: 400;
+}
+
+.mobile-form-card-money-input {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  width: 100%;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.mobile-form-card-money-input > input {
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  box-shadow: none;
+}
+
+.mobile-form-card-money-input > span {
+  padding-right: 0;
 }
 
 .mobile-form-card-select {

@@ -248,8 +248,8 @@
 .pos-quantity button:disabled { color: var(--ink-400); cursor: not-allowed; }
 .pos-quantity span { text-align: center; font-size: 11px; font-weight: 750; font-variant-numeric: tabular-nums; }
 .pos-line-total { text-align: right; font-size: 12px; font-variant-numeric: tabular-nums; white-space: nowrap; }
-.pos-line-staff select { width: 80px; padding: 4px 6px; border: 1px solid var(--line); border-radius: 6px; font-size: 10.5px; background: var(--surface); cursor: pointer; }
-.pos-line-staff select:hover { border-color: var(--blue-300); }
+.pos-line-staff-trigger { width: 80px; padding: 4px 6px; border: 1px solid var(--line); border-radius: 6px; font-size: 10.5px; background: var(--surface); cursor: pointer; }
+.pos-line-staff-trigger:hover { border-color: var(--blue-300); }
 .pos-line-commission { color: var(--green); font-size: 10.5px; font-variant-numeric: tabular-nums; white-space: nowrap; text-align: right; }
 .pos-remove-line { display: grid; place-items: center; width: 28px; height: 28px; padding: 0; border: 0; border-radius: 8px; color: var(--ink-400); background: transparent; }
 .pos-remove-line:hover { color: var(--red); background: var(--red-soft); }
@@ -859,7 +859,7 @@
   gap: 7px 10px;
   margin-top: 5px;
 }
-.kv-service-assignment select {
+.kv-service-assignment-trigger {
   min-height: 29px;
   max-width: 176px;
   border: 1px solid #cbd5e1;
@@ -870,7 +870,7 @@
   font-size: 11.5px;
   font-weight: 650;
 }
-.kv-service-assignment select:focus {
+.kv-service-assignment-trigger:focus {
   outline: 2px solid rgba(16, 185, 129, 0.2);
   border-color: #34d399;
 }
@@ -1055,7 +1055,7 @@
   color: #334155;
 }
 .kv-time-form-group input,
-.kv-time-form-group select {
+.kv-time-select-trigger {
   height: 40px;
   padding: 0 12px;
   border: 1px solid #cbd5e1;

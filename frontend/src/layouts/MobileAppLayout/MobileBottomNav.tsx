@@ -3,6 +3,7 @@ import type { RefObject } from 'react';
 import { NavLink, Link } from 'react-router-dom';
 import { useAuth } from '@/features/auth/AuthProvider';
 import { useMobileDialog } from '@/features/mobile-common/useMobileDialog';
+import { MobileDialogPortal } from '@/features/mobile-common/MobileDialogPortal';
 
 interface QuickActionSheetProps {
   isOpen: boolean;
@@ -15,6 +16,7 @@ export function MobileQuickActionSheet({ isOpen, onClose }: QuickActionSheetProp
   if (!isOpen) return null;
 
   return (
+    <MobileDialogPortal>
     <div className="mobile-bottom-sheet-backdrop" onClick={onClose}>
       <div ref={dialogRef as RefObject<HTMLDivElement>} className="mobile-bottom-sheet mobile-quick-action-sheet" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" aria-labelledby={titleId} tabIndex={-1}>
         <div className="mobile-sheet-drag-handle" />
@@ -62,6 +64,7 @@ export function MobileQuickActionSheet({ isOpen, onClose }: QuickActionSheetProp
         </div>
       </div>
     </div>
+    </MobileDialogPortal>
   );
 }
 

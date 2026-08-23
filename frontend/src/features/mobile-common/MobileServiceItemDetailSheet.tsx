@@ -4,6 +4,7 @@ import { formatNumber, initials } from '@/lib/format';
 import { getPosStaff } from '@/features/pos/pos.api';
 import { MobileTimePickerSheet } from './MobileTimePickerSheet';
 import { useMobileDialog } from './useMobileDialog';
+import { MobileDialogPortal } from './MobileDialogPortal';
 import './mobile-common.css';
 
 export interface ConfiguredServiceItem {
@@ -161,6 +162,7 @@ export function MobileServiceItemDetailSheet({
   )} - ${padZero(endsAt.getHours())}:${padZero(endsAt.getMinutes())}`;
 
   return (
+    <MobileDialogPortal>
     <div
       className="mobile-bottom-sheet-backdrop"
       style={{ zIndex: 95 }}
@@ -502,5 +504,6 @@ export function MobileServiceItemDetailSheet({
         />
       )}
     </div>
+    </MobileDialogPortal>
   );
 }

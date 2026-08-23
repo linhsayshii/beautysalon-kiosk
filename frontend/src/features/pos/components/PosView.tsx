@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { ErrorState } from '@/components/data-display/DataState';
 import { useToast } from '@/components/ui/Toast/ToastProvider';
+import { Select } from '@/components/ui/Select/Select';
 import { useAuth } from '@/features/auth/AuthProvider';
 import { useWebSocket } from '@/hooks/useWebSocket';
 import { formatMoney } from '@/lib/format';
@@ -387,16 +388,14 @@ export function PosView() {
                     <button type="button" onClick={() => changeQuantity(line, 1)} disabled={line.itemType === 'product' && line.quantity >= Number(line.stockQuantity ?? 0)} aria-label="Tăng số lượng"><i className="ph ph-plus" /></button>
                   </div>
                   <div className="pos-line-staff">
-                    <select
+                    <Select<number | string>
                       value={line.staffId ?? ''}
-                      onChange={(e) => updateLineStaff(line, e.target.value ? Number(e.target.value) : null)}
+                      onChange={(staffId) => updateLineStaff(line, staffId === '' ? null : Number(staffId))}
                       aria-label={`Nhân viên cho ${line.name}`}
-                    >
-                      <option value="">-- NV --</option>
-                      {staffList.map((s) => (
-                        <option key={s.id} value={s.id}>{s.name}</option>
-                      ))}
-                    </select>
+                      size="sm"
+                      triggerClassName="pos-line-staff-trigger"
+                      options={[{ value: '', label: '-- NV --' }, ...staffList.map((staff) => ({ value: staff.id, label: staff.name }))]}
+                    />
                   </div>
                   <span className="pos-line-commission">{calculateExpectedCommission(line)}</span>
                   <strong className="pos-line-total">{formatMoney(line.salePrice * line.quantity)}</strong>
@@ -674,7 +673,6 @@ function AppointmentDrawer({
   const [startsAt, setStartsAt] = useState(toDateTimeLocal(initialStart));
   const [duration, setDuration] = useState(initialDuration);
   const [status, setStatus] = useState(initialAppointment?.status ?? 'confirmed');
-  const [statusMenuOpen, setStatusMenuOpen] = useState(false);
 
   const [note, setNote] = useState(initialAppointment?.note ?? '');
   const [isNoteOpen, setIsNoteOpen] = useState(Boolean(initialAppointment?.note));
@@ -693,13 +691,12 @@ function AppointmentDrawer({
       if (event.key === 'Escape') {
         if (isTimeModalOpen) setIsTimeModalOpen(false);
         else if (isServiceModalOpen) setIsServiceModalOpen(false);
-        else if (statusMenuOpen) setStatusMenuOpen(false);
         else onClose();
       }
     };
     document.addEventListener('keydown', closeOnEscape);
     return () => document.removeEventListener('keydown', closeOnEscape);
-  }, [onClose, isTimeModalOpen, isServiceModalOpen, statusMenuOpen]);
+  }, [onClose, isTimeModalOpen, isServiceModalOpen]);
 
   const customers = useQuery({
     queryKey: ['pos-appointment-customers', deferredCustomerSearch],
@@ -793,7 +790,6 @@ function AppointmentDrawer({
   const currentStart = new Date(startsAt);
   const dateTitle = currentStart.toLocaleDateString('vi-VN', { weekday: 'long', day: '2-digit', month: '2-digit' });
   const timeTitle = currentStart.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', hour12: false });
-  const currentStatusObj = APPOINTMENT_STATUS_OPTIONS.find((opt) => opt.value === status) ?? APPOINTMENT_STATUS_OPTIONS[1];
   const addOrReplaceService = (service: Omit<AppointmentServiceLine, 'lineId' | 'appointmentId' | 'staffId'>) => {
     setSelectedServices((current) => {
       if (!replaceServiceLineId) {
@@ -851,38 +847,21 @@ function AppointmentDrawer({
             </div>
 
             <div className="kv-drawer-actions">
-              <button
-                type="button"
-                className="kv-status-dropdown-btn"
-                onClick={() => setStatusMenuOpen((prev) => !prev)}
-                aria-haspopup="menu"
-                aria-expanded={statusMenuOpen}
-              >
-                <span>{currentStatusObj.label}</span>
-                <i className="ph ph-caret-down" aria-hidden="true" />
-              </button>
-
-              {statusMenuOpen && (
-                <div className="kv-status-menu" role="menu">
-                  {APPOINTMENT_STATUS_OPTIONS.map((item) => (
-                    <button
-                      key={item.value}
-                      type="button"
-                      className={`kv-status-item ${status === item.value ? 'is-selected' : ''}`}
-                      onClick={() => {
-                        setStatus(item.value);
-                        setStatusMenuOpen(false);
-                      }}
-                    >
-                      <span className="kv-status-left">
-                        <span className={`kv-status-dot ${item.dotClass}`} />
-                        <span>{item.label}</span>
-                      </span>
-                      {status === item.value && <i className="ph ph-check kv-status-check" aria-hidden="true" />}
-                    </button>
-                  ))}
-                </div>
-              )}
+              <Select
+                value={status}
+                onChange={setStatus}
+                options={APPOINTMENT_STATUS_OPTIONS}
+                aria-label="Trạng thái lịch hẹn"
+                align="right"
+                size="sm"
+                triggerClassName="kv-status-dropdown-btn"
+                renderOption={(option) => (
+                  <span className="kv-status-left">
+                    <span className={`kv-status-dot is-${option.value}`} />
+                    <span>{option.label}</span>
+                  </span>
+                )}
+              />
 
               <button type="button" className="kv-drawer-close-btn" onClick={onClose} aria-label="Đóng">
                 <i className="ph ph-x" aria-hidden="true" />
@@ -1059,16 +1038,16 @@ function AppointmentDrawer({
                             Đổi dịch vụ
                           </button>
                           <div className="kv-service-assignment">
-                            <select
+                            <Select<number | string>
                               aria-label={`Nhân viên thực hiện ${service.name}`}
                               value={service.staffId ?? ''}
-                              onChange={(event) => setSelectedServices((current) => current.map((item) => (
-                                item.lineId === service.lineId ? { ...item, staffId: event.target.value ? Number(event.target.value) : null } : item
+                              onChange={(staffId) => setSelectedServices((current) => current.map((item) => (
+                                item.lineId === service.lineId ? { ...item, staffId: staffId === '' ? null : Number(staffId) } : item
                               )))}
-                            >
-                              <option value="">Chưa phân công</option>
-                              {staffList.map((staff) => <option key={staff.id} value={staff.id}>{staff.name}</option>)}
-                            </select>
+                              size="sm"
+                              triggerClassName="kv-service-assignment-trigger"
+                              options={[{ value: '', label: 'Chưa phân công' }, ...staffList.map((staff) => ({ value: staff.id, label: staff.name }))]}
+                            />
                             <span className="kv-service-commission">Hoa hồng: <strong>{formatMoney(commission)}</strong></span>
                           </div>
                         </div>
@@ -1165,22 +1144,16 @@ function AppointmentDrawer({
 
               <div className="kv-time-form-group">
                 <label>Thời lượng thực hiện</label>
-                <select
+                <Select<number>
                   value={duration}
-                  onChange={(e) => {
-                    const num = Number(e.target.value);
+                  onChange={(num) => {
                     setDuration(num);
                     onSelectionChange({ startsAt: new Date(startsAt), durationMinutes: num });
                   }}
-                >
-                  <option value={15}>15 phút</option>
-                  <option value={30}>30 phút</option>
-                  <option value={45}>45 phút</option>
-                  <option value={60}>1 giờ (60 phút)</option>
-                  <option value={90}>1 giờ 30 phút</option>
-                  <option value={120}>2 giờ</option>
-                  <option value={180}>3 giờ</option>
-                </select>
+                  fullWidth
+                  triggerClassName="kv-time-select-trigger"
+                  options={[{ value: 15, label: '15 phút' }, { value: 30, label: '30 phút' }, { value: 45, label: '45 phút' }, { value: 60, label: '1 giờ (60 phút)' }, { value: 90, label: '1 giờ 30 phút' }, { value: 120, label: '2 giờ' }, { value: 180, label: '3 giờ' }]}
+                />
               </div>
 
               <button

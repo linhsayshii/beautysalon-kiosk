@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useWebSocket } from '@/hooks/useWebSocket';
 import { LoadingState } from '@/components/data-display/DataState';
 import { useToast } from '@/components/ui/Toast/ToastProvider';
+import { Select } from '@/components/ui/Select/Select';
 import { errorMessage } from '@/services/api-client';
 import { todayIso, toIsoDate, weekStartIso } from '@/lib/date';
 import { formatMoney } from '@/lib/format';
@@ -395,16 +396,14 @@ export function StaffScheduleView() {
           <div className="attendance-toolbar-right">
             {/* View Mode Selector: Xem theo nhân viên / Xem theo ca */}
             <div className="attendance-select-wrap">
-              <select
+              <Select<'by-staff' | 'by-shift'>
                 value={viewMode}
-                onChange={(e) => setViewMode(e.target.value as 'by-staff' | 'by-shift')}
-                className="attendance-select"
-                style={{ fontWeight: 600, color: '#0284c7' }}
-              >
-                <option value="by-staff">👤 Xem theo nhân viên</option>
-                <option value="by-shift">📅 Xem theo ca</option>
-              </select>
-              <i className="ph ph-caret-down" />
+                onChange={setViewMode}
+                triggerClassName="attendance-select"
+                triggerStyle={{ fontWeight: 600, color: '#0284c7' }}
+                size="sm"
+                options={[{ value: 'by-staff', label: '👤 Xem theo nhân viên' }, { value: 'by-shift', label: '📅 Xem theo ca' }]}
+              />
             </div>
 
             {/* Thêm ca làm việc nhanh */}

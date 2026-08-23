@@ -78,17 +78,24 @@
   white-space: nowrap;
 }
 
-.mobile-salary-month-control select {
+.mobile-salary-period-select {
   min-width: 0;
   flex: 1;
+}
+
+.mobile-salary-period-trigger {
+  min-width: 0;
+  min-height: 34px;
+  padding: 0;
+  border: 0;
+  background: transparent;
   font-weight: 750;
   cursor: pointer;
 }
 
-.mobile-salary-month-caret {
-  color: #64748b;
-  font-size: 14px;
-  pointer-events: none;
+.mobile-salary-period-trigger:hover:not(:disabled) {
+  border: 0;
+  background: transparent;
 }
 
 .mobile-salary-content {

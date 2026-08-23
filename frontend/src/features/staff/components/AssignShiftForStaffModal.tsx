@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Select } from '@/components/ui/Select/Select';
 import type { ApiRecord } from '@/types/api';
 import './AttendanceTimekeeping.css';
 
@@ -65,18 +66,13 @@ export function AssignShiftForStaffModal({
                 Chọn ca làm:
               </label>
               <div className="form-control-col">
-                <select
+                <Select
                   value={selectedShiftName}
-                  onChange={(e) => setSelectedShiftName(e.target.value)}
-                  className="form-input-text"
-                  style={{ cursor: 'pointer' }}
-                >
-                  {workShifts.map((shift, idx) => (
-                    <option key={idx} value={shift.name}>
-                      {shift.name} ({shift.startsAt} - {shift.endsAt})
-                    </option>
-                  ))}
-                </select>
+                  onChange={setSelectedShiftName}
+                  triggerClassName="form-input-text"
+                  fullWidth
+                  options={workShifts.map((shift) => ({ value: shift.name, label: `${shift.name} (${shift.startsAt} - ${shift.endsAt})` }))}
+                />
               </div>
             </div>
 

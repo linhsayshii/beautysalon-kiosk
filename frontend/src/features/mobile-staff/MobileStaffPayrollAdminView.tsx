@@ -8,6 +8,7 @@ import {
 } from '@/features/mobile-common';
 import { formatMoney, initials } from '@/lib/format';
 import { useToast } from '@/components/ui/Toast/ToastProvider';
+import { Select } from '@/components/ui/Select/Select';
 import {
   getPayrollList,
   getPayrollDetail,
@@ -160,27 +161,23 @@ export function MobileStaffPayrollAdminView() {
           </button>
 
           {rawPeriods.length > 0 && (
-            <select
+            <Select<number>
               aria-label="Kỳ lương"
-              value={activePeriod?.id ?? ''}
-              onChange={(e) => setSelectedPeriodId(Number(e.target.value))}
-              style={{
+              size="sm"
+              value={activePeriod?.id}
+              onChange={setSelectedPeriodId}
+              triggerStyle={{
                 minHeight: 44,
                 borderRadius: 10,
                 border: '1px solid #e2e8f0',
                 padding: '0 10px',
-                fontSize: 16,
+                fontSize: 13,
                 fontWeight: 600,
                 background: '#ffffff',
                 color: '#334155',
               }}
-            >
-              {rawPeriods.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name}
-                </option>
-              ))}
-            </select>
+              options={rawPeriods.map((period) => ({ value: period.id, label: period.name }))}
+            />
           )}
         </div>
 

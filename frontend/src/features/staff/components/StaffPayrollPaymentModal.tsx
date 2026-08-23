@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { MoneyInput } from '@/components/forms/MoneyInput';
+import { Select } from '@/components/ui/Select/Select';
 import { useToast } from '@/components/ui/Toast/ToastProvider';
 import { formatMoney } from '@/lib/format';
 import { payPayroll, type PayrollPeriodDetail } from '../staff.api';
@@ -65,29 +66,24 @@ export function StaffPayrollPaymentModal({ periodDetail, onClose }: StaffPayroll
                 <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#334155', marginBottom: 6 }}>
                   Chọn nhân viên nhận lương <span style={{ color: '#ef4444' }}>*</span>
                 </label>
-                <select
+                <Select<number>
                   value={selectedStaffId}
-                  onChange={(e) => {
-                    const sId = Number(e.target.value);
+                  onChange={(sId) => {
                     setSelectedStaffId(sId);
                     const rec = records.find((r) => r.staff.id === sId);
                     if (rec) setAmount(rec.remainingAmount);
                   }}
-                  style={{
+                  fullWidth
+                  triggerStyle={{
                     width: '100%',
                     padding: '8px 12px',
                     borderRadius: 8,
                     border: '1px solid #cbd5e1',
-                    fontSize: 14,
+                    fontSize: 13,
                     background: '#fff',
                   }}
-                >
-                  {records.map((rec) => (
-                    <option key={rec.staff.id} value={rec.staff.id}>
-                      {rec.staff.name} ({rec.staff.code}) - Còn nợ: {formatMoney(rec.remainingAmount)}
-                    </option>
-                  ))}
-                </select>
+                  options={records.map((rec) => ({ value: rec.staff.id, label: `${rec.staff.name} (${rec.staff.code}) - Còn nợ: ${formatMoney(rec.remainingAmount)}` }))}
+                />
               </div>
 
               {selectedRecord && (

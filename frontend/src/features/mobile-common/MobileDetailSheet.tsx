@@ -1,5 +1,6 @@
 import type { ReactNode, RefObject } from 'react';
 import { useMobileDialog } from './useMobileDialog';
+import { MobileDialogPortal } from './MobileDialogPortal';
 import './mobile-common.css';
 
 export interface MobileDetailSheetProps {
@@ -23,6 +24,7 @@ export function MobileDetailSheet({
   if (!isOpen) return null;
 
   return (
+    <MobileDialogPortal>
     <div
       className="mobile-detail-sheet-backdrop"
       data-testid="mobile-detail-sheet-backdrop"
@@ -66,5 +68,6 @@ export function MobileDetailSheet({
         )}
       </div>
     </div>
+    </MobileDialogPortal>
   );
 }
