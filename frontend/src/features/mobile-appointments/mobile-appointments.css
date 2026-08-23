@@ -530,6 +530,7 @@
   align-items: flex-end;
   justify-content: center;
   z-index: var(--mobile-layer-overlay, 100);
+  overscroll-behavior: none;
 }
 
 .mobile-catalog-sheet {
@@ -541,6 +542,7 @@
   border-top-right-radius: 16px;
   display: flex;
   flex-direction: column;
+  min-height: 0;
   overflow: hidden;
   box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.15);
 }
@@ -584,7 +586,9 @@
 
 .mobile-catalog-items-list {
   flex: 1;
+  min-height: 0;
   overflow-y: auto;
+  overscroll-behavior-y: contain;
   padding: 12px 16px;
   display: flex;
   flex-direction: column;

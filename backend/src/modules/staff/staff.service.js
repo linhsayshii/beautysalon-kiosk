@@ -1,8 +1,54 @@
 import { pool } from '../../db.js';
 import { HttpError } from '../../lib/http.js';
 import { broadcastToBranch } from '../../lib/ws.js';
+import { config } from '../../config.js';
 
 const number = (value) => Number(value ?? 0);
+
+/**
+ * Calculate auto-deduction based on staff's deduction config from staff_profiles.
+ * Deduction config example:
+ * [
+ *   { name: 'Đi muộn', unit: 'Theo số lần', amount: 50000 },
+ *   { name: 'Về sớm', unit: 'Theo số phút', amount: 5000 },
+ *   { name: 'Vi phạm khác', unit: 'Cố định tháng', amount: 100000 },
+ * ]
+ */
+function calculateAutoDeduction(deductionsConfig, lateMinutes, earlyMinutes, lateDays, earlyDays) {
+  if (!deductionsConfig || !Array.isArray(deductionsConfig)) return 0;
+
+  let totalDeduction = 0;
+  for (const ded of deductionsConfig) {
+    const amount = Number(ded.amount) || 0;
+    const name = ded.name?.toLowerCase() || '';
+
+    if (name.includes('muộn')) {
+      // Đi muộn
+      if (ded.unit === 'Theo số lần') {
+        totalDeduction += lateDays * amount;
+      } else if (ded.unit === 'Theo số phút') {
+        totalDeduction += lateMinutes * amount;
+      } else if (ded.unit === 'Cố định tháng') {
+        if (lateMinutes > 0) totalDeduction += amount; // Chỉ trừ nếu có đi muộn
+      }
+    } else if (name.includes('sớm')) {
+      // Về sớm
+      if (ded.unit === 'Theo số lần') {
+        totalDeduction += earlyDays * amount;
+      } else if (ded.unit === 'Theo số phút') {
+        totalDeduction += earlyMinutes * amount;
+      } else if (ded.unit === 'Cố định tháng') {
+        if (earlyMinutes > 0) totalDeduction += amount;
+      }
+    } else {
+      // Vi phạm khác - cố định tháng
+      if (ded.unit === 'Cố định tháng') {
+        totalDeduction += amount;
+      }
+    }
+  }
+  return totalDeduction;
+}
 
 async function saveStaffProfile(client, { branchId, staffId, profile, accountId }) {
   if (profile !== undefined) {
@@ -322,8 +368,15 @@ export async function getSchedule({ branchId, startDate }) {
               (SELECT MIN(TO_CHAR(ss2.shift_date, 'YYYY-MM-DD'))
                FROM staff_schedules ss2
                WHERE ss2.week_group_id = ss.week_group_id
-                 AND ss2.week_group_id IS NOT NULL) as group_start_date
+                 AND ss2.week_group_id IS NOT NULL) as group_start_date,
+              -- Join với attendance để lấy thông tin chấm công
+              ar.id AS attendance_id,
+              ar.check_in, ar.check_out, ar.status AS attendance_status,
+              ar.late_minutes, ar.early_minutes
        FROM staff_schedules ss
+       LEFT JOIN attendance_records ar
+         ON ar.staff_id = ss.staff_id
+         AND ar.work_date = ss.shift_date
        WHERE ss.branch_id = $1 AND ss.shift_date >= $2::date AND ss.shift_date < $2::date + INTERVAL '7 days'
        ORDER BY ss.shift_date, ss.starts_at, ss.staff_id`,
       [branchId, startDate],
@@ -345,6 +398,15 @@ export async function getSchedule({ branchId, startDate }) {
       weekGroupId: row.week_group_id ? number(row.week_group_id) : null,
       isSource: row.is_source ?? null,
       groupStartDate: row.group_start_date ?? null,
+      // Thông tin chấm công - đủ check-in VÀ check-out mới tính là hoàn thành
+      hasAttendance: row.attendance_id !== null,
+      hasCheckIn: row.check_in !== null,
+      hasCheckOut: row.check_out !== null,
+      checkIn: row.check_in ? String(row.check_in).slice(11, 16) : null,
+      checkOut: row.check_out ? String(row.check_out).slice(11, 16) : null,
+      attendanceStatus: row.attendance_status ?? null,
+      lateMinutes: row.late_minutes ? Number(row.late_minutes) : 0,
+      earlyMinutes: row.early_minutes ? Number(row.early_minutes) : 0,
     })),
   };
 }
@@ -584,28 +646,33 @@ async function calculatePeriodPayrollInternal(client, branchId, periodId, starts
     [branchId],
   );
 
-  // 3. Fetch shifts count & hours in period per staff
-  const shiftsRes = await client.query(
+  // 3. Fetch attendance records (only completed with check-in AND check-out)
+  // WORK UNITS = actual attendance with check-out, not just scheduled shifts
+  const attendanceWorkRes = await client.query(
     `SELECT
-       staff_id,
-       COUNT(id) AS shift_count,
-       starts_at, ends_at
-     FROM staff_schedules
-     WHERE branch_id = $1 AND shift_date >= $2::date AND shift_date <= $3::date
-     GROUP BY staff_id, starts_at, ends_at`,
+       ar.staff_id,
+       COUNT(ar.id) AS completed_shifts,
+       COALESCE(SUM(ar.worked_minutes), 0) AS total_worked_minutes
+     FROM attendance_records ar
+     WHERE ar.branch_id = $1
+       AND ar.work_date >= $2::date
+       AND ar.work_date <= $3::date
+       AND ar.check_in IS NOT NULL
+       AND ar.check_out IS NOT NULL
+     GROUP BY ar.staff_id`,
     [branchId, startsOn, endsOn],
   );
 
-  // Map staff shifts and hours
+  // Map staff completed work (from actual attendance)
   const staffWorkMap = new Map();
-  for (const row of shiftsRes.rows) {
+  for (const row of attendanceWorkRes.rows) {
     const sId = number(row.staff_id);
-    const count = number(row.shift_count);
-    const dur = calculateShiftDurationHours(row.starts_at, row.ends_at);
-    const prev = staffWorkMap.get(sId) || { shifts: 0, hours: 0 };
+    const completedShifts = number(row.completed_shifts);
+    const totalMinutes = number(row.total_worked_minutes);
+    const hours = totalMinutes / 60;
     staffWorkMap.set(sId, {
-      shifts: prev.shifts + count,
-      hours: prev.hours + count * dur,
+      shifts: completedShifts,
+      hours: Math.round(hours * 10) / 10,
     });
   }
 
@@ -624,15 +691,20 @@ async function calculatePeriodPayrollInternal(client, branchId, periodId, starts
     staffCommissionMap.set(number(row.staff_id), number(row.total_commission));
   }
 
-  // 4.5. Fetch attendance data per staff (late/early minutes for auto-deduction)
+  // 4.5. Fetch late/early minutes AND count from completed attendance records (for deduction)
   const attendanceRes = await client.query(
     `SELECT
        staff_id,
        COALESCE(SUM(late_minutes), 0) AS total_late_minutes,
        COALESCE(SUM(early_minutes), 0) AS total_early_minutes,
-       COUNT(CASE WHEN check_in IS NOT NULL AND check_out IS NOT NULL THEN 1 END) AS worked_days
+       COUNT(CASE WHEN late_minutes > 0 THEN 1 END) AS late_days,
+       COUNT(CASE WHEN early_minutes > 0 THEN 1 END) AS early_days
      FROM attendance_records
-     WHERE branch_id = $1 AND work_date >= $2::date AND work_date <= $3::date
+     WHERE branch_id = $1
+       AND work_date >= $2::date
+       AND work_date <= $3::date
+       AND check_in IS NOT NULL
+       AND check_out IS NOT NULL
      GROUP BY staff_id`,
     [branchId, startsOn, endsOn],
   );
@@ -641,8 +713,23 @@ async function calculatePeriodPayrollInternal(client, branchId, periodId, starts
     staffAttendanceMap.set(number(row.staff_id), {
       lateMinutes: number(row.total_late_minutes),
       earlyMinutes: number(row.total_early_minutes),
-      workedDays: number(row.worked_days),
+      lateDays: number(row.late_days),
+      earlyDays: number(row.early_days),
     });
+  }
+
+  // 4.6. Fetch deductions config from staff_profiles
+  const staffProfilesRes = await client.query(
+    `SELECT staff_id, data
+     FROM staff_profiles
+     WHERE staff_id IN (SELECT id FROM staff WHERE branch_id = $1 AND active = TRUE)`,
+    [branchId],
+  );
+  const staffDeductionsMap = new Map();
+  for (const row of staffProfilesRes.rows) {
+    const data = row.data || {};
+    const deductions = data.deductions || [];
+    staffDeductionsMap.set(number(row.staff_id), deductions);
   }
 
   // 5. Existing records to preserve manual adjustments (allowance, bonus, deduction, paid_amount)
@@ -680,11 +767,16 @@ async function calculatePeriodPayrollInternal(client, branchId, periodId, starts
     const allowance = existing ? number(existing.allowance) : 0;
     const bonus = existing ? number(existing.bonus) : 0;
 
-    // Auto-calculate deduction from attendance (late/early minutes)
-    // Rate: 10,000 VND per minute late/early
-    const LATE_DEDUCTION_RATE = 10000;
-    const attendanceInfo = staffAttendanceMap.get(sId) || { lateMinutes: 0, earlyMinutes: 0 };
-    const autoDeduction = Math.round((attendanceInfo.lateMinutes + attendanceInfo.earlyMinutes) * LATE_DEDUCTION_RATE);
+    // Auto-calculate deduction based on staff's deduction config from staff_profiles
+    const attendanceInfo = staffAttendanceMap.get(sId) || { lateMinutes: 0, earlyMinutes: 0, lateDays: 0, earlyDays: 0 };
+    const deductionsConfig = staffDeductionsMap.get(sId) || [];
+    const autoDeduction = calculateAutoDeduction(
+      deductionsConfig,
+      attendanceInfo.lateMinutes,
+      attendanceInfo.earlyMinutes,
+      attendanceInfo.lateDays,
+      attendanceInfo.earlyDays,
+    );
 
     // Preserve existing manual deduction if it's larger (manager may have added extra deductions)
     const manualDeduction = existing ? number(existing.deduction) : 0;

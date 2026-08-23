@@ -3,14 +3,18 @@ import { domainOptions } from '../../domain-options.js';
 import { asyncRoute, HttpError, parseDateTime, parseEnum, parseIsoDate, parseOptionalHttpUrl, parsePagination, parsePositiveInteger } from '../../lib/http.js';
 import {
   createInventoryItem,
+  createPricebook,
   createPurchaseOrder,
+  deletePricebook,
   getInventoryItem,
+  getPricebook,
   getPurchaseOrder,
   listPricebooks,
   listProducts,
   listPurchaseOrders,
   listSuppliers,
   updateInventoryItem,
+  updatePricebook,
   updatePricebookItem,
 } from './inventory.service.js';
 
@@ -220,6 +224,60 @@ router.patch('/pricebooks/:pricebookId/items/:itemType/:itemId', asyncRoute(asyn
     salePrice: nonNegative(request.body.salePrice, 'salePrice'),
   });
   response.json({ data: result });
+}));
+
+router.get('/pricebooks/:pricebookId', asyncRoute(async (request, response) => {
+  const data = await getPricebook({
+    branchId: request.account.branchId,
+    id: parsePositiveInteger(request.params.pricebookId, 'pricebookId'),
+  });
+  response.json({ data });
+}));
+
+router.post('/pricebooks', asyncRoute(async (request, response) => {
+  const code = text(request.body.code, 40).toUpperCase();
+  if (!code) throw new HttpError(400, 'CODE_REQUIRED', 'Mã bảng giá là bắt buộc');
+  if (!/^[A-Z0-9._-]+$/.test(code)) throw new HttpError(400, 'INVALID_CODE', 'Mã bảng giá chỉ gồm chữ, số, dấu chấm, gạch ngang hoặc gạch dưới');
+
+  const name = text(request.body.name, 160);
+  if (!name) throw new HttpError(400, 'NAME_REQUIRED', 'Tên bảng giá là bắt buộc');
+
+  const effectiveFrom = request.body.effectiveFrom ? parseIsoDate(request.body.effectiveFrom, 'effectiveFrom') : null;
+  const effectiveTo = request.body.effectiveTo ? parseIsoDate(request.body.effectiveTo, 'effectiveTo') : null;
+
+  const data = await createPricebook({
+    branchId: request.account.branchId,
+    code,
+    name,
+    active: boolean(request.body.active, true),
+    effectiveFrom,
+    effectiveTo,
+    copyFromDefault: boolean(request.body.copyFromDefault, true),
+  });
+  response.status(201).json({ data });
+}));
+
+router.put('/pricebooks/:pricebookId', asyncRoute(async (request, response) => {
+  const effectiveFrom = request.body.effectiveFrom ? parseIsoDate(request.body.effectiveFrom, 'effectiveFrom') : undefined;
+  const effectiveTo = request.body.effectiveTo ? parseIsoDate(request.body.effectiveTo, 'effectiveTo') : undefined;
+
+  const data = await updatePricebook({
+    branchId: request.account.branchId,
+    id: parsePositiveInteger(request.params.pricebookId, 'pricebookId'),
+    name: text(request.body.name, 160) || undefined,
+    active: request.body.active !== undefined ? boolean(request.body.active) : undefined,
+    effectiveFrom,
+    effectiveTo,
+  });
+  response.json({ data });
+}));
+
+router.delete('/pricebooks/:pricebookId', asyncRoute(async (request, response) => {
+  const data = await deletePricebook({
+    branchId: request.account.branchId,
+    id: parsePositiveInteger(request.params.pricebookId, 'pricebookId'),
+  });
+  response.json({ data });
 }));
 
 router.get('/suppliers', asyncRoute(async (request, response) => {

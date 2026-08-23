@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
-import type { FormEvent } from 'react';
+import type { FormEvent, RefObject } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/components/ui/Toast/ToastProvider';
 import { updateCustomer } from '@/features/operations/operations.api';
 import type { ApiRecord } from '@/types/api';
+import { useMobileDialog } from '@/features/mobile-common/useMobileDialog';
 import '@/features/mobile-common/mobile-common.css';
 
 export interface MobileCustomerEditSheetProps {
@@ -19,6 +20,7 @@ export function MobileCustomerEditSheet({
   onClose,
   onSuccess,
 }: MobileCustomerEditSheetProps) {
+  const { dialogRef, titleId } = useMobileDialog({ isOpen: isOpen && Boolean(customer), onClose });
   const queryClient = useQueryClient();
   let notify = (_title: string, _msg: string = '') => {};
   try {
@@ -53,16 +55,6 @@ export function MobileCustomerEditSheet({
       setErrors({});
     }
   }, [customer]);
-
-  useEffect(() => {
-    if (isOpen) {
-      const prevOverflow = document.body.style.overflow;
-      document.body.style.overflow = 'hidden';
-      return () => {
-        document.body.style.overflow = prevOverflow;
-      };
-    }
-  }, [isOpen]);
 
   const mutation = useMutation({
     mutationFn: (body: Parameters<typeof updateCustomer>[1]) => {
@@ -110,7 +102,7 @@ export function MobileCustomerEditSheet({
 
   return (
     <div className="mobile-form-sheet-backdrop" data-testid="mobile-customer-edit-sheet">
-      <div className="mobile-form-sheet-container">
+      <div ref={dialogRef as RefObject<HTMLDivElement>} className="mobile-form-sheet-container" role="dialog" aria-modal="true" aria-labelledby={titleId} tabIndex={-1}>
         {/* Sticky Header */}
         <header className="mobile-form-sheet-header">
           <button
@@ -122,7 +114,7 @@ export function MobileCustomerEditSheet({
           >
             <i className="ph ph-caret-left" />
           </button>
-          <h2 className="mobile-form-sheet-title">Sửa thông tin khách hàng</h2>
+          <h2 id={titleId} className="mobile-form-sheet-title">Sửa thông tin khách hàng</h2>
         </header>
 
         {/* Scrollable Form Body */}

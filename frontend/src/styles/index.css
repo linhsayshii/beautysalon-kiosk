@@ -14,6 +14,56 @@
   min-height: 100vh;
 }
 
+.route-load-error {
+  display: grid;
+  min-height: 100dvh;
+  place-items: center;
+  padding: 24px;
+  box-sizing: border-box;
+  background: var(--canvas, #f8fafc);
+  color: var(--ink-950, #0f172a);
+  text-align: center;
+}
+
+.route-load-error section {
+  width: min(100%, 360px);
+}
+
+.route-load-error i {
+  display: inline-grid;
+  width: 48px;
+  height: 48px;
+  margin-bottom: 14px;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--blue-50, #eff6ff);
+  color: var(--blue-600, #2563eb);
+  font-size: 24px;
+}
+
+.route-load-error h1 {
+  margin: 0;
+  font-size: 20px;
+}
+
+.route-load-error p {
+  margin: 8px 0 20px;
+  color: var(--ink-600, #475569);
+  line-height: 1.5;
+}
+
+.route-load-error button {
+  min-height: 44px;
+  padding: 0 18px;
+  border: 0;
+  border-radius: 10px;
+  background: var(--blue-600, #2563eb);
+  color: #ffffff;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
 .date-range-inputs {
   display: grid;
   gap: 8px;
@@ -1618,6 +1668,56 @@ tr:hover .goods-row-edit,
 
   .linked-items-list > div {
     grid-template-columns: minmax(0, 1fr) 92px 32px;
+  }
+
+  /* The staff dialog is shared with desktop, but compensation controls must reflow on phones. */
+  .staff-kiot-modal .goods-dialog-body,
+  .staff-kiot-modal .staff-tab-salary,
+  .staff-kiot-modal .staff-compensation-table,
+  .staff-kiot-modal .staff-compensation-table-row > * {
+    min-width: 0;
+  }
+
+  .staff-kiot-modal .staff-salary-field-row {
+    grid-template-columns: 1fr !important;
+    gap: 6px !important;
+    align-items: stretch !important;
+  }
+
+  .staff-kiot-modal .staff-salary-field-row > :is(.app-select-container, .input-suffix, input) {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .staff-kiot-modal .staff-compensation-table {
+    padding: 12px !important;
+    overflow: hidden;
+  }
+
+  .staff-kiot-modal .staff-compensation-table-head {
+    display: none !important;
+  }
+
+  .staff-kiot-modal .staff-compensation-table-row {
+    grid-template-columns: minmax(0, 1fr) 44px !important;
+    gap: 8px !important;
+    margin-bottom: 14px !important;
+  }
+
+  .staff-kiot-modal .staff-compensation-table-row > :nth-child(1),
+  .staff-kiot-modal .staff-compensation-table-row > :nth-child(2) {
+    grid-column: 1 / -1;
+  }
+
+  .staff-kiot-modal .staff-compensation-table-row > :nth-child(3) {
+    grid-column: 1;
+    width: 100%;
+  }
+
+  .staff-kiot-modal .staff-compensation-table-row > :nth-child(4) {
+    grid-column: 2;
+    width: 44px !important;
+    height: 44px !important;
   }
 }
 

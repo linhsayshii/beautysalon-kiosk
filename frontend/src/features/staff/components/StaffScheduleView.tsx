@@ -212,7 +212,7 @@ export function StaffScheduleView() {
     );
   }, [staffList, searchTerm]);
 
-  // Generate or lookup shift for a staff on a date
+  // Generate or lookup shift for a staff on a date (with attendance info)
   const getStaffDateShift = (staff: ApiRecord, date: Date) => {
     const dateStr = toIsoDate(date);
 
@@ -224,6 +224,14 @@ export function StaffScheduleView() {
         startsAt: matched.startsAt,
         endsAt: matched.endsAt,
         status: matched.status,
+        // Thông tin chấm công - phải có cả check-in VÀ check-out mới tính là hoàn thành
+        hasAttendance: matched.hasAttendance ?? false,
+        hasCheckIn: matched.hasCheckIn ?? false,
+        hasCheckOut: matched.hasCheckOut ?? false,
+        checkIn: matched.checkIn ?? null,
+        checkOut: matched.checkOut ?? null,
+        lateMinutes: matched.lateMinutes ?? 0,
+        earlyMinutes: matched.earlyMinutes ?? 0,
       };
     }
 
@@ -231,8 +239,9 @@ export function StaffScheduleView() {
   };
 
   // Calculate Expected Salary for each staff for the current 7 days
+  // Chỉ tính ca CÓ ĐỦ check-in VÀ check-out
   const staffSalaryData = useMemo(() => {
-    const results: Record<number, { expectedSalary: number | null; totalShifts: number; salaryType: string }> = {};
+    const results: Record<number, { expectedSalary: number | null; totalShifts: number; attendedShifts: number; salaryType: string }> = {};
 
     filteredStaffList.forEach((staff) => {
       const setting = {
@@ -241,15 +250,22 @@ export function StaffScheduleView() {
         hourlyRate: staff.hourlyRate,
       };
 
-      // Collect all assigned shifts in the current week
-      const weeklyShifts = weekDates
+      // Lấy tất cả ca được xếp lịch trong tuần
+      const allShifts = weekDates
         .map((d) => getStaffDateShift(staff, d))
-        .filter(Boolean) as Array<{ shiftName: string; startsAt: string; endsAt: string }>;
+        .filter((s): s is NonNullable<typeof s> => s !== null);
 
-      const calc = calculateStaffShiftSalary(setting, weeklyShifts, workDaysPerMonth);
+      // Chỉ đếm ca CÓ ĐỦ check-in VÀ check-out
+      const attendedShifts = allShifts
+        .filter((s) => s.hasCheckIn && s.hasCheckOut)
+        .map((s) => ({ shiftName: s.shiftName, startsAt: s.startsAt, endsAt: s.endsAt }));
+
+      const calc = calculateStaffShiftSalary(setting, attendedShifts, workDaysPerMonth);
+
       results[staff.id] = {
         expectedSalary: calc.expectedSalary,
-        totalShifts: calc.totalShifts,
+        totalShifts: allShifts.length,
+        attendedShifts: attendedShifts.length,
         salaryType: calc.salaryType,
       };
     });
@@ -530,11 +546,18 @@ export function StaffScheduleView() {
                                   className={`staff-pill-card ${getShiftThemeClass(
                                     shiftData.shiftName
                                   )}`}
-                                  title={`${shiftData.shiftName} (${shiftData.startsAt} - ${shiftData.endsAt})`}
+                                  title={`${shiftData.shiftName} (${shiftData.startsAt} - ${shiftData.endsAt})${shiftData.checkIn ? ` | Vào: ${shiftData.checkIn}` : ''}${shiftData.checkOut ? ` | Ra: ${shiftData.checkOut}` : ''}${shiftData.lateMinutes > 0 ? ` | Muộn: ${shiftData.lateMinutes}p` : ''}${shiftData.earlyMinutes > 0 ? ` | Sớm: ${shiftData.earlyMinutes}p` : ''}`}
                                 >
                                   {isRecurring && <ScheduleBadge />}
                                   <div className="shift-content">
                                     <span>{shiftData.shiftName}</span>
+                                    {shiftData.hasCheckIn && shiftData.hasCheckOut ? (
+                                      <i className="ph ph-check-circle" style={{ color: '#22c55e', marginLeft: 4 }} title="Đã chấm công đủ" />
+                                    ) : shiftData.hasCheckIn ? (
+                                      <i className="ph ph-clock" style={{ color: '#f59e0b', marginLeft: 4 }} title="Đã chấm vào, chưa chấm ra" />
+                                    ) : shiftData.hasAttendance ? (
+                                      <i className="ph ph-warning-circle" style={{ color: '#ef4444', marginLeft: 4 }} title="Chưa chấm vào" />
+                                    ) : null}
                                   </div>
                                 </div>
                               ) : (
@@ -554,7 +577,16 @@ export function StaffScheduleView() {
                                 {formatMoney(salData.expectedSalary)}
                               </div>
                               <div className="salary-shifts-count">
-                                {salData.totalShifts} ca
+                                {salData.attendedShifts}/{salData.totalShifts} ca đã chấm
+                              </div>
+                            </div>
+                          ) : salData.totalShifts > 0 ? (
+                            <div className="salary-calc-box">
+                              <div className="salary-amount" style={{ color: '#94a3b8' }}>
+                                0đ
+                              </div>
+                              <div className="salary-shifts-count" style={{ color: '#ef4444' }}>
+                                {salData.attendedShifts}/{salData.totalShifts} ca đã chấm
                               </div>
                             </div>
                           ) : (

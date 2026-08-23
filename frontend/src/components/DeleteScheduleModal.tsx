@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useMobileDialog } from '@/features/mobile-common/useMobileDialog';
 
 export interface DeleteScheduleModalProps {
   isOpen: boolean;
@@ -16,6 +17,7 @@ export function DeleteScheduleModal({
   isRecurring,
 }: DeleteScheduleModalProps) {
   const [deleteOption, setDeleteOption] = useState<'current' | 'all'>('current');
+  const { dialogRef, titleId } = useMobileDialog({ isOpen, onClose });
 
   useEffect(() => {
     if (isOpen) setDeleteOption('current');
@@ -30,9 +32,9 @@ export function DeleteScheduleModal({
 
   return (
     <div style={styles.overlay} onClick={onClose}>
-      <div style={styles.modal} onClick={(event) => event.stopPropagation()} role="dialog" aria-modal="true" aria-labelledby="delete-schedule-title">
+      <div ref={dialogRef as React.RefObject<HTMLDivElement>} style={styles.modal} onClick={(event) => event.stopPropagation()} role="dialog" aria-modal="true" aria-labelledby={titleId} tabIndex={-1}>
         <div style={styles.header}>
-          <h3 id="delete-schedule-title" style={styles.title}>Xóa lịch tuần {weekLabel}</h3>
+          <h3 id={titleId} style={styles.title}>Xóa lịch tuần {weekLabel}</h3>
           <button type="button" style={styles.closeBtn} onClick={onClose} aria-label="Đóng">×</button>
         </div>
 

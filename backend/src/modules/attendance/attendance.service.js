@@ -5,7 +5,7 @@ import { HttpError } from '../../lib/http.js';
 import { broadcastToBranch } from '../../lib/ws.js';
 
 const slotFor = (time = Date.now()) => Math.floor(time / (config.auth.qrLifetimeSeconds * 1000));
-const attendanceGraceMinutes = 10;
+export const attendanceGraceMinutes = config.payroll.graceMinutes;
 const signatureFor = (branchId, slot) => createHmac('sha256', config.auth.qrSecret)
   .update(`${branchId}.${slot}`).digest('base64url').slice(0, 32);
 

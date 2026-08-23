@@ -12,6 +12,7 @@ interface StaffCreateDialogProps {
   onClose: () => void;
   staff?: ApiRecord;
   initialTab?: 'info' | 'salary';
+  onSaved?: () => void;
 }
 
 interface AllowanceItem {
@@ -24,7 +25,6 @@ interface AllowanceItem {
 interface DeductionItem {
   id: string;
   name: string;
-  type: string;
   unit: string;
   amount: string;
 }
@@ -61,8 +61,6 @@ const initialForm = {
   baseSalary: '7000000',
   hourlyRate: '35000',
   salaryTemplate: 'default',
-  // Thưởng
-  enableBonus: false,
   // Phụ cấp
   enableAllowance: true,
   // Giảm trừ
@@ -100,7 +98,7 @@ const getInitialForm = (staff?: ApiRecord) => staff ? {
   facebook: String(staff.facebook ?? ''),
 } : initialForm;
 
-export function StaffCreateDialog({ onClose, staff, initialTab = 'info' }: StaffCreateDialogProps) {
+export function StaffCreateDialog({ onClose, staff, initialTab = 'info', onSaved }: StaffCreateDialogProps) {
   const isEditing = Boolean(staff);
   const [activeTab, setActiveTab] = useState<'info' | 'salary'>(initialTab);
   const [form, setForm] = useState(() => getInitialForm(staff));
@@ -120,7 +118,9 @@ export function StaffCreateDialog({ onClose, staff, initialTab = 'info' }: Staff
 
   // Deduction dynamic rows
   const [deductions, setDeductions] = useState<DeductionItem[]>([
-    { id: '1', name: 'Đi muộn', type: 'Đi muộn', unit: 'Theo số lần', amount: '50000' },
+    { id: '1', name: 'Đi muộn', unit: 'Theo số lần', amount: '50000' },
+    { id: '2', name: 'Về sớm', unit: 'Theo số lần', amount: '50000' },
+    { id: '3', name: 'Vi phạm khác', unit: 'Cố định tháng', amount: '100000' },
   ]);
 
   const nameRef = useRef<HTMLInputElement>(null);
@@ -160,6 +160,7 @@ export function StaffCreateDialog({ onClose, staff, initialTab = 'info' }: Staff
         isEditing ? 'Đã cập nhật nhân viên' : 'Đã thêm nhân viên mới',
         `${payload.data.name} (${payload.data.code}) đã được lưu.`,
       );
+      onSaved?.();
       onClose();
     },
   });
@@ -208,7 +209,7 @@ export function StaffCreateDialog({ onClose, staff, initialTab = 'info' }: Staff
   const addDeduction = () => {
     setDeductions((prev) => [
       ...prev,
-      { id: String(Date.now()), name: '', type: 'Đi muộn', unit: 'Theo số lần', amount: '0' },
+      { id: String(Date.now()), name: 'Vi phạm khác', unit: 'Cố định tháng', amount: '0' },
     ]);
   };
 
@@ -264,7 +265,6 @@ export function StaffCreateDialog({ onClose, staff, initialTab = 'info' }: Staff
         bankName: form.bankName, bankAccountHolder: form.bankAccountHolder, idNumber: form.idNumber,
         dob: form.dob, gender: form.gender, address: form.address, province: form.province,
         district: form.district, email: form.email.trim(), facebook: form.facebook.trim(),
-        enableBonus: form.enableBonus,
         enableAllowance: form.enableAllowance, enableDeduction: form.enableDeduction,
         allowances, deductions,
       },
@@ -768,7 +768,7 @@ export function StaffCreateDialog({ onClose, staff, initialTab = 'info' }: Staff
                 {/* 1. Lương chính */}
                 <div style={{ display: 'grid', gap: '12px' }}>
                   <div style={{ fontWeight: 700, fontSize: '14px', color: 'var(--ink-900)' }}>Lương chính</div>
-                  <div style={{ display: 'grid', gridTemplateColumns: '120px 1fr', gap: '14px', alignItems: 'center' }}>
+                  <div className="staff-salary-field-row" style={{ display: 'grid', gridTemplateColumns: '120px minmax(0, 1fr)', gap: '14px', alignItems: 'center' }}>
                     <label style={{ fontSize: '12px', fontWeight: 600, color: 'var(--ink-700)' }}>Loại lương</label>
                     <Select
                       id="staff-sal-type"
@@ -783,7 +783,7 @@ export function StaffCreateDialog({ onClose, staff, initialTab = 'info' }: Staff
                   </div>
 
                   {form.salaryType === 'monthly' ? (
-                    <div style={{ display: 'grid', gridTemplateColumns: '120px 1fr', gap: '14px', alignItems: 'center' }}>
+                    <div className="staff-salary-field-row" style={{ display: 'grid', gridTemplateColumns: '120px minmax(0, 1fr)', gap: '14px', alignItems: 'center' }}>
                       <label style={{ fontSize: '12px', fontWeight: 600, color: 'var(--ink-700)' }}>Mức lương tháng</label>
                       <MoneyInput
                         suffix="đ"
@@ -794,7 +794,7 @@ export function StaffCreateDialog({ onClose, staff, initialTab = 'info' }: Staff
                       />
                     </div>
                   ) : (
-                    <div style={{ display: 'grid', gridTemplateColumns: '120px 1fr', gap: '14px', alignItems: 'center' }}>
+                    <div className="staff-salary-field-row" style={{ display: 'grid', gridTemplateColumns: '120px minmax(0, 1fr)', gap: '14px', alignItems: 'center' }}>
                       <label style={{ fontSize: '12px', fontWeight: 600, color: 'var(--ink-700)' }}>Lương theo giờ</label>
                       <MoneyInput
                         suffix="đ/giờ"
@@ -806,7 +806,7 @@ export function StaffCreateDialog({ onClose, staff, initialTab = 'info' }: Staff
                     </div>
                   )}
 
-                  <div style={{ display: 'grid', gridTemplateColumns: '120px 1fr', gap: '14px', alignItems: 'center' }}>
+                  <div className="staff-salary-field-row" style={{ display: 'grid', gridTemplateColumns: '120px minmax(0, 1fr)', gap: '14px', alignItems: 'center' }}>
                     <label style={{ fontSize: '12px', fontWeight: 600, color: 'var(--ink-700)' }}>
                       Mẫu lương <i className="ph ph-info" style={{ color: 'var(--ink-400)' }} />
                     </label>
@@ -826,29 +826,7 @@ export function StaffCreateDialog({ onClose, staff, initialTab = 'info' }: Staff
 
                 <hr style={{ border: 0, borderTop: '1px solid var(--line)', margin: '4px 0' }} />
 
-                {/* 2. Thưởng */}
-                <div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <div>
-                      <div style={{ fontWeight: 700, fontSize: '14px', color: 'var(--ink-900)' }}>Thưởng</div>
-                      <small style={{ color: 'var(--ink-500)', fontSize: '11px' }}>
-                        Thiết lập thưởng theo doanh thu cho nhân viên
-                      </small>
-                    </div>
-                    <label className="toggle-switch" style={{ cursor: 'pointer' }}>
-                      <input
-                        type="checkbox"
-                        checked={form.enableBonus}
-                        onChange={(e) => update('enableBonus', e.target.checked)}
-                        style={{ width: '18px', height: '18px', accentColor: 'var(--blue-600)' }}
-                      />
-                    </label>
-                  </div>
-                </div>
-
-                <hr style={{ border: 0, borderTop: '1px solid var(--line)', margin: '4px 0' }} />
-
-                {/* 3. Phụ cấp */}
+                {/* Phụ cấp */}
                 <div style={{ display: 'grid', gap: '12px' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <div>
@@ -868,11 +846,12 @@ export function StaffCreateDialog({ onClose, staff, initialTab = 'info' }: Staff
                   </div>
 
                   {form.enableAllowance && (
-                    <div style={{ background: '#f8fafc', padding: '14px', borderRadius: '10px', border: '1px solid var(--line)' }}>
+                    <div className="staff-compensation-table" style={{ background: '#f8fafc', padding: '14px', borderRadius: '10px', border: '1px solid var(--line)' }}>
                       <div
+                        className="staff-compensation-table-head"
                         style={{
                           display: 'grid',
-                          gridTemplateColumns: '1.2fr 1.5fr 1fr 36px',
+                          gridTemplateColumns: 'minmax(0, 1.2fr) minmax(0, 1.5fr) minmax(0, 1fr) 36px',
                           gap: '10px',
                           marginBottom: '8px',
                           fontSize: '11px',
@@ -889,9 +868,10 @@ export function StaffCreateDialog({ onClose, staff, initialTab = 'info' }: Staff
                       {allowances.map((item) => (
                         <div
                           key={item.id}
+                          className="staff-compensation-table-row"
                           style={{
                             display: 'grid',
-                            gridTemplateColumns: '1.2fr 1.5fr 1fr 36px',
+                            gridTemplateColumns: 'minmax(0, 1.2fr) minmax(0, 1.5fr) minmax(0, 1fr) 36px',
                             gap: '10px',
                             alignItems: 'center',
                             marginBottom: '8px',
@@ -995,11 +975,12 @@ export function StaffCreateDialog({ onClose, staff, initialTab = 'info' }: Staff
                   </div>
 
                   {form.enableDeduction && (
-                    <div style={{ background: '#f8fafc', padding: '14px', borderRadius: '10px', border: '1px solid var(--line)' }}>
+                    <div className="staff-compensation-table" style={{ background: '#f8fafc', padding: '14px', borderRadius: '10px', border: '1px solid var(--line)' }}>
                       <div
+                        className="staff-compensation-table-head"
                         style={{
                           display: 'grid',
-                          gridTemplateColumns: '1.1fr 1.2fr 1fr 1fr 36px',
+                          gridTemplateColumns: 'minmax(0, 1.5fr) minmax(0, 1.5fr) minmax(0, 1fr) 36px',
                           gap: '10px',
                           marginBottom: '8px',
                           fontSize: '11px',
@@ -1008,7 +989,6 @@ export function StaffCreateDialog({ onClose, staff, initialTab = 'info' }: Staff
                         }}
                       >
                         <div>Tên giảm trừ</div>
-                        <div>Loại giảm trừ</div>
                         <div>Cách tính</div>
                         <div>Khoản giảm trừ</div>
                         <div />
@@ -1017,9 +997,10 @@ export function StaffCreateDialog({ onClose, staff, initialTab = 'info' }: Staff
                       {deductions.map((item) => (
                         <div
                           key={item.id}
+                          className="staff-compensation-table-row"
                           style={{
                             display: 'grid',
-                            gridTemplateColumns: '1.1fr 1.2fr 1fr 1fr 36px',
+                            gridTemplateColumns: 'minmax(0, 1.5fr) minmax(0, 1.5fr) minmax(0, 1fr) 36px',
                             gap: '10px',
                             alignItems: 'center',
                             marginBottom: '8px',
@@ -1037,24 +1018,7 @@ export function StaffCreateDialog({ onClose, staff, initialTab = 'info' }: Staff
                             options={[
                               { value: 'Đi muộn', label: 'Đi muộn' },
                               { value: 'Về sớm', label: 'Về sớm' },
-                              { value: 'Nghỉ không phép', label: 'Nghỉ không phép' },
-                              { value: 'Vi phạm quy định', label: 'Vi phạm quy định' },
-                            ]}
-                          />
-
-                          <Select
-                            id={`deduct-type-${item.id}`}
-                            value={item.type}
-                            onChange={(val) => {
-                              setDeductions((prev) =>
-                                prev.map((d) => (d.id === item.id ? { ...d, type: val } : d))
-                              );
-                            }}
-                            fullWidth
-                            options={[
-                              { value: 'Đi muộn', label: 'Đi muộn' },
-                              { value: 'Về sớm', label: 'Về sớm' },
-                              { value: 'Vi phạm', label: 'Vi phạm nội quy' },
+                              { value: 'Vi phạm khác', label: 'Vi phạm khác' },
                             ]}
                           />
 

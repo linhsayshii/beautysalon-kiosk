@@ -8,6 +8,7 @@
   background: var(--canvas, #f8fafc);
   color: var(--ink-950, #0f172a);
   position: relative;
+  min-height: 0;
   overflow: hidden;
 }
 
@@ -86,7 +87,9 @@
 /* Customer List */
 .mobile-customer-list {
   flex: 1;
+  min-height: 0;
   overflow-y: auto;
+  overscroll-behavior-y: contain;
   -webkit-overflow-scrolling: touch;
   padding: 12px 14px 90px; /* Space for FAB */
   display: flex;
@@ -379,6 +382,7 @@
   background: var(--canvas, #f8fafc);
   color: var(--ink-950, #0f172a);
   position: relative;
+  min-height: 0;
   overflow: hidden;
 }
 
@@ -541,7 +545,9 @@
 /* Time Slots Body */
 .mobile-time-slots-body {
   flex: 1;
+  min-height: 0;
   overflow-y: auto;
+  overscroll-behavior-y: contain;
   padding: 8px 14px 100px;
   display: flex;
   flex-direction: column;
@@ -807,6 +813,7 @@
   background: var(--canvas, #f8fafc);
   color: var(--ink-950, #0f172a);
   position: relative;
+  min-height: 0;
   overflow: hidden;
   width: 100%;
 }
@@ -846,7 +853,9 @@
 
 .mobile-item-detail-body {
   flex: 1;
+  min-height: 0;
   overflow-y: auto;
+  overscroll-behavior-y: contain;
   padding: 14px 14px 100px;
   display: flex;
   flex-direction: column;
@@ -1138,6 +1147,7 @@
   z-index: 110;
   display: flex;
   align-items: flex-end;
+  overscroll-behavior: none;
 }
 
 .mobile-sub-sheet {
@@ -1147,6 +1157,7 @@
   border-radius: 20px 20px 0 0;
   display: flex;
   flex-direction: column;
+  min-height: 0;
   overflow: hidden;
   animation: mobile-slide-up 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
@@ -1199,7 +1210,9 @@
 
 .mobile-sub-sheet-list {
   flex: 1;
+  min-height: 0;
   overflow-y: auto;
+  overscroll-behavior-y: contain;
   padding: 8px 16px 24px;
   display: flex;
   flex-direction: column;
@@ -1274,11 +1287,14 @@
 
 /* Position Picker Sheet Styles */
 .mobile-sub-sheet-content {
+  flex: 1;
+  min-height: 0;
   padding: 16px;
   display: flex;
   flex-direction: column;
   gap: 16px;
   overflow-y: auto;
+  overscroll-behavior-y: contain;
 }
 
 .mobile-position-custom-row {
@@ -1466,6 +1482,7 @@
   z-index: var(--mobile-layer-overlay, 100);
   display: flex;
   align-items: flex-end;
+  overscroll-behavior: none;
 }
 
 .mobile-filter-sheet-container {
@@ -1475,6 +1492,7 @@
   border-radius: 20px 20px 0 0;
   display: flex;
   flex-direction: column;
+  min-height: 0;
   overflow: hidden;
   animation: mobile-slide-up 0.22s cubic-bezier(0.16, 1, 0.3, 1);
   box-shadow: 0 -4px 24px rgba(15, 23, 42, 0.15);
@@ -1525,7 +1543,9 @@
 
 .mobile-filter-sheet-body {
   flex: 1;
+  min-height: 0;
   overflow-y: auto;
+  overscroll-behavior-y: contain;
   padding: 16px;
   display: flex;
   flex-direction: column;
@@ -1816,6 +1836,7 @@
   z-index: var(--mobile-layer-overlay, 100);
   display: flex;
   align-items: flex-end;
+  overscroll-behavior: none;
 }
 
 .mobile-detail-sheet-container {
@@ -1825,6 +1846,7 @@
   border-radius: 20px 20px 0 0;
   display: flex;
   flex-direction: column;
+  min-height: 0;
   overflow: hidden;
   animation: mobile-slide-up 0.22s cubic-bezier(0.16, 1, 0.3, 1);
   box-shadow: 0 -4px 24px rgba(15, 23, 42, 0.15);
@@ -1881,6 +1903,7 @@
   flex: 1;
   min-height: 0;
   overflow-y: auto;
+  overscroll-behavior-y: contain;
   padding: 14px 16px 20px;
   display: flex;
   flex-direction: column;
@@ -1912,6 +1935,7 @@
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
+  overscroll-behavior: none;
 }
 
 .mobile-form-sheet-container {
@@ -1923,6 +1947,7 @@
   background: #f8fafc;
   color: #0f172a;
   position: relative;
+  min-height: 0;
   overflow: hidden;
 }
 
@@ -1974,7 +1999,9 @@
 /* 2. Scrollable Form Body */
 .mobile-form-sheet-body {
   flex: 1;
+  min-height: 0;
   overflow-y: auto;
+  overscroll-behavior-y: contain;
   padding: 16px 16px 110px; /* Space for sticky footer */
   display: flex;
   flex-direction: column;

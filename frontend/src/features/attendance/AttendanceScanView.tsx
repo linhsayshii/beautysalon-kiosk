@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import jsQR from 'jsqr';
 import { formatDate, formatTime } from '@/lib/format';
 import { clientErrorMessage, errorMessage } from '@/services/api-client';
 import { useAuth } from '@/features/auth/AuthProvider';
@@ -19,6 +20,7 @@ export function AttendanceScanView() {
   const { account } = useAuth();
   const client = useQueryClient();
   const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const processingRef = useRef(false);
   const [cameraOn, setCameraOn] = useState(false);
@@ -59,27 +61,27 @@ export function AttendanceScanView() {
     if (!cameraOn || !videoRef.current) return;
     let cancelled = false;
     let frame = 0;
-    const Detector = (window as unknown as { BarcodeDetector?: new (options: { formats: string[] }) => { detect: (source: HTMLVideoElement) => Promise<Array<{ rawValue: string }>> } }).BarcodeDetector;
-    if (!Detector) {
-      setMessage(clientErrorMessage('Trình duyệt chưa hỗ trợ quét QR trực tiếp. Hãy dùng Chrome mới nhất hoặc nhập mã thủ công', 'QR_SCANNER_UNSUPPORTED'));
-      setCameraOn(false);
-      return;
-    }
-    const detector = new Detector({ formats: ['qr_code'] });
-    const scanFrame = async () => {
-      if (cancelled || !videoRef.current) return;
-      try {
-        const codes = await detector.detect(videoRef.current);
-        if (codes[0]?.rawValue) await submitToken(codes[0].rawValue);
-      } catch { /* camera may not have a decodable frame yet */ }
-      if (!cancelled) frame = window.requestAnimationFrame(scanFrame);
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+    if (!ctx) return;
+    const scanFrame = () => {
+      if (cancelled || !video || video.readyState < 2) { frame = window.requestAnimationFrame(scanFrame); return; }
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const code = jsQR(imageData.data, imageData.width, imageData.height);
+      if (code?.data) submitToken(code.data);
+      else frame = window.requestAnimationFrame(scanFrame);
     };
     navigator.mediaDevices?.getUserMedia({ video: { facingMode: { ideal: 'environment' } }, audio: false })
       .then(async (stream) => {
-        if (cancelled || !videoRef.current) { stream.getTracks().forEach((track) => track.stop()); return; }
+        if (cancelled || !video) { stream.getTracks().forEach((track) => track.stop()); return; }
         streamRef.current = stream;
-        videoRef.current.srcObject = stream;
-        await videoRef.current.play();
+        video.srcObject = stream;
+        await video.play();
         frame = window.requestAnimationFrame(scanFrame);
       })
       .catch((cause: unknown) => {
@@ -100,7 +102,7 @@ export function AttendanceScanView() {
     <div className="employee-attendance-shell">
       <section className="employee-welcome"><span>{new Date().toLocaleDateString('vi-VN', { weekday: 'long', day: '2-digit', month: 'long' })}</span><h1>Xin chào, {account?.displayName}</h1><p>{completed ? 'Bạn đã hoàn tất ca làm hôm nay.' : attendance ? 'Quét mã tại quầy để chấm công ra ca.' : 'Quét mã trên tài khoản quản lý để bắt đầu ca làm.'}</p></section>
       <section className="scan-card">
-        {cameraOn ? <div className="camera-frame"><video ref={videoRef} muted playsInline /><span className="scan-corners" /><div className="scan-line" /></div> : <div className={`scan-placeholder ${completed ? 'is-complete' : ''}`}><i className={`ph ${completed ? 'ph-check-circle' : 'ph-qr-code'}`} /><strong>{completed ? 'Đã hoàn tất' : 'Sẵn sàng quét mã'}</strong><span>{completed ? 'Hẹn gặp lại bạn vào ca tiếp theo' : 'Camera chỉ dùng để đọc QR chấm công'}</span></div>}
+        {cameraOn ? <div className="camera-frame"><video ref={videoRef} muted playsInline /><canvas ref={canvasRef} style={{ display: 'none' }} /><span className="scan-corners" /><div className="scan-line" /></div> : <div className={`scan-placeholder ${completed ? 'is-complete' : ''}`}><i className={`ph ${completed ? 'ph-check-circle' : 'ph-qr-code'}`} /><strong>{completed ? 'Đã hoàn tất' : 'Sẵn sàng quét mã'}</strong><span>{completed ? 'Hẹn gặp lại bạn vào ca tiếp theo' : 'Camera chỉ dùng để đọc QR chấm công'}</span></div>}
         {!completed && <button className="scan-button" type="button" disabled={mutation.isPending} onClick={() => { processingRef.current = false; setMessage(''); setCameraOn((value) => !value); }}><i className={`ph ${cameraOn ? 'ph-x' : 'ph-camera'}`} />{cameraOn ? 'Đóng camera' : attendance ? 'Quét mã ra ca' : 'Mở camera quét mã'}</button>}
         {!completed && <details className="manual-code"><summary>Không dùng được camera?</summary><div><input value={manualToken} onChange={(event) => setManualToken(event.target.value)} placeholder="Dán nội dung mã QR" /><button type="button" disabled={!manualToken || mutation.isPending} onClick={() => submitToken(manualToken)}>Xác nhận</button></div></details>}
         {message && <div className={`scan-message ${mutation.isError ? 'is-error' : ''}`} role="status"><i className={`ph ${mutation.isError ? 'ph-warning-circle' : 'ph-circle-notch'}`} />{message}</div>}

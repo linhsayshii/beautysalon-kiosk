@@ -1,10 +1,11 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { MoneyInput } from '@/components/forms/MoneyInput';
 import { useToast } from '@/components/ui/Toast/ToastProvider';
 import { formatMoney } from '@/lib/format';
-import { getPricebooks, updatePrice } from '@/features/inventory/inventory.api';
+import { createPricebook, deletePricebook, getPricebooks, updatePrice, updatePricebook } from '@/features/inventory/inventory.api';
+import type { CreatePricebookInput, Pricebook, UpdatePricebookInput } from '@/features/inventory/inventory.api';
 import {
   MobileSearchBar,
   MobileFilterSheet,
@@ -30,6 +31,158 @@ function getItemIcon(itemType: string) {
   }
 }
 
+interface MobilePricebookDialogProps {
+  open: boolean;
+  pricebook?: Partial<Pricebook> | null;
+  onClose: () => void;
+  onSuccess: () => void;
+}
+
+function MobilePricebookDialog({ open, pricebook, onClose, onSuccess }: MobilePricebookDialogProps) {
+  const [form, setForm] = useState<CreatePricebookInput>({
+    code: pricebook?.code ?? '',
+    name: pricebook?.name ?? '',
+    active: pricebook?.active ?? true,
+    effectiveFrom: pricebook?.effectiveFrom ?? null,
+    effectiveTo: pricebook?.effectiveTo ?? null,
+    copyFromDefault: true,
+  });
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const { notify } = useToast();
+  const queryClient = useQueryClient();
+
+  useEffect(() => {
+    if (open) {
+      setForm({
+        code: pricebook?.code ?? '',
+        name: pricebook?.name ?? '',
+        active: pricebook?.active ?? true,
+        effectiveFrom: pricebook?.effectiveFrom ?? null,
+        effectiveTo: pricebook?.effectiveTo ?? null,
+        copyFromDefault: true,
+      });
+      setErrors({});
+    }
+  }, [open, pricebook]);
+
+  const isEditing = !!pricebook?.id;
+
+  const createMutation = useMutation({
+    mutationFn: (data: CreatePricebookInput) => createPricebook(data),
+    onSuccess: () => { notify('Đã tạo bảng giá', 'Bảng giá mới đã được thêm.'); queryClient.invalidateQueries({ queryKey: ['mobile-pricebooks'] }); queryClient.invalidateQueries({ queryKey: ['pricebooks'] }); onSuccess(); },
+    onError: (error: Error) => notify('Không thể tạo bảng giá', error.message),
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: (data: UpdatePricebookInput) => {
+      if (!pricebook?.id) throw new Error('Missing pricebook ID');
+      return updatePricebook(pricebook.id, data);
+    },
+    onSuccess: () => { notify('Đã cập nhật bảng giá', 'Thông tin bảng giá đã được lưu.'); queryClient.invalidateQueries({ queryKey: ['mobile-pricebooks'] }); queryClient.invalidateQueries({ queryKey: ['pricebooks'] }); onSuccess(); },
+    onError: (error: Error) => notify('Không thể cập nhật', error.message),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: () => {
+      if (!pricebook?.id) throw new Error('Missing pricebook ID');
+      return deletePricebook(pricebook.id);
+    },
+    onSuccess: () => { notify('Đã xóa bảng giá', 'Bảng giá đã được xóa.'); queryClient.invalidateQueries({ queryKey: ['mobile-pricebooks'] }); queryClient.invalidateQueries({ queryKey: ['pricebooks'] }); onSuccess(); },
+    onError: (error: Error) => notify('Không thể xóa bảng giá', error.message),
+  });
+
+  const validate = () => {
+    const errs: Record<string, string> = {};
+    if (!form.code?.trim()) errs.code = 'Mã bảng giá là bắt buộc';
+    else if (!/^[A-Z0-9._-]+$/i.test(form.code)) errs.code = 'Chỉ gồm chữ, số, dấu chấm, gạch ngang';
+    if (!form.name?.trim()) errs.name = 'Tên bảng giá là bắt buộc';
+    if (form.effectiveFrom && form.effectiveTo && form.effectiveFrom > form.effectiveTo) {
+      errs.effectiveTo = 'Ngày kết thúc phải sau ngày bắt đầu';
+    }
+    setErrors(errs);
+    return Object.keys(errs).length === 0;
+  };
+
+  const handleSubmit = () => {
+    if (!validate()) return;
+    if (isEditing) {
+      updateMutation.mutate({ name: form.name, active: form.active, effectiveFrom: form.effectiveFrom, effectiveTo: form.effectiveTo });
+    } else {
+      createMutation.mutate(form);
+    }
+  };
+
+  const handleDelete = () => {
+    if (confirm('Bạn có chắc muốn xóa bảng giá này?')) {
+      deleteMutation.mutate();
+    }
+  };
+
+  if (!open) return null;
+
+  const isPending = createMutation.isPending || updateMutation.isPending || deleteMutation.isPending;
+
+  return (
+    <div className="mobile-dialog-overlay" onClick={onClose}>
+      <div className="mobile-dialog-sheet" onClick={(e) => e.stopPropagation()}>
+        <div className="mobile-dialog-handle" />
+        <div className="mobile-dialog-header">
+          <h3>{isEditing ? 'Sửa bảng giá' : 'Thêm bảng giá mới'}</h3>
+          <button type="button" className="mobile-dialog-close" onClick={onClose}>&times;</button>
+        </div>
+        <div className="mobile-dialog-body">
+          <div className="mobile-form-field">
+            <label>Mã bảng giá <span className="required">*</span></label>
+            <input type="text" className={`mobile-form-input ${errors.code ? 'error' : ''}`} value={form.code} onChange={(e) => setForm({ ...form, code: e.target.value.toUpperCase() })} placeholder="BG-002" disabled={isEditing} />
+            {errors.code && <span className="mobile-form-error">{errors.code}</span>}
+          </div>
+          <div className="mobile-form-field">
+            <label>Tên bảng giá <span className="required">*</span></label>
+            <input type="text" className={`mobile-form-input ${errors.name ? 'error' : ''}`} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Bảng giá khuyến mãi" />
+            {errors.name && <span className="mobile-form-error">{errors.name}</span>}
+          </div>
+          <div className="mobile-form-field">
+            <label>Ngày bắt đầu</label>
+            <input type="date" className="mobile-form-input" value={form.effectiveFrom ?? ''} onChange={(e) => setForm({ ...form, effectiveFrom: e.target.value || null })} />
+          </div>
+          <div className="mobile-form-field">
+            <label>Ngày kết thúc</label>
+            <input type="date" className="mobile-form-input" value={form.effectiveTo ?? ''} onChange={(e) => setForm({ ...form, effectiveTo: e.target.value || null })} />
+            {errors.effectiveTo && <span className="mobile-form-error">{errors.effectiveTo}</span>}
+          </div>
+          {!isEditing && (
+            <div className="mobile-form-field">
+              <label className="checkbox-label">
+                <input type="checkbox" checked={form.copyFromDefault} onChange={(e) => setForm({ ...form, copyFromDefault: e.target.checked })} />
+                <span>Copy giá từ bảng giá mặc định</span>
+              </label>
+            </div>
+          )}
+          {isEditing && (
+            <div className="mobile-form-field">
+              <label className="checkbox-label">
+                <input type="checkbox" checked={form.active} onChange={(e) => setForm({ ...form, active: e.target.checked })} />
+                <span>Đang hoạt động</span>
+              </label>
+            </div>
+          )}
+        </div>
+        <div className="mobile-dialog-footer">
+          {isEditing && !pricebook?.isDefault && (
+            <button type="button" className="btn btn-danger btn-sm" onClick={handleDelete} disabled={isPending}>Xóa</button>
+          )}
+          <div className="mobile-dialog-actions">
+            <button type="button" className="btn btn-secondary btn-sm" onClick={onClose} disabled={isPending}>Hủy</button>
+            <button type="button" className="btn btn-primary btn-sm" onClick={handleSubmit} disabled={isPending}>
+              {isEditing ? 'Lưu' : 'Tạo mới'}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function MobilePricebooksView() {
   const navigate = useNavigate();
   const [search, setSearch] = useState('');
@@ -37,6 +190,10 @@ export function MobilePricebooksView() {
   const [pricebookId, setPricebookId] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
+
+  // Pricebook dialog
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [editingBook, setEditingBook] = useState<Partial<Pricebook> | null>(null);
 
   // Draft filters for bottom sheet
   const [draftPricebookId, setDraftPricebookId] = useState('');
@@ -194,6 +351,14 @@ export function MobilePricebooksView() {
           </div>
 
           <div className="mobile-inventory-nav-actions">
+            <button
+              type="button"
+              className="mobile-inventory-nav-btn"
+              onClick={() => { setEditingBook(null); setDialogOpen(true); }}
+              aria-label="Thêm bảng giá"
+            >
+              <i className="ph ph-plus" />
+            </button>
             <button
               type="button"
               className={`mobile-inventory-nav-btn ${isSearchVisible ? 'is-active' : ''}`}
@@ -517,6 +682,9 @@ export function MobilePricebooksView() {
           );
         })()}
       </MobileDetailSheet>
+
+      {/* Pricebook Dialog */}
+      <MobilePricebookDialog open={dialogOpen} pricebook={editingBook} onClose={() => setDialogOpen(false)} onSuccess={() => setDialogOpen(false)} />
     </div>
   );
 }

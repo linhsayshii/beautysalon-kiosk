@@ -993,6 +993,37 @@
   margin-bottom: 16px;
 }
 
+.mobile-staff-detail-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 36px;
+  margin: -8px -6px 10px 0;
+  color: #475569;
+  font-size: 12px;
+  font-weight: 750;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.mobile-staff-detail-edit-link {
+  min-height: 36px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: #0062eb;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.mobile-staff-detail-edit-link:focus-visible,
+.mobile-staff-detail-edit-link:active {
+  background: #eff6ff;
+}
+
 .mobile-detail-hero-header {
   display: flex;
   align-items: center;

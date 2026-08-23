@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
-import type { FormEvent } from 'react';
+import type { FormEvent, RefObject } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/components/ui/Toast/ToastProvider';
 import { updateInventoryItem } from '@/features/inventory/inventory.api';
 import { MoneyInput } from '@/components/forms/MoneyInput';
 import type { ApiRecord } from '@/types/api';
+import { useMobileDialog } from '@/features/mobile-common/useMobileDialog';
 import '@/features/mobile-common/mobile-common.css';
 
 export interface MobileProductEditSheetProps {
@@ -20,6 +21,7 @@ export function MobileProductEditSheet({
   onClose,
   onSuccess,
 }: MobileProductEditSheetProps) {
+  const { dialogRef, titleId } = useMobileDialog({ isOpen: isOpen && Boolean(item), onClose });
   const queryClient = useQueryClient();
   let notify = (_title: string, _msg: string = '') => {};
   try {
@@ -56,16 +58,6 @@ export function MobileProductEditSheet({
       setErrors({});
     }
   }, [item]);
-
-  useEffect(() => {
-    if (isOpen) {
-      const prevOverflow = document.body.style.overflow;
-      document.body.style.overflow = 'hidden';
-      return () => {
-        document.body.style.overflow = prevOverflow;
-      };
-    }
-  }, [isOpen]);
 
   const mutation = useMutation({
     mutationFn: (body: ApiRecord) => {
@@ -113,7 +105,7 @@ export function MobileProductEditSheet({
 
   return (
     <div className="mobile-form-sheet-backdrop" data-testid="mobile-product-edit-sheet">
-      <div className="mobile-form-sheet-container">
+      <div ref={dialogRef as RefObject<HTMLDivElement>} className="mobile-form-sheet-container" role="dialog" aria-modal="true" aria-labelledby={titleId} tabIndex={-1}>
         {/* Sticky Header */}
         <header className="mobile-form-sheet-header">
           <button
@@ -125,7 +117,7 @@ export function MobileProductEditSheet({
           >
             <i className="ph ph-caret-left" />
           </button>
-          <h2 className="mobile-form-sheet-title">Sửa thông tin cơ bản</h2>
+          <h2 id={titleId} className="mobile-form-sheet-title">Sửa thông tin cơ bản</h2>
         </header>
 
         {/* Scrollable Body */}

@@ -1,7 +1,5 @@
-const CACHE_NAME = 'annachill-pwa-v1';
-const STATIC_ASSETS = [
-  '/',
-  '/index.html',
+const CACHE_NAME = 'annachill-pwa-v2';
+const OFFLINE_ASSETS = [
   '/manifest.webmanifest',
   '/icons/icon-192.svg',
   '/icons/icon-512.svg',
@@ -9,7 +7,7 @@ const STATIC_ASSETS = [
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(STATIC_ASSETS)).then(() => self.skipWaiting())
+    caches.open(CACHE_NAME).then((cache) => cache.addAll(OFFLINE_ASSETS)).then(() => self.skipWaiting())
   );
 });
 
@@ -23,25 +21,16 @@ self.addEventListener('activate', (event) => {
 
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
-  // Never cache API requests or WebSocket
-  if (url.pathname.startsWith('/api/') || event.request.method !== 'GET') {
+  // HTML and Vite's hashed JavaScript chunks must always use the network. Caching
+  // them here can combine an old route manifest with a newer deployment and make
+  // a lazy-loaded page fail to import.
+  if (event.request.method !== 'GET' || url.origin !== self.location.origin || url.pathname.startsWith('/api/')) {
     return;
   }
 
+  if (!OFFLINE_ASSETS.includes(url.pathname)) return;
+
   event.respondWith(
-    caches.match(event.request).then((cachedResponse) => {
-      if (cachedResponse) {
-        // Stale while revalidate
-        fetch(event.request)
-          .then((networkResponse) => {
-            if (networkResponse.status === 200) {
-              caches.open(CACHE_NAME).then((cache) => cache.put(event.request, networkResponse));
-            }
-          })
-          .catch(() => {});
-        return cachedResponse;
-      }
-      return fetch(event.request).catch(() => caches.match('/index.html'));
-    })
+    caches.match(event.request).then((cachedResponse) => cachedResponse || fetch(event.request))
   );
 });

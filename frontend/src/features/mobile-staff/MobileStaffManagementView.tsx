@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useWebSocket } from '@/hooks/useWebSocket';
 import { getStaff, getAttendance, createStaff } from '@/features/staff/staff.api';
+import { StaffCreateDialog } from '@/features/staff/components/StaffCreateDialog';
 import { todayIso } from '@/lib/date';
 import { initials } from '@/lib/format';
 import { useToast } from '@/components/ui/Toast/ToastProvider';
@@ -47,6 +48,7 @@ export function MobileStaffManagementView() {
 
   // Detail Sheet & Create Sheet
   const [selectedStaff, setSelectedStaff] = useState<ApiRecord | null>(null);
+  const [editingStaff, setEditingStaff] = useState<ApiRecord | null>(null);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [newName, setNewName] = useState('');
   const [newRole, setNewRole] = useState('Kỹ thuật viên');
@@ -388,6 +390,16 @@ export function MobileStaffManagementView() {
         {selectedStaff && (
           <>
             <div className="mobile-detail-hero">
+              <div className="mobile-staff-detail-card-header">
+                <span>Thông tin nhân viên</span>
+                <button
+                  type="button"
+                  className="mobile-staff-detail-edit-link"
+                  onClick={() => setEditingStaff(selectedStaff)}
+                >
+                  Sửa
+                </button>
+              </div>
               <div className="mobile-detail-hero-header">
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                   <div className="mobile-staff-avatar" style={{ width: 50, height: 50, fontSize: 18 }}>
@@ -446,6 +458,17 @@ export function MobileStaffManagementView() {
           </>
         )}
       </MobileDetailSheet>
+
+      {editingStaff && (
+        <StaffCreateDialog
+          staff={editingStaff}
+          onClose={() => setEditingStaff(null)}
+          onSaved={() => {
+            queryClient.invalidateQueries({ queryKey: ['mobile-staff-list'] });
+            queryClient.invalidateQueries({ queryKey: ['mobile-staff-today-attendance', today] });
+          }}
+        />
+      )}
 
       {/* Create Staff Sheet */}
       <MobileDetailSheet

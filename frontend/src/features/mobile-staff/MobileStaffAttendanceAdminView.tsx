@@ -12,6 +12,59 @@ import { initials } from '@/lib/format';
 import type { ApiRecord } from '@/types/api';
 import './mobile-staff.css';
 
+// Format timestamp to HH:MM in Vietnam timezone
+function formatTime(value: unknown): string {
+  if (!value) return '--:--';
+  if (typeof value === 'string' && /^\d{1,2}:\d{2}$/.test(value)) {
+    const [hours, minutes] = value.split(':');
+    return `${hours.padStart(2, '0')}:${minutes}`;
+  }
+  const date = new Date(String(value));
+  if (Number.isNaN(date.getTime())) return '--:--';
+  return new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'Asia/Ho_Chi_Minh',
+    hour: '2-digit',
+    minute: '2-digit',
+    hourCycle: 'h23',
+  }).format(date);
+}
+
+// Format date to YYYY-MM-DD
+function formatDate(value: unknown): string {
+  if (!value) return '--';
+  const date = new Date(String(value));
+  if (Number.isNaN(date.getTime())) return '--';
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Ho_Chi_Minh',
+  }).format(date);
+}
+
+function getAttendanceStatusLabel({
+  completedShifts,
+  totalAssignedShifts,
+  lateCount,
+  earlyCount,
+}: {
+  completedShifts: number;
+  totalAssignedShifts: number;
+  lateCount: number;
+  earlyCount: number;
+}) {
+  if (totalAssignedShifts === 0) {
+    return completedShifts > 0 ? `${completedShifts} lượt chấm công` : 'Chưa xếp ca';
+  }
+
+  if (completedShifts === 0) return 'Chưa chấm công';
+  if (completedShifts < totalAssignedShifts) return `Thiếu ${totalAssignedShifts - completedShifts} ca`;
+
+  const exceptions = [
+    lateCount > 0 ? `muộn ${lateCount} lần` : '',
+    earlyCount > 0 ? `về sớm ${earlyCount} lần` : '',
+  ].filter(Boolean);
+
+  return exceptions.length > 0 ? `Đủ ca, ${exceptions.join(', ')}` : 'Đủ ca';
+}
+
 export function MobileStaffAttendanceAdminView() {
   const navigate = useNavigate();
   const [periodType, setPeriodType] = useState<'week' | 'month'>('week');
@@ -81,7 +134,8 @@ export function MobileStaffAttendanceAdminView() {
   // Calculate stats for a given staff member
   const getStaffStats = (staff: ApiRecord) => {
     const staffAtt = attendanceRecords.filter(
-      (a) => Number(a.staffId) === Number(staff.id) || a.staffCode === staff.code
+      (a) => Number(a.staff?.id ?? a.staffId) === Number(staff.id)
+        || (a.staff?.code ?? a.staffCode) === staff.code
     );
 
     let totalWorkedMinutes = 0;
@@ -89,21 +143,27 @@ export function MobileStaffAttendanceAdminView() {
     let earlyCount = 0;
 
     staffAtt.forEach((rec) => {
-      if (rec.workMinutes) {
-        totalWorkedMinutes += Number(rec.workMinutes);
-      } else if (rec.checkInTime && rec.checkOutTime) {
-        const [inH, inM] = rec.checkInTime.split(':').map(Number);
-        const [outH, outM] = rec.checkOutTime.split(':').map(Number);
+      const recordedMinutes = rec.workedMinutes ?? rec.workMinutes;
+      const checkIn = rec.checkIn ?? rec.checkInTime;
+      const checkOut = rec.checkOut ?? rec.checkOutTime;
+
+      if (recordedMinutes) {
+        totalWorkedMinutes += Number(recordedMinutes);
+      } else if (checkIn && checkOut) {
+        const inTime = formatTime(checkIn);
+        const outTime = formatTime(checkOut);
+        const [inH, inM] = inTime.split(':').map(Number);
+        const [outH, outM] = outTime.split(':').map(Number);
         const diff = (outH * 60 + outM) - (inH * 60 + inM);
         if (diff > 0) totalWorkedMinutes += diff;
       }
 
-      if (rec.isLate || rec.lateMinutes > 0) lateCount += 1;
-      if (rec.isEarlyLeave || rec.earlyMinutes > 0) earlyCount += 1;
+      if (rec.lateMinutes > 0) lateCount += 1;
+      if (rec.earlyMinutes > 0) earlyCount += 1;
     });
 
     const staffShifts = scheduledShifts.filter(
-      (s) => Number(s.staffId) === Number(staff.id) || s.staffCode === staff.code
+      (s) => Number(s.staffId) === Number(staff.id) || s.staff?.code === staff.code
     );
 
     const workedHours = (totalWorkedMinutes / 60).toFixed(1);
@@ -269,6 +329,7 @@ export function MobileStaffAttendanceAdminView() {
               <div className="mobile-section-card">
                 {members.map((staff) => {
                   const stats = getStaffStats(staff);
+                  const attendanceStatus = getAttendanceStatusLabel(stats);
                   return (
                     <div
                       key={staff.id}
@@ -302,7 +363,7 @@ export function MobileStaffAttendanceAdminView() {
                           {stats.workedHours} giờ
                         </span>
                         <span style={{ fontSize: 11.5, color: '#64748b' }}>
-                          Đủ công
+                          {attendanceStatus}
                         </span>
                       </div>
                     </div>
@@ -378,14 +439,16 @@ export function MobileStaffAttendanceAdminView() {
                     <div key={rec.id ?? idx} className="mobile-gps-log-item">
                       <div>
                         <div className="mobile-gps-log-time">
-                          {rec.date || rec.createdAt} ({rec.checkInTime || '--:--'} - {rec.checkOutTime || '--:--'})
+                          {formatDate(rec.workDate)} ({formatTime(rec.checkIn)} - {formatTime(rec.checkOut)})
                         </div>
                         <div className="mobile-gps-log-desc">
-                          {rec.branchName || 'Chi nhánh hệ thống'} • {rec.workMinutes ? `${(rec.workMinutes / 60).toFixed(1)} giờ` : 'Đang làm việc'}
+                          {rec.workedMinutes ? `${(rec.workedMinutes / 60).toFixed(1)} giờ` : 'Đang làm việc'}
+                          {rec.lateMinutes > 0 && ` • Muộn ${rec.lateMinutes}p`}
+                          {rec.earlyMinutes > 0 && ` • Sớm ${rec.earlyMinutes}p`}
                         </div>
                       </div>
-                      <span className={`mobile-gps-status ${rec.checkOutTime ? 'out' : 'in'}`}>
-                        {rec.checkOutTime ? 'Đã ra ca' : 'Đang trong ca'}
+                      <span className={`mobile-gps-status ${rec.checkOut ? 'out' : 'in'}`}>
+                        {rec.checkOut ? 'Đã ra ca' : 'Đang trong ca'}
                       </span>
                     </div>
                   ))}

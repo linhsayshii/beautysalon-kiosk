@@ -142,9 +142,9 @@ async function nextItemCode(client, branchId, type, requestedCode) {
 async function ensureDefaultPricebook(client, branchId) {
   const code = `BG-${branchId}`;
   const result = await client.query(
-    `INSERT INTO pricebooks (branch_id, code, name)
-     VALUES ($1, $2, 'Bảng giá chung')
-     ON CONFLICT (code) DO UPDATE SET active = TRUE
+    `INSERT INTO pricebooks (branch_id, code, name, is_default)
+     VALUES ($1, $2, 'Bảng giá chung', TRUE)
+     ON CONFLICT (code) DO UPDATE SET active = TRUE, is_default = TRUE
      RETURNING id`,
     [branchId, code],
   );
@@ -530,6 +530,106 @@ export async function updatePricebookItem({ branchId, pricebookId, itemType, ite
     [pricebookId, itemType, itemId, salePrice],
   );
   return { itemType, itemId, salePrice: number(result.rows[0].sale_price), updatedAt: result.rows[0].updated_at };
+}
+
+export async function getPricebook({ branchId, id }) {
+  const result = await pool.query(
+    'SELECT id, code, name, active, is_default, effective_from, effective_to, created_at FROM pricebooks WHERE id = $1 AND branch_id = $2',
+    [id, branchId],
+  );
+  if (!result.rows[0]) throw new HttpError(404, 'PRICEBOOK_NOT_FOUND', 'Không tìm thấy bảng giá');
+  const row = result.rows[0];
+  return {
+    id: number(row.id),
+    code: row.code,
+    name: row.name,
+    active: row.active,
+    isDefault: row.is_default,
+    effectiveFrom: row.effective_from,
+    effectiveTo: row.effective_to,
+    createdAt: row.created_at,
+  };
+}
+
+export async function createPricebook({ branchId, code, name, active, effectiveFrom, effectiveTo, copyFromDefault }) {
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    await client.query('SELECT pg_advisory_xact_lock($1)', [branchId]);
+
+    // Check unique code
+    const existingCode = await client.query('SELECT id FROM pricebooks WHERE code = $1', [code]);
+    if (existingCode.rows[0]) throw new HttpError(400, 'DUPLICATE_CODE', 'Mã bảng giá đã tồn tại');
+
+    // Validate date range
+    if (effectiveFrom && effectiveTo && effectiveFrom > effectiveTo) {
+      throw new HttpError(400, 'INVALID_DATE_RANGE', 'Ngày bắt đầu phải trước ngày kết thúc');
+    }
+
+    // Get default pricebook ID for copying prices
+    let defaultPricebookId = null;
+    if (copyFromDefault) {
+      const defaultBook = await client.query('SELECT id FROM pricebooks WHERE branch_id = $1 AND is_default = TRUE', [branchId]);
+      if (defaultBook.rows[0]) defaultPricebookId = number(defaultBook.rows[0].id);
+    }
+
+    const result = await client.query(
+      `INSERT INTO pricebooks (branch_id, code, name, active, is_default, effective_from, effective_to)
+       VALUES ($1, $2, $3, $4, FALSE, $5, $6)
+       RETURNING id`,
+      [branchId, code, name, active ?? true, effectiveFrom || null, effectiveTo || null],
+    );
+    const pricebookId = number(result.rows[0].id);
+
+    // Copy prices from default pricebook if requested
+    if (defaultPricebookId) {
+      await client.query(
+        `INSERT INTO pricebook_items (pricebook_id, item_type, item_id, sale_price)
+         SELECT $1, item_type, item_id, sale_price
+         FROM pricebook_items WHERE pricebook_id = $2`,
+        [pricebookId, defaultPricebookId],
+      );
+    }
+
+    await client.query('COMMIT');
+    return getPricebook({ branchId, id: pricebookId });
+  } catch (error) {
+    await client.query('ROLLBACK');
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
+export async function updatePricebook({ branchId, id, name, active, effectiveFrom, effectiveTo }) {
+  const pricebook = await pool.query('SELECT is_default FROM pricebooks WHERE id = $1 AND branch_id = $2', [id, branchId]);
+  if (!pricebook.rows[0]) throw new HttpError(404, 'PRICEBOOK_NOT_FOUND', 'Không tìm thấy bảng giá');
+
+  // Validate date range
+  if (effectiveFrom !== undefined && effectiveTo !== undefined && effectiveFrom && effectiveTo && effectiveFrom > effectiveTo) {
+    throw new HttpError(400, 'INVALID_DATE_RANGE', 'Ngày bắt đầu phải trước ngày kết thúc');
+  }
+
+  const result = await pool.query(
+    `UPDATE pricebooks SET
+       name = COALESCE($3, name),
+       active = COALESCE($4, active),
+       effective_from = $5,
+       effective_to = $6
+     WHERE id = $1 AND branch_id = $2
+     RETURNING id`,
+    [id, branchId, name, active, effectiveFrom || null, effectiveTo || null],
+  );
+  return getPricebook({ branchId, id });
+}
+
+export async function deletePricebook({ branchId, id }) {
+  const pricebook = await pool.query('SELECT is_default FROM pricebooks WHERE id = $1 AND branch_id = $2', [id, branchId]);
+  if (!pricebook.rows[0]) throw new HttpError(404, 'PRICEBOOK_NOT_FOUND', 'Không tìm thấy bảng giá');
+  if (pricebook.rows[0].is_default) throw new HttpError(400, 'CANNOT_DELETE_DEFAULT', 'Không thể xóa bảng giá mặc định');
+
+  await pool.query('DELETE FROM pricebooks WHERE id = $1 AND branch_id = $2', [id, branchId]);
+  return { deleted: true };
 }
 
 export async function listSuppliers({ branchId, search }) {

@@ -350,6 +350,9 @@ CREATE TABLE pricebooks (
   code VARCHAR(40) NOT NULL UNIQUE,
   name VARCHAR(160) NOT NULL,
   active BOOLEAN NOT NULL DEFAULT TRUE,
+  is_default BOOLEAN NOT NULL DEFAULT FALSE,
+  effective_from DATE,
+  effective_to DATE,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 

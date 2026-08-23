@@ -2,12 +2,14 @@ import { Navigate, createBrowserRouter } from 'react-router-dom';
 import { AdminLayout } from '@/layouts/AdminLayout/AdminLayout';
 import { MobileAppLayout } from '@/layouts/MobileAppLayout/MobileAppLayout';
 import { NotFoundPage } from '@/pages/not-found/NotFoundPage';
+import { RouteLoadErrorBoundary } from '@/app/RouteLoadErrorBoundary';
 
 export const router = createBrowserRouter([
-  { path: '/login', lazy: () => import('@/pages/login/LoginPage') },
+  { path: '/login', lazy: () => import('@/pages/login/LoginPage'), errorElement: <RouteLoadErrorBoundary /> },
   {
     path: '/m',
     element: <MobileAppLayout />,
+    errorElement: <RouteLoadErrorBoundary />,
     children: [
       { index: true, element: <Navigate to="/m/dashboard" replace /> },
       { path: 'dashboard', lazy: () => import('@/pages/dashboard/MobileDashboardPage') },
@@ -41,6 +43,7 @@ export const router = createBrowserRouter([
   {
     path: '/',
     element: <AdminLayout />,
+    errorElement: <RouteLoadErrorBoundary />,
     children: [
       { index: true, element: <Navigate to="/dashboard" replace /> },
       { path: 'dashboard', lazy: () => import('@/pages/dashboard/DashboardPage') },

@@ -1,4 +1,6 @@
 import { useEffect, useState } from 'react';
+import type { RefObject } from 'react';
+import { useMobileDialog } from '@/features/mobile-common/useMobileDialog';
 
 interface ApplyWeeksModalProps {
   isOpen: boolean;
@@ -167,6 +169,7 @@ export function ApplyWeeksModal({
   const [customWeeks, setCustomWeeks] = useState(4);
   const [skipLeaves, setSkipLeaves] = useState(true);
   const [skipHolidays, setSkipHolidays] = useState(true);
+  const { dialogRef, titleId } = useMobileDialog({ isOpen, onClose });
 
   // Reset state when modal opens
   useEffect(() => {
@@ -177,18 +180,6 @@ export function ApplyWeeksModal({
       setSkipHolidays(true);
     }
   }, [isOpen]);
-
-  // Close on Escape key
-  useEffect(() => {
-    if (!isOpen) return;
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        onClose();
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, onClose]);
 
   if (!isOpen) return null;
 
@@ -231,9 +222,9 @@ export function ApplyWeeksModal({
 
   return (
     <div style={styles.overlay} role="presentation" onMouseDown={handleOverlayClick}>
-      <div style={styles.content} role="dialog" aria-modal="true" aria-labelledby="apply-weeks-modal-title">
+      <div ref={dialogRef as RefObject<HTMLDivElement>} style={styles.content} role="dialog" aria-modal="true" aria-labelledby={titleId} tabIndex={-1}>
         <div style={styles.header}>
-          <h3 id="apply-weeks-modal-title" style={styles.headerTitle}>
+          <h3 id={titleId} style={styles.headerTitle}>
             Áp dụng lịch tuần {currentWeekLabel}
           </h3>
           <button

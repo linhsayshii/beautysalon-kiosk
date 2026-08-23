@@ -1,4 +1,5 @@
 import type { ApiRecord } from '@/types/api';
+import { ATTENDANCE_GRACE_MINUTES } from '@/config';
 
 export type AttendanceVisualStatus = 'ontime' | 'late' | 'missing' | 'unclocked' | 'leave';
 
@@ -13,9 +14,8 @@ export interface AttendanceCalculation {
 }
 
 const TIME_ZONE = 'Asia/Ho_Chi_Minh';
-// Matches the reference timekeeping behaviour: a check-in up to 10 minutes
-// after the shift begins is still on time (09:01 for a 09:00 shift is blue).
-const GRACE_MINUTES = 10;
+// Grace period matches backend config (config.payroll.graceMinutes)
+const GRACE_MINUTES = ATTENDANCE_GRACE_MINUTES;
 
 const formatMinutes = (minutes: number) => {
   const hours = Math.floor(minutes / 60);

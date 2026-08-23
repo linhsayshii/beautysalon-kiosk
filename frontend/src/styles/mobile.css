@@ -1372,6 +1372,7 @@ body:has(.mobile-form-sheet-backdrop) :is(.mobile-inventory-fab-btn, .mobile-ope
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
+  overscroll-behavior: none;
   animation: mobileFadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
@@ -1384,6 +1385,7 @@ body:has(.mobile-form-sheet-backdrop) :is(.mobile-inventory-fab-btn, .mobile-ope
   box-shadow: 0 -8px 30px rgba(15, 23, 42, 0.15);
   display: flex;
   flex-direction: column;
+  min-height: 0;
   animation: mobileSlideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
 

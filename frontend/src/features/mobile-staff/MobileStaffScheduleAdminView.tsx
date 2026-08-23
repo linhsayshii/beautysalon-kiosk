@@ -155,15 +155,31 @@ export function MobileStaffScheduleAdminView() {
     );
   }, [staffList, search]);
 
-  // Find shift for a staff on the selected date
+  // Find shift for a staff on the selected date (with attendance info)
   const getStaffDayShift = (staff: ApiRecord) => {
     const matched = rawAssignments.find(
       (s) =>
         (Number(s.staffId) === Number(staff.id) || s.staffCode === staff.code) &&
         (s.shiftDate === selectedDateIso || s.date === selectedDateIso)
     );
-    return matched || null;
+    if (matched) {
+      return matched as ApiRecord & {
+        hasCheckIn: boolean;
+        hasCheckOut: boolean;
+        checkIn: string | null;
+        checkOut: string | null;
+      };
+    }
+    return null;
   };
+
+  // Count attended shifts for summary
+  const attendedCount = useMemo(() => {
+    return filteredStaff.filter((s) => {
+      const shift = getStaffDayShift(s);
+      return shift && shift.hasCheckIn && shift.hasCheckOut;
+    }).length;
+  }, [filteredStaff, selectedDateIso, rawAssignments]);
 
   // Group staff by Role for by-staff view
   const groupedStaff = useMemo(() => {
@@ -354,7 +370,7 @@ export function MobileStaffScheduleAdminView() {
             <span>{selectedDayInfo.fullLabel}</span>
           </span>
           <span className="mobile-summary-text">
-            {assignedCount}/{filteredStaff.length} nhân viên đã xếp ca
+            {assignedCount}/{filteredStaff.length} xếp • {attendedCount}/{assignedCount} đã chấm
           </span>
         </div>
       </div>
@@ -415,6 +431,14 @@ export function MobileStaffScheduleAdminView() {
                               <span style={{ fontSize: 11.5, color: '#64748b' }}>
                                 {shift.startsAt} - {shift.endsAt}
                               </span>
+                              {/* Attendance status icon */}
+                              {shift.hasCheckIn && shift.hasCheckOut ? (
+                                <i className="ph ph-check-circle" style={{ color: '#22c55e', fontSize: 16, marginLeft: 4 }} title="Đã chấm công đủ" />
+                              ) : shift.hasCheckIn ? (
+                                <i className="ph ph-clock" style={{ color: '#f59e0b', fontSize: 16, marginLeft: 4 }} title="Đã chấm vào, chưa chấm ra" />
+                              ) : (
+                                <i className="ph ph-warning-circle" style={{ color: '#ef4444', fontSize: 16, marginLeft: 4 }} title="Chưa chấm công" />
+                              )}
                               {/* Delete button */}
                               <button
                                 type="button"

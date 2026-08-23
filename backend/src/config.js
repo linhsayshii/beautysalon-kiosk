@@ -43,6 +43,10 @@ export const config = Object.freeze({
     accountNumber: process.env.VIETQR_ACCOUNT_NUMBER ?? '108868686868',
     accountName: process.env.VIETQR_ACCOUNT_NAME ?? 'ANNA CHILL BEAUTY',
   },
+  payroll: {
+    lateDeductionRate: integerFromEnv('PAYROLL_LATE_DEDUCTION_RATE', 10000),
+    graceMinutes: 10,
+  },
   http: {
     trustProxyHops: boundedIntegerFromEnv('TRUST_PROXY_HOPS', 1, 0, 5),
     trustedOrigins: Object.freeze(trustedOrigins),

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { appConfig } from '@/app/config';
 import { GoodsTypeBadge } from '@/components/data-display/Badges';
@@ -10,29 +10,265 @@ import { SearchToolbar } from '@/components/forms/SearchToolbar';
 import { PageHeader } from '@/components/ui/PageHeader/PageHeader';
 import { useToast } from '@/components/ui/Toast/ToastProvider';
 import { formatMoney } from '@/lib/format';
-import { getPricebooks, updatePrice } from '../inventory.api';
+import { createPricebook, deletePricebook, getPricebooks, updatePrice, updatePricebook } from '../inventory.api';
+import type { CreatePricebookInput, Pricebook, UpdatePricebookInput } from '../inventory.api';
+import './pricebooks.css';
 
 const initialFilters = { search: '', pricebookId: '', category: '' };
+
+interface PricebookDialogProps {
+  open: boolean;
+  pricebook?: Partial<Pricebook> | null;
+  onClose: () => void;
+  onSuccess: () => void;
+}
+
+function PricebookDialog({ open, pricebook, onClose, onSuccess }: PricebookDialogProps) {
+  const [form, setForm] = useState<CreatePricebookInput>({
+    code: '',
+    name: '',
+    active: true,
+    effectiveFrom: null,
+    effectiveTo: null,
+    copyFromDefault: true,
+  });
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const { notify } = useToast();
+  const queryClient = useQueryClient();
+
+  useEffect(() => {
+    if (open) {
+      setForm({
+        code: pricebook?.code ?? '',
+        name: pricebook?.name ?? '',
+        active: pricebook?.active ?? true,
+        effectiveFrom: pricebook?.effectiveFrom ?? null,
+        effectiveTo: pricebook?.effectiveTo ?? null,
+        copyFromDefault: true,
+      });
+      setErrors({});
+    }
+  }, [open, pricebook]);
+
+  const isEditing = !!pricebook?.id;
+
+  const createMutation = useMutation({
+    mutationFn: (data: CreatePricebookInput) => createPricebook(data),
+    onSuccess: () => { notify('Đã tạo bảng giá', 'Bảng giá mới đã được thêm.'); queryClient.invalidateQueries({ queryKey: ['pricebooks'] }); onSuccess(); },
+    onError: (error: Error) => notify('Không thể tạo bảng giá', error.message),
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: (data: UpdatePricebookInput) => {
+      if (!pricebook?.id) throw new Error('Missing pricebook ID');
+      return updatePricebook(pricebook.id, data);
+    },
+    onSuccess: () => { notify('Đã cập nhật bảng giá', 'Thông tin bảng giá đã được lưu.'); queryClient.invalidateQueries({ queryKey: ['pricebooks'] }); onSuccess(); },
+    onError: (error: Error) => notify('Không thể cập nhật', error.message),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: () => {
+      if (!pricebook?.id) throw new Error('Missing pricebook ID');
+      return deletePricebook(pricebook.id);
+    },
+    onSuccess: () => { notify('Đã xóa bảng giá', 'Bảng giá đã được xóa.'); queryClient.invalidateQueries({ queryKey: ['pricebooks'] }); onSuccess(); },
+    onError: (error: Error) => notify('Không thể xóa bảng giá', error.message),
+  });
+
+  const validate = () => {
+    const errs: Record<string, string> = {};
+    if (!form.code?.trim()) errs.code = 'Mã bảng giá là bắt buộc';
+    else if (!/^[A-Z0-9._-]+$/i.test(form.code)) errs.code = 'Chỉ gồm chữ, số, dấu chấm, gạch ngang';
+    if (!form.name?.trim()) errs.name = 'Tên bảng giá là bắt buộc';
+    if (form.effectiveFrom && form.effectiveTo && form.effectiveFrom > form.effectiveTo) {
+      errs.effectiveTo = 'Ngày kết thúc phải sau ngày bắt đầu';
+    }
+    setErrors(errs);
+    return Object.keys(errs).length === 0;
+  };
+
+  const handleSubmit = () => {
+    if (!validate()) return;
+    if (isEditing) {
+      updateMutation.mutate({ name: form.name, active: form.active, effectiveFrom: form.effectiveFrom, effectiveTo: form.effectiveTo });
+    } else {
+      createMutation.mutate(form);
+    }
+  };
+
+  const handleDelete = () => {
+    if (confirm('Bạn có chắc muốn xóa bảng giá này?')) {
+      deleteMutation.mutate();
+    }
+  };
+
+  if (!open) return null;
+
+  const isPending = createMutation.isPending || updateMutation.isPending || deleteMutation.isPending;
+
+  return (
+    <div className="dialog-overlay" onClick={onClose}>
+      <div className="dialog-modal" onClick={(e) => e.stopPropagation()}>
+        <div className="dialog-header">
+          <h3>{isEditing ? 'Sửa bảng giá' : 'Thêm bảng giá mới'}</h3>
+          <button type="button" className="dialog-close" onClick={onClose}>&times;</button>
+        </div>
+        <div className="dialog-body">
+          <div className="form-grid">
+            <div className="form-field">
+              <label>Mã bảng giá <span className="required">*</span></label>
+              <input type="text" className={`form-input ${errors.code ? 'error' : ''}`} value={form.code} onChange={(e) => setForm({ ...form, code: e.target.value.toUpperCase() })} placeholder="BG-002" disabled={isEditing} />
+              {errors.code && <span className="form-error">{errors.code}</span>}
+            </div>
+            <div className="form-field">
+              <label>Tên bảng giá <span className="required">*</span></label>
+              <input type="text" className={`form-input ${errors.name ? 'error' : ''}`} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Bảng giá khuyến mãi" />
+              {errors.name && <span className="form-error">{errors.name}</span>}
+            </div>
+            <div className="form-field">
+              <label>Ngày bắt đầu</label>
+              <input type="date" className="form-input" value={form.effectiveFrom ?? ''} onChange={(e) => setForm({ ...form, effectiveFrom: e.target.value || null })} />
+            </div>
+            <div className="form-field">
+              <label>Ngày kết thúc</label>
+              <input type="date" className={`form-input ${errors.effectiveTo ? 'error' : ''}`} value={form.effectiveTo ?? ''} onChange={(e) => setForm({ ...form, effectiveTo: e.target.value || null })} />
+              {errors.effectiveTo && <span className="form-error">{errors.effectiveTo}</span>}
+            </div>
+            {!isEditing && (
+              <div className="form-field">
+                <label className="checkbox-label">
+                  <input type="checkbox" checked={form.copyFromDefault} onChange={(e) => setForm({ ...form, copyFromDefault: e.target.checked })} />
+                  <span>Copy giá từ bảng giá mặc định</span>
+                </label>
+              </div>
+            )}
+            {isEditing && (
+              <div className="form-field">
+                <label className="checkbox-label">
+                  <input type="checkbox" checked={form.active} onChange={(e) => setForm({ ...form, active: e.target.checked })} />
+                  <span>Đang hoạt động</span>
+                </label>
+              </div>
+            )}
+          </div>
+        </div>
+        <div className="dialog-footer">
+          {isEditing && !pricebook?.isDefault && (
+            <button type="button" className="btn btn-danger" onClick={handleDelete} disabled={isPending}>Xóa</button>
+          )}
+          <div className="dialog-actions">
+            <button type="button" className="btn btn-secondary" onClick={onClose} disabled={isPending}>Hủy</button>
+            <button type="button" className="btn btn-primary" onClick={handleSubmit} disabled={isPending}>
+              {isEditing ? 'Lưu' : 'Tạo mới'}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export function PricebooksView() {
   const [draft, setDraft] = useState(initialFilters);
   const [filters, setFilters] = useState(initialFilters);
   const [page, setPage] = useState(1);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [editingBook, setEditingBook] = useState<Partial<Pricebook> | null>(null);
   const { notify } = useToast();
   const client = useQueryClient();
+
   const query = useQuery({ queryKey: ['pricebooks', filters, page], queryFn: () => getPricebooks({ page, pageSize: appConfig.defaultPageSize, ...filters }) });
-  const mutation = useMutation({ mutationFn: ({ pricebookId, itemType, itemId, salePrice }: { pricebookId: number; itemType: string; itemId: number; salePrice: number }) => updatePrice(pricebookId, itemType, itemId, salePrice), onSuccess: () => { notify('Đã lưu giá', 'Bảng giá đã được cập nhật.'); client.invalidateQueries({ queryKey: ['pricebooks'] }); }, onError: (error) => notify('Không thể lưu giá', error.message) });
+  const mutation = useMutation({
+    mutationFn: ({ pricebookId, itemType, itemId, salePrice }: { pricebookId: number; itemType: string; itemId: number; salePrice: number }) => updatePrice(pricebookId, itemType, itemId, salePrice),
+    onSuccess: () => { notify('Đã lưu giá', 'Bảng giá đã được cập nhật.'); client.invalidateQueries({ queryKey: ['pricebooks'] }); },
+    onError: (error: Error) => notify('Không thể lưu giá', error.message),
+  });
+
   const rows = query.data?.data ?? [];
   const book = query.data?.meta.pricebook ?? { id: 0, name: '' };
+  const allBooks = query.data?.meta.pricebooks ?? [];
   const apply = () => { setFilters(draft); setPage(1); };
 
-  return <main className="workspace"><div className="workspace-shell">
-    <PageHeader title="Thiết lập giá" subtitle="Xem giá vốn, giá nhập cuối và cập nhật bảng giá bán." />
-    <div className="workspace-grid"><FilterPanel title="Bảng giá" onApply={apply} onReset={() => { setDraft(initialFilters); setFilters(initialFilters); setPage(1); }}>
-      <SelectFilter label="Bảng giá" value={draft.pricebookId} onChange={(pricebookId) => setDraft({ ...draft, pricebookId })} options={(query.data?.meta.pricebooks ?? []).map((item) => ({ value: String(item.id), label: item.name }))} />
-      <SelectFilter label="Nhóm hàng" value={draft.category} onChange={(category) => setDraft({ ...draft, category })} options={[{ value: '', label: 'Tất cả' }, ...(query.data?.meta.categories ?? []).map((category) => ({ value: category, label: category }))]} />
-    </FilterPanel><section className="data-panel"><SearchToolbar value={draft.search} placeholder="Tìm theo mã hoặc tên hàng" onChange={(search) => setDraft({ ...draft, search })} onSearch={apply} onRefresh={() => query.refetch()} />
-      {query.isPending ? <LoadingState /> : query.error ? <ErrorState error={query.error} onRetry={() => query.refetch()} /> : !rows.length ? <EmptyState /> : <><div className="table-scroll"><table className="data-table pricebook-table"><thead><tr><th>Mã hàng hóa</th><th>Tên hàng</th><th>Loại</th><th>Giá vốn</th><th>Giá nhập cuối</th><th>{book?.name}</th></tr></thead><tbody>{rows.map((row) => <tr key={`${row.itemType}-${row.itemId}`}><td data-label="Mã hàng"><span className="cell-main">{row.code}</span></td><td data-label="Tên hàng"><span className="cell-main">{row.name}</span><small className="cell-sub">{row.category}</small></td><td data-label="Loại"><GoodsTypeBadge type={row.itemType} /></td><td data-label="Giá vốn" className="money-cell">{formatMoney(row.costPrice)}</td><td data-label="Giá nhập cuối" className="money-cell">{formatMoney(row.lastPurchasePrice)}</td><td data-label={book?.name}><MoneyInput wrapperClassName="price-input" suffix="đ" defaultValue={row.bookPrice} disabled={mutation.isPending} aria-label={`Giá bán ${row.name}`} onBlur={(event) => { const salePrice = Math.max(0, Number(event.target.value.replace(/\D/g, '')) || 0); if (salePrice !== Number(row.bookPrice)) mutation.mutate({ pricebookId: book.id, itemType: row.itemType, itemId: row.itemId, salePrice }); }} /></td></tr>)}</tbody></table></div><Pagination pagination={query.data?.meta.pagination} onChange={setPage} /></>}
-    </section></div>
-  </div></main>;
+  const openCreate = () => { setEditingBook(null); setDialogOpen(true); };
+  const openEdit = (pb: typeof allBooks[0]) => {
+    const fullBook: Partial<Pricebook> = {
+      id: pb.id,
+      code: pb.code,
+      name: pb.name,
+      isDefault: false,
+      effectiveFrom: null,
+      effectiveTo: null,
+      createdAt: '',
+    };
+    setEditingBook(fullBook);
+    setDialogOpen(true);
+  };
+
+  return (
+    <main className="workspace">
+      <div className="workspace-shell">
+        <PageHeader title="Thiết lập giá" subtitle="Quản lý bảng giá và giá bán hàng hóa." />
+        <div className="workspace-grid">
+          <FilterPanel title="Bảng giá" onApply={apply} onReset={() => { setDraft(initialFilters); setFilters(initialFilters); setPage(1); }}>
+            <SelectFilter label="Bảng giá" value={draft.pricebookId} onChange={(pricebookId) => setDraft({ ...draft, pricebookId })} options={allBooks.map((item) => ({ value: String(item.id), label: item.name }))} />
+            <SelectFilter label="Nhóm hàng" value={draft.category} onChange={(category) => setDraft({ ...draft, category })} options={[{ value: '', label: 'Tất cả' }, ...(query.data?.meta.categories ?? []).map((category) => ({ value: category, label: category }))]} />
+          </FilterPanel>
+          <section className="data-panel">
+            {/* Pricebook list strip + Add button */}
+            <div className="pricebook-toolbar">
+              <div className="pricebook-strip">
+                {allBooks.map((pb) => (
+                  <button key={pb.id} className={`pricebook-chip ${String(draft.pricebookId) === String(pb.id) ? 'active' : ''}`} onClick={() => { setDraft({ ...draft, pricebookId: String(pb.id) }); setFilters({ ...draft, pricebookId: String(pb.id) }); setPage(1); }}>
+                    {pb.name}
+                  </button>
+                ))}
+              </div>
+              <div className="pricebook-actions">
+                <button className="btn btn-secondary btn-sm" onClick={() => openEdit(allBooks[0])} title="Sửa bảng giá">
+                  <i className="ph ph-gear" />
+                </button>
+                <button className="btn btn-primary btn-sm" onClick={openCreate}>+ Thêm bảng giá</button>
+              </div>
+            </div>
+            <SearchToolbar value={draft.search} placeholder="Tìm theo mã hoặc tên hàng" onChange={(search) => setDraft({ ...draft, search })} onSearch={apply} onRefresh={() => query.refetch()} />
+            {query.isPending ? <LoadingState /> : query.error ? <ErrorState error={query.error} onRetry={() => query.refetch()} /> : !rows.length ? <EmptyState /> : (
+              <>
+                <div className="table-scroll">
+                  <table className="data-table pricebook-table">
+                    <thead>
+                      <tr>
+                        <th>Mã hàng hóa</th>
+                        <th>Tên hàng</th>
+                        <th>Loại</th>
+                        <th>Giá vốn</th>
+                        <th>Giá nhập cuối</th>
+                        <th>{book?.name}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {rows.map((row) => (
+                        <tr key={`${row.itemType}-${row.itemId}`}>
+                          <td data-label="Mã hàng"><span className="cell-main">{row.code}</span></td>
+                          <td data-label="Tên hàng"><span className="cell-main">{row.name}</span><small className="cell-sub">{row.category}</small></td>
+                          <td data-label="Loại"><GoodsTypeBadge type={row.itemType} /></td>
+                          <td data-label="Giá vốn" className="money-cell">{formatMoney(row.costPrice)}</td>
+                          <td data-label="Giá nhập cuối" className="money-cell">{formatMoney(row.lastPurchasePrice)}</td>
+                          <td data-label={book?.name}>
+                            <MoneyInput wrapperClassName="price-input" suffix="đ" defaultValue={row.bookPrice} disabled={mutation.isPending} aria-label={`Giá bán ${row.name}`} onBlur={(event) => { const salePrice = Math.max(0, Number(event.target.value.replace(/\D/g, '')) || 0); if (salePrice !== Number(row.bookPrice)) mutation.mutate({ pricebookId: book.id, itemType: row.itemType, itemId: row.itemId, salePrice }); }} />
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                <Pagination pagination={query.data?.meta.pagination} onChange={setPage} />
+              </>
+            )}
+          </section>
+        </div>
+        <PricebookDialog open={dialogOpen} pricebook={editingBook} onClose={() => setDialogOpen(false)} onSuccess={() => setDialogOpen(false)} />
+      </div>
+    </main>
+  );
 }
