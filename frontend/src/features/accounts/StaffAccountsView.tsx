@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { FormEvent } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { AvatarName } from '@/components/data-display/AvatarName';
@@ -7,6 +7,7 @@ import { Select } from '@/components/ui/Select/Select';
 import { PageHeader } from '@/components/ui/PageHeader/PageHeader';
 import { SearchToolbar } from '@/components/forms/SearchToolbar';
 import { useToast } from '@/components/ui/Toast/ToastProvider';
+import { useWebSocket } from '@/hooks/useWebSocket';
 import { getStaff } from '@/features/staff/staff.api';
 import { errorMessage } from '@/services/api-client';
 import { formatDateTime } from '@/lib/format';
@@ -18,7 +19,14 @@ const roleDescriptions: Record<string, string> = { manager: 'Toàn bộ hệ th�
 export function StaffAccountsView({ embedded = false, onAddAccount }: { embedded?: boolean; onAddAccount?: () => void }) {
   const client = useQueryClient();
   const { notify } = useToast();
+  const { subscribe } = useWebSocket();
   const [search, setSearch] = useState('');
+  useEffect(() => {
+    const unsub = subscribe(['staff:created', 'staff:updated'], () => {
+      client.invalidateQueries({ queryKey: ['accounts'] });
+    });
+    return unsub;
+  }, [subscribe, client]);
   const [creating, setCreating] = useState(false);
   const query = useQuery({ queryKey: ['accounts'], queryFn: getAccounts });
   const rows = useMemo(() => (query.data?.data ?? []).filter((row) => `${row.username} ${row.displayName} ${roleLabels[row.role]}`.toLowerCase().includes(search.toLowerCase())), [query.data, search]);

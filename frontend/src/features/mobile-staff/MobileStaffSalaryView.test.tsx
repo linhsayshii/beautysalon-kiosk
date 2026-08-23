@@ -5,6 +5,14 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MobileStaffSalaryView } from './MobileStaffSalaryView';
 import * as staffApi from '@/features/staff/staff.api';
 import { monthStartIso } from '@/lib/date';
+import { WebSocketProvider } from '@/context/WebSocketContext';
+
+vi.mock('@/services/websocket', () => ({
+  createPosSocketConnection: vi.fn(() => ({
+    isConnected: () => true,
+    disconnect: vi.fn(),
+  })),
+}));
 
 function monthStart(offset: number) {
   const date = new Date(`${monthStartIso()}T00:00:00`);
@@ -33,7 +41,9 @@ describe('MobileStaffSalaryView', () => {
 
     render(
       <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
-        <MemoryRouter><MobileStaffSalaryView /></MemoryRouter>
+        <WebSocketProvider>
+          <MemoryRouter><MobileStaffSalaryView /></MemoryRouter>
+        </WebSocketProvider>
       </QueryClientProvider>,
     );
 

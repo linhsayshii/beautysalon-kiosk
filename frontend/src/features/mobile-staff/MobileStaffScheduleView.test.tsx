@@ -5,6 +5,14 @@ import { MobileStaffScheduleView } from './MobileStaffScheduleView';
 import { todayIso, weekStartIso } from '@/lib/date';
 import * as staffApi from '@/features/staff/staff.api';
 import * as auth from '@/features/auth/AuthProvider';
+import { WebSocketProvider } from '@/context/WebSocketContext';
+
+vi.mock('@/services/websocket', () => ({
+  createPosSocketConnection: vi.fn(() => ({
+    isConnected: () => true,
+    disconnect: vi.fn(),
+  })),
+}));
 
 describe('MobileStaffScheduleView', () => {
   it('renders the current staff schedule returned by the self-service API', async () => {
@@ -22,7 +30,9 @@ describe('MobileStaffScheduleView', () => {
 
     render(
       <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
-        <MobileStaffScheduleView />
+        <WebSocketProvider>
+          <MobileStaffScheduleView />
+        </WebSocketProvider>
       </QueryClientProvider>,
     );
 

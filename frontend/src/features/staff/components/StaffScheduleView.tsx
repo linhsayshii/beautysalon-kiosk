@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useWebSocket } from '@/hooks/useWebSocket';
 import { LoadingState } from '@/components/data-display/DataState';
 import { useToast } from '@/components/ui/Toast/ToastProvider';
 import { errorMessage } from '@/services/api-client';
@@ -32,6 +33,7 @@ function getShiftThemeClass(shiftName: string): string {
 export function StaffScheduleView() {
   const queryClient = useQueryClient();
   const { notify } = useToast();
+  const { subscribe } = useWebSocket();
   const [currentMonday, setCurrentMonday] = useState(weekStartIso());
   const [searchTerm, setSearchTerm] = useState('');
   const [viewMode, setViewMode] = useState<'by-staff' | 'by-shift'>('by-staff');
@@ -168,6 +170,15 @@ export function StaffScheduleView() {
     setActiveWorkDays(settings.activeWorkDays);
     setHolidaysList((settings.holidays ?? []) as Array<{ id: number; name: string; fromDate: string; toDate: string; daysCount: number }>);
   }, [workSettingsQuery.data]);
+
+  // WebSocket subscription for real-time schedule updates
+  useEffect(() => {
+    const unsub = subscribe('staff:schedule_changed', () => {
+      queryClient.invalidateQueries({ queryKey: ['staff-schedule'] });
+      queryClient.invalidateQueries({ queryKey: ['work-shifts'] });
+    });
+    return unsub;
+  }, [subscribe, queryClient]);
 
   const staffList = (staffQuery.data?.data ?? []) as ApiRecord[];
 

@@ -1,5 +1,6 @@
-import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useEffect, useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useWebSocket } from '@/hooks/useWebSocket';
 import { ErrorState, LoadingState } from '@/components/data-display/DataState';
 import { todayIso } from '@/lib/date';
 import { getDashboard } from '../dashboard.api';
@@ -11,7 +12,17 @@ export function DashboardView() {
   const [period, setPeriod] = useState<DashboardPeriod>(() => (new URLSearchParams(window.location.search).get('period') as DashboardPeriod) || 'this_month');
   const date = todayIso();
   const setDashboardPeriod = (nextPeriod: DashboardPeriod) => { setPeriod(nextPeriod); const params = new URLSearchParams(window.location.search); params.set('period', nextPeriod); window.history.replaceState({}, '', `/dashboard?${params.toString()}`); };
+  const queryClient = useQueryClient();
+  const { subscribe } = useWebSocket();
   const query = useQuery({ queryKey: ['dashboard', date, period], queryFn: () => getDashboard(date, period) });
+
+  useEffect(() => {
+    const unsub = subscribe(['pos:order_created', 'staff:*'], () => {
+      queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard-charts'] });
+    });
+    return unsub;
+  }, [subscribe, queryClient]);
   const dashboard = query.data?.data;
   const currentDate = new Intl.DateTimeFormat('vi-VN', { weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric' }).format(new Date());
   return (

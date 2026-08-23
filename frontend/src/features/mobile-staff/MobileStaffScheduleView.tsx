@@ -1,5 +1,6 @@
-import { useState, useMemo } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useState, useMemo, useEffect } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useWebSocket } from '@/hooks/useWebSocket';
 import { getMySchedule } from '@/features/staff/staff.api';
 import { weekStartIso, toIsoDate, todayIso } from '@/lib/date';
 import { useAuth } from '@/features/auth/AuthProvider';
@@ -13,6 +14,16 @@ export function MobileStaffScheduleView() {
   const { account } = useAuth();
   const [selectedMonday, setSelectedMonday] = useState(weekStartIso());
   const [selectedDateIso, setSelectedDateIso] = useState(todayIso());
+  const { subscribe } = useWebSocket();
+  const queryClient = useQueryClient();
+
+  useEffect(() => {
+    const unsub = subscribe('staff:schedule_changed', () => {
+      queryClient.invalidateQueries({ queryKey: ['mobile-staff-schedule'] });
+    });
+    return unsub;
+  }, [subscribe, queryClient]);
+
   const { data: scheduleData, isLoading, isError, refetch } = useQuery({
     queryKey: ['mobile-staff-schedule', selectedMonday],
     queryFn: () => getMySchedule(selectedMonday),

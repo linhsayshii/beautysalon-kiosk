@@ -5,6 +5,14 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { ToastProvider } from '@/components/ui/Toast/ToastProvider';
 import { MobileTopBar } from './MobileTopBar';
 import * as auth from '@/features/auth/AuthProvider';
+import { WebSocketProvider } from '@/context/WebSocketContext';
+
+vi.mock('@/services/websocket', () => ({
+  createPosSocketConnection: vi.fn(() => ({
+    isConnected: () => true,
+    disconnect: vi.fn(),
+  })),
+}));
 
 describe('MobileTopBar Component', () => {
   let queryClient: QueryClient;
@@ -25,13 +33,15 @@ describe('MobileTopBar Component', () => {
 
     render(
       <QueryClientProvider client={queryClient}>
-        <ToastProvider>
-          <MemoryRouter initialEntries={['/m/dashboard']}>
-            <Routes>
-              <Route path="/m/dashboard" element={<MobileTopBar />} />
-            </Routes>
-          </MemoryRouter>
-        </ToastProvider>
+        <WebSocketProvider>
+          <ToastProvider>
+            <MemoryRouter initialEntries={['/m/dashboard']}>
+              <Routes>
+                <Route path="/m/dashboard" element={<MobileTopBar />} />
+              </Routes>
+            </MemoryRouter>
+          </ToastProvider>
+        </WebSocketProvider>
       </QueryClientProvider>
     );
 
@@ -48,14 +58,16 @@ describe('MobileTopBar Component', () => {
 
     render(
       <QueryClientProvider client={queryClient}>
-        <ToastProvider>
-          <MemoryRouter initialEntries={['/m/products']}>
-            <Routes>
-              <Route path="/m/products" element={<MobileTopBar />} />
-              <Route path="/m/more" element={<div>More Page</div>} />
-            </Routes>
-          </MemoryRouter>
-        </ToastProvider>
+        <WebSocketProvider>
+          <ToastProvider>
+            <MemoryRouter initialEntries={['/m/products']}>
+              <Routes>
+                <Route path="/m/products" element={<MobileTopBar />} />
+                <Route path="/m/more" element={<div>More Page</div>} />
+              </Routes>
+            </MemoryRouter>
+          </ToastProvider>
+        </WebSocketProvider>
       </QueryClientProvider>
     );
 
@@ -70,14 +82,16 @@ describe('MobileTopBar Component', () => {
 
     render(
       <QueryClientProvider client={queryClient}>
-        <ToastProvider>
-          <MemoryRouter initialEntries={['/m/appointments/new']}>
-            <Routes>
-              <Route path="/m/appointments/new" element={<MobileTopBar />} />
-              <Route path="/m/appointments" element={<div>Appointments List</div>} />
-            </Routes>
-          </MemoryRouter>
-        </ToastProvider>
+        <WebSocketProvider>
+          <ToastProvider>
+            <MemoryRouter initialEntries={['/m/appointments/new']}>
+              <Routes>
+                <Route path="/m/appointments/new" element={<MobileTopBar />} />
+                <Route path="/m/appointments" element={<div>Appointments List</div>} />
+              </Routes>
+            </MemoryRouter>
+          </ToastProvider>
+        </WebSocketProvider>
       </QueryClientProvider>
     );
 
@@ -97,13 +111,15 @@ describe('MobileTopBar Component', () => {
     for (const { path, expectedTitle } of subpageTestCases) {
       const { unmount } = render(
         <QueryClientProvider client={queryClient}>
-          <ToastProvider>
-            <MemoryRouter initialEntries={[path]}>
-              <Routes>
-                <Route path={path} element={<MobileTopBar />} />
-              </Routes>
-            </MemoryRouter>
-          </ToastProvider>
+          <WebSocketProvider>
+            <ToastProvider>
+              <MemoryRouter initialEntries={[path]}>
+                <Routes>
+                  <Route path={path} element={<MobileTopBar />} />
+                </Routes>
+              </MemoryRouter>
+            </ToastProvider>
+          </WebSocketProvider>
         </QueryClientProvider>
       );
 

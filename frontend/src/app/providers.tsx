@@ -2,6 +2,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { type PropsWithChildren, useEffect } from 'react';
 import { DrawerProvider } from '@/components/ui/Drawer/DrawerProvider';
 import { ToastProvider } from '@/components/ui/Toast/ToastProvider';
+import { WebSocketProvider } from '@/context/WebSocketContext';
 import { AuthProvider } from '@/features/auth/AuthProvider';
 import { syncStoreNameWithTitleAndManifest } from '@/pwa/register-sw';
 import { useMetadata } from '@/services/metadata';
@@ -30,11 +31,13 @@ export function AppProviders({ children }: PropsWithChildren) {
   return (
     <QueryClientProvider client={queryClient}>
       <StoreTitleSync />
-      <AuthProvider>
-        <ToastProvider>
-          <DrawerProvider>{children}</DrawerProvider>
-        </ToastProvider>
-      </AuthProvider>
+      <WebSocketProvider>
+        <AuthProvider>
+          <ToastProvider>
+            <DrawerProvider>{children}</DrawerProvider>
+          </ToastProvider>
+        </AuthProvider>
+      </WebSocketProvider>
     </QueryClientProvider>
   );
 }

@@ -4,6 +4,7 @@ import { navigation } from './navigation.config';
 import { homeForRole, useAuth } from '@/features/auth/AuthProvider';
 import { useMetadata } from '@/services/metadata';
 import { setPreferredUiMode } from '@/pwa/device-detect';
+import { useWebSocket } from '@/hooks/useWebSocket';
 
 export function Header() {
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -15,6 +16,7 @@ export function Header() {
   const { account, logout } = useAuth();
   const { data: metadata } = useMetadata();
   const storeName = metadata?.data?.system?.storeName || 'AnnaChill Beauty';
+  const { isConnected } = useWebSocket();
 
   useEffect(() => { setMobileOpen(false); setOpenMenu(null); setAccountOpen(false); }, [location.pathname]);
   useEffect(() => {
@@ -43,6 +45,11 @@ export function Header() {
       <Link className="brand" to={account ? homeForRole(account.role) : '/login'} aria-label={`${storeName} - Trang chính`}>
         <span className="brand-mark" aria-hidden="true"><span /><span /></span><span className="brand-name">{storeName}</span>
       </Link>
+      <span
+        className={`status-dot ${isConnected ? 'online' : 'offline'}`}
+        title={isConnected ? 'Realtime connected' : 'Offline'}
+        aria-label={isConnected ? 'Realtime connected' : 'Offline'}
+      />
       {account?.role === 'manager' && <button className="mobile-menu-button icon-button" type="button" aria-label={mobileOpen ? 'Đóng menu' : 'Mở menu'} aria-expanded={mobileOpen} onClick={() => setMobileOpen((value) => !value)}>
         <i className={`ph ${mobileOpen ? 'ph-x' : 'ph-list'}`} />
       </button>}

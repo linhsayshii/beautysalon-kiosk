@@ -5,8 +5,15 @@ import { ToastProvider } from '@/components/ui/Toast/ToastProvider';
 import { weekStartIso } from '@/lib/date';
 import { StaffScheduleView } from './StaffScheduleView';
 import * as staffApi from '../staff.api';
+import { WebSocketProvider } from '@/context/WebSocketContext';
 
 vi.mock('../staff.api');
+vi.mock('@/services/websocket', () => ({
+  createPosSocketConnection: vi.fn(() => ({
+    isConnected: () => true,
+    disconnect: vi.fn(),
+  })),
+}));
 
 describe('StaffScheduleView', () => {
   it('renders an assigned API schedule and adds every created shift to the colour legend', async () => {
@@ -39,9 +46,11 @@ describe('StaffScheduleView', () => {
     const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
     render(
       <QueryClientProvider client={queryClient}>
-        <ToastProvider>
-          <StaffScheduleView />
-        </ToastProvider>
+        <WebSocketProvider>
+          <ToastProvider>
+            <StaffScheduleView />
+          </ToastProvider>
+        </WebSocketProvider>
       </QueryClientProvider>,
     );
 

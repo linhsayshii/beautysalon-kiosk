@@ -1,5 +1,6 @@
 import { pool } from '../../db.js';
 import { HttpError } from '../../lib/http.js';
+import { broadcastToBranch } from '../../lib/ws.js';
 
 const number = (value) => Number(value ?? 0);
 
@@ -86,12 +87,14 @@ export async function createStaff({
       [branchId, staff.id, code, `Thêm nhân viên ${name}`],
     );
     await client.query('COMMIT');
-    return {
+    const staffData = {
       id: number(staff.id), code: staff.code, name: staff.name, role: staff.role,
       avatarTone: staff.avatar_tone, active: staff.active, salaryType,
       baseSalary, hourlyRate, canSell, canManageInventory,
       monthRevenue: 0, monthOrders: 0, createdAt: staff.created_at,
     };
+    broadcastToBranch(branchId, 'staff:created', { staff: staffData });
+    return staffData;
   } catch (error) {
     await client.query('ROLLBACK');
     if (error.code === '23505') {
@@ -143,12 +146,14 @@ export async function updateStaff({
     );
     await client.query('COMMIT');
     const staff = staffResult.rows[0];
-    return {
+    const staffData = {
       id: number(staff.id), code: staff.code, name: staff.name, role: staff.role,
       avatarTone: staff.avatar_tone, active: staff.active, salaryType,
       baseSalary, hourlyRate, canSell, canManageInventory,
       createdAt: staff.created_at,
     };
+    broadcastToBranch(branchId, 'staff:updated', { staffId, changes: { name, role, code, avatarTone, active, salaryType, baseSalary, hourlyRate, canSell, canManageInventory } });
+    return staffData;
   } catch (error) {
     await client.query('ROLLBACK');
     if (error.code === '23505') {
@@ -1033,7 +1038,9 @@ export async function approvePayrollPeriod({ branchId, periodId, staffId, staffN
     [periodId],
   );
 
-  return getPayrollPeriodDetail({ branchId, periodId });
+  const period = getPayrollPeriodDetail({ branchId, periodId });
+  broadcastToBranch(branchId, 'payroll:approved', { periodId });
+  return period;
 }
 
 export async function cancelPayrollPeriod({ branchId, periodId }) {
@@ -1068,11 +1075,13 @@ export async function createPayrollPayment({ branchId, periodId, staffId, amount
     const newRemaining = Math.max(0, netSalary - newPaid);
     const status = newRemaining === 0 ? 'paid' : 'approved';
 
-    await client.query(
+    const paymentRes = await client.query(
       `INSERT INTO payroll_payments (branch_id, payroll_period_id, payroll_record_id, staff_id, amount, payment_method, note, actor_staff_id)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+       RETURNING id`,
       [branchId, periodId, recId, staffId, amount, paymentMethod, note, actorStaffId],
     );
+    const paymentId = paymentRes.rows[0].id;
 
     await client.query(
       `UPDATE payroll_records
@@ -1096,6 +1105,7 @@ export async function createPayrollPayment({ branchId, periodId, staffId, amount
     client.release();
   }
 
+  broadcastToBranch(branchId, 'payroll:paid', { paymentId, staffId });
   return getPayrollPeriodDetail({ branchId, periodId });
 }
 
@@ -1192,11 +1202,17 @@ export async function assignShift({ branchId, staffId, shiftDate, startsAt, ends
 
     await client.query('COMMIT');
 
-    return {
+    const scheduleResult = {
       id: insertedId,
       groupId,
       affectedWeeks: applyToWeeks
     };
+    broadcastToBranch(branchId, 'staff:schedule_changed', {
+      scheduleId: insertedId,
+      staffId,
+      action: 'assigned',
+    });
+    return scheduleResult;
   } catch (err) {
     await client.query('ROLLBACK');
     throw err;
@@ -1358,6 +1374,11 @@ export async function updateSchedule(branchId, scheduleId, updates, propagate = 
       `, [updates.startsAt, updates.endsAt, updates.shiftName, newGroupId, scheduleId]);
 
       await client.query('COMMIT');
+      broadcastToBranch(branchId, 'staff:schedule_changed', {
+        scheduleId,
+        staffId: schedule.staff_id,
+        action: 'updated',
+      });
       return { updatedCount: 1, newGroupId };
     }
 
@@ -1379,6 +1400,11 @@ export async function updateSchedule(branchId, scheduleId, updates, propagate = 
     `, [updates.startsAt, updates.endsAt, updates.shiftName, scheduleId]);
 
     await client.query('COMMIT');
+    broadcastToBranch(branchId, 'staff:schedule_changed', {
+      scheduleId,
+      staffId: schedule.staff_id,
+      action: 'updated',
+    });
     return { updatedCount: updateResult.rows.length + 1 };
   } catch (err) {
     await client.query('ROLLBACK');
@@ -1430,6 +1456,10 @@ export async function deleteSchedule(branchId, scheduleId, deleteAllRecurring = 
     }
 
     await client.query('COMMIT');
+    broadcastToBranch(branchId, 'staff:schedule_changed', {
+      scheduleId,
+      action: 'deleted',
+    });
     return { deleted: true };
   } catch (err) {
     await client.query('ROLLBACK');

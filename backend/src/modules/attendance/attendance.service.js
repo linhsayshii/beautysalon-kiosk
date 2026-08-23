@@ -2,6 +2,7 @@ import { createHmac, timingSafeEqual } from 'node:crypto';
 import { config } from '../../config.js';
 import { pool } from '../../db.js';
 import { HttpError } from '../../lib/http.js';
+import { broadcastToBranch } from '../../lib/ws.js';
 
 const slotFor = (time = Date.now()) => Math.floor(time / (config.auth.qrLifetimeSeconds * 1000));
 const attendanceGraceMinutes = 10;
@@ -155,7 +156,12 @@ export async function recordAttendance({ branchId, staffId, token, latitude, lon
       throw new HttpError(409, 'ATTENDANCE_COMPLETED', 'Bạn đã hoàn tất chấm công hôm nay');
     }
     await client.query('COMMIT');
-    return { action, distanceMeters: Math.round(distance), attendance: await getMyAttendance({ branchId, staffId }) };
+    const attendance = await getMyAttendance({ branchId, staffId });
+    broadcastToBranch(branchId, 'attendance:recorded', {
+      attendanceId: attendance.id,
+      staffId,
+    });
+    return { action, distanceMeters: Math.round(distance), attendance };
   } catch (error) {
     await client.query('ROLLBACK');
     throw error;

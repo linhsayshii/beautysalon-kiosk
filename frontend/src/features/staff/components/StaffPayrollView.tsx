@@ -1,10 +1,11 @@
-import { useState, useMemo, Fragment } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useState, useMemo, Fragment, useEffect } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { EmptyState, ErrorState, LoadingState } from '@/components/data-display/DataState';
 import { StatusBadge } from '@/components/data-display/Badges';
 import { formatMoney } from '@/lib/format';
 import { exportCsv } from '@/lib/export';
 import { useToast } from '@/components/ui/Toast/ToastProvider';
+import { useWebSocket } from '@/hooks/useWebSocket';
 import { getPayrollList, type PayrollPeriodListItem } from '../staff.api';
 import { StaffPayrollDetailAccordion } from './StaffPayrollDetailAccordion';
 import { StaffPayrollSheetView } from './StaffPayrollSheetView';
@@ -12,6 +13,8 @@ import './AttendanceTimekeeping.css';
 
 export function StaffPayrollView() {
   const { notify } = useToast();
+  const queryClient = useQueryClient();
+  const { subscribe } = useWebSocket();
   const [searchTerm, setSearchTerm] = useState('');
   const [periodTypeFilter, setPeriodTypeFilter] = useState('monthly');
   const [selectedStatuses, setSelectedStatuses] = useState<string[]>(['draft', 'approved']);
@@ -30,6 +33,15 @@ export function StaffPayrollView() {
         periodType: periodTypeFilter,
       }),
   });
+
+  // WebSocket subscription for live payroll updates
+  useEffect(() => {
+    const unsub = subscribe('payroll:*', () => {
+      queryClient.invalidateQueries({ queryKey: ['staff-payroll'] });
+      notify('Cập nhật', 'Dữ liệu bảng lương đã thay đổi');
+    });
+    return unsub;
+  }, [subscribe, queryClient, notify]);
 
   const rawRows = query.data?.data ?? [];
   const grandSummary = query.data?.summary ?? {

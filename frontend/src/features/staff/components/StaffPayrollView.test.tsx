@@ -5,10 +5,17 @@ import { ToastProvider } from '@/components/ui/Toast/ToastProvider';
 import { StaffPayrollView } from './StaffPayrollView';
 import * as staffApi from '../staff.api';
 import * as exportLib from '@/lib/export';
+import { WebSocketProvider } from '@/context/WebSocketContext';
 
 vi.mock('../staff.api');
 vi.mock('@/lib/export', () => ({
   exportCsv: vi.fn(),
+}));
+vi.mock('@/services/websocket', () => ({
+  createPosSocketConnection: vi.fn(() => ({
+    isConnected: () => true,
+    disconnect: vi.fn(),
+  })),
 }));
 
 const mockPayrollListResponse = {
@@ -132,9 +139,11 @@ function renderWithClient(ui: React.ReactElement) {
   });
   return render(
     <QueryClientProvider client={testQueryClient}>
-      <ToastProvider>
-        {ui}
-      </ToastProvider>
+      <WebSocketProvider>
+        <ToastProvider>
+          {ui}
+        </ToastProvider>
+      </WebSocketProvider>
     </QueryClientProvider>
   );
 }

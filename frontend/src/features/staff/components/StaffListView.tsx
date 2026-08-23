@@ -1,5 +1,5 @@
 import { Fragment, useEffect, useRef, useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { AvatarName } from '@/components/data-display/AvatarName';
 import { EmptyState, ErrorState, LoadingState } from '@/components/data-display/DataState';
 import { Pagination } from '@/components/data-display/Pagination';
@@ -11,6 +11,7 @@ import { exportCsv } from '@/lib/export';
 import { formatMoney, formatNumber } from '@/lib/format';
 import type { ApiRecord } from '@/types/api';
 import { statusLabels } from '@/types/api';
+import { useWebSocket } from '@/hooks/useWebSocket';
 import { getStaff } from '../staff.api';
 import { StaffCreateDialog } from './StaffCreateDialog';
 import { StaffDetail } from './StaffDetail';
@@ -23,6 +24,8 @@ export function StaffListView() {
   const [expanded, setExpanded] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set());
   const selectAllRef = useRef<HTMLInputElement>(null);
+  const queryClient = useQueryClient();
+  const { subscribe } = useWebSocket();
   const query = useQuery({ queryKey: ['staff', appliedSearch], queryFn: () => getStaff({ search: appliedSearch }) });
   const rows = query.data?.data ?? [];
   const revenue = rows.reduce((sum, row) => sum + Number(row.monthRevenue), 0);
@@ -36,6 +39,14 @@ export function StaffListView() {
       selectAllRef.current.indeterminate = selectedVisibleCount > 0 && !allVisibleSelected;
     }
   }, [allVisibleSelected, selectedVisibleCount]);
+
+  useEffect(() => {
+    const unsub = subscribe(['staff:created', 'staff:updated'], () => {
+      queryClient.invalidateQueries({ queryKey: ['staff'] });
+      queryClient.invalidateQueries({ queryKey: ['staff-list'] });
+    });
+    return unsub;
+  }, [subscribe, queryClient]);
 
   const toggleAllVisible = () => {
     setSelectedIds((current) => {

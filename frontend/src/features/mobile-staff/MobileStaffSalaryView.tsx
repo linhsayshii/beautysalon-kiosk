@@ -1,8 +1,10 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { ErrorState, LoadingState } from '@/components/data-display/DataState';
 import { formatMoney } from '@/lib/format';
+import { useWebSocket } from '@/hooks/useWebSocket';
 import { getMyPayrollHistory, type MyPayrollResponse } from '@/features/staff/staff.api';
 import './mobile-staff.css';
 
@@ -42,6 +44,16 @@ function SalaryLine({ title, subtitle, value, sign, tone }: SalaryLineProps) {
 export function MobileStaffSalaryView() {
   const navigate = useNavigate();
   const [selectedRecordId, setSelectedRecordId] = useState<number | null>(null);
+  const { subscribe } = useWebSocket();
+  const queryClient = useQueryClient();
+
+  useEffect(() => {
+    const unsub = subscribe(['payroll:*', 'staff:salary_updated'], () => {
+      queryClient.invalidateQueries({ queryKey: ['mobile-my-payroll-history'] });
+    });
+    return unsub;
+  }, [subscribe, queryClient]);
+
   const query = useQuery({
     queryKey: ['mobile-my-payroll-history'],
     queryFn: getMyPayrollHistory,

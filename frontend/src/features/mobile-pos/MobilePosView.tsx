@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useWebSocket } from '@/hooks/useWebSocket';
 import { formatMoney, formatNumber } from '@/lib/format';
 import { LoadingState, ErrorState } from '@/components/data-display/DataState';
 import { getPosCatalog, getPosInvoice, getPosPaymentRequests, getPosStaff, type PosReceiptData } from '@/features/pos/pos.api';
@@ -59,6 +60,9 @@ export function MobilePosView() {
   const invoiceId = invoiceIdParam ? Number(invoiceIdParam) : null;
   const appointmentId = appointmentIdParam ? Number(appointmentIdParam) : null;
 
+  const { subscribe } = useWebSocket();
+  const queryClient = useQueryClient();
+
   // Fetch invoice if editing existing draft
   const invoiceQuery = useQuery({
     queryKey: ['pos-invoice', invoiceId],
@@ -112,6 +116,16 @@ export function MobilePosView() {
       setIsCartExpanded(true);
     }
   }, [invoiceQuery.data]);
+
+  // WebSocket subscription for real-time order updates
+  useEffect(() => {
+    const unsub = subscribe('pos:order_created', () => {
+      queryClient.invalidateQueries({ queryKey: ['orders'] });
+      queryClient.invalidateQueries({ queryKey: ['pos-appointments'] });
+    });
+    return unsub;
+  }, [subscribe, queryClient]);
+
   const [receiptToPrint, setReceiptToPrint] = useState<PosReceiptData | null>(null);
 
   // Fetch Pos Catalog

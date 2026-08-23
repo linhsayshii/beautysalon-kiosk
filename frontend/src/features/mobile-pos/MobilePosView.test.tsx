@@ -5,6 +5,18 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { MobilePosView } from './MobilePosView';
 import * as posApi from '@/features/pos/pos.api';
 import * as auth from '@/features/auth/AuthProvider';
+import { WebSocketProvider } from '@/context/WebSocketContext';
+
+vi.mock('@/services/websocket', () => ({
+  createPosSocketConnection: vi.fn(() => ({
+    isConnected: () => true,
+    disconnect: vi.fn(),
+  })),
+}));
+
+const wrapper = ({ children }: { children: React.ReactNode }) => (
+  <WebSocketProvider>{children}</WebSocketProvider>
+);
 
 describe('MobilePosView Component', () => {
   let queryClient: QueryClient;
@@ -29,9 +41,11 @@ describe('MobilePosView Component', () => {
   it('renders search bar, category tabs, and grouped item cards correctly', async () => {
     render(
       <QueryClientProvider client={queryClient}>
-        <MemoryRouter>
-          <MobilePosView />
-        </MemoryRouter>
+        <WebSocketProvider>
+          <MemoryRouter>
+            <MobilePosView />
+          </MemoryRouter>
+        </WebSocketProvider>
       </QueryClientProvider>
     );
 
@@ -53,9 +67,11 @@ describe('MobilePosView Component', () => {
   it('adds item to cart and opens bottom sheet checkout on cart bar click', async () => {
     render(
       <QueryClientProvider client={queryClient}>
-        <MemoryRouter>
-          <MobilePosView />
-        </MemoryRouter>
+        <WebSocketProvider>
+          <MemoryRouter>
+            <MobilePosView />
+          </MemoryRouter>
+        </WebSocketProvider>
       </QueryClientProvider>
     );
 
@@ -82,9 +98,11 @@ describe('MobilePosView Component', () => {
 
     render(
       <QueryClientProvider client={queryClient}>
-        <MemoryRouter>
-          <MobilePosView />
-        </MemoryRouter>
+        <WebSocketProvider>
+          <MemoryRouter>
+            <MobilePosView />
+          </MemoryRouter>
+        </WebSocketProvider>
       </QueryClientProvider>
     );
 

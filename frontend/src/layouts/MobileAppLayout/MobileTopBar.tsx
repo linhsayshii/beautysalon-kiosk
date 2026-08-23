@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/features/auth/AuthProvider';
 import { useMetadata } from '@/services/metadata';
-import { usePosSocket } from '@/services/usePosSocket';
+import { useWebSocket } from '@/hooks/useWebSocket';
 import { getBranches } from '@/features/branches/branches.api';
 import type { ApiRecord } from '@/types/api';
 
@@ -49,7 +49,7 @@ export function MobileTopBar() {
   const navigate = useNavigate();
   const { account, switchBranch } = useAuth();
   const { data: meta } = useMetadata();
-  const { isOnline } = usePosSocket();
+  const { isConnected } = useWebSocket();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const storeName = meta?.data?.system?.storeName || 'AnnaChill';
@@ -126,7 +126,7 @@ export function MobileTopBar() {
       )}
 
       <div className="mobile-top-right">
-        <span className={`mobile-status-dot ${isOnline ? 'online' : 'offline'}`} title={isOnline ? 'Realtime Online' : 'Offline'} />
+        <span className={`mobile-status-dot ${isConnected ? 'online' : 'offline'}`} title={isConnected ? 'Realtime Online' : 'Offline'} />
 
         {/* Shop Icon Button & Dropdown Menu Container */}
         <div className="mobile-shop-dropdown-container" ref={dropdownRef}>

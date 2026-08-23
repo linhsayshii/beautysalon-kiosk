@@ -5,6 +5,14 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { ToastProvider } from '@/components/ui/Toast/ToastProvider';
 import { MobileAppLayout } from './MobileAppLayout';
 import * as auth from '@/features/auth/AuthProvider';
+import { WebSocketProvider } from '@/context/WebSocketContext';
+
+vi.mock('@/services/websocket', () => ({
+  createPosSocketConnection: vi.fn(() => ({
+    isConnected: () => true,
+    disconnect: vi.fn(),
+  })),
+}));
 
 describe('MobileAppLayout Component', () => {
   let queryClient: QueryClient;
@@ -29,21 +37,23 @@ describe('MobileAppLayout Component', () => {
 
     render(
       <QueryClientProvider client={queryClient}>
-        <ToastProvider>
-          <MemoryRouter initialEntries={['/m/more']}>
-            <Routes>
-              <Route path="/m" element={<MobileAppLayout />}>
-                <Route path="more" element={
-                  <div>
-                    <h1>More Page</h1>
-                    <Link to="/m/products" data-testid="to-products">Go to Products</Link>
-                  </div>
-                } />
-                <Route path="products" element={<h1>Products Page</h1>} />
-              </Route>
-            </Routes>
-          </MemoryRouter>
-        </ToastProvider>
+        <WebSocketProvider>
+          <ToastProvider>
+            <MemoryRouter initialEntries={['/m/more']}>
+              <Routes>
+                <Route path="/m" element={<MobileAppLayout />}>
+                  <Route path="more" element={
+                    <div>
+                      <h1>More Page</h1>
+                      <Link to="/m/products" data-testid="to-products">Go to Products</Link>
+                    </div>
+                  } />
+                  <Route path="products" element={<h1>Products Page</h1>} />
+                </Route>
+              </Routes>
+            </MemoryRouter>
+          </ToastProvider>
+        </WebSocketProvider>
       </QueryClientProvider>
     );
 
