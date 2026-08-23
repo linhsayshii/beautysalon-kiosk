@@ -44,6 +44,17 @@ export function MobileAccountView() {
   const queryClient = useQueryClient();
   const isManager = account?.role === 'manager';
 
+  // WebSocket subscription for live updates
+  const { subscribe } = useWebSocket();
+
+  useEffect(() => {
+    const unsub = subscribe(['staff:created', 'staff:updated'], () => {
+      queryClient.invalidateQueries({ queryKey: ['accounts'] });
+      queryClient.invalidateQueries({ queryKey: ['branches'] });
+    });
+    return unsub;
+  }, [subscribe, queryClient]);
+
   const [activeTab, setActiveTab] = useState<AccountTab>('profile');
   const [profileSubTab, setProfileSubTab] = useState<ProfileSubTab>('info');
 

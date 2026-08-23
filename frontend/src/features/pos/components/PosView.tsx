@@ -155,6 +155,15 @@ export function PosView() {
     setMode('invoice');
   }, [requestedInvoice.data]);
 
+  const { subscribe } = useWebSocket();
+
+  useEffect(() => {
+    const unsub = subscribe('pos:order_created', () => {
+      queryClient.invalidateQueries({ queryKey: ['orders'] });
+    });
+    return unsub;
+  }, [subscribe, queryClient]);
+
   const customers = useQuery({
     queryKey: ['pos-customers', deferredCustomerSearch],
     queryFn: () => searchPosCustomers(deferredCustomerSearch),
