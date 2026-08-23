@@ -4,14 +4,30 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter } from 'react-router-dom';
 import { MobileAccountView } from './MobileAccountView';
 import * as AuthProvider from '@/features/auth/AuthProvider';
+import { WebSocketProvider } from '@/context/WebSocketContext';
 
 // Mock ToastProvider
 vi.mock('@/components/ui/Toast/ToastProvider', () => ({
   useToast: () => ({ notify: vi.fn() }),
 }));
 
+vi.mock('@/services/websocket', () => ({
+  createPosSocketConnection: vi.fn(() => ({
+    isConnected: () => true,
+    disconnect: vi.fn(),
+  })),
+}));
+
 describe('MobileAccountView', () => {
   let queryClient: QueryClient;
+
+  const wrapper = ({ children }: { children: React.ReactNode }) => (
+    <WebSocketProvider>
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter>{children}</MemoryRouter>
+      </QueryClientProvider>
+    </WebSocketProvider>
+  );
 
   beforeEach(() => {
     queryClient = new QueryClient({
@@ -19,14 +35,7 @@ describe('MobileAccountView', () => {
     });
   });
 
-  const renderComponent = () =>
-    render(
-      <QueryClientProvider client={queryClient}>
-        <MemoryRouter>
-          <MobileAccountView />
-        </MemoryRouter>
-      </QueryClientProvider>
-    );
+  const renderComponent = () => render(<MobileAccountView />, { wrapper });
 
   it('renders profile tab and user info for cashier/staff role', () => {
     vi.spyOn(AuthProvider, 'useAuth').mockReturnValue({

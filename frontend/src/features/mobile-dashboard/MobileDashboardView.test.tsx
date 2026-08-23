@@ -4,9 +4,25 @@ import { MemoryRouter } from 'react-router-dom';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { MobileDashboardView } from './MobileDashboardView';
 import * as dashApi from '@/features/dashboard/dashboard.api';
+import { WebSocketProvider } from '@/context/WebSocketContext';
+
+vi.mock('@/services/websocket', () => ({
+  createPosSocketConnection: vi.fn(() => ({
+    isConnected: () => true,
+    disconnect: vi.fn(),
+  })),
+}));
 
 describe('MobileDashboardView Component', () => {
   let queryClient: QueryClient;
+
+  const wrapper = ({ children }: { children: React.ReactNode }) => (
+    <WebSocketProvider>
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter>{children}</MemoryRouter>
+      </QueryClientProvider>
+    </WebSocketProvider>
+  );
 
   const mockFullDashboard = {
     meta: {
@@ -58,11 +74,7 @@ describe('MobileDashboardView Component', () => {
   });
 
   it('renders all full desktop dashboard cards arranged vertically', async () => {
-    render(
-      <QueryClientProvider client={queryClient}>
-        <MemoryRouter><MobileDashboardView /></MemoryRouter>
-      </QueryClientProvider>
-    );
+    render(<MobileDashboardView />, { wrapper });
 
     await waitFor(() => {
       // 1. Header & Title

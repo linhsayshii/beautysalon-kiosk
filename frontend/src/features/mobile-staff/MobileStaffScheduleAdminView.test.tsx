@@ -5,9 +5,27 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { ToastProvider } from '@/components/ui/Toast/ToastProvider';
 import { MobileStaffScheduleAdminView } from './MobileStaffScheduleAdminView';
 import * as staffApi from '@/features/staff/staff.api';
+import { WebSocketProvider } from '@/context/WebSocketContext';
+
+vi.mock('@/services/websocket', () => ({
+  createPosSocketConnection: vi.fn(() => ({
+    isConnected: () => true,
+    disconnect: vi.fn(),
+  })),
+}));
 
 describe('MobileStaffScheduleAdminView Component', () => {
   let queryClient: QueryClient;
+
+  const wrapper = ({ children }: { children: React.ReactNode }) => (
+    <WebSocketProvider>
+      <QueryClientProvider client={queryClient}>
+        <ToastProvider>
+          <MemoryRouter>{children}</MemoryRouter>
+        </ToastProvider>
+      </QueryClientProvider>
+    </WebSocketProvider>
+  );
 
   const mockStaffResponse = {
     data: [
@@ -50,16 +68,7 @@ describe('MobileStaffScheduleAdminView Component', () => {
     vi.spyOn(staffApi, 'assignShift').mockResolvedValue({ success: true } as any);
   });
 
-  const renderComponent = () =>
-    render(
-      <QueryClientProvider client={queryClient}>
-        <ToastProvider>
-          <MemoryRouter>
-            <MobileStaffScheduleAdminView />
-          </MemoryRouter>
-        </ToastProvider>
-      </QueryClientProvider>
-    );
+  const renderComponent = () => render(<MobileStaffScheduleAdminView />, { wrapper });
 
   it('renders title, week navigator, and staff schedule list without metric cards', async () => {
     renderComponent();
