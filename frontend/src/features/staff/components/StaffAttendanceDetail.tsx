@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { formatDate } from '@/lib/format';
 import type { ApiRecord } from '@/types/api';
+import { calculateAttendanceForShift, formatAttendanceTime } from '../attendance-calculation';
 import { getSchedule, getAttendance } from '../staff.api';
 
 export interface StaffAttendanceDetailProps {
@@ -98,50 +99,45 @@ export function StaffAttendanceDetail({ staff, currentMonday }: StaffAttendanceD
         (a) => (a.workDate ? String(a.workDate).slice(0, 10) : '') === dateStr
       );
 
-      let shiftName = schedule?.shiftName;
-      let checkIn = att?.checkIn ? String(att.checkIn).slice(11, 16) : '--';
-      let checkOut = att?.checkOut ? String(att.checkOut).slice(11, 16) : '--';
-      let lateMinutes = att?.lateMinutes ? Number(att.lateMinutes) : 0;
-      let earlyMinutes = 0;
-      let otMinutes = 0;
-      let status = 'unclocked';
-      let statusText = 'Chưa chấm công';
-
-      if (schedule) {
-        shiftName = `${schedule.shiftName} (${schedule.startsAt} - ${schedule.endsAt})`;
-      } else {
-        shiftName = 'Chưa xếp ca';
+      if (!schedule) {
+        return {
+          dateStr,
+          weekday: weekdayNames[weekDates.indexOf(dateStr)],
+          shiftName: 'Chưa xếp ca',
+          checkIn: att?.checkIn ? formatAttendanceTime(att.checkIn) : '--',
+          checkOut: att?.checkOut ? formatAttendanceTime(att.checkOut) : '--',
+          lateMinutes: 0,
+          earlyMinutes: 0,
+          otMinutes: 0,
+          workedMinutes: Number(att?.workedMinutes ?? 0),
+          status: 'leave',
+          statusText: 'Không có lịch',
+        };
       }
 
-      if (att) {
-        if (att.lateMinutes > 0) {
-          status = 'late';
-          statusText = `Đi muộn ${att.lateMinutes}p`;
-        } else if (att.checkIn && !att.checkOut) {
-          status = 'missing';
-          statusText = 'Chưa chấm ra';
-        } else if (!att.checkIn && att.checkOut) {
-          status = 'missing';
-          statusText = 'Chưa chấm vào';
-        } else if (att.checkIn && att.checkOut) {
-          status = 'ontime';
-          statusText = 'Đúng giờ';
-        }
-      } else if (!schedule) {
-        status = 'leave';
-        statusText = 'Không có lịch';
-      }
+      const calculation = calculateAttendanceForShift({
+        date: dateStr,
+        startsAt: String(schedule.startsAt),
+        endsAt: String(schedule.endsAt),
+        scheduleStatus: String(schedule.status),
+        attendance: att,
+      });
+      const [checkIn = '--', checkOut = '--'] = calculation.detailText.includes(' - ')
+        ? calculation.detailText.split(' - ')
+        : calculation.detailText.split(' ');
+      const statusText = calculation.subText || (calculation.status === 'ontime' ? 'Đúng giờ' : 'Nghỉ phép');
 
       return {
         dateStr,
         weekday: weekdayNames[weekDates.indexOf(dateStr)],
-        shiftName: shiftName || 'Chưa xếp ca',
+        shiftName: `${schedule.shiftName} (${schedule.startsAt} - ${schedule.endsAt})`,
         checkIn,
         checkOut,
-        lateMinutes,
-        earlyMinutes,
-        otMinutes,
-        status,
+        lateMinutes: calculation.lateMinutes,
+        earlyMinutes: calculation.earlyMinutes,
+        otMinutes: calculation.beforeShiftMinutes + calculation.afterShiftMinutes,
+        workedMinutes: Number(att?.workedMinutes ?? 0),
+        status: calculation.status,
         statusText,
       };
     });
@@ -154,6 +150,8 @@ export function StaffAttendanceDetail({ staff, currentMonday }: StaffAttendanceD
     let workedMinutes = 0;
     let lateCount = 0;
     let lateMinutes = 0;
+    let earlyCount = 0;
+    let earlyMinutes = 0;
     let otCount = 0;
     let otMinutes = 0;
     let leaveDays = 0;
@@ -162,9 +160,14 @@ export function StaffAttendanceDetail({ staff, currentMonday }: StaffAttendanceD
       if (d.checkIn !== '--' || d.checkOut !== '--') {
         workedDays++;
       }
+      workedMinutes += d.workedMinutes;
       if (d.lateMinutes > 0) {
         lateCount++;
         lateMinutes += d.lateMinutes;
+      }
+      if (d.earlyMinutes > 0) {
+        earlyCount++;
+        earlyMinutes += d.earlyMinutes;
       }
       if (d.otMinutes > 0) {
         otCount++;
@@ -182,12 +185,15 @@ export function StaffAttendanceDetail({ staff, currentMonday }: StaffAttendanceD
       workedHoursText: workedDays > 0 ? `${workedDays} ngày / ${workedHours} giờ` : '0 ngày / 0 giờ',
       lateCount,
       lateText: lateCount > 0 ? `${lateCount} lần / ${formatMinutesToHoursMinutes(lateMinutes)}` : '0 lần',
+      earlyCount,
+      earlyText: earlyCount > 0 ? `${earlyCount} lần / ${formatMinutesToHoursMinutes(earlyMinutes)}` : '0 lần',
       otCount,
       otText: otCount > 0 ? `${otCount} lần / ${formatMinutesToHoursMinutes(otMinutes)}` : '0 lần',
       leaveDays,
       leaveText: `${leaveDays} ngày`,
       totalWorkedMinutes: workedMinutes,
       totalLateMinutes: lateMinutes,
+      totalEarlyMinutes: earlyMinutes,
       totalOtMinutes: otMinutes,
     };
   }, [daysData]);
@@ -414,9 +420,15 @@ export function StaffAttendanceDetail({ staff, currentMonday }: StaffAttendanceD
                 </div>
               </div>
               <div>
-                <div style={{ color: '#64748b', marginBottom: 2 }}>Tổng thời gian muộn/sớm:</div>
+                <div style={{ color: '#64748b', marginBottom: 2 }}>Tổng thời gian muộn:</div>
                 <div style={{ fontWeight: 600, color: stats.totalLateMinutes > 0 ? '#e11d48' : '#1e293b' }}>
                   {stats.totalLateMinutes > 0 ? formatMinutesToHoursMinutesFull(stats.totalLateMinutes) : '0 phút'}
+                </div>
+              </div>
+              <div>
+                <div style={{ color: '#64748b', marginBottom: 2 }}>Tổng thời gian về sớm:</div>
+                <div style={{ fontWeight: 600, color: stats.totalEarlyMinutes > 0 ? '#9333ea' : '#1e293b' }}>
+                  {stats.totalEarlyMinutes > 0 ? formatMinutesToHoursMinutesFull(stats.totalEarlyMinutes) : '0 phút'}
                 </div>
               </div>
               <div>
@@ -467,40 +479,64 @@ export function StaffAttendanceDetail({ staff, currentMonday }: StaffAttendanceD
                     <th style={{ padding: '9px 12px', textAlign: 'left' }}>Khung giờ</th>
                     <th style={{ padding: '9px 12px', textAlign: 'left' }}>Chi nhánh</th>
                     <th style={{ padding: '9px 12px', textAlign: 'center' }}>Trạng thái ca</th>
+                    <th style={{ padding: '9px 12px', textAlign: 'center' }}>Chấm công</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {daysData.map((row) => (
-                    <tr key={row.dateStr} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                      <td style={{ padding: '9px 12px' }}>
-                        <div style={{ fontWeight: 600, color: '#1e293b' }}>{row.weekday}</div>
-                        <div style={{ fontSize: 12, color: '#64748b' }}>{formatDate(row.dateStr)}</div>
-                      </td>
-                      <td style={{ padding: '9px 12px', fontWeight: 600, color: '#0052cc' }}>
-                        {row.shiftName}
-                      </td>
-                      <td style={{ padding: '9px 12px', color: '#475569' }}>
-                        {row.shiftName.includes('09:') ? '09:00 - 20:00' : row.shiftName.includes('Full') ? '09:00 - 21:00' : '09:00 - 19:00'}
-                      </td>
-                      <td style={{ padding: '9px 12px', color: '#475569' }}>
-                        {staff.branchName || 'Chi nhánh trung tâm'}
-                      </td>
-                      <td style={{ padding: '9px 12px', textAlign: 'center' }}>
-                        <span
-                          className={`status-badge ${row.shiftName.includes('Nghỉ') ? 'cancelled' : 'active'}`}
-                          style={{
-                            display: 'inline-block',
-                            padding: '2px 8px',
-                            borderRadius: 12,
-                            fontSize: 12,
-                            fontWeight: 600,
-                          }}
-                        >
-                          {row.shiftName.includes('Nghỉ') ? 'Nghỉ' : 'Đã xếp ca'}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
+                  {daysData.map((row) => {
+                    // Find attendance for this date
+                    const att = staffAttendance.find(
+                      (a) => (a.workDate ? String(a.workDate).slice(0, 10) : '') === row.dateStr
+                    );
+                    const isFullyClocked = att?.checkIn && att?.checkOut;
+                    const isPartiallyClocked = att?.checkIn || att?.checkOut;
+                    const schedule = staffSchedules.find((s) => s.date === row.dateStr);
+
+                    return (
+                      <tr key={row.dateStr} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                        <td style={{ padding: '9px 12px' }}>
+                          <div style={{ fontWeight: 600, color: '#1e293b' }}>{row.weekday}</div>
+                          <div style={{ fontSize: 12, color: '#64748b' }}>{formatDate(row.dateStr)}</div>
+                        </td>
+                        <td style={{ padding: '9px 12px', fontWeight: 600, color: '#0052cc' }}>
+                          {row.shiftName}
+                        </td>
+                        <td style={{ padding: '9px 12px', color: '#475569' }}>
+                          {schedule?.startsAt && schedule?.endsAt
+                            ? `${schedule.startsAt} - ${schedule.endsAt}`
+                            : row.shiftName.includes('09:') ? '09:00 - 20:00' : row.shiftName.includes('Full') ? '09:00 - 21:00' : '09:00 - 19:00'}
+                        </td>
+                        <td style={{ padding: '9px 12px', color: '#475569' }}>
+                          {staff.branchName || 'Chi nhánh trung tâm'}
+                        </td>
+                        <td style={{ padding: '9px 12px', textAlign: 'center' }}>
+                          <span
+                            className={`status-badge ${row.shiftName.includes('Nghỉ') ? 'cancelled' : 'active'}`}
+                            style={{
+                              display: 'inline-block',
+                              padding: '2px 8px',
+                              borderRadius: 12,
+                              fontSize: 12,
+                              fontWeight: 600,
+                            }}
+                          >
+                            {row.shiftName.includes('Nghỉ') ? 'Nghỉ' : 'Đã xếp ca'}
+                          </span>
+                        </td>
+                        <td style={{ padding: '9px 12px', textAlign: 'center' }}>
+                          {isFullyClocked ? (
+                            <span style={{ color: '#16a34a', fontWeight: 600 }}>Đã chấm</span>
+                          ) : isPartiallyClocked ? (
+                            <span style={{ color: '#ea580c', fontWeight: 600 }}>Chưa ra</span>
+                          ) : schedule ? (
+                            <span style={{ color: '#94a3b8' }}>Chưa chấm</span>
+                          ) : (
+                            <span style={{ color: '#94a3b8' }}>—</span>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>

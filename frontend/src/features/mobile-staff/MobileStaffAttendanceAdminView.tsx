@@ -288,6 +288,11 @@ export function MobileStaffAttendanceAdminView() {
                                 • Muộn {stats.lateCount} lần
                               </span>
                             )}
+                            {stats.earlyCount > 0 && (
+                              <span style={{ color: '#9333ea', fontWeight: 600 }}>
+                                • Sớm {stats.earlyCount} lần
+                              </span>
+                            )}
                           </span>
                         </div>
                       </div>

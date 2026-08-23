@@ -12,6 +12,13 @@
   --mobile-layer-toast: 200;
 }
 
+/* ToastProvider lives outside MobileAppLayout, so position its global toast
+ * relative to the mobile navigation whenever the mobile shell is active. */
+body:has(.mobile-app-shell) .toast {
+  bottom: calc(var(--mobile-bottomnav-h) + var(--mobile-safe-bottom) + 16px);
+  z-index: var(--mobile-layer-toast);
+}
+
 body.mobile-overlay-open .mobile-bottom-nav,
 body:has(.goods-dialog-backdrop) .mobile-bottom-nav,
 body:has(.mobile-form-sheet-backdrop) .mobile-bottom-nav {

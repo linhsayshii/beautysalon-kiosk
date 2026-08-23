@@ -113,7 +113,8 @@ describe('StaffAttendanceDetail Component', () => {
     fireEvent.click(screen.getByRole('tab', { name: /Tổng hợp công & Tăng ca/i }));
     expect(screen.getByText('Tổng ngày công thực tế:')).toBeInTheDocument();
     expect(screen.getByText('Tổng giờ làm việc:')).toBeInTheDocument();
-    expect(screen.getByText('Tổng thời gian muộn/sớm:')).toBeInTheDocument();
+    expect(screen.getByText('Tổng thời gian muộn:')).toBeInTheDocument();
+    expect(screen.getByText('Tổng thời gian về sớm:')).toBeInTheDocument();
     expect(screen.getByText('Tổng giờ tăng ca:')).toBeInTheDocument();
     expect(screen.getByText('Loại lương áp dụng:')).toBeInTheDocument();
     expect(screen.getByText('Theo ngày công chuẩn')).toBeInTheDocument();

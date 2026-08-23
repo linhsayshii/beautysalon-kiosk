@@ -244,9 +244,9 @@ router.put('/schedule/:id', asyncRoute(async (request, response) => {
 router.delete('/schedule/:id', asyncRoute(async (request, response) => {
   const branchId = request.account.branchId;
   const scheduleId = parsePositiveInteger(request.params.id, 'id');
-  const deleteFutureWeeks = request.body.deleteFutureWeeks === true;
+  const deleteAllRecurring = request.body.deleteAllRecurring === true || request.body.deleteFutureWeeks === true;
 
-  const result = await deleteSchedule(branchId, scheduleId, deleteFutureWeeks);
+  const result = await deleteSchedule(branchId, scheduleId, deleteAllRecurring);
   response.json({ success: true, ...result });
 }));
 

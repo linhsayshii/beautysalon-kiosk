@@ -408,7 +408,7 @@ export async function listAttendance({ branchId, dateFrom, dateTo }) {
   const result = await pool.query(
     `SELECT
        ar.id, ar.work_date, ar.check_in, ar.check_out, ar.scheduled_minutes, ar.worked_minutes,
-       ar.late_minutes, ar.status, ar.note,
+       ar.late_minutes, ar.early_minutes, ar.status, ar.note,
        s.id AS staff_id, s.code AS staff_code, s.name AS staff_name, s.role, s.avatar_tone
      FROM attendance_records ar
      JOIN staff s ON s.id = ar.staff_id
@@ -425,6 +425,7 @@ export async function listAttendance({ branchId, dateFrom, dateTo }) {
     scheduledMinutes: number(row.scheduled_minutes),
     workedMinutes: number(row.worked_minutes),
     lateMinutes: number(row.late_minutes),
+    earlyMinutes: number(row.early_minutes),
     status: row.status,
     note: row.note,
     staff: {
@@ -618,6 +619,27 @@ async function calculatePeriodPayrollInternal(client, branchId, periodId, starts
     staffCommissionMap.set(number(row.staff_id), number(row.total_commission));
   }
 
+  // 4.5. Fetch attendance data per staff (late/early minutes for auto-deduction)
+  const attendanceRes = await client.query(
+    `SELECT
+       staff_id,
+       COALESCE(SUM(late_minutes), 0) AS total_late_minutes,
+       COALESCE(SUM(early_minutes), 0) AS total_early_minutes,
+       COUNT(CASE WHEN check_in IS NOT NULL AND check_out IS NOT NULL THEN 1 END) AS worked_days
+     FROM attendance_records
+     WHERE branch_id = $1 AND work_date >= $2::date AND work_date <= $3::date
+     GROUP BY staff_id`,
+    [branchId, startsOn, endsOn],
+  );
+  const staffAttendanceMap = new Map();
+  for (const row of attendanceRes.rows) {
+    staffAttendanceMap.set(number(row.staff_id), {
+      lateMinutes: number(row.total_late_minutes),
+      earlyMinutes: number(row.total_early_minutes),
+      workedDays: number(row.worked_days),
+    });
+  }
+
   // 5. Existing records to preserve manual adjustments (allowance, bonus, deduction, paid_amount)
   const existingRecordsRes = await client.query(
     'SELECT * FROM payroll_records WHERE payroll_period_id = $1',
@@ -652,7 +674,16 @@ async function calculatePeriodPayrollInternal(client, branchId, periodId, starts
     const overtimeSalary = existing ? number(existing.overtime_salary) : 0;
     const allowance = existing ? number(existing.allowance) : 0;
     const bonus = existing ? number(existing.bonus) : 0;
-    const deduction = existing ? number(existing.deduction) : 0;
+
+    // Auto-calculate deduction from attendance (late/early minutes)
+    // Rate: 10,000 VND per minute late/early
+    const LATE_DEDUCTION_RATE = 10000;
+    const attendanceInfo = staffAttendanceMap.get(sId) || { lateMinutes: 0, earlyMinutes: 0 };
+    const autoDeduction = Math.round((attendanceInfo.lateMinutes + attendanceInfo.earlyMinutes) * LATE_DEDUCTION_RATE);
+
+    // Preserve existing manual deduction if it's larger (manager may have added extra deductions)
+    const manualDeduction = existing ? number(existing.deduction) : 0;
+    const deduction = Math.max(autoDeduction, manualDeduction);
     const paidAmount = existing ? number(existing.paid_amount) : 0;
 
     const totalIncome = baseSalary + overtimeSalary + commission + allowance + bonus;
@@ -1069,12 +1100,21 @@ export async function createPayrollPayment({ branchId, periodId, staffId, amount
 }
 
 /**
- * Add weeks to a date
+ * Add whole weeks to a calendar date without converting it to a local/UTC
+ * timestamp. Schedules use DATE columns, so a date-only calculation is
+ * required here. Converting a Vietnam midnight to ISO used to turn Saturday
+ * into Friday before the copy was inserted.
  */
-function addWeeks(date, weeks) {
-  const result = new Date(date);
-  result.setDate(result.getDate() + (weeks * 7));
-  return result;
+export function addWeeksToIsoDate(date, weeks) {
+  const [year, month, day] = String(date).split('-').map(Number);
+  const result = new Date(Date.UTC(year, month - 1, day));
+  result.setUTCDate(result.getUTCDate() + (weeks * 7));
+
+  return [
+    result.getUTCFullYear(),
+    String(result.getUTCMonth() + 1).padStart(2, '0'),
+    String(result.getUTCDate()).padStart(2, '0'),
+  ].join('-');
 }
 
 /**
@@ -1123,8 +1163,6 @@ export async function assignShift({ branchId, staffId, shiftDate, startsAt, ends
 
     // If applyToWeeks > 1, copy the just-created schedule to subsequent weeks
     if (applyToWeeks > 1) {
-      const sourceDate = new Date(shiftDate + 'T00:00:00');
-
       // Get the just-created schedule
       const sourceSchedule = {
         staff_id: staffId,
@@ -1135,15 +1173,11 @@ export async function assignShift({ branchId, staffId, shiftDate, startsAt, ends
         note: note || null,
       };
 
-      // Calculate source day of week (0=Sun in JS)
-      const sourceDayOfWeek = sourceDate.getDay();
-
       // Copy to subsequent weeks
       for (let weekOffset = 1; weekOffset < applyToWeeks; weekOffset++) {
-        // Calculate target week Monday, then add offset to get same day of week
-        const targetDate = new Date(sourceDate);
-        targetDate.setDate(targetDate.getDate() + (weekOffset * 7));
-        const targetDateStr = targetDate.toISOString().split('T')[0];
+        // Keep the exact weekday by doing date-only arithmetic. Do not use
+        // Date#toISOString here: its UTC conversion shifts dates west of UTC.
+        const targetDateStr = addWeeksToIsoDate(shiftDate, weekOffset);
 
         // Skip leave days
         if (await isLeaveDay(staffId, targetDateStr, client)) continue;
@@ -1355,13 +1389,13 @@ export async function updateSchedule(branchId, scheduleId, updates, propagate = 
 }
 
 /**
- * Delete a schedule with optional deletion of future weeks
+ * Delete a schedule or its entire recurring group.
  * @param {number} branchId - Branch ID for authorization
  * @param {number} scheduleId - Schedule ID to delete
- * @param {boolean} deleteFuture - If true, delete this + all future in group
+ * @param {boolean} deleteAllRecurring - If true, delete every schedule in the recurring group
  * @returns {Object} { deleted: true }
  */
-export async function deleteSchedule(branchId, scheduleId, deleteFuture = false) {
+export async function deleteSchedule(branchId, scheduleId, deleteAllRecurring = false) {
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
@@ -1377,36 +1411,19 @@ export async function deleteSchedule(branchId, scheduleId, deleteFuture = false)
     }
 
     const schedule = currentResult.rows[0];
-    const { week_group_id, is_source, shift_date, branch_id: scheduleBranchId } = schedule;
+    const { week_group_id, branch_id: scheduleBranchId } = schedule;
 
     // Validate branch authorization
     if (Number(scheduleBranchId) !== Number(branchId)) {
       throw Object.assign(new Error('Schedule not found'), { status: 404 });
     }
 
-    // Source week protection: if this is a source and has copies, prevent deletion UNLESS deleteFuture=true (cascade)
-    if (is_source && week_group_id && !deleteFuture) {
-      const copyCountResult = await client.query(`
-        SELECT COUNT(*) as count FROM staff_schedules
-        WHERE week_group_id = $1 AND is_source = false
-      `, [week_group_id]);
-
-      const copyCount = parseInt(copyCountResult.rows[0].count, 10);
-      if (copyCount > 0) {
-        throw Object.assign(
-          new Error('Cannot delete source week that has recurring copies. Delete all copies first, or use deleteFuture=true to cascade delete the entire group.'),
-          { status: 400, code: 'SOURCE_WEEK_HAS_COPIES' }
-        );
-      }
-    }
-
-    if (deleteFuture && week_group_id) {
-      // Delete this week + all future weeks in group
+    if (deleteAllRecurring && week_group_id) {
+      // Any occurrence, including the source, can remove the whole series.
       await client.query(`
         DELETE FROM staff_schedules
         WHERE week_group_id = $1
-          AND shift_date >= $2::date
-      `, [week_group_id, shift_date]);
+      `, [week_group_id]);
     } else {
       // Delete only this schedule
       await client.query(`DELETE FROM staff_schedules WHERE id = $1`, [scheduleId]);

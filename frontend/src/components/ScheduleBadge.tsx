@@ -1,46 +1,22 @@
 
-export interface ScheduleBadgeProps {
-  groupStartDate: string;
-  onClick?: () => void;
-}
-
-export function ScheduleBadge({ groupStartDate, onClick }: ScheduleBadgeProps) {
-  if (!groupStartDate) return null;
-
-  const weekLabel = formatWeekLabel(groupStartDate);
-
+export function ScheduleBadge() {
   return (
     <span
+      aria-label="Lịch lặp lại"
+      role="img"
+      title="Lịch lặp lại"
       style={{
         display: 'inline-flex',
         alignItems: 'center',
-        gap: '4px',
-        padding: '2px 6px',
-        background: '#e3f2fd',
+        justifyContent: 'center',
+        width: '20px',
+        height: '20px',
         color: '#1565c0',
-        borderRadius: '4px',
-        fontSize: '11px',
-        cursor: 'pointer',
-        transition: 'background 0.2s',
-        userSelect: 'none',
+        flexShrink: 0,
+        pointerEvents: 'none',
       }}
-      onClick={onClick}
-      title={`Copy từ tuần ${weekLabel} - Click để quản lý`}
     >
-      <span style={{ fontSize: '10px' }}>↻</span>
-      <span>Tuần {weekLabel}</span>
+      <i className="ph ph-arrow-counter-clockwise" aria-hidden="true" />
     </span>
   );
-}
-
-function formatWeekLabel(dateStr: string): string {
-  const date = new Date(dateStr);
-  const weekNumber = getWeekNumber(date);
-  return `${weekNumber}`;
-}
-
-function getWeekNumber(date: Date): number {
-  const firstDayOfYear = new Date(date.getFullYear(), 0, 1);
-  const pastDaysOfYear = (date.getTime() - firstDayOfYear.getTime()) / 86400000;
-  return Math.ceil((pastDaysOfYear + firstDayOfYear.getDay() + 1) / 7);
 }

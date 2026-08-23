@@ -694,6 +694,81 @@
 .mobile-shift-badge.theme-green { background: #f0fdf4; color: #16a34a; border: 1px solid #bbf7d0; }
 .mobile-shift-badge.theme-purple { background: #faf5ff; color: #9333ea; border: 1px solid #e9d5ff; }
 .mobile-shift-badge.theme-blue { background: #f0f9ff; color: #0284c7; border: 1px solid #bae6fd; }
+
+/* Shift picker: the footer remains reachable even when there are many shifts. */
+.mobile-schedule-sheet-actions {
+  display: flex;
+  gap: 10px;
+  width: 100%;
+}
+
+.mobile-schedule-sheet-actions .mobile-staff-action-btn {
+  flex: 1;
+  min-height: 48px;
+}
+
+.mobile-schedule-sheet-confirm {
+  font-weight: 750;
+}
+
+.mobile-schedule-shift-options {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.mobile-schedule-shift-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 76px;
+  padding: 14px 16px;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  background: #ffffff;
+  cursor: pointer;
+}
+
+.mobile-schedule-shift-option.is-selected {
+  border: 2px solid #0062eb;
+  padding: 13px 15px;
+  background: #eff6ff;
+}
+
+.mobile-schedule-shift-option:active {
+  background: #f8fafc;
+}
+
+.mobile-schedule-shift-option.is-selected:active {
+  background: #dbeafe;
+}
+
+.mobile-schedule-shift-copy {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.mobile-schedule-shift-copy strong {
+  color: #0f172a;
+  font-size: 15px;
+  font-weight: 750;
+}
+
+.mobile-schedule-shift-copy span {
+  color: #64748b;
+  font-size: 13px;
+}
+
+.mobile-schedule-shift-option input {
+  width: 24px;
+  height: 24px;
+  margin: 0;
+  flex: 0 0 auto;
+  accent-color: #0062eb;
+}
 /* Non-Admin Employee Personal Views */
 .mobile-staff-container {
   display: flex;

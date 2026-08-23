@@ -5,7 +5,6 @@ import { weekStartIso, toIsoDate, todayIso } from '@/lib/date';
 import { useAuth } from '@/features/auth/AuthProvider';
 import type { ApiRecord } from '@/types/api';
 import { ScheduleBadge } from '@/components/ScheduleBadge';
-import { PropagateModal } from '@/components/PropagateModal';
 import './mobile-staff.css';
 
 const weekdayShorts = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'];
@@ -14,11 +13,6 @@ export function MobileStaffScheduleView() {
   const { account } = useAuth();
   const [selectedMonday, setSelectedMonday] = useState(weekStartIso());
   const [selectedDateIso, setSelectedDateIso] = useState(todayIso());
-  const [propagateModal, setPropagateModal] = useState<{
-    isOpen: boolean;
-    schedule: ApiRecord | null;
-  }>({ isOpen: false, schedule: null });
-
   const { data: scheduleData, isLoading, isError, refetch } = useQuery({
     queryKey: ['mobile-staff-schedule', selectedMonday],
     queryFn: () => getMySchedule(selectedMonday),
@@ -110,13 +104,7 @@ export function MobileStaffScheduleView() {
           dayAssignments.map((assign, idx) => (
             <div key={assign.id ?? idx} className={`shift-card ${idx % 2 === 0 ? 'morning' : 'evening'}`}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                {/* Badge for copied schedules - click to see propagate options */}
-                {assign.weekGroupId && !assign.isSource && (
-                  <ScheduleBadge
-                    groupStartDate={assign.groupStartDate || assign.date || assign.shiftDate}
-                    onClick={() => setPropagateModal({ isOpen: true, schedule: assign })}
-                  />
-                )}
+                {assign.weekGroupId && <ScheduleBadge />}
                 <div>
                   <div className="shift-time">{assign.startsAt || '08:30'} - {assign.endsAt || '17:30'}</div>
                   <div className="shift-name">{assign.shiftName || 'Ca sáng chuẩn'}</div>
@@ -139,16 +127,6 @@ export function MobileStaffScheduleView() {
         )}
       </div>
 
-      {/* PropagateModal - show schedule info, but staff can't update */}
-      <PropagateModal
-        isOpen={propagateModal.isOpen}
-        onClose={() => setPropagateModal({ isOpen: false, schedule: null })}
-        onConfirm={() => {
-          // Staff view is read-only - just close
-          setPropagateModal({ isOpen: false, schedule: null });
-        }}
-        weekLabel={propagateModal.schedule?.date || propagateModal.schedule?.shiftDate || ''}
-      />
     </div>
   );
 }

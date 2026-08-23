@@ -3,6 +3,13 @@ import test from 'node:test';
 import { pool } from '../../../db.js';
 import * as staffService from '../staff.service.js';
 
+test.describe('recurring schedule date arithmetic', () => {
+  test('keeps a Saturday on Saturday in every copied week', () => {
+    assert.equal(staffService.addWeeksToIsoDate('2026-08-22', 1), '2026-08-29');
+    assert.equal(staffService.addWeeksToIsoDate('2026-08-22', 2), '2026-09-05');
+  });
+});
+
 test.describe('getSchedule with group info', () => {
   let originalQuery;
 
@@ -286,8 +293,8 @@ test.describe('deleteSchedule', () => {
     assert.equal(result.deleted, true);
   });
 
-  test('should delete current and future schedules when deleteFuture=true', async () => {
-    let deleteFutureCalled = false;
+  test('should delete every schedule in a recurring group when deleteAllRecurring=true', async () => {
+    let deleteAllCalled = false;
     const mockClient = {
       query: async (query, params) => {
         if (query === 'BEGIN') return { rows: [] };
@@ -304,9 +311,10 @@ test.describe('deleteSchedule', () => {
           };
         }
         if (query.includes('DELETE FROM staff_schedules') && query.includes('week_group_id')) {
-          deleteFutureCalled = true;
+          deleteAllCalled = true;
           assert.equal(params[0], 123); // week_group_id
-          assert.equal(params[1], '2026-08-18'); // shift_date
+          assert.equal(params.length, 1);
+          assert.equal(query.includes('shift_date >='), false);
           return { rows: [] };
         }
         if (query === 'COMMIT') return { rows: [] };
@@ -319,7 +327,7 @@ test.describe('deleteSchedule', () => {
 
     const result = await staffService.deleteSchedule(1, 1, true);
 
-    assert.equal(deleteFutureCalled, true);
+    assert.equal(deleteAllCalled, true);
     assert.equal(result.deleted, true);
   });
 
@@ -380,8 +388,8 @@ test.describe('deleteSchedule', () => {
     );
   });
 
-  test('should throw error when deleting source week that has copies', async () => {
-    let copyCheckCalled = false;
+  test('should allow deleting only the source week without affecting its copies', async () => {
+    let deleteCalled = false;
     const mockClient = {
       query: async (query, params) => {
         if (query === 'BEGIN') return { rows: [] };
@@ -397,10 +405,12 @@ test.describe('deleteSchedule', () => {
             }]
           };
         }
-        if (query.includes('COUNT(*)')) {
-          copyCheckCalled = true;
-          return { rows: [{ count: '2' }] }; // Has 2 copies
+        if (query.includes('DELETE FROM staff_schedules') && query.includes('WHERE id = $1')) {
+          deleteCalled = true;
+          assert.equal(params[0], 1);
+          return { rows: [] };
         }
+        if (query === 'COMMIT') return { rows: [] };
         if (query === 'ROLLBACK') return { rows: [] };
         return { rows: [] };
       },
@@ -408,18 +418,13 @@ test.describe('deleteSchedule', () => {
     };
     pool.connect = async () => mockClient;
 
-    await assert.rejects(
-      async () => staffService.deleteSchedule(1, 1, false),
-      (err) => {
-        assert.equal(err.status, 400);
-        assert.equal(err.code, 'SOURCE_WEEK_HAS_COPIES');
-        assert.ok(copyCheckCalled);
-        return true;
-      }
-    );
+    const result = await staffService.deleteSchedule(1, 1, false);
+
+    assert.equal(deleteCalled, true);
+    assert.equal(result.deleted, true);
   });
 
-  test('should allow deleting source week when deleteFuture=true (cascade)', async () => {
+  test('should allow deleting all schedules from the source week', async () => {
     let cascadeDeleteCalled = false;
     const mockClient = {
       query: async (query, params) => {
@@ -436,11 +441,11 @@ test.describe('deleteSchedule', () => {
             }]
           };
         }
-        if (query.includes('COUNT(*)')) {
-          return { rows: [{ count: '2' }] }; // Has copies but we're deleting future
-        }
         if (query.includes('DELETE FROM staff_schedules') && query.includes('week_group_id')) {
           cascadeDeleteCalled = true;
+          assert.equal(params[0], 123);
+          assert.equal(params.length, 1);
+          assert.equal(query.includes('shift_date >='), false);
           return { rows: [] };
         }
         if (query === 'COMMIT') return { rows: [] };

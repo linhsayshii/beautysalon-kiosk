@@ -160,6 +160,10 @@ export async function runMigrations() {
       -- Add invoice_item_id to commission_records for per-item tracking
       ALTER TABLE commission_records
         ADD COLUMN IF NOT EXISTS invoice_item_id BIGINT REFERENCES invoice_items(id) ON DELETE SET NULL;
+
+      -- Add early_minutes column for tracking early leave
+      ALTER TABLE attendance_records
+        ADD COLUMN IF NOT EXISTS early_minutes INTEGER NOT NULL DEFAULT 0 CHECK (early_minutes >= 0);
     `);
     console.log('[database] payroll migrations checked and applied');
   } catch (err) {

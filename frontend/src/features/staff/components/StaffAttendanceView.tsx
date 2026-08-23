@@ -5,6 +5,7 @@ import { useToast } from '@/components/ui/Toast/ToastProvider';
 import { errorMessage } from '@/services/api-client';
 import { todayIso, toIsoDate, weekStartIso } from '@/lib/date';
 import type { ApiRecord } from '@/types/api';
+import { calculateAttendanceForShift } from '../attendance-calculation';
 import { WeekPicker } from './WeekPicker';
 import { AddShiftModal, ShiftFormValues } from './AddShiftModal';
 import { AssignStaffModal } from './AssignStaffModal';
@@ -140,35 +141,13 @@ export function StaffAttendanceView() {
           (ar) => ar.staff?.id === sc.staffId && ar.workDate?.slice(0, 10) === dateStr
         );
 
-        let status: 'ontime' | 'late' | 'missing' | 'unclocked' | 'leave' = 'ontime';
-        let detailText = `${sc.startsAt} - ${sc.endsAt}`;
-        let subText = '';
-
-        if (sc.status === 'leave') {
-          status = 'leave';
-          detailText = 'Nghỉ phép';
-        } else if (att) {
-          if (att.lateMinutes > 0) {
-            status = 'late';
-            const checkInStr = att.checkIn ? String(att.checkIn).slice(11, 16) : '--';
-            const checkOutStr = att.checkOut ? String(att.checkOut).slice(11, 16) : '--';
-            detailText = `${checkInStr} - ${checkOutStr}`;
-            subText = `Đi muộn ${att.lateMinutes}p`;
-          } else if (att.checkIn && !att.checkOut) {
-            status = 'missing';
-            detailText = `${String(att.checkIn).slice(11, 16)} --`;
-            subText = 'Chưa chấm ra';
-          } else if (!att.checkIn && att.checkOut) {
-            status = 'missing';
-            detailText = `-- ${String(att.checkOut).slice(11, 16)}`;
-            subText = 'Chưa chấm vào';
-          } else {
-            status = 'ontime';
-            const checkInStr = att.checkIn ? String(att.checkIn).slice(11, 16) : sc.startsAt;
-            const checkOutStr = att.checkOut ? String(att.checkOut).slice(11, 16) : sc.endsAt;
-            detailText = `${checkInStr} - ${checkOutStr}`;
-          }
-        }
+        const { status, detailText, subText } = calculateAttendanceForShift({
+          date: dateStr,
+          startsAt: String(sc.startsAt),
+          endsAt: String(sc.endsAt),
+          scheduleStatus: String(sc.status),
+          attendance: att,
+        });
 
         return {
           id: sc.id,

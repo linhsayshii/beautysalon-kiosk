@@ -102,11 +102,16 @@ describe('MobileStaffScheduleAdminView Component', () => {
 
     await waitFor(() => {
       expect(screen.getByText('Chọn ca làm việc')).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: 'Xác nhận' })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Tiếp tục' })).toBeInTheDocument();
     });
 
-    // Click confirm
-    fireEvent.click(screen.getByRole('button', { name: 'Xác nhận' }));
+    // Continue to recurrence options, then save the default recurrence.
+    fireEvent.click(screen.getByRole('button', { name: 'Tiếp tục' }));
+
+    await waitFor(() => {
+      expect(screen.getByText('Bạn muốn lặp lại lịch này như thế nào?')).toBeInTheDocument();
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Gán lịch' }));
 
     await waitFor(() => {
       expect(staffApi.assignShift).toHaveBeenCalled();

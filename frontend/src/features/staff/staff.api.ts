@@ -158,9 +158,9 @@ export const updateStaffSchedule = (id: number, body: {
   body: JSON.stringify(body),
 });
 
-export const deleteStaffSchedule = (id: number, deleteFuture: boolean = false) => apiRequest<ApiEnvelope<ApiRecord>>(
-  `/staff/schedule/${id}?deleteFuture=${deleteFuture}`,
-  { method: 'DELETE' },
+export const deleteStaffSchedule = (id: number, deleteAllRecurring: boolean = false) => apiRequest<ApiEnvelope<ApiRecord>>(
+  `/staff/schedule/${id}`,
+  { method: 'DELETE', body: JSON.stringify({ deleteAllRecurring }) },
 );
 
 // ============================================================================

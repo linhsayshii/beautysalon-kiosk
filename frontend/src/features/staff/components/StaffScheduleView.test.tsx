@@ -57,13 +57,18 @@ describe('StaffScheduleView', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Lưu lịch' }));
 
     await waitFor(() => {
-      expect(staffApi.assignShift).toHaveBeenCalledWith({
+      expect(screen.getByText('Bạn muốn lặp lại lịch này như thế nào?')).toBeInTheDocument();
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Gán lịch' }));
+
+    await waitFor(() => {
+      expect(staffApi.assignShift).toHaveBeenCalledWith(expect.objectContaining({
         staffId: 41,
         shiftDate: currentMonday,
         startsAt: '10:00',
         endsAt: '18:00',
         shiftName: 'Ca tư vấn da',
-      });
+      }));
     });
   });
 });

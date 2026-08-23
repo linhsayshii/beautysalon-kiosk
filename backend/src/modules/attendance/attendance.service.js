@@ -4,6 +4,7 @@ import { pool } from '../../db.js';
 import { HttpError } from '../../lib/http.js';
 
 const slotFor = (time = Date.now()) => Math.floor(time / (config.auth.qrLifetimeSeconds * 1000));
+const attendanceGraceMinutes = 10;
 const signatureFor = (branchId, slot) => createHmac('sha256', config.auth.qrSecret)
   .update(`${branchId}.${slot}`).digest('base64url').slice(0, 32);
 
@@ -67,7 +68,7 @@ export async function updateBranchAttendanceLocation({ branchId, latitude, longi
 export async function getMyAttendance({ branchId, staffId }) {
   if (!staffId) throw new HttpError(400, 'STAFF_NOT_LINKED', 'Tài khoản chưa liên kết với hồ sơ nhân viên');
   const result = await pool.query(
-    `SELECT ar.id, ar.work_date, ar.check_in, ar.check_out, ar.worked_minutes, ar.late_minutes, ar.status
+    `SELECT ar.id, ar.work_date, ar.check_in, ar.check_out, ar.worked_minutes, ar.late_minutes, ar.early_minutes, ar.status
      FROM attendance_records ar
      WHERE ar.branch_id = $1 AND ar.staff_id = $2
        AND ar.work_date = (NOW() AT TIME ZONE 'Asia/Ho_Chi_Minh')::date`,
@@ -76,7 +77,7 @@ export async function getMyAttendance({ branchId, staffId }) {
   const row = result.rows[0];
   return row ? {
     id: Number(row.id), workDate: row.work_date, checkIn: row.check_in, checkOut: row.check_out,
-    workedMinutes: Number(row.worked_minutes), lateMinutes: Number(row.late_minutes), status: row.status,
+    workedMinutes: Number(row.worked_minutes), lateMinutes: Number(row.late_minutes), earlyMinutes: Number(row.early_minutes), status: row.status,
   } : null;
 }
 
@@ -115,7 +116,7 @@ export async function recordAttendance({ branchId, staffId, token, latitude, lon
         [branchId, staffId],
       );
       const shift = schedule.rows[0];
-      const lateMinutes = shift ? Math.max(0, Math.floor((Date.now() - new Date(`${new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Ho_Chi_Minh' }).format(new Date())}T${shift.starts_at}+07:00`).getTime()) / 60000)) : 0;
+      const lateMinutes = shift ? Math.max(0, Math.floor((Date.now() - new Date(`${new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Ho_Chi_Minh' }).format(new Date())}T${shift.starts_at}+07:00`).getTime()) / 60000) - attendanceGraceMinutes) : 0;
       await client.query(
         `INSERT INTO attendance_records (
            branch_id, staff_id, work_date, check_in, scheduled_minutes, late_minutes, status,
@@ -125,13 +126,29 @@ export async function recordAttendance({ branchId, staffId, token, latitude, lon
       );
       action = 'check_in';
     } else if (!existing.check_out) {
+      // Query schedule for ends_at to calculate early minutes
+      const shiftForEarly = await client.query(
+        `SELECT ends_at FROM staff_schedules
+         WHERE branch_id = $1 AND staff_id = $2
+           AND shift_date = (NOW() AT TIME ZONE 'Asia/Ho_Chi_Minh')::date
+           AND status IN ('scheduled', 'confirmed') ORDER BY starts_at LIMIT 1`,
+        [branchId, staffId],
+      );
+      const shiftEnd = shiftForEarly.rows[0];
+
+      // Calculate early minutes: how many minutes before scheduled end time
+      const earlyMinutes = shiftEnd
+        ? Math.max(0, Math.floor((new Date(`${new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Ho_Chi_Minh' }).format(new Date())}T${shiftEnd.ends_at}+07:00`).getTime() - Date.now()) / 60000))
+        : 0;
+
       await client.query(
         `UPDATE attendance_records SET check_out = NOW(),
            worked_minutes = GREATEST(0, FLOOR(EXTRACT(EPOCH FROM (NOW() - check_in)) / 60)),
-           status = CASE WHEN late_minutes > 0 THEN 'late' ELSE 'present' END,
+           early_minutes = $4,
+           status = CASE WHEN late_minutes > 0 OR $4 > 0 THEN 'late' ELSE 'present' END,
            check_out_latitude = $2, check_out_longitude = $3
          WHERE id = $1`,
-        [existing.id, latitude, longitude],
+        [existing.id, latitude, longitude, earlyMinutes],
       );
       action = 'check_out';
     } else {
