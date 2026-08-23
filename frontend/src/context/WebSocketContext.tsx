@@ -15,7 +15,7 @@ function matchPattern(pattern: string, event: string): boolean {
   if (pattern === '*') return true;
   if (pattern === event) return true;
   const [pEntity, pAction] = pattern.split(':');
-  const [eEntity, eAction] = event.split(':');
+  const [eEntity] = event.split(':');
   if (pAction === '*') return pEntity === eEntity;
   return false;
 }
