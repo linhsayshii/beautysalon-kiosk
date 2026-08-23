@@ -882,6 +882,30 @@
   background: #dbeafe;
 }
 
+.mobile-schedule-delete-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  border: none;
+  background: transparent;
+  color: #94a3b8;
+  cursor: pointer;
+  transition: color 0.15s, background 0.15s;
+  flex-shrink: 0;
+}
+
+.mobile-schedule-delete-btn:hover {
+  color: #ef4444;
+  background: #fef2f2;
+}
+
+.mobile-schedule-delete-btn:active {
+  background: #fee2e2;
+}
+
 /* Inset Detail Sheet Elements */
 .mobile-detail-hero {
   background: #f8fafc;

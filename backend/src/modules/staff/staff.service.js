@@ -312,7 +312,12 @@ export async function getSchedule({ branchId, startDate }) {
     listWorkShifts(branchId),
     pool.query(
       `SELECT ss.id, ss.staff_id, TO_CHAR(ss.shift_date, 'YYYY-MM-DD') AS shift_date,
-              ss.starts_at, ss.ends_at, ss.shift_name, ss.status, ss.note
+              ss.starts_at, ss.ends_at, ss.shift_name, ss.status, ss.note,
+              ss.week_group_id, ss.is_source,
+              (SELECT MIN(TO_CHAR(ss2.shift_date, 'YYYY-MM-DD'))
+               FROM staff_schedules ss2
+               WHERE ss2.week_group_id = ss.week_group_id
+                 AND ss2.week_group_id IS NOT NULL) as group_start_date
        FROM staff_schedules ss
        WHERE ss.branch_id = $1 AND ss.shift_date >= $2::date AND ss.shift_date < $2::date + INTERVAL '7 days'
        ORDER BY ss.shift_date, ss.starts_at, ss.staff_id`,
@@ -332,6 +337,9 @@ export async function getSchedule({ branchId, startDate }) {
       shiftName: row.shift_name,
       status: row.status,
       note: row.note,
+      weekGroupId: row.week_group_id ? number(row.week_group_id) : null,
+      isSource: row.is_source ?? null,
+      groupStartDate: row.group_start_date ?? null,
     })),
   };
 }
@@ -1060,6 +1068,109 @@ export async function createPayrollPayment({ branchId, periodId, staffId, amount
   return getPayrollPeriodDetail({ branchId, periodId });
 }
 
+/**
+ * Add weeks to a date
+ */
+function addWeeks(date, weeks) {
+  const result = new Date(date);
+  result.setDate(result.getDate() + (weeks * 7));
+  return result;
+}
+
+/**
+ * Assign shift with support for recurring schedule across multiple weeks
+ * @param {Object} params - Shift assignment parameters
+ * @param {number} params.branchId - Branch ID
+ * @param {number} params.staffId - Staff ID
+ * @param {string} params.shiftDate - Shift date (YYYY-MM-DD)
+ * @param {string} params.startsAt - Start time (HH:MM)
+ * @param {string} params.endsAt - End time (HH:MM)
+ * @param {string} [params.shiftName='Ca làm việc'] - Shift name
+ * @param {string} [params.note] - Optional note
+ * @param {number} [params.applyToWeeks=1] - Number of weeks to apply (1 = single week only)
+ * @returns {Object} { id, groupId, affectedWeeks }
+ */
+export async function assignShift({ branchId, staffId, shiftDate, startsAt, endsAt, shiftName = 'Ca làm việc', note, applyToWeeks = 1 }) {
+  // Validate inputs
+  if (!branchId || !staffId || !shiftDate || !startsAt || !endsAt) {
+    throw Object.assign(new Error('Missing required fields'), { status: 400 });
+  }
+
+  // Generate group ID if applyToWeeks > 1
+  const groupId = applyToWeeks > 1 ? generateGroupId() : null;
+  const isSource = applyToWeeks > 1;
+
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+
+    // Insert main schedule
+    const result = await client.query(`
+      INSERT INTO staff_schedules
+        (branch_id, staff_id, shift_date, starts_at, ends_at, shift_name, note, week_group_id, is_source)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+      ON CONFLICT (staff_id, shift_date, starts_at)
+      DO UPDATE SET
+        ends_at = EXCLUDED.ends_at,
+        shift_name = EXCLUDED.shift_name,
+        note = EXCLUDED.note,
+        week_group_id = COALESCE(staff_schedules.week_group_id, EXCLUDED.week_group_id),
+        is_source = COALESCE(staff_schedules.is_source, EXCLUDED.is_source)
+      RETURNING id
+    `, [branchId, staffId, shiftDate, startsAt, endsAt, shiftName, note, groupId, isSource]);
+
+    const insertedId = result.rows[0].id;
+
+    // If applyToWeeks > 1, copy the just-created schedule to subsequent weeks
+    if (applyToWeeks > 1) {
+      const sourceDate = new Date(shiftDate + 'T00:00:00');
+
+      // Get the just-created schedule
+      const sourceSchedule = {
+        staff_id: staffId,
+        shift_date: shiftDate,
+        starts_at: startsAt,
+        ends_at: endsAt,
+        shift_name: shiftName,
+        note: note || null,
+      };
+
+      // Calculate source day of week (0=Sun in JS)
+      const sourceDayOfWeek = sourceDate.getDay();
+
+      // Copy to subsequent weeks
+      for (let weekOffset = 1; weekOffset < applyToWeeks; weekOffset++) {
+        // Calculate target week Monday, then add offset to get same day of week
+        const targetDate = new Date(sourceDate);
+        targetDate.setDate(targetDate.getDate() + (weekOffset * 7));
+        const targetDateStr = targetDate.toISOString().split('T')[0];
+
+        // Skip leave days
+        if (await isLeaveDay(staffId, targetDateStr, client)) continue;
+
+        // Skip holidays
+        if (await isHoliday(targetDateStr, client)) continue;
+
+        // Copy schedule
+        await copyScheduleToWeek(sourceSchedule, targetDateStr, groupId, branchId, client);
+      }
+    }
+
+    await client.query('COMMIT');
+
+    return {
+      id: insertedId,
+      groupId,
+      affectedWeeks: applyToWeeks
+    };
+  } catch (err) {
+    await client.query('ROLLBACK');
+    throw err;
+  } finally {
+    client.release();
+  }
+}
+
 // Fallback legacy support
 export async function getPayroll({ branchId, periodCode }) {
   await ensureMonthlyPayrollPeriods(branchId);
@@ -1068,4 +1179,245 @@ export async function getPayroll({ branchId, periodCode }) {
     return getPayrollPeriodDetail({ branchId, periodId: result.rows[0].id });
   }
   return { period: null, rows: [], summary: { totalNetSalary: 0, totalCommission: 0 } };
+}
+
+// ============================================================================
+// RECURRING SCHEDULE HELPERS
+// ============================================================================
+
+/**
+ * Generate unique group ID for recurring schedules
+ * Uses timestamp + random for uniqueness
+ */
+export function generateGroupId() {
+  const timestamp = Date.now();
+  const random = Math.floor(Math.random() * 1000);
+  return timestamp * 1000 + random;
+}
+
+/**
+ * Get all schedules for a staff in a specific week
+ */
+export async function getSchedulesByWeek(staffId, weekStart, client = pool) {
+  const result = await client.query(`
+    SELECT id, staff_id, shift_date, starts_at, ends_at, shift_name,
+           status, note, week_group_id, is_source
+    FROM staff_schedules
+    WHERE staff_id = $1
+      AND shift_date >= $2::date
+      AND shift_date < $2::date + INTERVAL '7 days'
+    ORDER BY shift_date, starts_at
+  `, [staffId, weekStart]);
+  return result.rows;
+}
+
+/**
+ * Copy a single schedule to target date with group ID
+ */
+export async function copyScheduleToWeek(schedule, targetDate, groupId, branchId, client = pool) {
+  const result = await client.query(`
+    INSERT INTO staff_schedules
+      (branch_id, staff_id, shift_date, starts_at, ends_at, shift_name, status, note, week_group_id, is_source)
+    VALUES ($1, $2, $3, $4, $5, $6, 'scheduled', $7, $8, false)
+    ON CONFLICT (staff_id, shift_date, starts_at) DO NOTHING
+    RETURNING id
+  `, [
+    branchId,
+    schedule.staff_id,
+    targetDate,
+    schedule.starts_at,
+    schedule.ends_at,
+    schedule.shift_name,
+    schedule.note || null,
+    groupId
+  ]);
+  return result.rows[0]?.id;
+}
+
+/**
+ * Check if a date is a leave day for staff
+ */
+export async function isLeaveDay(staffId, date, client = pool) {
+  const result = await client.query(`
+    SELECT EXISTS(
+      SELECT 1 FROM staff_schedules
+      WHERE staff_id = $1
+        AND shift_date = $2::date
+        AND status = 'leave'
+    ) as is_leave
+  `, [staffId, date]);
+  return result.rows[0]?.is_leave || false;
+}
+
+/**
+ * Check if a date is a holiday
+ */
+export async function isHoliday(date, client = pool) {
+  const result = await client.query(`
+    SELECT EXISTS(
+      SELECT 1 FROM branch_work_schedule_settings
+      WHERE holidays @> $1::jsonb
+    ) as is_holiday
+  `, [JSON.stringify(date)]);
+  return result.rows[0]?.is_holiday || false;
+}
+
+/**
+ * Check if schedule exists for staff on date/time
+ */
+export async function scheduleExists(staffId, date, startsAt, client = pool) {
+  const result = await client.query(`
+    SELECT EXISTS(
+      SELECT 1 FROM staff_schedules
+      WHERE staff_id = $1
+        AND shift_date = $2::date
+        AND starts_at = $3::time
+    ) as exists
+  `, [staffId, date, startsAt]);
+  return result.rows[0]?.exists || false;
+}
+
+// ============================================================================
+// RECURRING SCHEDULE UPDATE/DELETE WITH PROPAGATE
+// ============================================================================
+
+/**
+ * Update a schedule with optional propagation to future weeks
+ * @param {number} branchId - Branch ID for authorization
+ * @param {number} scheduleId - Schedule ID to update
+ * @param {Object} updates - Fields to update (startsAt, endsAt, shiftName)
+ * @param {boolean} propagate - If false, break chain (new group for this week only); if true, update all in group from this date forward
+ * @returns {Object} { updatedCount, newGroupId? }
+ */
+export async function updateSchedule(branchId, scheduleId, updates, propagate = false) {
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+
+    // Get current schedule
+    const currentResult = await client.query(`
+      SELECT id, staff_id, shift_date, starts_at, ends_at, shift_name, week_group_id, is_source, branch_id
+      FROM staff_schedules WHERE id = $1
+    `, [scheduleId]);
+
+    if (currentResult.rows.length === 0) {
+      throw Object.assign(new Error('Schedule not found'), { status: 404 });
+    }
+
+    const schedule = currentResult.rows[0];
+    const { week_group_id, is_source, shift_date, branch_id: scheduleBranchId } = schedule;
+
+    // Validate branch authorization
+    if (Number(scheduleBranchId) !== Number(branchId)) {
+      throw Object.assign(new Error('Schedule not found'), { status: 404 });
+    }
+
+    if (!propagate || !week_group_id) {
+      // Break chain - create new group for this week only
+      const newGroupId = generateGroupId();
+
+      await client.query(`
+        UPDATE staff_schedules
+        SET starts_at = $1, ends_at = $2, shift_name = $3,
+            week_group_id = $4, is_source = true
+        WHERE id = $5
+      `, [updates.startsAt, updates.endsAt, updates.shiftName, newGroupId, scheduleId]);
+
+      await client.query('COMMIT');
+      return { updatedCount: 1, newGroupId };
+    }
+
+    // Propagate - update all in group from this date forward (excluding source)
+    const updateResult = await client.query(`
+      UPDATE staff_schedules
+      SET starts_at = $1, ends_at = $2, shift_name = $3
+      WHERE week_group_id = $4
+        AND shift_date >= $5::date
+        AND is_source = false
+      RETURNING id
+    `, [updates.startsAt, updates.endsAt, updates.shiftName, week_group_id, shift_date]);
+
+    // Update the current schedule (make it source if not already)
+    await client.query(`
+      UPDATE staff_schedules
+      SET starts_at = $1, ends_at = $2, shift_name = $3, is_source = true
+      WHERE id = $4
+    `, [updates.startsAt, updates.endsAt, updates.shiftName, scheduleId]);
+
+    await client.query('COMMIT');
+    return { updatedCount: updateResult.rows.length + 1 };
+  } catch (err) {
+    await client.query('ROLLBACK');
+    throw err;
+  } finally {
+    client.release();
+  }
+}
+
+/**
+ * Delete a schedule with optional deletion of future weeks
+ * @param {number} branchId - Branch ID for authorization
+ * @param {number} scheduleId - Schedule ID to delete
+ * @param {boolean} deleteFuture - If true, delete this + all future in group
+ * @returns {Object} { deleted: true }
+ */
+export async function deleteSchedule(branchId, scheduleId, deleteFuture = false) {
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+
+    // Get current schedule
+    const currentResult = await client.query(`
+      SELECT id, week_group_id, is_source, shift_date, branch_id, staff_id
+      FROM staff_schedules WHERE id = $1
+    `, [scheduleId]);
+
+    if (currentResult.rows.length === 0) {
+      throw Object.assign(new Error('Schedule not found'), { status: 404 });
+    }
+
+    const schedule = currentResult.rows[0];
+    const { week_group_id, is_source, shift_date, branch_id: scheduleBranchId } = schedule;
+
+    // Validate branch authorization
+    if (Number(scheduleBranchId) !== Number(branchId)) {
+      throw Object.assign(new Error('Schedule not found'), { status: 404 });
+    }
+
+    // Source week protection: if this is a source and has copies, prevent deletion UNLESS deleteFuture=true (cascade)
+    if (is_source && week_group_id && !deleteFuture) {
+      const copyCountResult = await client.query(`
+        SELECT COUNT(*) as count FROM staff_schedules
+        WHERE week_group_id = $1 AND is_source = false
+      `, [week_group_id]);
+
+      const copyCount = parseInt(copyCountResult.rows[0].count, 10);
+      if (copyCount > 0) {
+        throw Object.assign(
+          new Error('Cannot delete source week that has recurring copies. Delete all copies first, or use deleteFuture=true to cascade delete the entire group.'),
+          { status: 400, code: 'SOURCE_WEEK_HAS_COPIES' }
+        );
+      }
+    }
+
+    if (deleteFuture && week_group_id) {
+      // Delete this week + all future weeks in group
+      await client.query(`
+        DELETE FROM staff_schedules
+        WHERE week_group_id = $1
+          AND shift_date >= $2::date
+      `, [week_group_id, shift_date]);
+    } else {
+      // Delete only this schedule
+      await client.query(`DELETE FROM staff_schedules WHERE id = $1`, [scheduleId]);
+    }
+
+    await client.query('COMMIT');
+    return { deleted: true };
+  } catch (err) {
+    await client.query('ROLLBACK');
+    throw err;
+  } finally {
+    client.release();
+  }
 }

@@ -91,7 +91,7 @@ export function StaffAttendanceView() {
   });
 
   const assignShiftMutation = useMutation({
-    mutationFn: (data: { staffId: number; shiftDate: string; startsAt: string; endsAt: string; shiftName: string }) =>
+    mutationFn: (data: { staffId: number; shiftDate: string; startsAt: string; endsAt: string; shiftName: string; applyToWeeks?: number }) =>
       assignShift(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['staff-schedule'] });
@@ -508,6 +508,7 @@ export function StaffAttendanceView() {
             startsAt: assignModalData.startsAt,
             endsAt: assignModalData.endsAt,
             shiftName: assignModalData.shiftName,
+            applyToWeeks: 1,
           })
         }
       />

@@ -10,6 +10,10 @@ import { WeekPicker } from './WeekPicker';
 import { AddShiftModal, ShiftFormValues } from './AddShiftModal';
 import { AssignStaffModal } from './AssignStaffModal';
 import { AssignShiftForStaffModal } from './AssignShiftForStaffModal';
+import { ScheduleBadge } from '@/components/ScheduleBadge';
+import { ApplyWeeksModal } from '@/components/ApplyWeeksModal';
+import { PropagateModal } from '@/components/PropagateModal';
+import { DeleteScheduleModal } from '@/components/DeleteScheduleModal';
 import { getStaff, getShifts, createShift, getSchedule, assignShift, getWorkScheduleSettings, updateWorkScheduleSettings } from '../staff.api';
 import { calculateStaffShiftSalary } from '../salary-calc';
 import './AttendanceTimekeeping.css';
@@ -87,6 +91,22 @@ export function StaffScheduleView() {
     dayLabel: '',
   });
 
+  // Recurring schedule modal states
+  const [applyWeeksModal, setApplyWeeksModal] = useState<{
+    isOpen: boolean;
+    scheduleData: any;
+  }>({ isOpen: false, scheduleData: null });
+
+  const [propagateModal, setPropagateModal] = useState<{
+    isOpen: boolean;
+    schedule: any;
+  }>({ isOpen: false, schedule: null });
+
+  const [deleteModal, setDeleteModal] = useState<{
+    isOpen: boolean;
+    schedule: any;
+  }>({ isOpen: false, schedule: null });
+
   // Calculate 7 dates of the week
   const weekDates = useMemo(() => {
     return Array.from({ length: 7 }, (_, i) => {
@@ -126,7 +146,7 @@ export function StaffScheduleView() {
   });
 
   const assignShiftMutation = useMutation({
-    mutationFn: (data: { staffId: number; shiftDate: string; startsAt: string; endsAt: string; shiftName: string }) =>
+    mutationFn: (data: { staffId: number; shiftDate: string; startsAt: string; endsAt: string; shiftName: string; applyToWeeks?: number }) =>
       assignShift(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['staff-schedule'] });
@@ -254,6 +274,80 @@ export function StaffScheduleView() {
       currentShiftName,
     });
   };
+
+  // Recurring schedule handlers
+  const handleAssignShift = async (data: any) => {
+    try {
+      const response = await fetch('/api/v1/staff/schedule/assign', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
+
+      if (response.ok) {
+        queryClient.invalidateQueries({ queryKey: ['staff-schedule'] });
+        notify('Đã gán lịch', 'Lịch làm việc đã được gán thành công.');
+      }
+    } catch (error) {
+      console.error('Failed to assign shift:', error);
+      notify('Lỗi', 'Không thể gán lịch. Vui lòng thử lại.');
+    }
+  };
+
+  const handleUpdateSchedule = async (scheduleId: number, updates: any, propagate: boolean) => {
+    try {
+      const response = await fetch(`/api/v1/staff/schedule/${scheduleId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...updates, propagateToFuture: propagate })
+      });
+
+      if (response.ok) {
+        queryClient.invalidateQueries({ queryKey: ['staff-schedule'] });
+        notify('Đã cập nhật', 'Lịch làm việc đã được cập nhật.');
+      }
+    } catch (error) {
+      console.error('Failed to update schedule:', error);
+      notify('Lỗi', 'Không thể cập nhật lịch. Vui lòng thử lại.');
+    }
+  };
+
+  const handleDeleteSchedule = async (scheduleId: number, deleteFuture: boolean) => {
+    try {
+      const response = await fetch(`/api/v1/staff/schedule/${scheduleId}`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ deleteFutureWeeks: deleteFuture })
+      });
+
+      if (response.ok) {
+        queryClient.invalidateQueries({ queryKey: ['staff-schedule'] });
+        notify('Đã xóa lịch', 'Lịch làm việc đã được xóa.');
+      }
+    } catch (error) {
+      console.error('Failed to delete schedule:', error);
+      notify('Lỗi', 'Không thể xóa lịch. Vui lòng thử lại.');
+    }
+  };
+
+  // Check if schedule has future copies
+  const checkHasFutureSchedules = (schedule: any): boolean => {
+    if (!schedule || !schedule.weekGroupId) return false;
+    return schedules.some(
+      (s) => s.weekGroupId === schedule.weekGroupId && s.date !== schedule.date
+    );
+  };
+
+  // Get week label for display
+  const getWeekLabel = (dateStr: string): string => {
+    const date = new Date(dateStr);
+    const firstDayOfYear = new Date(date.getFullYear(), 0, 1);
+    const pastDaysOfYear = (date.getTime() - firstDayOfYear.getTime()) / 86400000;
+    return String(Math.ceil((pastDaysOfYear + firstDayOfYear.getDay() + 1) / 7));
+  };
+
+  // Get current week label for ApplyWeeksModal
+  const currentWeekLabel = getWeekLabel(startDateIso);
 
   // Shift Matrix getSlotData for 'by-shift' mode
   const getShiftSlotData = (shift: { name: string; startsAt: string; endsAt: string }, date: Date) => {
@@ -453,6 +547,10 @@ export function StaffScheduleView() {
                         {/* 7 Cột Ngày làm việc trong tuần */}
                         {weekDates.map((date, dIdx) => {
                           const shiftData = getStaffDateShift(staff, date);
+                          const scheduleItem = schedules.find(
+                            (s) => Number(s.staffId) === Number(staff.id) && s.date === toIsoDate(date)
+                          );
+                          const isCopied = scheduleItem?.weekGroupId && !scheduleItem?.isSource;
 
                           return (
                             <td
@@ -469,7 +567,15 @@ export function StaffScheduleView() {
                                   )}`}
                                   title={`${shiftData.shiftName} (${shiftData.startsAt} - ${shiftData.endsAt})`}
                                 >
-                                  <span>{shiftData.shiftName}</span>
+                                  {isCopied && scheduleItem && (
+                                    <ScheduleBadge
+                                      groupStartDate={scheduleItem.groupStartDate || scheduleItem.date}
+                                      onClick={() => setPropagateModal({ isOpen: true, schedule: scheduleItem })}
+                                    />
+                                  )}
+                                  <div className="shift-content">
+                                    <span>{shiftData.shiftName}</span>
+                                  </div>
                                 </div>
                               ) : (
                                 <div className="cell-empty-hover">
@@ -660,6 +766,7 @@ export function StaffScheduleView() {
             startsAt: assignModalData.startsAt,
             endsAt: assignModalData.endsAt,
             shiftName: assignModalData.shiftName,
+            applyToWeeks: 1,
           })
         }
       />
@@ -675,13 +782,30 @@ export function StaffScheduleView() {
         currentShiftName={assignForStaffData.currentShiftName}
         onAssign={(shift) => {
           if (!assignForStaffData.staff) return;
-          assignShiftMutation.mutate({
-            staffId: assignForStaffData.staff.id,
-            shiftDate: assignForStaffData.shiftDate,
-            startsAt: shift.startsAt,
-            endsAt: shift.endsAt,
-            shiftName: shift.name,
+          // Close staff modal, open ApplyWeeksModal to ask how many weeks
+          setAssignForStaffData((prev) => ({ ...prev, isOpen: false }));
+          setApplyWeeksModal({
+            isOpen: true,
+            scheduleData: {
+              staffId: assignForStaffData.staff.id,
+              shiftDate: assignForStaffData.shiftDate,
+              startsAt: shift.startsAt,
+              endsAt: shift.endsAt,
+              shiftName: shift.name,
+            },
           });
+        }}
+        onRemove={() => {
+          // Find existing schedule for this staff + date, open delete modal
+          if (!assignForStaffData.staff) return;
+          const existingSchedule = schedules.find(
+            (s) => Number(s.staffId) === Number(assignForStaffData.staff!.id)
+              && s.date === assignForStaffData.shiftDate
+          );
+          if (existingSchedule) {
+            setAssignForStaffData((prev) => ({ ...prev, isOpen: false }));
+            setDeleteModal({ isOpen: true, schedule: existingSchedule });
+          }
         }}
       />
 
@@ -932,6 +1056,53 @@ export function StaffScheduleView() {
           </div>
         </div>
       )}
+
+      {/* Recurring Schedule Modals */}
+      <ApplyWeeksModal
+        isOpen={applyWeeksModal.isOpen}
+        onClose={() => setApplyWeeksModal({ isOpen: false, scheduleData: null })}
+        onConfirm={(options) => {
+          handleAssignShift({
+            ...applyWeeksModal.scheduleData,
+            applyToWeeks: options.weeks,
+            skipLeaves: options.skipLeaves,
+            skipHolidays: options.skipHolidays
+          });
+        }}
+        currentWeekLabel={currentWeekLabel}
+      />
+
+      <PropagateModal
+        isOpen={propagateModal.isOpen}
+        onClose={() => setPropagateModal({ isOpen: false, schedule: null })}
+        onConfirm={(propagate) => {
+          if (propagateModal.schedule) {
+            handleUpdateSchedule(
+              propagateModal.schedule.id,
+              {
+                startsAt: propagateModal.schedule.startsAt,
+                endsAt: propagateModal.schedule.endsAt,
+                shiftName: propagateModal.schedule.shiftName
+              },
+              propagate
+            );
+          }
+        }}
+        weekLabel={propagateModal.schedule?.date ? getWeekLabel(propagateModal.schedule.date) : ''}
+      />
+
+      <DeleteScheduleModal
+        isOpen={deleteModal.isOpen}
+        onClose={() => setDeleteModal({ isOpen: false, schedule: null })}
+        onConfirm={(deleteFuture) => {
+          if (deleteModal.schedule) {
+            handleDeleteSchedule(deleteModal.schedule.id, deleteFuture);
+          }
+        }}
+        weekLabel={deleteModal.schedule?.date ? getWeekLabel(deleteModal.schedule.date) : ''}
+        hasFutureSchedules={checkHasFutureSchedules(deleteModal.schedule)}
+        isSourceWeek={deleteModal.schedule?.isSource}
+      />
     </main>
   );
 }

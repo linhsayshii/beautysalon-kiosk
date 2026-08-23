@@ -7,11 +7,15 @@ import {
   MobileEmptyState,
 } from '@/features/mobile-common';
 import { useToast } from '@/components/ui/Toast/ToastProvider';
-import { getStaff, getShifts, getSchedule, assignShift } from '@/features/staff/staff.api';
+import { getStaff, getShifts, getSchedule, assignShift, updateStaffSchedule, deleteStaffSchedule } from '@/features/staff/staff.api';
 import { weekStartIso, toIsoDate, todayIso } from '@/lib/date';
 import { initials } from '@/lib/format';
 import { errorMessage } from '@/services/api-client';
 import type { ApiRecord } from '@/types/api';
+import { ApplyWeeksModal } from '@/components/ApplyWeeksModal';
+import { ScheduleBadge } from '@/components/ScheduleBadge';
+import { PropagateModal } from '@/components/PropagateModal';
+import { DeleteScheduleModal } from '@/components/DeleteScheduleModal';
 import './mobile-staff.css';
 
 const weekdayShorts = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'];
@@ -39,6 +43,22 @@ export function MobileStaffScheduleAdminView() {
   // Assign shift bottom sheet state
   const [assigningStaff, setAssigningStaff] = useState<ApiRecord | null>(null);
   const [selectedShiftName, setSelectedShiftName] = useState<string>('');
+
+  // Recurring schedule modal states
+  const [applyWeeksModal, setApplyWeeksModal] = useState<{
+    isOpen: boolean;
+    scheduleData: { staffId: number; shiftDate: string; startsAt: string; endsAt: string; shiftName: string } | null;
+  }>({ isOpen: false, scheduleData: null });
+
+  const [propagateModal, setPropagateModal] = useState<{
+    isOpen: boolean;
+    schedule: ApiRecord | null;
+  }>({ isOpen: false, schedule: null });
+
+  const [deleteModal, setDeleteModal] = useState<{
+    isOpen: boolean;
+    schedule: ApiRecord | null;
+  }>({ isOpen: false, schedule: null });
 
   // 7 days of the week
   const weekDays = useMemo(() => {
@@ -82,6 +102,7 @@ export function MobileStaffScheduleAdminView() {
       startsAt: string;
       endsAt: string;
       shiftName: string;
+      applyToWeeks?: number;
     }) => assignShift(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-mobile-schedule', currentMonday] });
@@ -90,6 +111,34 @@ export function MobileStaffScheduleAdminView() {
     },
     onError: (err) => {
       notify('Lỗi phân ca', errorMessage(err, 'Không thể xếp lịch làm việc'));
+    },
+  });
+
+  // Update schedule mutation (for propagate)
+  const updateScheduleMutation = useMutation({
+    mutationFn: ({ id, updates, propagate }: { id: number; updates: any; propagate: boolean }) =>
+      updateStaffSchedule(id, { ...updates, propagateToFuture: propagate }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-mobile-schedule', currentMonday] });
+      notify('Đã cập nhật', 'Lịch đã được cập nhật.');
+      setPropagateModal({ isOpen: false, schedule: null });
+    },
+    onError: (err) => {
+      notify('Lỗi cập nhật', errorMessage(err, 'Không thể cập nhật lịch'));
+    },
+  });
+
+  // Delete schedule mutation
+  const deleteScheduleMutation = useMutation({
+    mutationFn: ({ id, deleteFuture }: { id: number; deleteFuture: boolean }) =>
+      deleteStaffSchedule(id, deleteFuture),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-mobile-schedule', currentMonday] });
+      notify('Đã xóa', 'Lịch đã được xóa.');
+      setDeleteModal({ isOpen: false, schedule: null });
+    },
+    onError: (err) => {
+      notify('Lỗi xóa', errorMessage(err, 'Không thể xóa lịch'));
     },
   });
 
@@ -138,6 +187,17 @@ export function MobileStaffScheduleAdminView() {
     return Array.from(map.entries());
   }, [filteredStaff]);
 
+  // Check if a schedule has future copies in the same group
+  const checkHasFutureSchedules = (schedule: ApiRecord | null): boolean => {
+    if (!schedule?.weekGroupId) return false;
+    return rawAssignments.some(
+      (s) =>
+        s.weekGroupId === schedule.weekGroupId &&
+        s.id !== schedule.id &&
+        new Date(s.shiftDate || s.date) > new Date(schedule.shiftDate || schedule.date)
+    );
+  };
+
   // Navigate previous / next week
   const handlePrevWeek = () => {
     const d = new Date(`${currentMonday}T00:00:00`);
@@ -166,13 +226,28 @@ export function MobileStaffScheduleAdminView() {
     const targetShift = workShifts.find((s) => s.name === selectedShiftName);
     if (!targetShift) return;
 
-    assignMutation.mutate({
-      staffId: Number(assigningStaff.id),
-      shiftDate: selectedDateIso,
-      startsAt: targetShift.startsAt,
-      endsAt: targetShift.endsAt,
-      shiftName: targetShift.name,
+    // Close the sheet, open ApplyWeeksModal
+    setAssigningStaff(null);
+    setApplyWeeksModal({
+      isOpen: true,
+      scheduleData: {
+        staffId: Number(assigningStaff.id),
+        shiftDate: selectedDateIso,
+        startsAt: targetShift.startsAt,
+        endsAt: targetShift.endsAt,
+        shiftName: targetShift.name,
+      },
     });
+  };
+
+  // Handle badge click for propagating changes
+  const handleBadgeClick = (schedule: ApiRecord) => {
+    setPropagateModal({ isOpen: true, schedule });
+  };
+
+  // Handle delete schedule
+  const handleDeleteSchedule = (schedule: ApiRecord) => {
+    setDeleteModal({ isOpen: true, schedule });
   };
 
   const assignedCount = useMemo(() => {
@@ -355,6 +430,13 @@ export function MobileStaffScheduleAdminView() {
                         <div className="mobile-staff-row-right">
                           {shift ? (
                             <>
+                              {/* Badge for copied schedules */}
+                              {shift.weekGroupId && !shift.isSource && (
+                                <ScheduleBadge
+                                  groupStartDate={shift.groupStartDate || shift.date || shift.shiftDate}
+                                  onClick={() => handleBadgeClick(shift)}
+                                />
+                              )}
                               <span
                                 className={`mobile-shift-badge ${getShiftThemeClass(
                                   shift.shiftName
@@ -365,6 +447,19 @@ export function MobileStaffScheduleAdminView() {
                               <span style={{ fontSize: 11.5, color: '#64748b' }}>
                                 {shift.startsAt} - {shift.endsAt}
                               </span>
+                              {/* Delete button */}
+                              <button
+                                type="button"
+                                className="mobile-schedule-delete-btn"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleDeleteSchedule(shift);
+                                }}
+                                aria-label="Xóa ca"
+                                title="Xóa ca"
+                              >
+                                <i className="ph ph-trash" />
+                              </button>
                             </>
                           ) : (
                             <button
@@ -522,6 +617,58 @@ export function MobileStaffScheduleAdminView() {
           </div>
         </div>
       </MobileDetailSheet>
+
+      {/* ApplyWeeksModal - ask how many weeks to apply */}
+      <ApplyWeeksModal
+        isOpen={applyWeeksModal.isOpen}
+        onClose={() => setApplyWeeksModal({ isOpen: false, scheduleData: null })}
+        onConfirm={(options) => {
+          if (applyWeeksModal.scheduleData) {
+            assignMutation.mutate({
+              ...applyWeeksModal.scheduleData,
+              applyToWeeks: options.weeks,
+            });
+          }
+        }}
+        currentWeekLabel={selectedDayInfo.fullLabel}
+      />
+
+      {/* PropagateModal - ask to propagate changes to future weeks */}
+      <PropagateModal
+        isOpen={propagateModal.isOpen}
+        onClose={() => setPropagateModal({ isOpen: false, schedule: null })}
+        onConfirm={(propagate) => {
+          if (propagateModal.schedule) {
+            updateScheduleMutation.mutate({
+              id: propagateModal.schedule.id,
+              updates: {
+                startsAt: propagateModal.schedule.startsAt,
+                endsAt: propagateModal.schedule.endsAt,
+                shiftName: propagateModal.schedule.shiftName,
+              },
+              propagate,
+            });
+          }
+        }}
+        weekLabel={propagateModal.schedule?.date || propagateModal.schedule?.shiftDate || ''}
+      />
+
+      {/* DeleteScheduleModal - delete with cascade option */}
+      <DeleteScheduleModal
+        isOpen={deleteModal.isOpen}
+        onClose={() => setDeleteModal({ isOpen: false, schedule: null })}
+        onConfirm={(deleteFuture) => {
+          if (deleteModal.schedule) {
+            deleteScheduleMutation.mutate({
+              id: deleteModal.schedule.id,
+              deleteFuture,
+            });
+          }
+        }}
+        weekLabel={deleteModal.schedule?.date || deleteModal.schedule?.shiftDate || ''}
+        hasFutureSchedules={checkHasFutureSchedules(deleteModal.schedule)}
+        isSourceWeek={deleteModal.schedule?.isSource}
+      />
     </div>
   );
 }

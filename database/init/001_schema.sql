@@ -109,11 +109,14 @@ CREATE TABLE staff_schedules (
   status VARCHAR(20) NOT NULL DEFAULT 'scheduled'
     CHECK (status IN ('scheduled', 'confirmed', 'leave', 'cancelled')),
   note VARCHAR(250),
+  week_group_id BIGINT,
+  is_source BOOLEAN NOT NULL DEFAULT false,
   CHECK (ends_at > starts_at),
   UNIQUE (staff_id, shift_date, starts_at)
 );
 
 CREATE INDEX idx_staff_schedules_branch_date ON staff_schedules(branch_id, shift_date);
+CREATE INDEX idx_staff_schedules_group ON staff_schedules(week_group_id) WHERE week_group_id IS NOT NULL;
 
 CREATE TABLE attendance_records (
   id BIGSERIAL PRIMARY KEY,

@@ -3,7 +3,7 @@ import { asyncRoute, HttpError, parseEnum, parseIsoDate, parsePositiveInteger, p
 import {
   createStaff,
   createShift,
-  assignShiftSchedule,
+  assignShift,
   getPayroll,
   getPayrollPeriodDetail,
   listPayrollPeriods,
@@ -22,6 +22,8 @@ import {
   getWorkScheduleSettings,
   updateWorkScheduleSettings,
   updateStaff,
+  updateSchedule,
+  deleteSchedule,
 } from './staff.service.js';
 import { listAppointments, transitionAppointmentWorkStatus } from '../dashboard/dashboard.service.js';
 import { listOrders } from '../orders/orders.service.js';
@@ -209,15 +211,43 @@ router.post('/schedule/assign', asyncRoute(async (request, response) => {
   const endsAt = parseTime(request.body.endsAt, 'endsAt');
   const shiftName = text(request.body.shiftName, 80);
   if (!shiftName || endsAt <= startsAt) throw new HttpError(400, 'INVALID_SHIFT', 'Tên ca và khung giờ hợp lệ là bắt buộc');
-  const status = parseEnum(request.body.status, 'status', ['scheduled', 'confirmed', 'leave', 'cancelled'], 'scheduled');
-  const assigned = await assignShiftSchedule({ branchId, staffId, shiftDate, shiftName, startsAt, endsAt, status });
-  response.json({ data: assigned });
+  const applyToWeeks = parsePositiveInteger(request.body.applyToWeeks, 'applyToWeeks') || 1;
+  if (applyToWeeks < 1 || applyToWeeks > 52) {
+    throw new HttpError(400, 'INVALID_APPLY_TO_WEEKS', 'applyToWeeks phải từ 1 đến 52');
+  }
+  const result = await assignShift({ branchId, staffId, shiftDate, startsAt, endsAt, shiftName, applyToWeeks });
+  response.json({ success: true, ...result });
 }));
 
 router.get('/schedule', asyncRoute(async (request, response) => {
   const branchId = request.account.branchId;
   const startDate = parseIsoDate(request.query.startDate, 'startDate', '2026-08-03');
   response.json({ data: await getSchedule({ branchId, startDate }) });
+}));
+
+router.put('/schedule/:id', asyncRoute(async (request, response) => {
+  const branchId = request.account.branchId;
+  const scheduleId = parsePositiveInteger(request.params.id, 'id');
+  const startsAt = parseTime(request.body.startsAt, 'startsAt');
+  const endsAt = parseTime(request.body.endsAt, 'endsAt');
+  const shiftName = text(request.body.shiftName, 80);
+  const propagateToFuture = request.body.propagateToFuture === true;
+
+  if (!shiftName || endsAt <= startsAt) {
+    throw new HttpError(400, 'INVALID_SHIFT', 'Tên ca và khung giờ hợp lệ là bắt buộc');
+  }
+
+  const result = await updateSchedule(branchId, scheduleId, { startsAt, endsAt, shiftName }, propagateToFuture);
+  response.json({ success: true, ...result });
+}));
+
+router.delete('/schedule/:id', asyncRoute(async (request, response) => {
+  const branchId = request.account.branchId;
+  const scheduleId = parsePositiveInteger(request.params.id, 'id');
+  const deleteFutureWeeks = request.body.deleteFutureWeeks === true;
+
+  const result = await deleteSchedule(branchId, scheduleId, deleteFutureWeeks);
+  response.json({ success: true, ...result });
 }));
 
 router.get('/attendance', asyncRoute(async (request, response) => {
