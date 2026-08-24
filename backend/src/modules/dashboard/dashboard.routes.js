@@ -13,6 +13,7 @@ router.post('/appointments', asyncRoute(async (request, response) => {
 
   const data = await createAppointment({
     branchId: request.account.branchId,
+    actorAccountId: request.account.id,
     customerId: parsePositiveInteger(request.body.customerId, 'customerId'),
     serviceId: parsePositiveInteger(request.body.serviceId, 'serviceId'),
     staffId: request.body.staffId ? parsePositiveInteger(request.body.staffId, 'staffId') : null,

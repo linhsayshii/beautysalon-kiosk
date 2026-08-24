@@ -17,9 +17,8 @@ export function DashboardView() {
   const query = useQuery({ queryKey: ['dashboard', date, period], queryFn: () => getDashboard(date, period) });
 
   useEffect(() => {
-    const unsub = subscribe(['pos:order_created', 'staff:*'], () => {
-      queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
-      queryClient.invalidateQueries({ queryKey: ['dashboard-charts'] });
+    const unsub = subscribe('staff:*', () => {
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
     });
     return unsub;
   }, [subscribe, queryClient]);

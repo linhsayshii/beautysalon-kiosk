@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { EventEmitter } from 'node:events';
 import { WebSocket } from 'ws';
-import { authorizeWebSocketUpgrade, initWebSocketServer, broadcastToBranch } from './ws.js';
+import { authorizeWebSocketUpgrade, initWebSocketServer, broadcastToBranch, REALTIME_EVENT_VERSION, realtimeEvents } from './ws.js';
 
 test('WebSocket upgrade requires a trusted origin and authenticated session', async () => {
   const authenticated = async (token) => token === 'valid-token' ? { id: 7, branchId: 2 } : null;
@@ -49,17 +49,26 @@ test('WebSocket server connects and broadcasts events by branch', async (t) => {
   wss.clients.add(client2);
 
   // Broadcast event to branch 1
-  broadcastToBranch(1, 'pos:order_created', { orderId: 99, total: 250000 });
+  broadcastToBranch(1, realtimeEvents.invoicePaid, { invoiceId: 99, total: 250000 });
   // Broadcast event to branch 2 (should not receive branch 1 events)
-  broadcastToBranch(2, 'pos:order_created', { orderId: 100, total: 500000 });
+  broadcastToBranch(2, realtimeEvents.invoicePaid, { invoiceId: 100, total: 500000 });
 
   assert.equal(received1.length, 1);
-  assert.equal(received1[0].event, 'pos:order_created');
-  assert.equal(received1[0].data.orderId, 99);
+  assert.equal(received1[0].event, realtimeEvents.invoicePaid);
+  assert.equal(received1[0].version, REALTIME_EVENT_VERSION);
+  assert.equal(received1[0].data.invoiceId, 99);
 
   assert.equal(received2.length, 1);
-  assert.equal(received2[0].event, 'pos:order_created');
-  assert.equal(received2[0].data.orderId, 100);
+  assert.equal(received2[0].event, realtimeEvents.invoicePaid);
+  assert.equal(received2[0].data.invoiceId, 100);
 
   wss.close();
+});
+
+test('realtime contract exposes the appointment, invoice, package and card events', () => {
+  assert.equal(REALTIME_EVENT_VERSION, 1);
+  assert.equal(realtimeEvents.appointmentUpdated, 'appointment:updated');
+  assert.equal(realtimeEvents.invoicePaid, 'invoice:paid');
+  assert.equal(realtimeEvents.customerPackageCreated, 'customer-package:created');
+  assert.equal(realtimeEvents.customerAccountCardUpdated, 'customer-account-card:updated');
 });

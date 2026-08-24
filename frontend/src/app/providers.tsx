@@ -3,6 +3,7 @@ import { type PropsWithChildren, useEffect } from 'react';
 import { DrawerProvider } from '@/components/ui/Drawer/DrawerProvider';
 import { ToastProvider } from '@/components/ui/Toast/ToastProvider';
 import { WebSocketProvider } from '@/context/WebSocketContext';
+import { RealtimeQuerySynchronizer } from '@/context/RealtimeQuerySynchronizer';
 import { AuthProvider } from '@/features/auth/AuthProvider';
 import { syncStoreNameWithTitleAndManifest } from '@/pwa/register-sw';
 import { useMetadata } from '@/services/metadata';
@@ -32,6 +33,7 @@ export function AppProviders({ children }: PropsWithChildren) {
     <QueryClientProvider client={queryClient}>
       <StoreTitleSync />
       <WebSocketProvider>
+        <RealtimeQuerySynchronizer />
         <AuthProvider>
           <ToastProvider>
             <DrawerProvider>{children}</DrawerProvider>
@@ -41,4 +43,3 @@ export function AppProviders({ children }: PropsWithChildren) {
     </QueryClientProvider>
   );
 }
-

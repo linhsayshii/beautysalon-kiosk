@@ -285,6 +285,7 @@ router.post('/appointments', asyncRoute(async (request, response) => {
   });
   const data = await createAppointments({
     branchId: request.account.branchId,
+    actorAccountId: request.account.id,
     customerId: parsePositiveInteger(request.body.customerId, 'customerId'),
     invoiceId: request.body.invoiceId ? parsePositiveInteger(request.body.invoiceId, 'invoiceId') : null,
     items,
@@ -304,6 +305,7 @@ router.put('/appointments/:id', asyncRoute(async (request, response) => {
 
   const data = await updateAppointment({
     branchId: request.account.branchId,
+    actorAccountId: request.account.id,
     id,
     customerId: request.body.customerId !== undefined ? parsePositiveInteger(request.body.customerId, 'customerId') : undefined,
     serviceId: request.body.serviceId !== undefined ? (request.body.serviceId ? parsePositiveInteger(request.body.serviceId, 'serviceId') : null) : undefined,

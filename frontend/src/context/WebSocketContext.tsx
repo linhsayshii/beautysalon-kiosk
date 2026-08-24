@@ -7,6 +7,8 @@ interface WebSocketContextValue {
     pattern: string | string[],
     callback: (event: string, data: T) => void
   ) => () => void;
+  reconnect: () => void;
+  disconnect: () => void;
 }
 
 const WebSocketContext = createContext<WebSocketContextValue | null>(null);
@@ -23,6 +25,7 @@ function matchPattern(pattern: string, event: string): boolean {
 export function WebSocketProvider({ children }: { children: ReactNode }) {
   const [isConnected, setIsConnected] = useState(false);
   const subscribersRef = useRef<Map<string, Set<(event: string, data: any) => void>>>(new Map());
+  const connectionRef = useRef<ReturnType<typeof createPosSocketConnection> | null>(null);
 
   useEffect(() => {
     const connection = createPosSocketConnection((event, data) => {
@@ -31,16 +34,12 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
           callbacks.forEach(cb => cb(event, data));
         }
       });
-    });
-
-    // Connection status tracked via the factory
-    const checkInterval = setInterval(() => {
-      setIsConnected(connection.isConnected());
-    }, 1000);
+    }, setIsConnected);
+    connectionRef.current = connection;
 
     return () => {
+      connectionRef.current = null;
       connection.disconnect();
-      clearInterval(checkInterval);
     };
   }, []);
 
@@ -68,8 +67,16 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
+  const reconnect = useCallback(() => {
+    connectionRef.current?.reconnect();
+  }, []);
+
+  const disconnect = useCallback(() => {
+    connectionRef.current?.disconnect();
+  }, []);
+
   return (
-    <WebSocketContext.Provider value={{ isConnected, subscribe }}>
+    <WebSocketContext.Provider value={{ isConnected, subscribe, reconnect, disconnect }}>
       {children}
     </WebSocketContext.Provider>
   );

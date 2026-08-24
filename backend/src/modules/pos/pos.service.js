@@ -1,6 +1,6 @@
 import { pool } from '../../db.js';
 import { HttpError } from '../../lib/http.js';
-import { broadcastToBranch } from '../../lib/ws.js';
+import { broadcastToBranch, realtimeEvents } from '../../lib/ws.js';
 import { resolveApplicablePricebook, resolvePricebookItemPrice } from '../inventory/inventory.service.js';
 
 const number = (value) => Number(value ?? 0);
@@ -156,6 +156,9 @@ export async function checkoutPosInvoice({
     const packagesToCreate = [];
     const accountCardsToCreate = [];
     const packageRedemptions = [];
+    const createdCustomerPackageIds = [];
+    const createdCustomerAccountCardIds = [];
+    const changedCustomerAccountCardIds = new Set();
 
     for (const line of lines) {
       const itemType = String(line.itemType || '').trim();
@@ -571,23 +574,27 @@ export async function checkoutPosInvoice({
     for (const pkg of packagesToCreate) {
       const pkgCode = `PKG${Date.now().toString().slice(-6)}${Math.floor(Math.random() * 100)}`;
       const expiresAt = pkg.validityDays ? new Date(Date.now() + pkg.validityDays * 86400000) : null;
-      await client.query(
+      const createdPackage = await client.query(
         `INSERT INTO customer_packages (
            branch_id, package_code, package_id, customer_id, sale_price, total_units, used_units, sold_at, expires_at, status
-         ) VALUES ($1, $2, $3, $4, $5, $6, 0, NOW(), $7, 'active')`,
+         ) VALUES ($1, $2, $3, $4, $5, $6, 0, NOW(), $7, 'active')
+         RETURNING id`,
         [branchId, pkgCode, pkg.packageId, customerId, pkg.salePrice, pkg.totalUnits, expiresAt],
       );
+      createdCustomerPackageIds.push(number(createdPackage.rows[0].id));
     }
 
     for (const card of accountCardsToCreate) {
       const cardCode = `CARD${Date.now().toString().slice(-6)}${Math.floor(Math.random() * 100)}`;
       const expiresAt = card.validityDays ? new Date(Date.now() + card.validityDays * 86400000) : null;
-      await client.query(
+      const createdCard = await client.query(
         `INSERT INTO customer_account_cards (
            branch_id, card_code, account_card_id, customer_id, sale_price, opening_balance, current_balance, sold_at, expires_at, status
-         ) VALUES ($1, $2, $3, $4, $5, $6, $6, NOW(), $7, 'active')`,
+         ) VALUES ($1, $2, $3, $4, $5, $6, $6, NOW(), $7, 'active')
+         RETURNING id`,
         [branchId, cardCode, card.accountCardId, customerId, card.salePrice, card.faceValue, expiresAt],
       );
+      createdCustomerAccountCardIds.push(number(createdCard.rows[0].id));
     }
 
     // 7b. Deduct from wallet/card balance for wallet payments
@@ -618,6 +625,7 @@ export async function checkoutPosInvoice({
            WHERE id = $2`,
           [deduction, card.id],
         );
+        changedCustomerAccountCardIds.add(number(card.id));
         remaining -= deduction;
       }
 
@@ -733,13 +741,48 @@ export async function checkoutPosInvoice({
       })),
     };
 
-    broadcastToBranch(branchId, 'pos:order_created', {
-      orderId: receipt.id,
+    broadcastToBranch(branchId, realtimeEvents.invoicePaid, {
+      invoiceId: receipt.id,
+      customerId: receipt.customer.id,
       code: receipt.code,
       total: receipt.total,
-      customerName: receipt.customer.name,
-      issuedAt: receipt.issuedAt,
+      appointmentId: appointmentId || null,
+      actorAccountId,
     });
+    for (const customerPackageId of createdCustomerPackageIds) {
+      broadcastToBranch(branchId, realtimeEvents.customerPackageCreated, {
+        customerPackageId,
+        customerId,
+        invoiceId: receipt.id,
+        actorAccountId,
+      });
+    }
+    for (const redemption of packageRedemptions) {
+      broadcastToBranch(branchId, realtimeEvents.customerPackageUpdated, {
+        customerPackageId: number(redemption.packageId),
+        customerId,
+        invoiceId: receipt.id,
+        action: 'redeemed',
+        actorAccountId,
+      });
+    }
+    for (const customerAccountCardId of createdCustomerAccountCardIds) {
+      broadcastToBranch(branchId, realtimeEvents.customerAccountCardCreated, {
+        customerAccountCardId,
+        customerId,
+        invoiceId: receipt.id,
+        actorAccountId,
+      });
+    }
+    for (const customerAccountCardId of changedCustomerAccountCardIds) {
+      broadcastToBranch(branchId, realtimeEvents.customerAccountCardUpdated, {
+        customerAccountCardId,
+        customerId,
+        invoiceId: receipt.id,
+        action: 'debited',
+        actorAccountId,
+      });
+    }
 
     return receipt;
   } catch (error) {

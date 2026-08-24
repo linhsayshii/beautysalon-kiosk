@@ -25,4 +25,29 @@ describe('createPosSocketConnection', () => {
     conn.disconnect();
     expect(mockWs.close).toHaveBeenCalled();
   });
+
+  it('reports connection changes and reconnects with a fresh socket', () => {
+    const sockets: Array<Record<string, any>> = [];
+    vi.stubGlobal('WebSocket', vi.fn().mockImplementation(() => {
+      const socket = { onopen: null, onmessage: null, onerror: null, onclose: null, close: vi.fn() };
+      sockets.push(socket);
+      return socket;
+    }));
+    const onConnectionChange = vi.fn();
+    const conn = createPosSocketConnection(vi.fn(), onConnectionChange);
+
+    sockets[0].onopen();
+    expect(conn.isConnected()).toBe(true);
+    expect(onConnectionChange).toHaveBeenLastCalledWith(true);
+
+    conn.reconnect();
+    expect(sockets[0].close).toHaveBeenCalled();
+    expect(sockets).toHaveLength(2);
+    sockets[0].onclose();
+    expect(sockets).toHaveLength(2);
+
+    sockets[1].onopen();
+    conn.disconnect();
+    expect(onConnectionChange).toHaveBeenLastCalledWith(false);
+  });
 });

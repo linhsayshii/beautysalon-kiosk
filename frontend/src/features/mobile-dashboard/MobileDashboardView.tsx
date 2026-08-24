@@ -22,9 +22,8 @@ export function MobileDashboardView() {
   const { subscribe } = useWebSocket();
 
   useEffect(() => {
-    const unsub = subscribe(['pos:order_created', 'staff:*'], () => {
-      queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
-      queryClient.invalidateQueries({ queryKey: ['dashboard-charts'] });
+    const unsub = subscribe('staff:*', () => {
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
     });
     return unsub;
   }, [subscribe, queryClient]);
@@ -98,4 +97,3 @@ export function MobileDashboardView() {
     </div>
   );
 }
-

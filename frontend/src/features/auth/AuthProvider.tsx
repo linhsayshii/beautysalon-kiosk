@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import type { PropsWithChildren } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { API_UNAUTHORIZED_EVENT, apiRequest } from '@/services/api-client';
+import { useWebSocket } from '@/hooks/useWebSocket';
 import type { AccountRole } from './authorization';
 
 export type { AccountRole } from './authorization';
@@ -41,6 +42,7 @@ export { homeForRole } from './authorization';
 
 export function AuthProvider({ children }: PropsWithChildren) {
   const queryClient = useQueryClient();
+  const { reconnect, disconnect } = useWebSocket();
   const [account, setAccount] = useState<AuthAccount | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -48,6 +50,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
     const clearUnauthorizedSession = () => {
       clearSensitiveBrowserState();
       queryClient.clear();
+      disconnect();
       setAccount(null);
     };
     window.addEventListener(API_UNAUTHORIZED_EVENT, clearUnauthorizedSession);
@@ -56,7 +59,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
       .catch(clearUnauthorizedSession)
       .finally(() => setLoading(false));
     return () => window.removeEventListener(API_UNAUTHORIZED_EVENT, clearUnauthorizedSession);
-  }, [queryClient]);
+  }, [disconnect, queryClient]);
 
   const value = useMemo<AuthContextValue>(() => ({
     account,
@@ -67,18 +70,20 @@ export function AuthProvider({ children }: PropsWithChildren) {
       });
       queryClient.clear();
       setAccount(payload.data);
+      reconnect();
       return payload.data;
     },
     logout: async () => {
-      try { await apiRequest('/auth/logout', { method: 'POST' }); } finally { clearSensitiveBrowserState(); queryClient.clear(); setAccount(null); }
+      try { await apiRequest('/auth/logout', { method: 'POST' }); } finally { clearSensitiveBrowserState(); queryClient.clear(); disconnect(); setAccount(null); }
     },
     updateLocalAccount: setAccount,
     switchBranch: async (branchId) => {
       const payload = await apiRequest<{ data: AuthAccount }>('/auth/me/branch', { method: 'PUT', body: JSON.stringify({ branchId }) });
       queryClient.clear();
       setAccount(payload.data);
+      reconnect();
     },
-  }), [account, loading, queryClient]);
+  }), [account, disconnect, loading, queryClient, reconnect]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

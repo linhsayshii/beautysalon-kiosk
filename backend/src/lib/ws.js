@@ -5,6 +5,23 @@ import { config } from '../config.js';
 let wssInstance = null;
 let heartbeatInterval = null;
 
+// This is intentionally a small, transport-level contract. Domain services
+// publish one of these events only after their database transaction commits;
+// clients then revalidate the affected API queries instead of trusting a
+// partial WebSocket snapshot.
+export const REALTIME_EVENT_VERSION = 1;
+export const realtimeEvents = Object.freeze({
+  appointmentCreated: 'appointment:created',
+  appointmentUpdated: 'appointment:updated',
+  invoiceCreated: 'invoice:created',
+  invoiceUpdated: 'invoice:updated',
+  invoicePaid: 'invoice:paid',
+  customerPackageCreated: 'customer-package:created',
+  customerPackageUpdated: 'customer-package:updated',
+  customerAccountCardCreated: 'customer-account-card:created',
+  customerAccountCardUpdated: 'customer-account-card:updated',
+});
+
 function rejectUpgrade(socket, statusCode, message) {
   socket.write(`HTTP/1.1 ${statusCode} ${message}\r\nConnection: close\r\n\r\n`);
   socket.destroy();
@@ -74,10 +91,29 @@ export function initWebSocketServer(httpServer) {
 
 export function broadcastToBranch(branchId, event, data) {
   if (!wssInstance) return;
-  const payload = JSON.stringify({ event, data, timestamp: new Date().toISOString() });
+  const payload = JSON.stringify({
+    version: REALTIME_EVENT_VERSION,
+    event,
+    data,
+    timestamp: new Date().toISOString(),
+  });
   wssInstance.clients.forEach((client) => {
     if (client.readyState === WebSocket.OPEN && (!branchId || client.branchId === Number(branchId))) {
       client.send(payload);
+    }
+  });
+}
+
+/**
+ * Authentication and branch changes revoke the old live channel immediately.
+ * A still-open WebSocket must never outlive the session/branch that authorised
+ * it, including in another browser tab.
+ */
+export function closeWebSocketsForAccount(accountId) {
+  if (!wssInstance) return;
+  wssInstance.clients.forEach((client) => {
+    if (client.accountId === Number(accountId) && typeof client.close === 'function') {
+      client.close(4001, 'Session refreshed');
     }
   });
 }

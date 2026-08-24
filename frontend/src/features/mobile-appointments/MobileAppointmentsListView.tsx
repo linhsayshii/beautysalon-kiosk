@@ -9,7 +9,6 @@ import { useToast } from '@/components/ui/Toast/ToastProvider';
 import { Select } from '@/components/ui/Select/Select';
 import { DatePickerField } from '@/components/ui/DateTimePicker';
 import { DEFAULT_BRANCH_TIME_ZONE, formatBranchTime, formatDayHeader, localDateTimeFromInstant } from '@/lib/date';
-import { useWebSocket } from '@/hooks/useWebSocket';
 import type { ApiRecord } from '@/types/api';
 import './mobile-appointments.css';
 
@@ -53,14 +52,6 @@ export function MobileAppointmentsListView() {
   const [selectedApt, setSelectedApt] = useState<AppointmentData | null>(null);
   const { notify } = useToast();
   const queryClient = useQueryClient();
-  const { subscribe } = useWebSocket();
-
-  useEffect(() => {
-    const unsub = subscribe('appointment:created', () => {
-      queryClient.invalidateQueries({ queryKey: ['pos-appointments'] });
-    });
-    return unsub;
-  }, [subscribe, queryClient]);
 
   const { data: appointmentsResponse, isLoading } = useQuery({
     queryKey: ['pos-appointments', selectedDate, selectedDate],

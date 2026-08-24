@@ -1,29 +1,52 @@
 export interface WsEventPayload<T = unknown> {
+  version?: number;
   event: string;
   data: T;
   timestamp?: string;
 }
 
 export function createPosSocketConnection(
-  onEvent: (event: string, data: any) => void
+  onEvent: (event: string, data: unknown) => void,
+  onConnectionChange: (isConnected: boolean) => void = () => {},
 ) {
   let ws: WebSocket | null = null;
   let connected = false;
   let reconnectTimer: any = null;
   let shouldReconnect = true;
 
+  const setConnected = (next: boolean) => {
+    if (connected === next) return;
+    connected = next;
+    onConnectionChange(connected);
+  };
+
+  const clearReconnectTimer = () => {
+    if (reconnectTimer) {
+      clearTimeout(reconnectTimer);
+      reconnectTimer = null;
+    }
+  };
+
+  const scheduleReconnect = (delay = 3000) => {
+    clearReconnectTimer();
+    if (shouldReconnect) reconnectTimer = setTimeout(connect, delay);
+  };
+
   function connect() {
     if (typeof window === 'undefined') return;
+    clearReconnectTimer();
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     const host = window.location.host;
     const wsUrl = `${protocol}//${host}/api/v1/ws`;
 
     try {
-      ws = new WebSocket(wsUrl);
-      ws.onopen = () => {
-        connected = true;
+      const socket = new WebSocket(wsUrl);
+      ws = socket;
+      socket.onopen = () => {
+        if (ws !== socket) return;
+        setConnected(true);
       };
-      ws.onmessage = (event) => {
+      socket.onmessage = (event) => {
         try {
           const payload = JSON.parse(event.data) as WsEventPayload;
           if (payload && payload.event) {
@@ -33,17 +56,17 @@ export function createPosSocketConnection(
           /* ignore malformed message */
         }
       };
-      ws.onclose = () => {
-        connected = false;
-        if (shouldReconnect) {
-          reconnectTimer = setTimeout(connect, 3000);
-        }
+      socket.onclose = () => {
+        if (ws !== socket) return;
+        setConnected(false);
+        scheduleReconnect();
       };
-      ws.onerror = () => {
-        ws?.close();
+      socket.onerror = () => {
+        socket.close();
       };
     } catch {
-      if (shouldReconnect) reconnectTimer = setTimeout(connect, 5000);
+      setConnected(false);
+      scheduleReconnect(5000);
     }
   }
 
@@ -53,8 +76,20 @@ export function createPosSocketConnection(
     isConnected: () => connected,
     disconnect: () => {
       shouldReconnect = false;
-      if (reconnectTimer) clearTimeout(reconnectTimer);
-      ws?.close();
+      clearReconnectTimer();
+      const socket = ws;
+      ws = null;
+      setConnected(false);
+      socket?.close();
+    },
+    reconnect: () => {
+      shouldReconnect = true;
+      clearReconnectTimer();
+      const socket = ws;
+      ws = null;
+      setConnected(false);
+      socket?.close();
+      connect();
     },
   };
 }

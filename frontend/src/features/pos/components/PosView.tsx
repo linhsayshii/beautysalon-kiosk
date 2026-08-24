@@ -165,15 +165,6 @@ export function PosView() {
     setMode('invoice');
   }, [requestedInvoice.data]);
 
-  const { subscribe } = useWebSocket();
-
-  useEffect(() => {
-    const unsub = subscribe('pos:order_created', () => {
-      queryClient.invalidateQueries({ queryKey: ['orders'] });
-    });
-    return unsub;
-  }, [subscribe, queryClient]);
-
   const customers = useQuery({
     queryKey: ['pos-customers', deferredCustomerSearch],
     queryFn: () => searchPosCustomers(deferredCustomerSearch),
@@ -776,6 +767,21 @@ function AppointmentDrawer({
   const deferredCustomerSearch = useDeferredValue(customerSearch.trim());
   const deferredServiceSearch = useDeferredValue(serviceSearch.trim());
   const { notify } = useToast();
+  const { subscribe } = useWebSocket();
+  const [hasRemoteAppointmentChange, setHasRemoteAppointmentChange] = useState(false);
+
+  useEffect(() => {
+    if (!isEditing || !initialAppointment) return;
+    return subscribe<{ appointmentId?: number; actorAccountId?: number | null }>('appointment:updated', (_event, data) => {
+      if (Number(data.appointmentId) !== initialAppointment.id) return;
+      if (data.actorAccountId && Number(data.actorAccountId) === account?.id) return;
+      setHasRemoteAppointmentChange(true);
+      notify(
+        'Lịch hẹn vừa được cập nhật ở thiết bị khác',
+        'Dữ liệu bạn đang nhập được giữ nguyên. Hãy đóng và mở lại lịch hẹn trước khi tiếp tục chỉnh sửa.',
+      );
+    });
+  }, [account?.id, initialAppointment, isEditing, notify, subscribe]);
 
   useEffect(() => {
     const closeOnEscape = (event: KeyboardEvent) => {
@@ -814,6 +820,7 @@ function AppointmentDrawer({
   });
 
   useEffect(() => {
+    if (hasRemoteAppointmentChange) return;
     const invoice = groupedInvoice.data?.data as any;
     if (!invoice?.items?.length) return;
     const serviceLines = invoice.items
@@ -829,7 +836,7 @@ function AppointmentDrawer({
         commissionRate: item.commissionRate ?? 0,
       }));
     if (serviceLines.length) setSelectedServices(serviceLines);
-  }, [groupedInvoice.data]);
+  }, [groupedInvoice.data, hasRemoteAppointmentChange]);
 
   const saveMutation = useMutation({
     mutationFn: async ({ services: nextServices, removedAppointmentIds }: { services: AppointmentServiceLine[]; removedAppointmentIds: number[] }) => {

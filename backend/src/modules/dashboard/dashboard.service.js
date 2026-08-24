@@ -1,5 +1,5 @@
 import { pool } from '../../db.js';
-import { broadcastToBranch } from '../../lib/ws.js';
+import { broadcastToBranch, realtimeEvents } from '../../lib/ws.js';
 import { resolveApplicablePricebook, resolvePricebookItemPrice } from '../inventory/inventory.service.js';
 
 function number(value) {
@@ -269,7 +269,7 @@ async function syncDraftInvoiceItemForAppointment(client, {
   if (itemResult.rows[0]) await recalculateDraftInvoice(client, invoiceId);
 }
 
-export async function createAppointments({ branchId, customerId, items, status, note, invoiceId = null }) {
+export async function createAppointments({ branchId, customerId, items, status, note, invoiceId = null, actorAccountId = null }) {
   if (!Array.isArray(items) || items.length === 0) {
     throw appError(400, 'SERVICES_REQUIRED', 'Cần chọn ít nhất một dịch vụ');
   }
@@ -437,9 +437,22 @@ export async function createAppointments({ branchId, customerId, items, status, 
 
     await client.query('COMMIT');
 
-    // Broadcast appointment creation to all clients in the branch
+    // Broadcast only after COMMIT. Every client refetches its own authorised
+    // view, so the WebSocket never becomes a second source of truth.
+    broadcastToBranch(branchId, invoiceId ? realtimeEvents.invoiceUpdated : realtimeEvents.invoiceCreated, {
+      invoiceId: number(invoice.id),
+      customerId: number(customerId),
+      status: invoice.status,
+      appointmentIds: appointments.map((appointment) => appointment.id),
+      actorAccountId,
+    });
     for (const appointment of appointments) {
-      broadcastToBranch(branchId, 'appointment:created', { appointment });
+      broadcastToBranch(branchId, realtimeEvents.appointmentCreated, {
+        appointmentId: appointment.id,
+        invoiceId: appointment.invoiceId,
+        customerId: appointment.customer.id,
+        actorAccountId,
+      });
     }
 
     return {
@@ -463,12 +476,13 @@ export async function createAppointment(input) {
     customerId: input.customerId,
     status: input.status,
     note: input.note,
+    actorAccountId: input.actorAccountId,
     items: [{ serviceId: input.serviceId, staffId: input.staffId, startsAt: input.startsAt, endsAt: input.endsAt }],
   });
   return result.appointments[0];
 }
 
-export async function transitionAppointmentWorkStatus({ branchId, staffId, id, status }) {
+export async function transitionAppointmentWorkStatus({ branchId, staffId, id, status, actorAccountId = null }) {
   const expectedCurrentStatuses = status === 'in_service' ? ['confirmed', 'waiting'] : ['in_service'];
   if (!['in_service', 'completed'].includes(status)) {
     throw appError(400, 'INVALID_WORK_STATUS', 'Trạng thái công việc không hợp lệ');
@@ -493,6 +507,19 @@ export async function transitionAppointmentWorkStatus({ branchId, staffId, id, s
       triggeredByStaffId: status === 'completed' ? staffId : null,
     });
     await client.query('COMMIT');
+    broadcastToBranch(branchId, realtimeEvents.appointmentUpdated, {
+      appointmentId: number(result.rows[0].id),
+      invoiceId: result.rows[0].invoice_id ? number(result.rows[0].invoice_id) : null,
+      status: result.rows[0].status,
+      actorAccountId,
+    });
+    if (result.rows[0].invoice_id) {
+      broadcastToBranch(branchId, realtimeEvents.invoiceUpdated, {
+        invoiceId: number(result.rows[0].invoice_id),
+        paymentRequestedAt: paymentReadiness.paymentRequestedAt,
+        actorAccountId,
+      });
+    }
     return {
       id: number(result.rows[0].id),
       status: result.rows[0].status,
@@ -506,7 +533,7 @@ export async function transitionAppointmentWorkStatus({ branchId, staffId, id, s
   }
 }
 
-export async function updateAppointment({ branchId, id, customerId, serviceId, staffId, startsAt, endsAt, status, note }) {
+export async function updateAppointment({ branchId, id, customerId, serviceId, staffId, startsAt, endsAt, status, note, actorAccountId = null }) {
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
@@ -599,7 +626,7 @@ export async function updateAppointment({ branchId, id, customerId, serviceId, s
 
     await client.query('COMMIT');
     const appointment = result.rows[0];
-    return {
+    const data = {
       id: number(appointment.id),
       startsAt: appointment.starts_at,
       endsAt: appointment.ends_at,
@@ -609,6 +636,19 @@ export async function updateAppointment({ branchId, id, customerId, serviceId, s
       staff: { id: targetStaffId, name: staffResult.rows[0]?.name ?? null },
       service: { id: targetServiceId, name: serviceResult.rows[0]?.name ?? null },
     };
+    broadcastToBranch(branchId, realtimeEvents.appointmentUpdated, {
+      appointmentId: data.id,
+      invoiceId: existing.invoice_id ? number(existing.invoice_id) : null,
+      status: data.status,
+      actorAccountId,
+    });
+    if (existing.invoice_id) {
+      broadcastToBranch(branchId, realtimeEvents.invoiceUpdated, {
+        invoiceId: number(existing.invoice_id),
+        actorAccountId,
+      });
+    }
+    return data;
   } catch (error) {
     await client.query('ROLLBACK');
     throw error;

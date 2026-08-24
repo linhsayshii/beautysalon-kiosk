@@ -4,10 +4,12 @@ import { WebSocketProvider, useWebSocket } from './WebSocketContext';
 
 // Mock the websocket module
 vi.mock('@/services/websocket', () => ({
-  createPosSocketConnection: vi.fn((onEvent) => {
+  createPosSocketConnection: vi.fn((onEvent, onConnectionChange) => {
+    onConnectionChange?.(true);
     return {
       isConnected: () => true,
       disconnect: vi.fn(),
+      reconnect: vi.fn(),
     };
   }),
 }));
@@ -70,6 +72,7 @@ describe('WebSocketContext', () => {
       const mockConnection = {
         isConnected: () => true,
         disconnect: vi.fn(),
+        reconnect: vi.fn(),
       };
       createPosSocketConnection.mockReturnValue(mockConnection);
 

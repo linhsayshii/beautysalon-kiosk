@@ -2,7 +2,6 @@ import { useEffect, useState, useMemo, useRef, type RefObject } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/components/ui/Toast/ToastProvider';
-import { useWebSocket } from '@/hooks/useWebSocket';
 import { formatMoney, formatNumber } from '@/lib/format';
 import { MoneyInput } from '@/components/forms/MoneyInput';
 import {
@@ -36,15 +35,6 @@ export function MobileInvoiceCreateView() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { notify } = useToast();
-  const { subscribe } = useWebSocket();
-
-  // WebSocket subscription for live order updates
-  useEffect(() => {
-    const unsub = subscribe('pos:order_created', () => {
-      queryClient.invalidateQueries({ queryKey: ['orders'] });
-    });
-    return unsub;
-  }, [subscribe, queryClient]);
 
   // State
   const [customer, setCustomer] = useState<MobileCustomer | null>(null);

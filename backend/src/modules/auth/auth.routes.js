@@ -6,6 +6,7 @@ import { requireAuth } from './auth.middleware.js';
 import { permissions, requirePermissions } from './auth.permissions.js';
 import { changeOwnPassword, clearedSessionCookie, createAccount, listAccounts, login, logout, readSessionCookie, sessionCookie, switchOwnBranch, updateAccount, updateOwnProfile } from './auth.service.js';
 import { accountFromToken } from './auth.service.js';
+import { closeWebSocketsForAccount } from '../../lib/ws.js';
 
 const router = Router();
 const roles = ['manager', 'cashier', 'staff'];
@@ -34,7 +35,10 @@ router.post('/login', loginLimiter, asyncRoute(async (request, response) => {
 }));
 
 router.post('/logout', asyncRoute(async (request, response) => {
-  await logout(readSessionCookie(request));
+  const token = readSessionCookie(request);
+  const account = await accountFromToken(token);
+  await logout(token);
+  if (account) closeWebSocketsForAccount(account.id);
   response.setHeader('Set-Cookie', clearedSessionCookie());
   response.status(204).end();
 }));
@@ -65,6 +69,7 @@ router.post('/me/password', requireAuth, asyncRoute(async (request, response) =>
 
 router.put('/me/branch', requireAuth, requirePermissions(permissions.manageBranches), asyncRoute(async (request, response) => {
   await switchOwnBranch({ accountId: request.account.id, branchId: parsePositiveInteger(request.body.branchId, 'branchId') });
+  closeWebSocketsForAccount(request.account.id);
   const data = await accountFromToken(readSessionCookie(request));
   response.json({ data });
 }));
@@ -101,6 +106,7 @@ router.patch('/accounts/:id', requireAuth, requirePermissions(permissions.manage
   const role = request.body.role === undefined ? null : parseEnum(request.body.role, 'role', roles);
   const active = typeof request.body.active === 'boolean' ? request.body.active : null;
   const data = await updateAccount({ id, branchId: request.account.branchId, active, role, password });
+  if (active === false || password || role !== null) closeWebSocketsForAccount(id);
   response.json({ data });
 }));
 

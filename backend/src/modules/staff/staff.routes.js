@@ -121,6 +121,7 @@ staffSelfRoutes.patch('/work-items/:id/status', asyncRoute(async (request, respo
   response.json({
     data: await transitionAppointmentWorkStatus({
       branchId: request.account.branchId,
+      actorAccountId: request.account.id,
       staffId,
       id,
       status,
