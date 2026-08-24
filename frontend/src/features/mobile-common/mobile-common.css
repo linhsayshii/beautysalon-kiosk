@@ -45,10 +45,10 @@
   border-radius: 21px;
   border: 1px solid var(--line, #e2e8f0);
   background: #f1f5f9;
-  font-size: 14.5px;
+  font-size: 16px;
   color: var(--ink-950, #0f172a);
   outline: none;
-  transition: all 0.15s ease;
+  transition: background-color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
   box-sizing: border-box;
 }
 
@@ -111,7 +111,7 @@
   cursor: pointer;
   user-select: none;
   -webkit-tap-highlight-color: transparent;
-  transition: all 0.15s ease;
+  transition: transform 0.15s ease, background-color 0.15s ease, border-color 0.15s ease;
   width: 100%;
   color: inherit;
   font: inherit;
@@ -1142,7 +1142,7 @@
 /* Sub-sheet (Staff & Position Pickers) */
 .mobile-sub-sheet-backdrop {
   position: fixed;
-  top: var(--mobile-overlay-viewport-offset-top, 0px);
+  top: 0;
   right: 0;
   left: 0;
   height: var(--mobile-overlay-viewport-height, 100dvh);
@@ -1480,7 +1480,7 @@
 /* Mobile Filter Sheet */
 .mobile-filter-sheet-backdrop {
   position: fixed;
-  top: var(--mobile-overlay-viewport-offset-top, 0px);
+  top: 0;
   right: 0;
   left: 0;
   height: var(--mobile-overlay-viewport-height, 100dvh);
@@ -1845,7 +1845,7 @@
 /* Mobile Detail Sheet */
 .mobile-detail-sheet-backdrop {
   position: fixed;
-  top: var(--mobile-overlay-viewport-offset-top, 0px);
+  top: 0;
   right: 0;
   left: 0;
   height: var(--mobile-overlay-viewport-height, 100dvh);
@@ -1946,7 +1946,7 @@
 
 .mobile-form-sheet-backdrop {
   position: fixed;
-  top: var(--mobile-overlay-viewport-offset-top, 0px);
+  top: 0;
   right: 0;
   left: 0;
   height: var(--mobile-overlay-viewport-height, 100dvh);

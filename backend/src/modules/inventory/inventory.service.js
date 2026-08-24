@@ -140,6 +140,14 @@ async function nextItemCode(client, branchId, type, requestedCode) {
 }
 
 async function ensureDefaultPricebook(client, branchId) {
+  const existing = await client.query(
+    'SELECT id FROM pricebooks WHERE branch_id = $1 AND is_default ORDER BY created_at, id LIMIT 1',
+    [branchId],
+  );
+  if (existing.rows[0]) {
+    await client.query('UPDATE pricebooks SET active = TRUE WHERE id = $1', [existing.rows[0].id]);
+    return number(existing.rows[0].id);
+  }
   const code = `BG-${branchId}`;
   const result = await client.query(
     `INSERT INTO pricebooks (branch_id, code, name, is_default)
@@ -149,6 +157,79 @@ async function ensureDefaultPricebook(client, branchId) {
     [branchId, code],
   );
   return number(result.rows[0].id);
+}
+
+export async function resolveApplicablePricebook(client, { branchId, customerId = null }) {
+  const result = await client.query(
+    `SELECT pb.id, pb.code, pb.name, pb.is_default,
+            EXISTS (
+              SELECT 1 FROM pricebook_customers pc
+              WHERE pc.pricebook_id = pb.id AND pc.customer_id = $2::bigint
+            ) AS customer_specific
+     FROM pricebooks pb
+     JOIN branches b ON b.id = pb.branch_id
+     WHERE pb.branch_id = $1
+       AND pb.active
+       AND (
+         pb.is_default
+         OR EXISTS (
+           SELECT 1 FROM pricebook_customers pc
+           WHERE pc.pricebook_id = pb.id AND pc.customer_id = $2::bigint
+         )
+         OR (
+           NOT EXISTS (SELECT 1 FROM pricebook_customers pc WHERE pc.pricebook_id = pb.id)
+           AND pb.effective_from IS NOT NULL
+           AND pb.effective_to IS NOT NULL
+         )
+       )
+       AND (
+         pb.is_default
+         OR (
+           (pb.effective_from IS NULL OR pb.effective_from <= (CURRENT_TIMESTAMP AT TIME ZONE b.timezone)::date)
+           AND (pb.effective_to IS NULL OR pb.effective_to >= (CURRENT_TIMESTAMP AT TIME ZONE b.timezone)::date)
+         )
+       )
+     ORDER BY
+       CASE
+         WHEN EXISTS (
+           SELECT 1 FROM pricebook_customers pc
+           WHERE pc.pricebook_id = pb.id AND pc.customer_id = $2::bigint
+         ) THEN 2
+         WHEN NOT pb.is_default THEN 1
+         ELSE 0
+       END DESC,
+       pb.effective_from DESC NULLS LAST,
+       pb.created_at DESC,
+       pb.id DESC
+     LIMIT 1`,
+    [branchId, customerId],
+  );
+  const row = result.rows[0];
+  if (!row) return null;
+  return {
+    id: number(row.id),
+    code: row.code,
+    name: row.name,
+    isDefault: row.is_default,
+    customerSpecific: row.customer_specific,
+  };
+}
+
+export async function resolvePricebookItemPrice(client, { branchId, pricebookId, itemType, itemId, basePrice }) {
+  if (!pricebookId) return number(basePrice);
+  const result = await client.query(
+    `SELECT COALESCE(selected.sale_price, fallback.sale_price, $5::numeric) AS sale_price
+     FROM (SELECT 1) seed
+     LEFT JOIN pricebook_items selected
+       ON selected.pricebook_id = $2 AND selected.item_type = $3 AND selected.item_id = $4
+     LEFT JOIN pricebooks default_book
+       ON default_book.branch_id = $1 AND default_book.is_default
+     LEFT JOIN pricebook_items fallback
+       ON fallback.pricebook_id = default_book.id AND fallback.item_type = $3 AND fallback.item_id = $4
+     LIMIT 1`,
+    [branchId, pricebookId, itemType, itemId, basePrice],
+  );
+  return number(result.rows[0]?.sale_price ?? basePrice);
 }
 
 async function validateScopedItems(client, branchId, items) {
@@ -477,8 +558,79 @@ export async function listProducts({ branchId, search, type, category, stockStat
   };
 }
 
+export async function listPosProducts({ branchId, customerId, search, type, pageSize = 100 }) {
+  const pricebook = await resolveApplicablePricebook(pool, { branchId, customerId });
+  const result = await pool.query(
+    `${goodsCte}
+     SELECT g.*,
+       COALESCE(selected.sale_price, fallback.sale_price, g.sale_price) AS resolved_sale_price
+     FROM goods g
+     LEFT JOIN pricebook_items selected
+       ON selected.pricebook_id = $3 AND selected.item_type = g.item_type AND selected.item_id = g.item_id
+     LEFT JOIN pricebooks default_book
+       ON default_book.branch_id = $1 AND default_book.is_default
+     LEFT JOIN pricebook_items fallback
+       ON fallback.pricebook_id = default_book.id AND fallback.item_type = g.item_type AND fallback.item_id = g.item_id
+     WHERE g.branch_id = $1
+       AND g.active
+       AND ($2 = '' OR g.item_type = $2)
+       AND ($4 = '' OR g.code ILIKE '%' || $4 || '%' OR g.name ILIKE '%' || $4 || '%' OR COALESCE(g.brand, '') ILIKE '%' || $4 || '%')
+     ORDER BY g.item_type, g.code DESC
+     LIMIT $5`,
+    [branchId, type, pricebook?.id ?? null, search, pageSize],
+  );
+  return {
+    rows: result.rows.map((row) => mapProduct({ ...row, sale_price: row.resolved_sale_price })),
+    pricebook,
+  };
+}
+
+export async function quotePosPrices({ branchId, customerId, items }) {
+  const uniqueItems = [...new Map(items.map((item) => [`${item.itemType}:${item.itemId}`, item])).values()];
+  if (!uniqueItems.length) return { rows: [], pricebook: null };
+  const pricebook = await resolveApplicablePricebook(pool, { branchId, customerId });
+  const values = [];
+  const parameters = [branchId, pricebook?.id ?? null];
+  const tuples = uniqueItems.map((item) => {
+    parameters.push(item.itemType, item.itemId);
+    const index = parameters.length - 1;
+    values.push(`${item.itemType}:${item.itemId}`);
+    return `($${index}::text, $${index + 1}::bigint)`;
+  });
+  const result = await pool.query(
+    `${goodsCte}, requested(item_type, item_id) AS (VALUES ${tuples.join(', ')})
+     SELECT g.item_type, g.item_id,
+       COALESCE(selected.sale_price, fallback.sale_price, g.sale_price) AS sale_price
+     FROM requested r
+     JOIN goods g ON g.branch_id = $1 AND g.item_type = r.item_type AND g.item_id = r.item_id
+     LEFT JOIN pricebook_items selected
+       ON selected.pricebook_id = $2 AND selected.item_type = g.item_type AND selected.item_id = g.item_id
+     LEFT JOIN pricebooks default_book
+       ON default_book.branch_id = $1 AND default_book.is_default
+     LEFT JOIN pricebook_items fallback
+       ON fallback.pricebook_id = default_book.id AND fallback.item_type = g.item_type AND fallback.item_id = g.item_id`,
+    parameters,
+  );
+  if (result.rowCount !== new Set(values).size) {
+    throw new HttpError(404, 'ITEM_NOT_FOUND', 'Có hàng hóa không còn tồn tại trong chi nhánh');
+  }
+  return {
+    rows: result.rows.map((row) => ({ itemType: row.item_type, itemId: number(row.item_id), salePrice: number(row.sale_price) })),
+    pricebook,
+  };
+}
+
 export async function listPricebooks({ branchId, pricebookId, search, category, page, pageSize, offset }) {
-  const booksResult = await pool.query('SELECT id, code, name FROM pricebooks WHERE branch_id = $1 AND active ORDER BY id', [branchId]);
+  const booksResult = await pool.query(
+    `SELECT pb.id, pb.code, pb.name, pb.active, pb.is_default, pb.effective_from, pb.effective_to,
+            COUNT(pc.customer_id)::integer AS customer_count
+     FROM pricebooks pb
+     LEFT JOIN pricebook_customers pc ON pc.pricebook_id = pb.id
+     WHERE pb.branch_id = $1
+     GROUP BY pb.id
+     ORDER BY pb.is_default DESC, pb.active DESC, pb.created_at DESC, pb.id DESC`,
+    [branchId],
+  );
   const book = pricebookId
     ? booksResult.rows.find((row) => number(row.id) === number(pricebookId))
     : booksResult.rows[0];
@@ -507,8 +659,11 @@ export async function listPricebooks({ branchId, pricebookId, search, category, 
   ]);
   const total = number(result.rows[0]?.filtered_total);
   return {
-    pricebook: { id: number(book.id), code: book.code, name: book.name },
-    pricebooks: booksResult.rows.map((row) => ({ id: number(row.id), code: row.code, name: row.name })),
+    pricebook: { id: number(book.id), code: book.code, name: book.name, active: book.active, isDefault: book.is_default },
+    pricebooks: booksResult.rows.map((row) => ({
+      id: number(row.id), code: row.code, name: row.name, active: row.active, isDefault: row.is_default,
+      effectiveFrom: row.effective_from, effectiveTo: row.effective_to, customerCount: number(row.customer_count),
+    })),
     categories: categoriesResult.rows.map((row) => row.category),
     rows: result.rows.map((row) => ({ ...mapProduct(row), bookPrice: number(row.book_price), updatedAt: row.updated_at })),
     pagination: { page, pageSize, total, totalPages: Math.max(1, Math.ceil(total / pageSize)) },
@@ -516,7 +671,7 @@ export async function listPricebooks({ branchId, pricebookId, search, category, 
 }
 
 export async function updatePricebookItem({ branchId, pricebookId, itemType, itemId, salePrice }) {
-  const book = await pool.query('SELECT id FROM pricebooks WHERE id = $1 AND branch_id = $2 AND active', [pricebookId, branchId]);
+  const book = await pool.query('SELECT id FROM pricebooks WHERE id = $1 AND branch_id = $2', [pricebookId, branchId]);
   if (!book.rows[0]) throw new HttpError(404, 'PRICEBOOK_NOT_FOUND', 'Không tìm thấy bảng giá');
   const source = itemSources[itemType];
   const item = await pool.query(`SELECT id FROM ${source.table} WHERE id = $1 AND branch_id = $2 AND active`, [itemId, branchId]);
@@ -533,10 +688,20 @@ export async function updatePricebookItem({ branchId, pricebookId, itemType, ite
 }
 
 export async function getPricebook({ branchId, id }) {
-  const result = await pool.query(
-    'SELECT id, code, name, active, is_default, effective_from, effective_to, created_at FROM pricebooks WHERE id = $1 AND branch_id = $2',
-    [id, branchId],
-  );
+  const [result, customersResult] = await Promise.all([
+    pool.query(
+      'SELECT id, code, name, active, is_default, effective_from, effective_to, created_at FROM pricebooks WHERE id = $1 AND branch_id = $2',
+      [id, branchId],
+    ),
+    pool.query(
+      `SELECT c.id, c.code, c.name, c.phone
+       FROM pricebook_customers pc
+       JOIN customers c ON c.id = pc.customer_id
+       WHERE pc.pricebook_id = $1 AND c.branch_id = $2
+       ORDER BY c.name, c.id`,
+      [id, branchId],
+    ),
+  ]);
   if (!result.rows[0]) throw new HttpError(404, 'PRICEBOOK_NOT_FOUND', 'Không tìm thấy bảng giá');
   const row = result.rows[0];
   return {
@@ -547,11 +712,50 @@ export async function getPricebook({ branchId, id }) {
     isDefault: row.is_default,
     effectiveFrom: row.effective_from,
     effectiveTo: row.effective_to,
+    customers: customersResult.rows.map((customer) => ({
+      id: number(customer.id), code: customer.code, name: customer.name, phone: customer.phone,
+    })),
     createdAt: row.created_at,
   };
 }
 
-export async function createPricebook({ branchId, code, name, active, effectiveFrom, effectiveTo, copyFromDefault }) {
+async function validatePricebookCustomers(client, branchId, customerIds) {
+  const uniqueIds = [...new Set(customerIds)];
+  if (!uniqueIds.length) return uniqueIds;
+  const result = await client.query(
+    'SELECT id FROM customers WHERE branch_id = $1 AND id = ANY($2::bigint[])',
+    [branchId, uniqueIds],
+  );
+  if (result.rowCount !== uniqueIds.length) {
+    throw new HttpError(400, 'INVALID_PRICEBOOK_CUSTOMER', 'Có khách hàng không thuộc chi nhánh hiện tại');
+  }
+  return uniqueIds;
+}
+
+export function validatePricebookScope({ customerIds, effectiveFrom, effectiveTo }) {
+  if (effectiveFrom && effectiveTo && effectiveFrom > effectiveTo) {
+    throw new HttpError(400, 'INVALID_DATE_RANGE', 'Ngày bắt đầu phải trước ngày kết thúc');
+  }
+  if (!customerIds.length && (!effectiveFrom || !effectiveTo)) {
+    throw new HttpError(400, 'PRICEBOOK_SCOPE_REQUIRED', 'Bảng giá chung theo thời gian phải có đủ ngày bắt đầu và ngày kết thúc');
+  }
+}
+
+export async function listPricebookCustomerOptions({ branchId, search, selectedIds = [] }) {
+  const result = await pool.query(
+    `SELECT id, code, name, phone
+     FROM customers
+     WHERE branch_id = $1
+       AND ($2 = '' OR code ILIKE '%' || $2 || '%' OR name ILIKE '%' || $2 || '%' OR COALESCE(phone, '') ILIKE '%' || $2 || '%'
+            OR id = ANY($3::bigint[]))
+     ORDER BY (id = ANY($3::bigint[])) DESC, name, id
+     LIMIT 50`,
+    [branchId, search, selectedIds],
+  );
+  return result.rows.map((row) => ({ id: number(row.id), code: row.code, name: row.name, phone: row.phone }));
+}
+
+export async function createPricebook({ branchId, code, name, active, effectiveFrom, effectiveTo, customerIds = [], copyFromDefault }) {
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
@@ -561,10 +765,8 @@ export async function createPricebook({ branchId, code, name, active, effectiveF
     const existingCode = await client.query('SELECT id FROM pricebooks WHERE code = $1', [code]);
     if (existingCode.rows[0]) throw new HttpError(400, 'DUPLICATE_CODE', 'Mã bảng giá đã tồn tại');
 
-    // Validate date range
-    if (effectiveFrom && effectiveTo && effectiveFrom > effectiveTo) {
-      throw new HttpError(400, 'INVALID_DATE_RANGE', 'Ngày bắt đầu phải trước ngày kết thúc');
-    }
+    const validCustomerIds = await validatePricebookCustomers(client, branchId, customerIds);
+    validatePricebookScope({ customerIds: validCustomerIds, effectiveFrom, effectiveTo });
 
     // Get default pricebook ID for copying prices
     let defaultPricebookId = null;
@@ -580,6 +782,13 @@ export async function createPricebook({ branchId, code, name, active, effectiveF
       [branchId, code, name, active ?? true, effectiveFrom || null, effectiveTo || null],
     );
     const pricebookId = number(result.rows[0].id);
+
+    for (const customerId of validCustomerIds) {
+      await client.query(
+        'INSERT INTO pricebook_customers (pricebook_id, customer_id) VALUES ($1, $2)',
+        [pricebookId, customerId],
+      );
+    }
 
     // Copy prices from default pricebook if requested
     if (defaultPricebookId) {
@@ -601,26 +810,49 @@ export async function createPricebook({ branchId, code, name, active, effectiveF
   }
 }
 
-export async function updatePricebook({ branchId, id, name, active, effectiveFrom, effectiveTo }) {
-  const pricebook = await pool.query('SELECT is_default FROM pricebooks WHERE id = $1 AND branch_id = $2', [id, branchId]);
-  if (!pricebook.rows[0]) throw new HttpError(404, 'PRICEBOOK_NOT_FOUND', 'Không tìm thấy bảng giá');
-
-  // Validate date range
-  if (effectiveFrom !== undefined && effectiveTo !== undefined && effectiveFrom && effectiveTo && effectiveFrom > effectiveTo) {
-    throw new HttpError(400, 'INVALID_DATE_RANGE', 'Ngày bắt đầu phải trước ngày kết thúc');
+export async function updatePricebook({ branchId, id, name, active, effectiveFrom, effectiveTo, customerIds }) {
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    const pricebook = await client.query(
+      'SELECT is_default, effective_from, effective_to FROM pricebooks WHERE id = $1 AND branch_id = $2 FOR UPDATE',
+      [id, branchId],
+    );
+    if (!pricebook.rows[0]) throw new HttpError(404, 'PRICEBOOK_NOT_FOUND', 'Không tìm thấy bảng giá');
+    const row = pricebook.rows[0];
+    if (row.is_default) {
+      if (active === false) throw new HttpError(400, 'CANNOT_DISABLE_DEFAULT', 'Không thể ngừng bảng giá chung');
+      await client.query('UPDATE pricebooks SET name = COALESCE($3, name), active = TRUE WHERE id = $1 AND branch_id = $2', [id, branchId, name]);
+    } else {
+      const currentCustomers = await client.query('SELECT customer_id FROM pricebook_customers WHERE pricebook_id = $1', [id]);
+      const nextCustomerIds = customerIds === undefined
+        ? currentCustomers.rows.map((item) => number(item.customer_id))
+        : await validatePricebookCustomers(client, branchId, customerIds);
+      const nextEffectiveFrom = effectiveFrom === undefined ? row.effective_from : effectiveFrom;
+      const nextEffectiveTo = effectiveTo === undefined ? row.effective_to : effectiveTo;
+      validatePricebookScope({ customerIds: nextCustomerIds, effectiveFrom: nextEffectiveFrom, effectiveTo: nextEffectiveTo });
+      await client.query(
+        `UPDATE pricebooks SET
+           name = COALESCE($3, name), active = COALESCE($4, active),
+           effective_from = $5, effective_to = $6
+         WHERE id = $1 AND branch_id = $2`,
+        [id, branchId, name, active, nextEffectiveFrom || null, nextEffectiveTo || null],
+      );
+      if (customerIds !== undefined) {
+        await client.query('DELETE FROM pricebook_customers WHERE pricebook_id = $1', [id]);
+        for (const customerId of nextCustomerIds) {
+          await client.query('INSERT INTO pricebook_customers (pricebook_id, customer_id) VALUES ($1, $2)', [id, customerId]);
+        }
+      }
+    }
+    await client.query('COMMIT');
+    return getPricebook({ branchId, id });
+  } catch (error) {
+    await client.query('ROLLBACK');
+    throw error;
+  } finally {
+    client.release();
   }
-
-  const result = await pool.query(
-    `UPDATE pricebooks SET
-       name = COALESCE($3, name),
-       active = COALESCE($4, active),
-       effective_from = $5,
-       effective_to = $6
-     WHERE id = $1 AND branch_id = $2
-     RETURNING id`,
-    [id, branchId, name, active, effectiveFrom || null, effectiveTo || null],
-  );
-  return getPricebook({ branchId, id });
 }
 
 export async function deletePricebook({ branchId, id }) {

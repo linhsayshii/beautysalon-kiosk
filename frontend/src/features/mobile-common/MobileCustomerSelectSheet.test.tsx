@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ToastProvider } from '@/components/ui/Toast/ToastProvider';
+import { getCustomers } from '@/features/operations/operations.api';
 import { MobileCustomerSelectSheet, type MobileCustomer } from './MobileCustomerSelectSheet';
 
 const mockCustomers: MobileCustomer[] = [
@@ -99,6 +100,44 @@ describe('MobileCustomerSelectSheet', () => {
 
     // Check second customer without badges
     expect(screen.getByText('Trần Văn Bình')).toBeInTheDocument();
+  });
+
+  it('debounces search and keeps the current list visible while the new result loads', async () => {
+    let resolveSearch: ((value: {
+      data: MobileCustomer[];
+      meta: { pagination: { page: number; pageSize: number; total: number; totalPages: number } };
+    }) => void) | undefined;
+    const mockedGetCustomers = vi.mocked(getCustomers);
+
+    renderWithClient(
+      <MobileCustomerSelectSheet isOpen={true} onClose={vi.fn()} onSelectCustomer={vi.fn()} />
+    );
+    await waitFor(() => expect(screen.getByText('Nguyễn Thị Hoa')).toBeInTheDocument());
+
+    const callsBeforeSearch = mockedGetCustomers.mock.calls.length;
+    mockedGetCustomers.mockImplementationOnce(() => new Promise((resolve) => {
+      resolveSearch = resolve;
+    }));
+
+    const input = screen.getByPlaceholderText('Tìm khách hàng');
+    fireEvent.change(input, { target: { value: 'n' } });
+    fireEvent.change(input, { target: { value: 'ng' } });
+    fireEvent.change(input, { target: { value: 'nguyen' } });
+
+    expect(mockedGetCustomers).toHaveBeenCalledTimes(callsBeforeSearch);
+    expect(screen.getByText('Nguyễn Thị Hoa')).toBeInTheDocument();
+    expect(screen.queryByText('Đang tải danh sách khách hàng...')).not.toBeInTheDocument();
+
+    await waitFor(() => expect(mockedGetCustomers).toHaveBeenCalledTimes(callsBeforeSearch + 1), { timeout: 1000 });
+    expect(mockedGetCustomers.mock.calls.at(-1)?.[0]).toMatchObject({ search: 'nguyen' });
+    expect(screen.getByText('Nguyễn Thị Hoa')).toBeInTheDocument();
+    expect(screen.queryByText('Đang tải danh sách khách hàng...')).not.toBeInTheDocument();
+
+    resolveSearch?.({
+      data: [mockCustomers[0]],
+      meta: { pagination: { page: 1, pageSize: 20, total: 1, totalPages: 1 } },
+    });
+    await waitFor(() => expect(screen.queryByText('Trần Văn Bình')).not.toBeInTheDocument());
   });
 
   it('calls onSelectCustomer and onClose when a customer card is clicked', async () => {

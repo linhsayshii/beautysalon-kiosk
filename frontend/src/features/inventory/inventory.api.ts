@@ -14,7 +14,15 @@ export interface Pricebook {
   isDefault: boolean;
   effectiveFrom: string | null;
   effectiveTo: string | null;
+  customers: PricebookCustomer[];
   createdAt: string;
+}
+
+export interface PricebookCustomer {
+  id: number;
+  code: string;
+  name: string;
+  phone?: string | null;
 }
 
 export interface CreatePricebookInput {
@@ -23,6 +31,7 @@ export interface CreatePricebookInput {
   active?: boolean;
   effectiveFrom?: string | null;
   effectiveTo?: string | null;
+  customerIds?: number[];
   copyFromDefault?: boolean;
 }
 
@@ -31,6 +40,7 @@ export interface UpdatePricebookInput {
   active?: boolean;
   effectiveFrom?: string | null;
   effectiveTo?: string | null;
+  customerIds?: number[];
 }
 
 export interface CreateInventoryItemInput extends ApiRecord {
@@ -47,6 +57,9 @@ export const updateInventoryItem = (itemType: string, itemId: number, body: ApiR
   apiRequest<ApiEnvelope<ApiRecord>>(`/inventory/items/${itemType}/${itemId}`, { method: 'PUT', body: JSON.stringify(body) });
 export const getPricebooks = (filters: ApiRecord) => apiRequest<ApiEnvelope<ApiRecord[], InventoryMeta>>(`/inventory/pricebooks?${toQueryString(filters)}`);
 export const getPricebook = (pricebookId: number) => apiRequest<ApiEnvelope<Pricebook>>(`/inventory/pricebooks/${pricebookId}`);
+export const getPricebookCustomerOptions = (search: string, selectedIds: number[] = []) => apiRequest<ApiEnvelope<PricebookCustomer[]>>(
+  `/inventory/pricebook-customer-options?search=${encodeURIComponent(search)}&selectedIds=${encodeURIComponent(selectedIds.join(','))}`,
+);
 export const createPricebook = (body: CreatePricebookInput) => apiRequest<ApiEnvelope<Pricebook>>('/inventory/pricebooks', { method: 'POST', body: JSON.stringify(body) });
 export const updatePricebook = (pricebookId: number, body: UpdatePricebookInput) => apiRequest<ApiEnvelope<Pricebook>>(`/inventory/pricebooks/${pricebookId}`, { method: 'PUT', body: JSON.stringify(body) });
 export const deletePricebook = (pricebookId: number) => apiRequest<ApiEnvelope<{ deleted: boolean }>>(`/inventory/pricebooks/${pricebookId}`, { method: 'DELETE' });

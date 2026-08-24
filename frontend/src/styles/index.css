@@ -205,7 +205,7 @@
 .goods-dialog-backdrop {
   position: fixed;
   inset: 0;
-  z-index: var(--mobile-layer-overlay, 100);
+  z-index: var(--mobile-layer-overlay-nested, 110);
   display: grid;
   place-items: center;
   padding: 22px;

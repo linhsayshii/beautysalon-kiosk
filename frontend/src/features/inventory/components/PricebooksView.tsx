@@ -10,8 +10,9 @@ import { SearchToolbar } from '@/components/forms/SearchToolbar';
 import { PageHeader } from '@/components/ui/PageHeader/PageHeader';
 import { useToast } from '@/components/ui/Toast/ToastProvider';
 import { formatMoney } from '@/lib/format';
-import { createPricebook, deletePricebook, getPricebooks, updatePrice, updatePricebook } from '../inventory.api';
+import { createPricebook, deletePricebook, getPricebook, getPricebooks, updatePrice, updatePricebook } from '../inventory.api';
 import type { CreatePricebookInput, Pricebook, UpdatePricebookInput } from '../inventory.api';
+import { PricebookCustomerPicker } from './PricebookCustomerPicker';
 import './pricebooks.css';
 
 const initialFilters = { search: '', pricebookId: '', category: '' };
@@ -30,25 +31,33 @@ function PricebookDialog({ open, pricebook, onClose, onSuccess }: PricebookDialo
     active: true,
     effectiveFrom: null,
     effectiveTo: null,
+    customerIds: [],
     copyFromDefault: true,
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const { notify } = useToast();
   const queryClient = useQueryClient();
+  const detailsQuery = useQuery({
+    queryKey: ['pricebook-detail', pricebook?.id],
+    queryFn: () => getPricebook(pricebook!.id!),
+    enabled: open && Boolean(pricebook?.id),
+  });
 
   useEffect(() => {
     if (open) {
+      const detail = detailsQuery.data?.data;
       setForm({
-        code: pricebook?.code ?? '',
-        name: pricebook?.name ?? '',
-        active: pricebook?.active ?? true,
-        effectiveFrom: pricebook?.effectiveFrom ?? null,
-        effectiveTo: pricebook?.effectiveTo ?? null,
+        code: detail?.code ?? pricebook?.code ?? '',
+        name: detail?.name ?? pricebook?.name ?? '',
+        active: detail?.active ?? pricebook?.active ?? true,
+        effectiveFrom: detail?.effectiveFrom ?? pricebook?.effectiveFrom ?? null,
+        effectiveTo: detail?.effectiveTo ?? pricebook?.effectiveTo ?? null,
+        customerIds: detail?.customers?.map((customer) => customer.id) ?? [],
         copyFromDefault: true,
       });
       setErrors({});
     }
-  }, [open, pricebook]);
+  }, [open, pricebook, detailsQuery.data]);
 
   const isEditing = !!pricebook?.id;
 
@@ -84,6 +93,9 @@ function PricebookDialog({ open, pricebook, onClose, onSuccess }: PricebookDialo
     if (form.effectiveFrom && form.effectiveTo && form.effectiveFrom > form.effectiveTo) {
       errs.effectiveTo = 'Ngày kết thúc phải sau ngày bắt đầu';
     }
+    if (!pricebook?.isDefault && !(form.customerIds?.length) && (!form.effectiveFrom || !form.effectiveTo)) {
+      errs.effectiveTo = 'Bảng giá theo thời gian cần đủ ngày bắt đầu và kết thúc';
+    }
     setErrors(errs);
     return Object.keys(errs).length === 0;
   };
@@ -91,7 +103,7 @@ function PricebookDialog({ open, pricebook, onClose, onSuccess }: PricebookDialo
   const handleSubmit = () => {
     if (!validate()) return;
     if (isEditing) {
-      updateMutation.mutate({ name: form.name, active: form.active, effectiveFrom: form.effectiveFrom, effectiveTo: form.effectiveTo });
+      updateMutation.mutate({ name: form.name, active: form.active, effectiveFrom: form.effectiveFrom, effectiveTo: form.effectiveTo, customerIds: form.customerIds });
     } else {
       createMutation.mutate(form);
     }
@@ -108,13 +120,13 @@ function PricebookDialog({ open, pricebook, onClose, onSuccess }: PricebookDialo
   const isPending = createMutation.isPending || updateMutation.isPending || deleteMutation.isPending;
 
   return (
-    <div className="dialog-overlay" onClick={onClose}>
-      <div className="dialog-modal" onClick={(e) => e.stopPropagation()}>
-        <div className="dialog-header">
-          <h3>{isEditing ? 'Sửa bảng giá' : 'Thêm bảng giá mới'}</h3>
-          <button type="button" className="dialog-close" onClick={onClose}>&times;</button>
+    <div className="pricebook-dialog-overlay" onClick={onClose}>
+      <div className="pricebook-dialog-modal" role="dialog" aria-modal="true" aria-labelledby="pricebook-dialog-title" onClick={(e) => e.stopPropagation()}>
+        <div className="pricebook-dialog-header">
+          <h3 id="pricebook-dialog-title">{isEditing ? 'Sửa bảng giá' : 'Thêm bảng giá mới'}</h3>
+          <button type="button" className="pricebook-dialog-close" onClick={onClose} aria-label="Đóng">&times;</button>
         </div>
-        <div className="dialog-body">
+        <div className="pricebook-dialog-body">
           <div className="form-grid">
             <div className="form-field">
               <label>Mã bảng giá <span className="required">*</span></label>
@@ -126,15 +138,19 @@ function PricebookDialog({ open, pricebook, onClose, onSuccess }: PricebookDialo
               <input type="text" className={`form-input ${errors.name ? 'error' : ''}`} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Bảng giá khuyến mãi" />
               {errors.name && <span className="form-error">{errors.name}</span>}
             </div>
-            <div className="form-field">
+            {!pricebook?.isDefault && <div className="form-field">
               <label>Ngày bắt đầu</label>
               <input type="date" className="form-input" value={form.effectiveFrom ?? ''} onChange={(e) => setForm({ ...form, effectiveFrom: e.target.value || null })} />
-            </div>
-            <div className="form-field">
+            </div>}
+            {!pricebook?.isDefault && <div className="form-field">
               <label>Ngày kết thúc</label>
               <input type="date" className={`form-input ${errors.effectiveTo ? 'error' : ''}`} value={form.effectiveTo ?? ''} onChange={(e) => setForm({ ...form, effectiveTo: e.target.value || null })} />
               {errors.effectiveTo && <span className="form-error">{errors.effectiveTo}</span>}
-            </div>
+            </div>}
+            {!pricebook?.isDefault && <div className="form-field" style={{ gridColumn: '1 / -1' }}>
+              <label>Khách hàng áp dụng (không bắt buộc)</label>
+              <PricebookCustomerPicker value={form.customerIds ?? []} onChange={(customerIds) => setForm({ ...form, customerIds })} />
+            </div>}
             {!isEditing && (
               <div className="form-field">
                 <label className="checkbox-label">
@@ -143,7 +159,7 @@ function PricebookDialog({ open, pricebook, onClose, onSuccess }: PricebookDialo
                 </label>
               </div>
             )}
-            {isEditing && (
+            {isEditing && !pricebook?.isDefault && (
               <div className="form-field">
                 <label className="checkbox-label">
                   <input type="checkbox" checked={form.active} onChange={(e) => setForm({ ...form, active: e.target.checked })} />
@@ -153,11 +169,11 @@ function PricebookDialog({ open, pricebook, onClose, onSuccess }: PricebookDialo
             )}
           </div>
         </div>
-        <div className="dialog-footer">
+        <div className="pricebook-dialog-footer">
           {isEditing && !pricebook?.isDefault && (
             <button type="button" className="btn btn-danger" onClick={handleDelete} disabled={isPending}>Xóa</button>
           )}
-          <div className="dialog-actions">
+          <div className="pricebook-dialog-actions">
             <button type="button" className="btn btn-secondary" onClick={onClose} disabled={isPending}>Hủy</button>
             <button type="button" className="btn btn-primary" onClick={handleSubmit} disabled={isPending}>
               {isEditing ? 'Lưu' : 'Tạo mới'}
@@ -188,6 +204,18 @@ export function PricebooksView() {
   const rows = query.data?.data ?? [];
   const book = query.data?.meta.pricebook ?? { id: 0, name: '' };
   const allBooks = query.data?.meta.pricebooks ?? [];
+  // An empty filter means the server-selected default pricebook. Keeping that
+  // explicit in the control avoids accidentally displaying an old inactive
+  // book with the same name as the default.
+  const pricebookOptions = [
+    { value: '', label: book.name || 'Bảng giá chung' },
+    ...allBooks
+      .filter((item) => !item.isDefault)
+      .map((item) => ({ value: String(item.id), label: `${item.name}${item.active ? '' : ' (Ngừng)'}` })),
+  ];
+  const defaultBook = allBooks.find((item) => item.isDefault) ?? book;
+  const additionalBooks = allBooks.filter((item) => !item.isDefault);
+  const selectedBook = allBooks.find((item) => String(item.id) === String(book.id)) ?? allBooks.find((item) => item.isDefault);
   const apply = () => { setFilters(draft); setPage(1); };
 
   const openCreate = () => { setEditingBook(null); setDialogOpen(true); };
@@ -196,9 +224,10 @@ export function PricebooksView() {
       id: pb.id,
       code: pb.code,
       name: pb.name,
-      isDefault: false,
-      effectiveFrom: null,
-      effectiveTo: null,
+      active: pb.active,
+      isDefault: pb.isDefault,
+      effectiveFrom: pb.effectiveFrom ?? null,
+      effectiveTo: pb.effectiveTo ?? null,
       createdAt: '',
     };
     setEditingBook(fullBook);
@@ -211,24 +240,31 @@ export function PricebooksView() {
         <PageHeader title="Thiết lập giá" subtitle="Quản lý bảng giá và giá bán hàng hóa." />
         <div className="workspace-grid">
           <FilterPanel title="Bảng giá" onApply={apply} onReset={() => { setDraft(initialFilters); setFilters(initialFilters); setPage(1); }}>
-            <SelectFilter label="Bảng giá" value={draft.pricebookId} onChange={(pricebookId) => setDraft({ ...draft, pricebookId })} options={allBooks.map((item) => ({ value: String(item.id), label: item.name }))} />
+            <SelectFilter label="Bảng giá" value={draft.pricebookId} onChange={(pricebookId) => setDraft({ ...draft, pricebookId })} options={pricebookOptions} />
             <SelectFilter label="Nhóm hàng" value={draft.category} onChange={(category) => setDraft({ ...draft, category })} options={[{ value: '', label: 'Tất cả' }, ...(query.data?.meta.categories ?? []).map((category) => ({ value: category, label: category }))]} />
           </FilterPanel>
           <section className="data-panel">
-            {/* Pricebook list strip + Add button */}
             <div className="pricebook-toolbar">
-              <div className="pricebook-strip">
-                {allBooks.map((pb) => (
-                  <button key={pb.id} className={`pricebook-chip ${String(draft.pricebookId) === String(pb.id) ? 'active' : ''}`} onClick={() => { setDraft({ ...draft, pricebookId: String(pb.id) }); setFilters({ ...draft, pricebookId: String(pb.id) }); setPage(1); }}>
-                    {pb.name}
+              <div className="pricebook-strip" aria-label="Chọn bảng giá">
+                <button
+                  type="button"
+                  className={`pricebook-chip ${!draft.pricebookId ? 'active' : ''}`}
+                  aria-pressed={!draft.pricebookId}
+                  onClick={() => { setDraft({ ...draft, pricebookId: '' }); setFilters({ ...draft, pricebookId: '' }); setPage(1); }}
+                >
+                  {defaultBook.name || 'Bảng giá chung'}
+                </button>
+                {additionalBooks.map((pb) => (
+                  <button type="button" key={pb.id} className={`pricebook-chip ${String(draft.pricebookId) === String(pb.id) ? 'active' : ''}`} aria-pressed={String(draft.pricebookId) === String(pb.id)} onClick={() => { setDraft({ ...draft, pricebookId: String(pb.id) }); setFilters({ ...draft, pricebookId: String(pb.id) }); setPage(1); }}>
+                    {pb.name}{pb.active ? '' : ' (Ngừng)'}
                   </button>
                 ))}
               </div>
               <div className="pricebook-actions">
-                <button className="btn btn-secondary btn-sm" onClick={() => openEdit(allBooks[0])} title="Sửa bảng giá">
+                <button type="button" className="btn btn-secondary btn-sm" onClick={() => selectedBook && openEdit(selectedBook)} title={`Cài đặt ${book.name || 'bảng giá'}`} aria-label={`Cài đặt ${book.name || 'bảng giá'}`} disabled={!selectedBook}>
                   <i className="ph ph-gear" />
                 </button>
-                <button className="btn btn-primary btn-sm" onClick={openCreate}>+ Thêm bảng giá</button>
+                <button type="button" className="btn btn-primary btn-sm" onClick={openCreate}>+ Thêm bảng giá</button>
               </div>
             </div>
             <SearchToolbar value={draft.search} placeholder="Tìm theo mã hoặc tên hàng" onChange={(search) => setDraft({ ...draft, search })} onSearch={apply} onRefresh={() => query.refetch()} />

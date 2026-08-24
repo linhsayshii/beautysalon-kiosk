@@ -1,5 +1,5 @@
-import { useState, useMemo } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useEffect, useState, useMemo } from 'react';
+import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { getCustomers } from '@/features/operations/operations.api';
 import { CustomerCreateDialog } from '@/features/operations/components/CustomerCreateDialog';
 import { formatNumber, initials } from '@/lib/format';
@@ -34,13 +34,20 @@ export function MobileCustomerSelectSheet({
   onSelectCustomer,
 }: MobileCustomerSelectSheetProps) {
   const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [isAddCustomerOpen, setIsAddCustomerOpen] = useState(false);
   const { dialogRef, titleId } = useMobileDialog({ isOpen, onClose });
 
+  useEffect(() => {
+    const timer = window.setTimeout(() => setDebouncedSearch(search.trim()), 300);
+    return () => window.clearTimeout(timer);
+  }, [search]);
+
   const { data: customerResponse, isLoading, refetch } = useQuery({
-    queryKey: ['mobile-customer-select', search],
-    queryFn: () => getCustomers({ search, page: 1, pageSize: 50 }),
+    queryKey: ['mobile-customer-select', debouncedSearch],
+    queryFn: ({ signal }) => getCustomers({ search: debouncedSearch, page: 1, pageSize: 50 }, { signal }),
     enabled: isOpen,
+    placeholderData: keepPreviousData,
   });
 
   const customers = useMemo(() => {
@@ -65,7 +72,7 @@ export function MobileCustomerSelectSheet({
   return (
     <MobileDialogPortal>
     <div
-      className="mobile-bottom-sheet-backdrop"
+      className="mobile-bottom-sheet-backdrop mobile-customer-backdrop"
       style={{ zIndex: 90 }}
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();

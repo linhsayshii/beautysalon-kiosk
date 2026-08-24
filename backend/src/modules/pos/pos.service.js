@@ -1,6 +1,7 @@
 import { pool } from '../../db.js';
 import { HttpError } from '../../lib/http.js';
 import { broadcastToBranch } from '../../lib/ws.js';
+import { resolveApplicablePricebook, resolvePricebookItemPrice } from '../inventory/inventory.service.js';
 
 const number = (value) => Number(value ?? 0);
 
@@ -12,6 +13,50 @@ function generateInvoiceCode() {
   }).format(new Date()).replace(/\//g, '');
   const randomSuffix = Math.floor(1000 + Math.random() * 9000);
   return `HD${dateStr}-${randomSuffix}`;
+}
+
+/**
+ * Xử lý trừ lượt gói dịch vụ trong checkout
+ * @param {Object} client - PostgreSQL client (transaction)
+ * @param {Object} params - { customerId, packageId, serviceId, invoiceId }
+ * @returns {Promise<void>}
+ */
+async function processPackageRedemption(client, { customerId, packageId, serviceId, invoiceId }) {
+  // Verify package belongs to customer và còn lượt
+  const pkgCheck = await client.query(
+    `SELECT id, used_units, total_units, status, expires_at
+     FROM customer_packages
+     WHERE id = $1 AND customer_id = $2 AND status = 'active'
+       AND used_units < total_units
+       AND (expires_at IS NULL OR expires_at > NOW())`,
+    [packageId, customerId],
+  );
+  if (!pkgCheck.rows[0]) {
+    throw new HttpError(400, 'PACKAGE_NOT_AVAILABLE', 'Gói dịch vụ không khả dụng hoặc đã hết lượt');
+  }
+
+  // Verify service thuộc về package
+  const serviceCheck = await client.query(
+    `SELECT spi.id FROM service_package_items spi
+     WHERE spi.package_id = $1 AND spi.service_id = $2`,
+    [pkgCheck.rows[0].id, serviceId],
+  );
+  if (!serviceCheck.rows[0]) {
+    throw new HttpError(400, 'SERVICE_NOT_IN_PACKAGE', 'Dịch vụ không nằm trong gói này');
+  }
+
+  // Update used_units
+  await client.query(
+    `UPDATE customer_packages SET used_units = used_units + 1 WHERE id = $1`,
+    [packageId],
+  );
+
+  // Record usage
+  await client.query(
+    `INSERT INTO package_usages (customer_package_id, service_id, invoice_id, units_used, used_at)
+     VALUES ($1, $2, $3, 1, NOW())`,
+    [packageId, serviceId, invoiceId],
+  );
 }
 
 export async function listPosPaymentRequests({ branchId }) {
@@ -92,6 +137,7 @@ export async function checkoutPosInvoice({
     customerName = custResult.rows[0].name;
     customerPhone = custResult.rows[0].phone;
     customerCode = custResult.rows[0].code;
+    const appliedPricebook = await resolveApplicablePricebook(client, { branchId, customerId });
 
     // 2. Validate Staff if provided
     let staffName = null;
@@ -137,7 +183,45 @@ export async function checkoutPosInvoice({
       let code = '';
       let unit = 'lần';
 
-      if (itemType === 'service') {
+      if (line.usePackageId) {
+        // Package redemption: verify and deduct from customer's package
+        await processPackageRedemption(client, {
+          customerId,
+          packageId: line.usePackageId,
+          serviceId: line.usePackageServiceId,
+          invoiceId,
+        });
+
+        // Get service details for validatedItems
+        const pkgServiceResult = await client.query(
+          `SELECT id, code, name, price, commission_type, commission_rate
+           FROM services WHERE id = $1 AND branch_id = $2 AND active = TRUE`,
+          [line.usePackageServiceId, branchId],
+        );
+        if (!pkgServiceResult.rows[0]) {
+          throw new HttpError(404, 'SERVICE_NOT_FOUND', `Dịch vụ #${line.usePackageServiceId} không tồn tại hoặc đã ngừng hoạt động`);
+        }
+        const pkgSvc = pkgServiceResult.rows[0];
+
+        validatedItems.push({
+          itemType: 'service',
+          serviceId: line.usePackageServiceId,
+          productId: null,
+          staffId: lineStaffId || staffId || null,
+          code: pkgSvc.code,
+          name: pkgSvc.name,
+          unit: 'lần',
+          quantity,
+          unitPrice: 0,
+          lineTotal: 0,
+          commissionType: pkgSvc.commission_type,
+          commissionRate: number(pkgSvc.commission_rate),
+        });
+
+        // Skip normal itemType processing for package redemption
+        subtotal += 0;
+        continue;
+      } else if (itemType === 'service') {
         const sResult = await client.query(
           `SELECT id, code, name, price, commission_type, commission_rate
            FROM services WHERE id = $1 AND branch_id = $2 AND active = TRUE`,
@@ -147,6 +231,7 @@ export async function checkoutPosInvoice({
           throw new HttpError(404, 'SERVICE_NOT_FOUND', `Dịch vụ #${itemId} không tồn tại hoặc đã ngừng hoạt động`);
         }
         price = number(sResult.rows[0].price);
+        price = await resolvePricebookItemPrice(client, { branchId, pricebookId: appliedPricebook?.id, itemType, itemId, basePrice: price });
         name = sResult.rows[0].name;
         code = sResult.rows[0].code;
         unit = 'lần';
@@ -185,6 +270,7 @@ export async function checkoutPosInvoice({
         }
 
         price = number(row.sale_price);
+        price = await resolvePricebookItemPrice(client, { branchId, pricebookId: appliedPricebook?.id, itemType, itemId, basePrice: price });
         name = row.name;
         code = row.sku;
         unit = row.unit || 'sản phẩm';
@@ -222,6 +308,7 @@ export async function checkoutPosInvoice({
         }
         const pkg = pkgResult.rows[0];
         price = number(pkg.list_price);
+        price = await resolvePricebookItemPrice(client, { branchId, pricebookId: appliedPricebook?.id, itemType, itemId, basePrice: price });
         name = pkg.name;
         code = pkg.code;
         unit = 'gói';
@@ -263,6 +350,7 @@ export async function checkoutPosInvoice({
         }
         const card = cardResult.rows[0];
         price = number(card.sale_price);
+        price = await resolvePricebookItemPrice(client, { branchId, pricebookId: appliedPricebook?.id, itemType, itemId, basePrice: price });
         name = card.name;
         code = card.code;
         unit = 'thẻ';
@@ -386,10 +474,10 @@ export async function checkoutPosInvoice({
       const updatedInvoiceResult = await client.query(
         `UPDATE invoices
          SET customer_id = $1, staff_id = $2, status = 'paid', subtotal = $3,
-             discount = $4, total = $5, payment_method = $6, issued_at = NOW()
+             discount = $4, total = $5, payment_method = $6, pricebook_id = $8, issued_at = NOW()
          WHERE id = $7
          RETURNING id, code, status, subtotal, discount, total, payment_method, sales_channel, issued_at`,
-        [customerId, staffId || null, subtotal, discountAmount, total, paymentMethod, invoiceId],
+        [customerId, staffId || null, subtotal, discountAmount, total, paymentMethod, invoiceId, appliedPricebook?.id ?? null],
       );
       invoice = updatedInvoiceResult.rows[0];
     } else {
@@ -406,11 +494,11 @@ export async function checkoutPosInvoice({
       if (!isUnique) invoiceCode = `HD${Date.now().toString().slice(-8)}`;
       const invoiceResult = await client.query(
         `INSERT INTO invoices (
-           branch_id, customer_id, staff_id, code, status,
+           branch_id, customer_id, staff_id, code, status, pricebook_id,
            subtotal, discount, total, payment_method, sales_channel, issued_at
-         ) VALUES ($1, $2, $3, $4, 'paid', $5, $6, $7, $8, 'salon', NOW())
+         ) VALUES ($1, $2, $3, $4, 'paid', $9, $5, $6, $7, $8, 'salon', NOW())
          RETURNING id, code, status, subtotal, discount, total, payment_method, sales_channel, issued_at`,
-        [branchId, customerId, staffId || null, invoiceCode, subtotal, discountAmount, total, paymentMethod],
+        [branchId, customerId, staffId || null, invoiceCode, subtotal, discountAmount, total, paymentMethod, appliedPricebook?.id ?? null],
       );
       invoice = invoiceResult.rows[0];
       invoiceId = Number(invoice.id);
@@ -610,6 +698,7 @@ export async function checkoutPosInvoice({
       salesChannel: invoice.sales_channel,
       issuedAt: invoice.issued_at,
       note: note || '',
+      pricebook: appliedPricebook,
       branch: {
         name: branchInfo.name || 'Anna Chill Beauty Salon',
         address: branchInfo.address || '',

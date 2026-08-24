@@ -1,9 +1,15 @@
 import { apiRequest, type ApiEnvelope } from '@/services/api-client';
 import type { ApiRecord } from '@/types/api';
 
-export const getPosCatalog = (search: string, type: string) => apiRequest<ApiEnvelope<ApiRecord[]>>(
-  `/pos/catalog?search=${encodeURIComponent(search)}&type=${encodeURIComponent(type)}`,
+export const getPosCatalog = (search: string, type: string, customerId?: number | null) => apiRequest<ApiEnvelope<ApiRecord[]>>(
+  `/pos/catalog?search=${encodeURIComponent(search)}&type=${encodeURIComponent(type)}${customerId ? `&customerId=${customerId}` : ''}`,
 );
+
+export const getPosPriceQuote = (customerId: number | null | undefined, items: Array<{ itemType: string; itemId: number }>) =>
+  apiRequest<ApiEnvelope<Array<{ itemType: string; itemId: number; salePrice: number }>, { pricebook?: ApiRecord | null }>>('/pos/price-quote', {
+    method: 'POST',
+    body: JSON.stringify({ customerId: customerId ?? null, items }),
+  });
 
 export const searchPosCustomers = (search: string) => apiRequest<ApiEnvelope<ApiRecord[]>>(
   `/pos/customers?search=${encodeURIComponent(search)}`,
@@ -71,6 +77,30 @@ export const getPosCustomerAvailablePackages = (customerId: number) => apiReques
   };
 }>>>(`/pos/customers/${customerId}/available-packages`);
 
+export interface ServicePackageOption {
+  customerPackageId: number;
+  packageCode: string;
+  packageId: number;
+  packageName: string;
+  totalUnits: number;
+  usedUnits: number;
+  remainingUnits: number;
+  expiresAt: string | null;
+  status: string;
+  services: Array<{
+    serviceId: number;
+    serviceName: string;
+    serviceCode: string;
+    totalUnits: number;
+    usedCount: number;
+    availableUnits: number;
+  }>;
+}
+
+export const getPosCustomerServicePackages = (customerId: number) => apiRequest<ApiEnvelope<ServicePackageOption[]>>(
+  `/pos/customers/${customerId}/service-packages`,
+);
+
 export interface PosCheckoutPayload {
   customerId?: number | null;
   staffId?: number | null;
@@ -85,6 +115,8 @@ export interface PosCheckoutPayload {
     itemId: number;
     quantity: number;
     staffId?: number | null;
+    usePackageId?: number | null;
+    usePackageServiceId?: number | null;
   }>;
 }
 

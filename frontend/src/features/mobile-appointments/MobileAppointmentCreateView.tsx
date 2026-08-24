@@ -71,8 +71,8 @@ export function MobileAppointmentCreateView() {
 
   // Fetch Catalog & Staff queries
   const { data: catalogResponse } = useQuery({
-    queryKey: ['pos-catalog', catalogSearch, 'service'],
-    queryFn: () => getPosCatalog(catalogSearch, 'service'),
+    queryKey: ['pos-catalog', catalogSearch, 'service', customer?.id ?? null],
+    queryFn: () => getPosCatalog(catalogSearch, 'service', customer?.id),
   });
 
   const { data: staffResponse } = useQuery({

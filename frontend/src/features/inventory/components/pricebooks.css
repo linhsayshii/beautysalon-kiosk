@@ -1,65 +1,68 @@
-/* Pricebook Dialog */
-.dialog-overlay {
+/* Keep this dialog isolated from generic modal styles used by other screens. */
+.pricebook-dialog-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
+  z-index: 1200;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(15, 23, 42, 0.48);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
 }
 
-.dialog-modal {
-  background: var(--color-surface);
-  border-radius: 12px;
-  width: 90%;
-  max-width: 480px;
-  max-height: 90vh;
+.pricebook-dialog-modal {
+  width: min(560px, 100%);
+  max-height: calc(100dvh - 48px);
   overflow-y: auto;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  isolation: isolate;
+  background: var(--surface, #ffffff);
+  border: 1px solid var(--line, #cbd5e1);
+  border-radius: var(--radius-card, 14px);
+  box-shadow: var(--shadow-float, 0 20px 60px rgba(0, 0, 0, 0.3));
 }
 
-.dialog-header {
+.pricebook-dialog-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
   padding: 16px 20px;
-  border-bottom: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--line, #cbd5e1);
 }
 
-.dialog-header h3 {
+.pricebook-dialog-header h3 {
   margin: 0;
   font-size: 18px;
   font-weight: 600;
 }
 
-.dialog-close {
+.pricebook-dialog-close {
   background: none;
   border: none;
   font-size: 24px;
   cursor: pointer;
-  color: var(--color-text-secondary);
+  color: var(--ink-500, #475569);
   padding: 0;
   line-height: 1;
 }
 
-.dialog-close:hover {
-  color: var(--color-text-primary);
+.pricebook-dialog-close:hover {
+  color: var(--ink-950, #0f172a);
 }
 
-.dialog-body {
+.pricebook-dialog-body {
   padding: 20px;
 }
 
-.dialog-footer {
+.pricebook-dialog-footer {
   display: flex;
   justify-content: space-between;
   align-items: center;
   padding: 16px 20px;
-  border-top: 1px solid var(--color-border);
+  border-top: 1px solid var(--line, #cbd5e1);
 }
 
-.dialog-actions {
+.pricebook-dialog-actions {
   display: flex;
   gap: 8px;
   margin-left: auto;
@@ -81,40 +84,40 @@
 .form-field label {
   font-size: 13px;
   font-weight: 500;
-  color: var(--color-text-secondary);
+  color: var(--ink-600, #334155);
 }
 
 .form-field .required {
-  color: var(--color-danger);
+  color: var(--red, #dc2626);
 }
 
 .form-input {
   padding: 8px 12px;
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--line, #cbd5e1);
   border-radius: 6px;
   font-size: 14px;
-  background: var(--color-surface);
-  color: var(--color-text-primary);
+  background: var(--surface, #ffffff);
+  color: var(--ink-950, #0f172a);
 }
 
 .form-input:focus {
   outline: none;
-  border-color: var(--color-accent);
-  box-shadow: 0 0 0 2px rgba(7, 86, 204, 0.1);
+  border-color: var(--blue-600, #0062eb);
+  box-shadow: 0 0 0 2px rgba(0, 98, 235, 0.14);
 }
 
 .form-input.error {
-  border-color: var(--color-danger);
+  border-color: var(--red, #dc2626);
 }
 
 .form-input:disabled {
-  background: var(--color-background);
+  background: var(--canvas, #f4f6f9);
   cursor: not-allowed;
 }
 
 .form-error {
   font-size: 12px;
-  color: var(--color-danger);
+  color: var(--red, #dc2626);
 }
 
 .checkbox-label {
@@ -136,7 +139,8 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 12px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--line, #cbd5e1);
   gap: 12px;
   flex-wrap: wrap;
 }
@@ -145,26 +149,28 @@
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
-  flex: 1;
+  min-width: 0;
+  flex: 1 1 280px;
 }
 
 .pricebook-chip {
   padding: 6px 12px;
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--line, #cbd5e1);
   border-radius: 20px;
-  background: var(--color-surface);
+  background: var(--surface, #ffffff);
+  color: var(--ink-600, #334155);
   font-size: 13px;
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .pricebook-chip:hover {
-  border-color: var(--color-accent);
+  border-color: var(--blue-600, #0062eb);
 }
 
 .pricebook-chip.active {
-  background: var(--color-accent);
-  border-color: var(--color-accent);
+  background: var(--blue-600, #0062eb);
+  border-color: var(--blue-600, #0062eb);
   color: white;
 }
 
@@ -175,7 +181,15 @@
 .pricebook-actions {
   display: flex;
   gap: 8px;
+  flex: 0 0 auto;
 }
+
+.pricebook-customer-picker { display: grid; gap: 8px; }
+.pricebook-customer-options { max-height: 190px; overflow: auto; border: 1px solid var(--border-color, #dbe2ea); border-radius: 10px; padding: 6px; background: #fff; }
+.pricebook-customer-option { display: flex; align-items: center; gap: 10px; padding: 8px; border-radius: 8px; cursor: pointer; }
+.pricebook-customer-option:hover { background: #f6f8fb; }
+.pricebook-customer-option > span { display: grid; gap: 2px; }
+.pricebook-customer-option small { color: #64748b; }
 
 /* Buttons */
 .btn {
@@ -197,7 +211,7 @@
 }
 
 .btn-primary {
-  background: var(--color-accent);
+  background: var(--blue-600, #0062eb);
   color: white;
 }
 
@@ -206,18 +220,18 @@
 }
 
 .btn-primary:disabled {
-  background: var(--color-border);
+  background: var(--line, #cbd5e1);
   cursor: not-allowed;
 }
 
 .btn-secondary {
-  background: var(--color-background);
-  color: var(--color-text-primary);
-  border: 1px solid var(--color-border);
+  background: var(--canvas, #f4f6f9);
+  color: var(--ink-950, #0f172a);
+  border: 1px solid var(--line, #cbd5e1);
 }
 
 .btn-secondary:hover {
-  background: var(--color-border);
+  background: var(--line, #cbd5e1);
 }
 
 .btn-secondary:disabled {
@@ -226,7 +240,7 @@
 }
 
 .btn-danger {
-  background: var(--color-danger);
+  background: var(--red, #dc2626);
   color: white;
 }
 
@@ -235,6 +249,29 @@
 }
 
 .btn-danger:disabled {
-  background: var(--color-border);
+  background: var(--line, #cbd5e1);
   cursor: not-allowed;
+}
+
+@media (max-width: 640px) {
+  .pricebook-dialog-overlay {
+    align-items: end;
+    padding: 12px;
+  }
+
+  .pricebook-dialog-modal {
+    max-height: calc(100dvh - 24px);
+  }
+
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .pricebook-toolbar {
+    align-items: stretch;
+  }
+
+  .pricebook-actions {
+    justify-content: flex-end;
+  }
 }

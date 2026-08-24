@@ -14,29 +14,11 @@ const dialogStack: symbol[] = [];
 let openDialogCount = 0;
 let bodyOverflowBeforeDialogs = '';
 let viewportHeightBeforeDialogs = '';
-let viewportOffsetBeforeDialogs = '';
-
-function findVerticalScrollContainer(target: EventTarget | null, dialog: HTMLElement) {
-  let element = target instanceof Element ? target : null;
-
-  while (element && dialog.contains(element)) {
-    const styles = window.getComputedStyle(element);
-    const canScrollVertically = ['auto', 'scroll', 'overlay'].includes(styles.overflowY)
-      && element.scrollHeight > element.clientHeight;
-
-    if (canScrollVertically) return element as HTMLElement;
-    if (element === dialog) break;
-    element = element.parentElement;
-  }
-
-  return null;
-}
 
 function activateOverlay() {
   if (openDialogCount === 0) {
     bodyOverflowBeforeDialogs = document.body.style.overflow;
     viewportHeightBeforeDialogs = document.documentElement.style.getPropertyValue('--mobile-overlay-viewport-height');
-    viewportOffsetBeforeDialogs = document.documentElement.style.getPropertyValue('--mobile-overlay-viewport-offset-top');
     document.body.classList.add('mobile-overlay-open');
     document.body.style.overflow = 'hidden';
   }
@@ -49,7 +31,6 @@ function deactivateOverlay() {
     document.body.classList.remove('mobile-overlay-open');
     document.body.style.overflow = bodyOverflowBeforeDialogs;
     document.documentElement.style.setProperty('--mobile-overlay-viewport-height', viewportHeightBeforeDialogs);
-    document.documentElement.style.setProperty('--mobile-overlay-viewport-offset-top', viewportOffsetBeforeDialogs);
   }
 }
 
@@ -77,19 +58,19 @@ export function useMobileDialog({ isOpen, onClose, initialFocusRef }: UseMobileD
     dialogStack.push(instance);
     activateOverlay();
 
-    // iOS Safari does not consistently resize `dvh` when its software keyboard
-    // opens. Size modal surfaces from the visual viewport so their header and
-    // scroll area stay above the keyboard instead of exposing the page behind.
+    // Keep only the visual viewport height in sync with the software keyboard.
+    // Applying offsetTop to a fixed overlay makes iOS shift the whole dialog
+    // during keyboard/viewport panning and exposes the page underneath.
+    let lastViewportHeight = -1;
     const syncVisualViewport = () => {
       const viewport = window.visualViewport;
       const height = Math.round(viewport?.height ?? window.innerHeight);
-      const offsetTop = Math.round(viewport?.offsetTop ?? 0);
+      if (height === lastViewportHeight) return;
+      lastViewportHeight = height;
       document.documentElement.style.setProperty('--mobile-overlay-viewport-height', `${height}px`);
-      document.documentElement.style.setProperty('--mobile-overlay-viewport-offset-top', `${offsetTop}px`);
     };
     syncVisualViewport();
     window.visualViewport?.addEventListener('resize', syncVisualViewport);
-    window.visualViewport?.addEventListener('scroll', syncVisualViewport);
 
     const focusTimer = window.setTimeout(() => {
       const dialog = dialogRef.current;
@@ -97,48 +78,6 @@ export function useMobileDialog({ isOpen, onClose, initialFocusRef }: UseMobileD
       const firstFocusable = dialog?.querySelector<HTMLElement>(FOCUSABLE_SELECTOR);
       (preferred ?? firstFocusable ?? dialog)?.focus({ preventScroll: true });
     }, 0);
-
-    // `overflow: hidden` on body does not reliably lock nested page scrollers on
-    // mobile browsers. Keep a gesture inside the top-most dialog, while allowing
-    // a scrollable area in that dialog to retain its native momentum scrolling.
-    let lastTouchY: number | null = null;
-    const isTopmostDialog = () => dialogStack.at(-1) === instance;
-    const shouldBlockVerticalScroll = (target: EventTarget | null, deltaY: number) => {
-      const dialog = dialogRef.current;
-      if (!dialog || !(target instanceof Node) || !dialog.contains(target)) return true;
-
-      const scrollContainer = findVerticalScrollContainer(target, dialog);
-      if (!scrollContainer) return true;
-
-      const isAtTop = scrollContainer.scrollTop <= 0;
-      const isAtBottom = scrollContainer.scrollTop + scrollContainer.clientHeight >= scrollContainer.scrollHeight - 1;
-      return (deltaY < 0 && isAtTop) || (deltaY > 0 && isAtBottom);
-    };
-
-    const handleTouchStart = (event: TouchEvent) => {
-      if (!isTopmostDialog()) return;
-      lastTouchY = event.touches[0]?.clientY ?? null;
-    };
-
-    const handleTouchMove = (event: TouchEvent) => {
-      if (!isTopmostDialog()) return;
-      const touchY = event.touches[0]?.clientY;
-      if (touchY === undefined) return;
-
-      // Finger movement and scroll direction have opposite signs.
-      const scrollDeltaY = lastTouchY === null ? 0 : lastTouchY - touchY;
-      if (shouldBlockVerticalScroll(event.target, scrollDeltaY)) event.preventDefault();
-      lastTouchY = touchY;
-    };
-
-    const handleTouchEnd = () => {
-      lastTouchY = null;
-    };
-
-    const handleWheel = (event: WheelEvent) => {
-      if (!isTopmostDialog()) return;
-      if (shouldBlockVerticalScroll(event.target, event.deltaY)) event.preventDefault();
-    };
 
     const handleKeyDown = (event: KeyboardEvent) => {
       if (dialogStack.at(-1) !== instance) return;
@@ -173,21 +112,10 @@ export function useMobileDialog({ isOpen, onClose, initialFocusRef }: UseMobileD
     };
 
     document.addEventListener('keydown', handleKeyDown);
-    document.addEventListener('touchstart', handleTouchStart, { capture: true, passive: true });
-    document.addEventListener('touchmove', handleTouchMove, { capture: true, passive: false });
-    document.addEventListener('touchend', handleTouchEnd, { capture: true });
-    document.addEventListener('touchcancel', handleTouchEnd, { capture: true });
-    document.addEventListener('wheel', handleWheel, { capture: true, passive: false });
     return () => {
       window.clearTimeout(focusTimer);
       window.visualViewport?.removeEventListener('resize', syncVisualViewport);
-      window.visualViewport?.removeEventListener('scroll', syncVisualViewport);
       document.removeEventListener('keydown', handleKeyDown);
-      document.removeEventListener('touchstart', handleTouchStart, true);
-      document.removeEventListener('touchmove', handleTouchMove, true);
-      document.removeEventListener('touchend', handleTouchEnd, true);
-      document.removeEventListener('touchcancel', handleTouchEnd, true);
-      document.removeEventListener('wheel', handleWheel, true);
       const stackIndex = dialogStack.lastIndexOf(instance);
       if (stackIndex >= 0) dialogStack.splice(stackIndex, 1);
       deactivateOverlay();

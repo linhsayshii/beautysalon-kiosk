@@ -1,4 +1,5 @@
 import { pool } from '../../db.js';
+import { resolveApplicablePricebook, resolvePricebookItemPrice } from '../inventory/inventory.service.js';
 
 function number(value) {
   return Number(value ?? 0);
@@ -65,7 +66,8 @@ export async function listAppointments({ branchId, dateFrom, dateTo }) {
             ii.id AS invoice_item_id, i.status AS invoice_status, i.payment_requested_at,
             c.id AS customer_id, c.name AS customer_name, c.phone AS customer_phone,
             s.id AS staff_id, s.name AS staff_name,
-            sv.id AS service_id, sv.name AS service_name
+            sv.id AS service_id, sv.name AS service_name, COALESCE(ii.unit_price, sv.price) AS service_sale_price,
+            sv.commission_type AS service_commission_type, sv.commission_rate AS service_commission_rate
      FROM appointments a
      CROSS JOIN bounds
      LEFT JOIN customers c ON c.id = a.customer_id
@@ -93,7 +95,13 @@ export async function listAppointments({ branchId, dateFrom, dateTo }) {
     paymentRequestedAt: row.payment_requested_at || null,
     customer: { id: row.customer_id ? number(row.customer_id) : null, name: row.customer_name ?? 'Khách lẻ', phone: row.customer_phone },
     staff: { id: row.staff_id ? number(row.staff_id) : null, name: row.staff_name },
-    service: { id: row.service_id ? number(row.service_id) : null, name: row.service_name },
+    service: {
+      id: row.service_id ? number(row.service_id) : null,
+      name: row.service_name,
+      salePrice: number(row.service_sale_price),
+      commissionType: row.service_commission_type,
+      commissionRate: number(row.service_commission_rate),
+    },
   }));
 }
 
@@ -231,6 +239,7 @@ export async function createAppointments({ branchId, customerId, items, status, 
     if (!customerResult.rows[0]) {
       throw appError(404, 'CUSTOMER_NOT_FOUND', 'Không tìm thấy khách hàng');
     }
+    const appliedPricebook = await resolveApplicablePricebook(client, { branchId, customerId });
 
     const normalizedItems = [];
     for (const item of items) {
@@ -261,6 +270,14 @@ export async function createAppointments({ branchId, customerId, items, status, 
         throw appError(409, 'STAFF_SCHEDULE_CONFLICT', 'Nhân viên bị trùng lịch giữa các dịch vụ đang tạo');
       }
 
+      serviceResult.rows[0].price = await resolvePricebookItemPrice(client, {
+        branchId,
+        pricebookId: appliedPricebook?.id,
+        itemType: 'service',
+        itemId: serviceId,
+        basePrice: serviceResult.rows[0].price,
+      });
+
       normalizedItems.push({
         serviceId,
         staffId: staffId || null,
@@ -287,11 +304,11 @@ export async function createAppointments({ branchId, customerId, items, status, 
     } else {
       const invoiceResult = await client.query(
         `INSERT INTO invoices (
-           branch_id, customer_id, staff_id, code, status, subtotal, discount, total,
+           branch_id, customer_id, staff_id, code, status, pricebook_id, subtotal, discount, total,
            payment_method, sales_channel, issued_at
-         ) VALUES ($1, $2, NULL, $3, 'draft', $4, 0, $4, 'cash', 'salon', $5)
+         ) VALUES ($1, $2, NULL, $3, 'draft', $6, $4, 0, $4, 'cash', 'salon', $5)
          RETURNING id, code, status, subtotal, discount, total, payment_method, sales_channel, issued_at`,
-        [branchId, customerId, draftInvoiceCode(), subtotal, normalizedItems[0].startsAt],
+        [branchId, customerId, draftInvoiceCode(), subtotal, normalizedItems[0].startsAt, appliedPricebook?.id ?? null],
       );
       invoice = invoiceResult.rows[0];
     }

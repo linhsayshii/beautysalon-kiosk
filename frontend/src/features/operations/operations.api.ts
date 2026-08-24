@@ -32,8 +32,8 @@ export function getOrder(id: number) {
   return apiRequest<ApiEnvelope<ApiRecord>>(`/orders/${id}`);
 }
 
-export function getCustomers(filters: ApiRecord) {
-  return apiRequest<ApiEnvelope<ApiRecord[], PagedMeta>>(`/customers?${toQueryString(filters)}`);
+export function getCustomers(filters: ApiRecord, options: RequestInit = {}) {
+  return apiRequest<ApiEnvelope<ApiRecord[], PagedMeta>>(`/customers?${toQueryString(filters)}`, options);
 }
 
 export function getCustomer(id: number) {

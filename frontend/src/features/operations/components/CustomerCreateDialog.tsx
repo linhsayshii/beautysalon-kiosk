@@ -6,6 +6,7 @@ import { useToast } from '@/components/ui/Toast/ToastProvider';
 import { createCustomer, updateCustomer } from '../operations.api';
 import type { ApiRecord } from '@/types/api';
 import { useMobileDialog } from '@/features/mobile-common/useMobileDialog';
+import { MobileDialogPortal } from '@/features/mobile-common/MobileDialogPortal';
 
 type CustomerMutationInput = {
   name: string;
@@ -111,6 +112,7 @@ export function CustomerCreateDialog({ onClose, onSuccess, customMutationFn, ini
   };
 
   return (
+    <MobileDialogPortal>
     <div
       className="goods-dialog-backdrop"
       onMouseDown={(event) => {
@@ -268,5 +270,6 @@ export function CustomerCreateDialog({ onClose, onSuccess, customMutationFn, ini
         </form>
       </section>
     </div>
+    </MobileDialogPortal>
   );
 }

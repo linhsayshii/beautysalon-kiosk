@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef, type RefObject } from 'react';
+import { useEffect, useState, useMemo, useRef, type RefObject } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/components/ui/Toast/ToastProvider';
@@ -7,6 +7,7 @@ import { MoneyInput } from '@/components/forms/MoneyInput';
 import {
   checkoutPosInvoice,
   getPosCatalog,
+  getPosPriceQuote,
   getPosStaff,
   type PosCheckoutPayload,
   type PosReceiptData,
@@ -61,9 +62,25 @@ export function MobileInvoiceCreateView() {
 
   // Fetch Catalog & Staff queries
   const { data: catalogResponse } = useQuery({
-    queryKey: ['pos-catalog', catalogSearch, activeCatalogTab],
-    queryFn: () => getPosCatalog(catalogSearch, activeCatalogTab),
+    queryKey: ['pos-catalog', catalogSearch, activeCatalogTab, customer?.id ?? null],
+    queryFn: () => getPosCatalog(catalogSearch, activeCatalogTab, customer?.id),
   });
+
+  useEffect(() => {
+    if (!configuredItems.length) return;
+    let cancelled = false;
+    getPosPriceQuote(customer?.id, configuredItems)
+      .then((response) => {
+        if (cancelled) return;
+        const prices = new Map(response.data.map((item) => [`${item.itemType}:${item.itemId}`, item.salePrice]));
+        setConfiguredItems((items) => items.map((item) => ({
+          ...item,
+          unitPrice: prices.get(`${item.itemType}:${item.itemId}`) ?? item.unitPrice,
+        })));
+      })
+      .catch(console.error);
+    return () => { cancelled = true; };
+  }, [customer?.id]);
 
   const { data: staffResponse } = useQuery({
     queryKey: ['pos-staff'],

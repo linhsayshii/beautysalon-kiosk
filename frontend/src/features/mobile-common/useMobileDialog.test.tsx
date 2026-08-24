@@ -1,74 +1,68 @@
 import type { RefObject } from 'react';
-import { afterEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, render, screen } from '@testing-library/react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { cleanup, render } from '@testing-library/react';
 import { useMobileDialog } from './useMobileDialog';
 
-function touchEvent(type: 'touchstart' | 'touchmove', clientY: number) {
-  const event = new Event(type, { bubbles: true, cancelable: true });
-  Object.defineProperty(event, 'touches', {
-    configurable: true,
-    value: [{ clientY }],
-  });
-  return event;
+class MockVisualViewport extends EventTarget {
+  height = 700;
 }
+
+const originalVisualViewport = window.visualViewport;
+let visualViewport: MockVisualViewport;
 
 function TestDialog() {
   const { dialogRef, titleId } = useMobileDialog({ isOpen: true, onClose: vi.fn() });
 
   return (
-    <div data-testid="backdrop">
-      <div ref={dialogRef as RefObject<HTMLDivElement>} role="dialog" aria-labelledby={titleId} tabIndex={-1}>
-        <h2 id={titleId}>Tiêu đề</h2>
-        <div data-testid="sheet-scroll-area" style={{ overflowY: 'auto' }} />
-      </div>
+    <div ref={dialogRef as RefObject<HTMLDivElement>} role="dialog" aria-labelledby={titleId} tabIndex={-1}>
+      <h2 id={titleId}>Tiêu đề</h2>
     </div>
   );
 }
 
-function setScrollableDimensions(element: HTMLElement, scrollTop: number) {
-  Object.defineProperties(element, {
-    clientHeight: { configurable: true, value: 200 },
-    scrollHeight: { configurable: true, value: 600 },
-    scrollTop: { configurable: true, writable: true, value: scrollTop },
+beforeEach(() => {
+  visualViewport = new MockVisualViewport();
+  Object.defineProperty(window, 'visualViewport', {
+    configurable: true,
+    value: visualViewport,
   });
-}
+});
 
 afterEach(() => {
   cleanup();
+  document.documentElement.style.removeProperty('--mobile-overlay-viewport-height');
+  Object.defineProperty(window, 'visualViewport', {
+    configurable: true,
+    value: originalVisualViewport,
+  });
 });
 
-describe('useMobileDialog scroll containment', () => {
-  it('blocks a swipe that starts outside the active dialog', () => {
+describe('useMobileDialog viewport behavior', () => {
+  it('sizes the overlay from the visual viewport height', () => {
     render(<TestDialog />);
 
-    const backdrop = screen.getByTestId('backdrop');
-    const move = touchEvent('touchmove', 80);
-    backdrop.dispatchEvent(move);
-
-    expect(move.defaultPrevented).toBe(true);
+    expect(document.documentElement.style.getPropertyValue('--mobile-overlay-viewport-height')).toBe('700px');
   });
 
-  it('allows the sheet scroll area to scroll away from its boundaries', () => {
+  it('updates height on viewport resize without tracking viewport scroll offset', () => {
     render(<TestDialog />);
 
-    const scrollArea = screen.getByTestId('sheet-scroll-area');
-    setScrollableDimensions(scrollArea, 120);
-    scrollArea.dispatchEvent(touchEvent('touchstart', 200));
-    const move = touchEvent('touchmove', 160);
-    scrollArea.dispatchEvent(move);
+    visualViewport.height = 420;
+    visualViewport.dispatchEvent(new Event('resize'));
+    expect(document.documentElement.style.getPropertyValue('--mobile-overlay-viewport-height')).toBe('420px');
+
+    visualViewport.height = 360;
+    visualViewport.dispatchEvent(new Event('scroll'));
+    expect(document.documentElement.style.getPropertyValue('--mobile-overlay-viewport-height')).toBe('420px');
+    expect(document.documentElement.style.getPropertyValue('--mobile-overlay-viewport-offset-top')).toBe('');
+  });
+
+  it('does not cancel native touchmove scrolling inside the dialog', () => {
+    const { getByRole } = render(<TestDialog />);
+    const move = new Event('touchmove', { bubbles: true, cancelable: true });
+
+    getByRole('dialog').dispatchEvent(move);
 
     expect(move.defaultPrevented).toBe(false);
-  });
-
-  it('blocks scroll chaining when a sheet scroll area is already at its top edge', () => {
-    render(<TestDialog />);
-
-    const scrollArea = screen.getByTestId('sheet-scroll-area');
-    setScrollableDimensions(scrollArea, 0);
-    scrollArea.dispatchEvent(touchEvent('touchstart', 100));
-    const move = touchEvent('touchmove', 140);
-    scrollArea.dispatchEvent(move);
-
-    expect(move.defaultPrevented).toBe(true);
   });
 });

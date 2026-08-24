@@ -356,6 +356,8 @@ CREATE TABLE pricebooks (
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+CREATE UNIQUE INDEX uniq_pricebooks_default_per_branch ON pricebooks(branch_id) WHERE is_default;
+
 CREATE TABLE pricebook_items (
   id BIGSERIAL PRIMARY KEY,
   pricebook_id BIGINT NOT NULL REFERENCES pricebooks(id) ON DELETE CASCADE,
@@ -367,6 +369,15 @@ CREATE TABLE pricebook_items (
 );
 
 CREATE INDEX idx_pricebook_items_book ON pricebook_items(pricebook_id, item_type, item_id);
+
+CREATE TABLE pricebook_customers (
+  pricebook_id BIGINT NOT NULL REFERENCES pricebooks(id) ON DELETE CASCADE,
+  customer_id BIGINT NOT NULL REFERENCES customers(id) ON DELETE CASCADE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  PRIMARY KEY (pricebook_id, customer_id)
+);
+
+CREATE INDEX idx_pricebook_customers_customer ON pricebook_customers(customer_id, pricebook_id);
 
 CREATE TABLE purchase_orders (
   id BIGSERIAL PRIMARY KEY,
@@ -427,6 +438,7 @@ CREATE TABLE invoices (
   id BIGSERIAL PRIMARY KEY,
   branch_id BIGINT NOT NULL REFERENCES branches(id) ON DELETE RESTRICT,
   customer_id BIGINT REFERENCES customers(id) ON DELETE SET NULL,
+  pricebook_id BIGINT REFERENCES pricebooks(id) ON DELETE SET NULL,
   staff_id BIGINT REFERENCES staff(id) ON DELETE SET NULL,
   code VARCHAR(40) NOT NULL UNIQUE,
   status VARCHAR(20) NOT NULL DEFAULT 'paid'
@@ -498,7 +510,9 @@ CREATE TABLE package_usages (
   appointment_id BIGINT REFERENCES appointments(id) ON DELETE SET NULL,
   units_used INTEGER NOT NULL DEFAULT 1 CHECK (units_used > 0),
   used_at TIMESTAMPTZ NOT NULL,
-  note VARCHAR(250)
+  note VARCHAR(250),
+  service_id BIGINT REFERENCES services(id),
+  invoice_id BIGINT REFERENCES invoices(id)
 );
 
 CREATE TABLE customer_account_cards (

@@ -11,6 +11,7 @@ import { createInventoryItem, getInventoryItem, getProducts, updateInventoryItem
 import type { CreateInventoryItemInput, InventoryItemType } from '../inventory.api';
 import type { ApiRecord } from '@/types/api';
 import { useMobileDialog } from '@/features/mobile-common/useMobileDialog';
+import { MobileDialogPortal } from '@/features/mobile-common/MobileDialogPortal';
 
 type CommissionType = 'percent' | 'fixed' | null;
 
@@ -219,7 +220,7 @@ export function GoodsCreateDialog({ type, onClose, itemId, initialData, initialT
     mutation.mutate(payload);
   };
 
-  return <div className="goods-dialog-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget && !mutation.isPending) onClose(); }}>
+  return <MobileDialogPortal><div className="goods-dialog-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget && !mutation.isPending) onClose(); }}>
     <section ref={dialogRef as RefObject<HTMLElement>} className="goods-dialog" role="dialog" aria-modal="true" aria-labelledby={titleId} tabIndex={-1}>
       <header className="goods-dialog-header">
         <h2 id={titleId}>{isEdit ? copy.editTitle : copy.title}</h2>
@@ -339,5 +340,5 @@ export function GoodsCreateDialog({ type, onClose, itemId, initialData, initialT
         <footer className="goods-dialog-footer"><button className="secondary-button" type="button" onClick={onClose} disabled={mutation.isPending}>Bỏ qua</button><button className="primary-button" type="submit" disabled={mutation.isPending || itemQuery.isPending || Boolean(itemQuery.error)}>{mutation.isPending ? 'Đang lưu...' : itemQuery.isPending ? 'Đang tải...' : 'Lưu'}</button></footer>
       </form>
     </section>
-  </div>;
+  </div></MobileDialogPortal>;
 }

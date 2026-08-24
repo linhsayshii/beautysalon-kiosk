@@ -10,6 +10,7 @@ import {
   getPricebook,
   getPurchaseOrder,
   listPricebooks,
+  listPricebookCustomerOptions,
   listProducts,
   listPurchaseOrders,
   listSuppliers,
@@ -214,6 +215,20 @@ router.get('/pricebooks', asyncRoute(async (request, response) => {
   response.json({ data: result.rows, meta: { pagination: result.pagination, pricebook: result.pricebook, pricebooks: result.pricebooks, categories: result.categories } });
 }));
 
+router.get('/pricebook-customer-options', asyncRoute(async (request, response) => {
+  const selectedIds = String(request.query.selectedIds ?? '')
+    .split(',')
+    .filter(Boolean)
+    .slice(0, 200)
+    .map((value) => parsePositiveInteger(value, 'selectedIds'));
+  const data = await listPricebookCustomerOptions({
+    branchId: request.account.branchId,
+    search: text(request.query.search),
+    selectedIds,
+  });
+  response.json({ data });
+}));
+
 router.patch('/pricebooks/:pricebookId/items/:itemType/:itemId', asyncRoute(async (request, response) => {
   const itemType = parseEnum(request.params.itemType, 'itemType', itemTypes);
   const result = await updatePricebookItem({
@@ -244,6 +259,9 @@ router.post('/pricebooks', asyncRoute(async (request, response) => {
 
   const effectiveFrom = request.body.effectiveFrom ? parseIsoDate(request.body.effectiveFrom, 'effectiveFrom') : null;
   const effectiveTo = request.body.effectiveTo ? parseIsoDate(request.body.effectiveTo, 'effectiveTo') : null;
+  const customerIds = Array.isArray(request.body.customerIds)
+    ? [...new Set(request.body.customerIds.slice(0, 200).map((id) => parsePositiveInteger(id, 'customerIds')))]
+    : [];
 
   const data = await createPricebook({
     branchId: request.account.branchId,
@@ -252,14 +270,22 @@ router.post('/pricebooks', asyncRoute(async (request, response) => {
     active: boolean(request.body.active, true),
     effectiveFrom,
     effectiveTo,
+    customerIds,
     copyFromDefault: boolean(request.body.copyFromDefault, true),
   });
   response.status(201).json({ data });
 }));
 
 router.put('/pricebooks/:pricebookId', asyncRoute(async (request, response) => {
-  const effectiveFrom = request.body.effectiveFrom ? parseIsoDate(request.body.effectiveFrom, 'effectiveFrom') : undefined;
-  const effectiveTo = request.body.effectiveTo ? parseIsoDate(request.body.effectiveTo, 'effectiveTo') : undefined;
+  const effectiveFrom = request.body.effectiveFrom === undefined
+    ? undefined
+    : (request.body.effectiveFrom ? parseIsoDate(request.body.effectiveFrom, 'effectiveFrom') : null);
+  const effectiveTo = request.body.effectiveTo === undefined
+    ? undefined
+    : (request.body.effectiveTo ? parseIsoDate(request.body.effectiveTo, 'effectiveTo') : null);
+  const customerIds = Array.isArray(request.body.customerIds)
+    ? [...new Set(request.body.customerIds.slice(0, 200).map((id) => parsePositiveInteger(id, 'customerIds')))]
+    : undefined;
 
   const data = await updatePricebook({
     branchId: request.account.branchId,
@@ -268,6 +294,7 @@ router.put('/pricebooks/:pricebookId', asyncRoute(async (request, response) => {
     active: request.body.active !== undefined ? boolean(request.body.active) : undefined,
     effectiveFrom,
     effectiveTo,
+    customerIds,
   });
   response.json({ data });
 }));

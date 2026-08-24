@@ -7,6 +7,7 @@ import { useToast } from '@/components/ui/Toast/ToastProvider';
 import { getAccounts } from '@/features/accounts/accounts.api';
 import type { ApiRecord } from '@/types/api';
 import { createStaff, updateStaff } from '../staff.api';
+import { MobileDialogPortal } from '@/features/mobile-common/MobileDialogPortal';
 
 interface StaffCreateDialogProps {
   onClose: () => void;
@@ -272,6 +273,7 @@ export function StaffCreateDialog({ onClose, staff, initialTab = 'info', onSaved
   };
 
   return (
+    <MobileDialogPortal>
     <div
       className="goods-dialog-backdrop"
       onMouseDown={(event) => {
@@ -1128,5 +1130,6 @@ export function StaffCreateDialog({ onClose, staff, initialTab = 'info', onSaved
         </form>
       </section>
     </div>
+    </MobileDialogPortal>
   );
 }

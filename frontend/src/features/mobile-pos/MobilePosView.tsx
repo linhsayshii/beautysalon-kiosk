@@ -5,8 +5,9 @@ import { useWebSocket } from '@/hooks/useWebSocket';
 import { formatMoney, formatNumber } from '@/lib/format';
 import { LoadingState, ErrorState } from '@/components/data-display/DataState';
 import { Select } from '@/components/ui/Select/Select';
-import { getPosCatalog, getPosInvoice, getPosPaymentRequests, getPosStaff, type PosReceiptData } from '@/features/pos/pos.api';
+import { getPosCatalog, getPosInvoice, getPosPaymentRequests, getPosPriceQuote, getPosStaff, getPosCustomerServicePackages, type PosReceiptData, type ServicePackageOption } from '@/features/pos/pos.api';
 import { PosReceiptPrint } from '@/features/pos/components/PosReceiptPrint';
+import { UsePackageModal } from '@/features/pos/components/UsePackageModal';
 import { MobileCartBottomSheet } from './MobileCartBottomSheet';
 import '@/features/mobile-pos/mobile-pos.css';
 
@@ -28,6 +29,8 @@ interface CatalogItem {
 interface PosLine extends CatalogItem {
   quantity: number;
   staffId: number | null;
+  usePackageId?: number | null;
+  usePackageServiceId?: number | null;
 }
 
 interface PosCustomer {
@@ -57,6 +60,8 @@ export function MobilePosView() {
   const [customer, setCustomer] = useState<PosCustomer | null>(null);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isCartExpanded, setIsCartExpanded] = useState(true);
+  const [showPackageModal, setShowPackageModal] = useState(false);
+  const [servicePackages, setServicePackages] = useState<ServicePackageOption[]>([]);
 
   const invoiceId = invoiceIdParam ? Number(invoiceIdParam) : null;
   const appointmentId = appointmentIdParam ? Number(appointmentIdParam) : null;
@@ -127,13 +132,41 @@ export function MobilePosView() {
     return unsub;
   }, [subscribe, queryClient]);
 
+  // Check for available service packages when customer changes
+  useEffect(() => {
+    if (customer) {
+      getPosCustomerServicePackages(customer.id)
+        .then((res: any) => {
+          const packages = res?.data || [];
+          if (packages.length > 0) {
+            setServicePackages(packages);
+            setShowPackageModal(true);
+          }
+        })
+        .catch(console.error);
+    }
+  }, [customer?.id]);
+
   const [receiptToPrint, setReceiptToPrint] = useState<PosReceiptData | null>(null);
 
   // Fetch Pos Catalog
   const catalogQuery = useQuery({
-    queryKey: ['pos-catalog', search, activeTab],
-    queryFn: () => getPosCatalog(search, activeTab),
+    queryKey: ['pos-catalog', search, activeTab, customer?.id ?? null],
+    queryFn: () => getPosCatalog(search, activeTab, customer?.id),
   });
+
+  useEffect(() => {
+    if (!cartLines.length) return;
+    let cancelled = false;
+    getPosPriceQuote(customer?.id, cartLines)
+      .then((response) => {
+        if (cancelled) return;
+        const prices = new Map(response.data.map((item) => [`${item.itemType}:${item.itemId}`, item.salePrice]));
+        setCartLines((lines) => lines.map((line) => ({ ...line, salePrice: prices.get(`${line.itemType}:${line.itemId}`) ?? line.salePrice })));
+      })
+      .catch(console.error);
+    return () => { cancelled = true; };
+  }, [customer?.id]);
 
   // Fetch staff list
   const { data: staffResponse } = useQuery({
@@ -239,6 +272,36 @@ export function MobilePosView() {
         })
         .filter(Boolean) as PosLine[];
     });
+  };
+
+  // Handle service selection from package modal
+  const handlePackageServiceSelect = (customerPackageId: number, serviceId: number) => {
+    const pkg = servicePackages.find(p => p.customerPackageId === customerPackageId);
+    const svc = pkg?.services.find(s => s.serviceId === serviceId);
+
+    if (pkg && svc) {
+      const newLine: PosLine = {
+        itemId: serviceId,
+        itemType: 'service',
+        code: svc.serviceCode,
+        name: svc.serviceName,
+        category: 'Từ gói',
+        unit: 'lượt',
+        salePrice: 0,
+        stockQuantity: null,
+        commissionType: null,
+        commissionRate: 0,
+        quantity: 1,
+        staffId: null,
+        usePackageId: customerPackageId,
+        usePackageServiceId: serviceId,
+      };
+
+      setCartLines(prev => [...prev, newLine]);
+    }
+
+    setShowPackageModal(false);
+    setServicePackages([]);
   };
 
   const getItemIcon = (type: string) => {
@@ -503,6 +566,17 @@ export function MobilePosView() {
       {receiptToPrint && (
         <PosReceiptPrint receipt={receiptToPrint} onClose={() => setReceiptToPrint(null)} />
       )}
+
+      {/* Use Package Modal */}
+      <UsePackageModal
+        isOpen={showPackageModal}
+        packages={servicePackages}
+        onClose={() => {
+          setShowPackageModal(false);
+          setServicePackages([]);
+        }}
+        onSelect={handlePackageServiceSelect}
+      />
     </div>
   );
 }

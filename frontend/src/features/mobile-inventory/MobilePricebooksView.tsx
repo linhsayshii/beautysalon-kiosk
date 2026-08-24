@@ -5,8 +5,9 @@ import { MoneyInput } from '@/components/forms/MoneyInput';
 import { Select } from '@/components/ui/Select/Select';
 import { useToast } from '@/components/ui/Toast/ToastProvider';
 import { formatMoney } from '@/lib/format';
-import { createPricebook, deletePricebook, getPricebooks, updatePrice, updatePricebook } from '@/features/inventory/inventory.api';
+import { createPricebook, deletePricebook, getPricebook, getPricebooks, updatePrice, updatePricebook } from '@/features/inventory/inventory.api';
 import type { CreatePricebookInput, Pricebook, UpdatePricebookInput } from '@/features/inventory/inventory.api';
+import { PricebookCustomerPicker } from '@/features/inventory/components/PricebookCustomerPicker';
 import {
   MobileSearchBar,
   MobileFilterSheet,
@@ -46,25 +47,33 @@ function MobilePricebookDialog({ open, pricebook, onClose, onSuccess }: MobilePr
     active: pricebook?.active ?? true,
     effectiveFrom: pricebook?.effectiveFrom ?? null,
     effectiveTo: pricebook?.effectiveTo ?? null,
+    customerIds: [],
     copyFromDefault: true,
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const { notify } = useToast();
   const queryClient = useQueryClient();
+  const detailsQuery = useQuery({
+    queryKey: ['pricebook-detail', pricebook?.id],
+    queryFn: () => getPricebook(pricebook!.id!),
+    enabled: open && Boolean(pricebook?.id),
+  });
 
   useEffect(() => {
     if (open) {
+      const detail = detailsQuery.data?.data;
       setForm({
-        code: pricebook?.code ?? '',
-        name: pricebook?.name ?? '',
-        active: pricebook?.active ?? true,
-        effectiveFrom: pricebook?.effectiveFrom ?? null,
-        effectiveTo: pricebook?.effectiveTo ?? null,
+        code: detail?.code ?? pricebook?.code ?? '',
+        name: detail?.name ?? pricebook?.name ?? '',
+        active: detail?.active ?? pricebook?.active ?? true,
+        effectiveFrom: detail?.effectiveFrom ?? pricebook?.effectiveFrom ?? null,
+        effectiveTo: detail?.effectiveTo ?? pricebook?.effectiveTo ?? null,
+        customerIds: detail?.customers?.map((customer) => customer.id) ?? [],
         copyFromDefault: true,
       });
       setErrors({});
     }
-  }, [open, pricebook]);
+  }, [open, pricebook, detailsQuery.data]);
 
   const isEditing = !!pricebook?.id;
 
@@ -100,6 +109,9 @@ function MobilePricebookDialog({ open, pricebook, onClose, onSuccess }: MobilePr
     if (form.effectiveFrom && form.effectiveTo && form.effectiveFrom > form.effectiveTo) {
       errs.effectiveTo = 'Ngày kết thúc phải sau ngày bắt đầu';
     }
+    if (!pricebook?.isDefault && !(form.customerIds?.length) && (!form.effectiveFrom || !form.effectiveTo)) {
+      errs.effectiveTo = 'Bảng giá theo thời gian cần đủ ngày bắt đầu và kết thúc';
+    }
     setErrors(errs);
     return Object.keys(errs).length === 0;
   };
@@ -107,7 +119,7 @@ function MobilePricebookDialog({ open, pricebook, onClose, onSuccess }: MobilePr
   const handleSubmit = () => {
     if (!validate()) return;
     if (isEditing) {
-      updateMutation.mutate({ name: form.name, active: form.active, effectiveFrom: form.effectiveFrom, effectiveTo: form.effectiveTo });
+      updateMutation.mutate({ name: form.name, active: form.active, effectiveFrom: form.effectiveFrom, effectiveTo: form.effectiveTo, customerIds: form.customerIds });
     } else {
       createMutation.mutate(form);
     }
@@ -142,15 +154,19 @@ function MobilePricebookDialog({ open, pricebook, onClose, onSuccess }: MobilePr
             <input type="text" className={`mobile-form-input ${errors.name ? 'error' : ''}`} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Bảng giá khuyến mãi" />
             {errors.name && <span className="mobile-form-error">{errors.name}</span>}
           </div>
-          <div className="mobile-form-field">
+          {!pricebook?.isDefault && <div className="mobile-form-field">
             <label>Ngày bắt đầu</label>
             <input type="date" className="mobile-form-input" value={form.effectiveFrom ?? ''} onChange={(e) => setForm({ ...form, effectiveFrom: e.target.value || null })} />
-          </div>
-          <div className="mobile-form-field">
+          </div>}
+          {!pricebook?.isDefault && <div className="mobile-form-field">
             <label>Ngày kết thúc</label>
             <input type="date" className="mobile-form-input" value={form.effectiveTo ?? ''} onChange={(e) => setForm({ ...form, effectiveTo: e.target.value || null })} />
             {errors.effectiveTo && <span className="mobile-form-error">{errors.effectiveTo}</span>}
-          </div>
+          </div>}
+          {!pricebook?.isDefault && <div className="mobile-form-field">
+            <label>Khách hàng áp dụng (không bắt buộc)</label>
+            <PricebookCustomerPicker mobile value={form.customerIds ?? []} onChange={(customerIds) => setForm({ ...form, customerIds })} />
+          </div>}
           {!isEditing && (
             <div className="mobile-form-field">
               <label className="checkbox-label">
@@ -159,7 +175,7 @@ function MobilePricebookDialog({ open, pricebook, onClose, onSuccess }: MobilePr
               </label>
             </div>
           )}
-          {isEditing && (
+          {isEditing && !pricebook?.isDefault && (
             <div className="mobile-form-field">
               <label className="checkbox-label">
                 <input type="checkbox" checked={form.active} onChange={(e) => setForm({ ...form, active: e.target.checked })} />
@@ -256,6 +272,12 @@ export function MobilePricebooksView() {
   const meta = pricebooksData?.meta;
   const pricebooksList = meta?.pricebooks ?? [];
   const currentBook = meta?.pricebook ?? { id: 1, name: 'Bảng giá chung' };
+  const pricebookOptions = [
+    { value: '', label: currentBook.name || 'Bảng giá chung' },
+    ...pricebooksList
+      .filter((book) => !book.isDefault)
+      .map((book) => ({ value: String(book.id), label: `${book.name}${book.active ? '' : ' (Ngừng)'}` })),
+  ];
   const categories = meta?.categories ?? [];
 
   // Sort rows
@@ -352,6 +374,14 @@ export function MobilePricebooksView() {
           </div>
 
           <div className="mobile-inventory-nav-actions">
+            <button
+              type="button"
+              className="mobile-inventory-nav-btn"
+              onClick={() => { setEditingBook(currentBook as Partial<Pricebook>); setDialogOpen(true); }}
+              aria-label="Sửa bảng giá đang chọn"
+            >
+              <i className="ph ph-pencil-simple" />
+            </button>
             <button
               type="button"
               className="mobile-inventory-nav-btn"
@@ -560,7 +590,7 @@ export function MobilePricebooksView() {
             value={draftPricebookId}
             aria-label="Chọn bảng giá"
             onChange={setDraftPricebookId}
-            options={pricebooksList.map((book) => ({ value: String(book.id), label: book.name }))}
+            options={pricebookOptions}
           />
         </div>
 

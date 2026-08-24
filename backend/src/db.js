@@ -30,7 +30,8 @@ export async function runMigrations() {
 
       ALTER TABLE invoices
         ADD COLUMN IF NOT EXISTS payment_requested_at TIMESTAMPTZ,
-        ADD COLUMN IF NOT EXISTS payment_requested_by_staff_id BIGINT REFERENCES staff(id) ON DELETE SET NULL;
+        ADD COLUMN IF NOT EXISTS payment_requested_by_staff_id BIGINT REFERENCES staff(id) ON DELETE SET NULL,
+        ADD COLUMN IF NOT EXISTS pricebook_id BIGINT REFERENCES pricebooks(id) ON DELETE SET NULL;
 
       CREATE INDEX IF NOT EXISTS idx_invoices_payment_requested
         ON invoices(branch_id, payment_requested_at DESC)
@@ -164,6 +165,70 @@ export async function runMigrations() {
       -- Add early_minutes column for tracking early leave
       ALTER TABLE attendance_records
         ADD COLUMN IF NOT EXISTS early_minutes INTEGER NOT NULL DEFAULT 0 CHECK (early_minutes >= 0);
+
+      CREATE TABLE IF NOT EXISTS pricebook_customers (
+        pricebook_id BIGINT NOT NULL REFERENCES pricebooks(id) ON DELETE CASCADE,
+        customer_id BIGINT NOT NULL REFERENCES customers(id) ON DELETE CASCADE,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        PRIMARY KEY (pricebook_id, customer_id)
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_pricebook_customers_customer
+        ON pricebook_customers(customer_id, pricebook_id);
+
+      -- Legacy data could contain both the seeded default (BG-001) and the
+      -- former auto-created default (BG-<branch>). Merge item prices into the
+      -- oldest default before enforcing one default per branch.
+      DO $$
+      DECLARE
+        duplicate_book RECORD;
+        canonical_id BIGINT;
+      BEGIN
+        FOR duplicate_book IN
+          SELECT pb.id, pb.branch_id
+          FROM pricebooks pb
+          WHERE pb.is_default
+            AND pb.id <> (
+              SELECT first_book.id FROM pricebooks first_book
+              WHERE first_book.branch_id = pb.branch_id AND first_book.is_default
+              ORDER BY first_book.created_at, first_book.id
+              LIMIT 1
+            )
+          ORDER BY pb.branch_id, pb.created_at, pb.id
+        LOOP
+          SELECT id INTO canonical_id
+          FROM pricebooks
+          WHERE branch_id = duplicate_book.branch_id AND is_default
+          ORDER BY created_at, id
+          LIMIT 1;
+
+          INSERT INTO pricebook_items (pricebook_id, item_type, item_id, sale_price, updated_at)
+          SELECT canonical_id, item_type, item_id, sale_price, updated_at
+          FROM pricebook_items
+          WHERE pricebook_id = duplicate_book.id
+          ON CONFLICT (pricebook_id, item_type, item_id)
+          DO UPDATE SET sale_price = EXCLUDED.sale_price, updated_at = EXCLUDED.updated_at;
+
+          UPDATE pricebooks SET is_default = FALSE, active = FALSE WHERE id = duplicate_book.id;
+        END LOOP;
+      END $$;
+
+      UPDATE pricebooks SET active = TRUE WHERE is_default;
+
+      -- Leave the former auto-generated copy recoverable, but make its
+      -- inactive state unambiguous in the pricebook picker.
+      UPDATE pricebooks pb
+      SET name = 'Bảng giá chung (đã hợp nhất)'
+      WHERE NOT pb.active
+        AND NOT pb.is_default
+        AND pb.code = 'BG-' || pb.branch_id
+        AND pb.name = 'Bảng giá chung'
+        AND pb.effective_from IS NULL
+        AND pb.effective_to IS NULL
+        AND NOT EXISTS (SELECT 1 FROM pricebook_customers pc WHERE pc.pricebook_id = pb.id);
+
+      CREATE UNIQUE INDEX IF NOT EXISTS uniq_pricebooks_default_per_branch
+        ON pricebooks(branch_id) WHERE is_default;
     `);
     console.log('[database] payroll migrations checked and applied');
   } catch (err) {

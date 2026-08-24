@@ -106,6 +106,7 @@ export async function getOrder({ branchId, id }) {
        ii.staff_id, st.name AS line_staff_name, ii.appointment_id,
        a.status AS appointment_status, a.starts_at AS appointment_starts_at, a.ends_at AS appointment_ends_at,
        ast.id AS appointment_staff_id, ast.name AS appointment_staff_name,
+       s.commission_type AS service_commission_type, s.commission_rate AS service_commission_rate,
        COALESCE(s.code, p.sku, '-') AS item_code,
        COALESCE(s.name, p.name, ii.description) AS item_name,
        CASE WHEN ii.item_type = 'service' THEN 'lần' ELSE COALESCE(p.unit, 'sản phẩm') END AS unit
@@ -137,6 +138,8 @@ export async function getOrder({ branchId, id }) {
     unitPrice: number(item.unit_price),
     discount: Math.max(0, number(item.quantity) * number(item.unit_price) - number(item.line_total)),
     lineTotal: number(item.line_total),
+    commissionType: item.service_commission_type,
+    commissionRate: number(item.service_commission_rate),
     appointment: item.appointment_id ? {
       id: number(item.appointment_id),
       status: item.appointment_status,

@@ -8,11 +8,12 @@ import { Select } from '@/components/ui/Select/Select';
 import { useAuth } from '@/features/auth/AuthProvider';
 import { useWebSocket } from '@/hooks/useWebSocket';
 import { formatMoney } from '@/lib/format';
-import { createPosAppointment, updatePosAppointment, createPosCustomer, getPosAppointments, getPosCatalog, getPosInvoice, getPosPaymentRequests, getPosStaff, searchPosCustomers, getPosCustomerAvailablePackages, type PosReceiptData } from '../pos.api';
+import { createPosAppointment, updatePosAppointment, createPosCustomer, getPosAppointments, getPosCatalog, getPosInvoice, getPosPaymentRequests, getPosPriceQuote, getPosStaff, searchPosCustomers, getPosCustomerAvailablePackages, getPosCustomerServicePackages, type PosReceiptData, type ServicePackageOption } from '../pos.api';
 import { layoutOverlappingAppointments } from '../calendar-layout';
 import { CustomerCreateDialog } from '@/features/operations/components/CustomerCreateDialog';
 import { PosCheckoutModal } from './PosCheckoutModal';
 import { PosReceiptPrint } from './PosReceiptPrint';
+import { UsePackageModal } from './UsePackageModal';
 import '@/features/pos/pos.css';
 
 type CatalogFilter = '' | 'service' | 'package' | 'account_card' | 'product';
@@ -29,6 +30,8 @@ interface CatalogItem {
   stockQuantity: number | null;
   commissionType?: 'percent' | 'fixed' | null;
   commissionRate?: number;
+  usePackageId?: number | null;
+  usePackageServiceId?: number | null;
 }
 
 interface PosLine extends CatalogItem {
@@ -108,6 +111,8 @@ export function PosView() {
   const [isAddingCustomer, setIsAddingCustomer] = useState(false);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const [receiptToPrint, setReceiptToPrint] = useState<PosReceiptData | null>(null);
+  const [showPackageModal, setShowPackageModal] = useState(false);
+  const [servicePackages, setServicePackages] = useState<ServicePackageOption[]>([]);
   const nextId = useRef(Math.max(...invoices.map((invoice) => invoice.id)) + 1);
   const deferredCatalogSearch = useDeferredValue(catalogSearch.trim());
   const { notify } = useToast();
@@ -121,8 +126,8 @@ export function PosView() {
   }, [accountId, invoices]);
 
   const catalog = useQuery({
-    queryKey: ['pos-catalog', deferredCatalogSearch, catalogFilter],
-    queryFn: () => getPosCatalog(deferredCatalogSearch, catalogFilter),
+    queryKey: ['pos-catalog', deferredCatalogSearch, catalogFilter, activeInvoice.customer?.id ?? null],
+    queryFn: () => getPosCatalog(deferredCatalogSearch, catalogFilter, activeInvoice.customer?.id),
   });
   const requestedInvoiceId = searchParams.get('invoice') ? Number(searchParams.get('invoice')) : null;
   const requestedInvoice = useQuery({
@@ -191,6 +196,22 @@ export function PosView() {
     setInvoices((current) => current.map((invoice) => invoice.id === activeId ? updater(invoice) : invoice));
   };
 
+  useEffect(() => {
+    if (!activeInvoice.lines.length) return;
+    let cancelled = false;
+    getPosPriceQuote(activeInvoice.customer?.id, activeInvoice.lines)
+      .then((response) => {
+        if (cancelled) return;
+        const prices = new Map(response.data.map((item) => [`${item.itemType}:${item.itemId}`, item.salePrice]));
+        updateActive((invoice) => ({
+          ...invoice,
+          lines: invoice.lines.map((line) => ({ ...line, salePrice: prices.get(`${line.itemType}:${line.itemId}`) ?? line.salePrice })),
+        }));
+      })
+      .catch((error: Error) => notify('Không thể cập nhật bảng giá', error.message));
+    return () => { cancelled = true; };
+  }, [activeId, activeInvoice.customer?.id]);
+
   const addInvoice = () => {
     if (invoices.length >= MAX_INVOICES) {
       notify('Đã đạt giới hạn', `Mỗi quầy có thể mở tối đa ${MAX_INVOICES} hóa đơn cùng lúc.`);
@@ -245,6 +266,31 @@ export function PosView() {
           : current
       ),
     }));
+  };
+
+  const handlePackageServiceSelect = (customerPackageId: number, serviceId: number) => {
+    const pkg = servicePackages.find(p => p.customerPackageId === customerPackageId);
+    const svc = pkg?.services.find(s => s.serviceId === serviceId);
+
+    if (pkg && svc) {
+      addItem({
+        itemId: serviceId,
+        itemType: 'service',
+        code: svc.serviceCode,
+        name: svc.serviceName,
+        category: 'Từ gói',
+        unit: 'lượt',
+        salePrice: 0,
+        stockQuantity: null,
+        commissionType: null,
+        commissionRate: 0,
+        usePackageId: customerPackageId,
+        usePackageServiceId: serviceId,
+      });
+    }
+
+    setShowPackageModal(false);
+    setServicePackages([]);
   };
 
   function calculateExpectedCommission(line: PosLine): string {
@@ -369,7 +415,20 @@ export function PosView() {
               {activeInvoice.customer ? <span className="pos-customer-selected"><i className="ph ph-check" />Đã chọn</span> : <button type="button" aria-label="Thêm khách hàng" onClick={() => setIsAddingCustomer(true)}><i className="ph ph-plus" /></button>}
               {customerOpen && deferredCustomerSearch.length >= 2 && (
                 <div className="pos-customer-results">
-                  {customers.isPending ? <div className="pos-customer-message">Đang tìm khách hàng...</div> : !customers.data?.data.length ? <div className="pos-customer-message">Không tìm thấy khách hàng</div> : customers.data.data.map((customer) => <button type="button" onMouseDown={(event) => event.preventDefault()} onClick={() => { updateActive((invoice) => ({ ...invoice, customerSearch: customer.name, customer: { id: customer.id, name: customer.name, phone: customer.phone } })); setCustomerOpen(false); }} key={customer.id}><span className="pos-customer-avatar">{String(customer.name).trim().charAt(0).toUpperCase()}</span><span><strong>{customer.name}</strong><small>{customer.phone || customer.code}</small></span></button>)}
+                  {customers.isPending ? <div className="pos-customer-message">Đang tìm khách hàng...</div> : !customers.data?.data.length ? <div className="pos-customer-message">Không tìm thấy khách hàng</div> : customers.data.data.map((customer) => <button type="button" onMouseDown={(event) => event.preventDefault()} onClick={() => {
+                    updateActive((invoice) => ({ ...invoice, customerSearch: customer.name, customer: { id: customer.id, name: customer.name, phone: customer.phone } }));
+                    setCustomerOpen(false);
+                    // Fetch service packages for this customer
+                    getPosCustomerServicePackages(customer.id)
+                      .then((res: any) => {
+                        const packages = res?.data || [];
+                        if (packages.length > 0) {
+                          setServicePackages(packages);
+                          setShowPackageModal(true);
+                        }
+                      })
+                      .catch(console.error);
+                  }} key={customer.id}><span className="pos-customer-avatar">{String(customer.name).trim().charAt(0).toUpperCase()}</span><span><strong>{customer.name}</strong><small>{customer.phone || customer.code}</small></span></button>)}
                 </div>
               )}
             </div>
@@ -381,7 +440,13 @@ export function PosView() {
                 <div className="pos-line-heading"><span>{itemCount} mặt hàng</span><button type="button" onClick={() => updateActive((invoice) => ({ ...invoice, lines: [] }))}>Xóa tất cả</button></div>
                 {activeInvoice.lines.map((line) => <article className="pos-line" key={`${line.itemType}-${line.itemId}`}>
                   <span className={`pos-line-icon is-${line.itemType}`}><i className={`ph ${itemIcons[line.itemType]}`} /></span>
-                  <div className="pos-line-copy"><strong>{line.name}</strong><small>{line.code} · {formatMoney(line.salePrice)}</small></div>
+                  <div className="pos-line-copy">
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      {line.usePackageId && <span className="kv-package-badge">Đã trừ gói</span>}
+                      <strong>{line.name}</strong>
+                    </div>
+                    <small>{line.code} · {formatMoney(line.salePrice)}</small>
+                  </div>
                   <div className="pos-quantity" aria-label={`Số lượng ${line.name}`}>
                     <button type="button" onClick={() => changeQuantity(line, -1)} aria-label="Giảm số lượng"><i className="ph ph-minus" /></button>
                     <span>{line.quantity}</span>
@@ -446,6 +511,15 @@ export function PosView() {
           }}
         />
       )}
+      <UsePackageModal
+        isOpen={showPackageModal}
+        packages={servicePackages}
+        onClose={() => {
+          setShowPackageModal(false);
+          setServicePackages([]);
+        }}
+        onSelect={handlePackageServiceSelect}
+      />
     </main>
   );
 }
@@ -486,7 +560,13 @@ interface AppointmentItem {
   note?: string;
   customer: { id: number | null; name: string; phone?: string };
   staff: { id: number | null; name?: string | null };
-  service: { id: number | null; name?: string | null; salePrice?: number };
+  service: {
+    id: number | null;
+    name?: string | null;
+    salePrice?: number;
+    commissionType?: 'percent' | 'fixed' | null;
+    commissionRate?: number;
+  };
 }
 
 function PosCalendar() {
@@ -667,6 +747,8 @@ function AppointmentDrawer({
       name: initialAppointment.service.name || 'Dịch vụ',
       salePrice: initialAppointment.service.salePrice || 0,
       staffId: initialAppointment.staff.id ?? null,
+      commissionType: initialAppointment.service.commissionType ?? null,
+      commissionRate: initialAppointment.service.commissionRate ?? 0,
     }] : [],
   );
 
@@ -711,8 +793,8 @@ function AppointmentDrawer({
   });
 
   const services = useQuery({
-    queryKey: ['pos-appointment-services', deferredServiceSearch],
-    queryFn: () => getPosCatalog(deferredServiceSearch, 'service'),
+    queryKey: ['pos-appointment-services', deferredServiceSearch, customer?.id ?? null],
+    queryFn: () => getPosCatalog(deferredServiceSearch, 'service', customer?.id),
     enabled: isServiceModalOpen || selectedServices.length === 0,
   });
   const staffQuery = useQuery({ queryKey: ['pos-staff'], queryFn: getPosStaff });

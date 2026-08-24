@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { asyncRoute, HttpError, parseDateTime, parseEnum, parseIsoDate, parsePositiveInteger } from '../../lib/http.js';
-import { listProducts } from '../inventory/inventory.service.js';
+import { listPosProducts, quotePosPrices } from '../inventory/inventory.service.js';
 import { createCustomer, listCustomers } from '../customers/customers.service.js';
 import { listStaff } from '../staff/staff.service.js';
 import { createAppointments, listAppointments, updateAppointment } from '../dashboard/dashboard.service.js';
@@ -15,12 +15,27 @@ const paymentMethods = ['cash', 'bank_transfer', 'card', 'wallet', 'mixed'];
 const text = (value, maximum = 120) => String(value ?? '').trim().slice(0, maximum);
 
 router.get('/catalog', asyncRoute(async (request, response) => {
-  const result = await listProducts({
+  const result = await listPosProducts({
     branchId: request.account.branchId, search: text(request.query.search),
-    type: parseEnum(request.query.type, 'type', itemTypes), category: '', stockStatus: '', status: 'active',
-    page: 1, pageSize: 100, offset: 0,
+    customerId: request.query.customerId ? parsePositiveInteger(request.query.customerId, 'customerId') : null,
+    type: parseEnum(request.query.type, 'type', itemTypes), pageSize: 100,
   });
-  response.json({ data: result.rows, meta: { pagination: result.pagination } });
+  response.json({ data: result.rows, meta: { pricebook: result.pricebook } });
+}));
+
+router.post('/price-quote', asyncRoute(async (request, response) => {
+  const items = Array.isArray(request.body.items)
+    ? request.body.items.slice(0, 100).map((item) => ({
+      itemType: parseEnum(item.itemType, 'itemType', itemTypes),
+      itemId: parsePositiveInteger(item.itemId, 'itemId'),
+    }))
+    : [];
+  const result = await quotePosPrices({
+    branchId: request.account.branchId,
+    customerId: request.body.customerId ? parsePositiveInteger(request.body.customerId, 'customerId') : null,
+    items,
+  });
+  response.json({ data: result.rows, meta: { pricebook: result.pricebook } });
 }));
 
 router.get('/customers', asyncRoute(async (request, response) => {
@@ -92,6 +107,109 @@ router.get('/customers/:id/available-packages', asyncRoute(async (request, respo
       },
     })),
   });
+}));
+
+// API lấy gói dịch vụ khả dụng của khách hàng (nested structure cho frontend)
+router.get('/customers/:id/service-packages', asyncRoute(async (request, response) => {
+  const customerId = parsePositiveInteger(request.params.id, 'id');
+  const branchId = request.account.branchId;
+
+  // Verify customer belongs to this branch (IDOR protection)
+  const custCheck = await pool.query(
+    'SELECT id FROM customers WHERE id = $1 AND branch_id = $2',
+    [customerId, branchId],
+  );
+  if (!custCheck.rows[0]) {
+    throw new HttpError(404, 'CUSTOMER_NOT_FOUND', 'Không tìm thấy khách hàng');
+  }
+
+  // Lấy packages với services bên trong - nested structure
+  const result = await pool.query(
+    `WITH package_services AS (
+      SELECT
+        cp.id AS customer_package_id,
+        sp.id AS package_id,
+        sp.code AS package_code,
+        sp.name AS package_name,
+        cp.total_units,
+        cp.used_units,
+        cp.expires_at,
+        cp.status,
+        s.id AS service_id,
+        s.name AS service_name,
+        s.code AS service_code,
+        spi.units AS service_units
+      FROM customer_packages cp
+      JOIN service_packages sp ON sp.id = cp.package_id
+      JOIN service_package_items spi ON spi.package_id = cp.package_id
+      JOIN services s ON s.id = spi.service_id
+      WHERE cp.branch_id = $1
+        AND cp.customer_id = $2
+        AND cp.status = 'active'
+        AND cp.used_units < cp.total_units
+        AND (cp.expires_at IS NULL OR cp.expires_at > NOW())
+    ),
+    service_usage_counts AS (
+      SELECT
+        customer_package_id,
+        service_id,
+        COUNT(*) AS times_used
+      FROM package_usages
+      WHERE service_id IS NOT NULL
+      GROUP BY customer_package_id, service_id
+    )
+    SELECT
+      ps.customer_package_id,
+      ps.package_code,
+      ps.package_id,
+      ps.package_name,
+      ps.total_units,
+      ps.used_units,
+      ps.expires_at,
+      ps.status,
+      ps.service_id,
+      ps.service_name,
+      ps.service_code,
+      ps.service_units,
+      COALESCE(suc.times_used, 0) AS service_used_count,
+      (ps.service_units - COALESCE(suc.times_used, 0)) AS available_units
+    FROM package_services ps
+    LEFT JOIN service_usage_counts suc ON suc.customer_package_id = ps.customer_package_id
+      AND suc.service_id = ps.service_id
+    WHERE (ps.service_units - COALESCE(suc.times_used, 0)) > 0
+    ORDER BY ps.customer_package_id DESC, ps.service_name`,
+    [branchId, customerId],
+  );
+
+  // Group by customer_package_id
+  const packageMap = new Map();
+  for (const row of result.rows) {
+    const pkgId = row.customer_package_id;
+    if (!packageMap.has(pkgId)) {
+      packageMap.set(pkgId, {
+        customerPackageId: Number(pkgId),
+        packageCode: row.package_code,
+        packageId: Number(row.package_id),
+        packageName: row.package_name,
+        totalUnits: Number(row.total_units),
+        usedUnits: Number(row.used_units),
+        remainingUnits: Number(row.total_units) - Number(row.used_units),
+        expiresAt: row.expires_at,
+        status: row.status,
+        services: [],
+      });
+    }
+    packageMap.get(pkgId).services.push({
+      serviceId: Number(row.service_id),
+      serviceName: row.service_name,
+      serviceCode: row.service_code,
+      totalUnits: Number(row.service_units),
+      usedCount: Number(row.service_used_count),
+      availableUnits: Number(row.available_units),
+    });
+  }
+
+  response.json({ data: Array.from(packageMap.values()) });
 }));
 
 router.post('/customers', asyncRoute(async (request, response) => {
@@ -222,6 +340,8 @@ router.post('/checkout', asyncRoute(async (request, response) => {
     itemId: parsePositiveInteger(line.itemId, 'itemId'),
     quantity: Math.max(1, Math.floor(Number(line.quantity || 1))),
     staffId: line.staffId ? parsePositiveInteger(line.staffId, 'staffId') : null,
+    usePackageId: line.usePackageId ? parsePositiveInteger(line.usePackageId, 'usePackageId') : null,
+    usePackageServiceId: line.usePackageServiceId ? parsePositiveInteger(line.usePackageServiceId, 'usePackageServiceId') : null,
   }));
 
   const data = await checkoutPosInvoice({
