@@ -13,6 +13,7 @@ export interface AuthAccount {
   displayName: string;
   role: AccountRole;
   branchName: string;
+  branchTimezone?: string;
   staffCode: string | null;
   phone: string;
   email: string;

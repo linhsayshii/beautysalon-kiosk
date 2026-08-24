@@ -30,7 +30,7 @@ describe('MobileCustomerEditSheet', () => {
     expect(screen.getByLabelText(/Tên khách hàng/)).toHaveValue('Nguyễn Thị Hoa');
     expect(screen.getByLabelText(/Mã khách hàng/)).toHaveValue('KH000042');
     expect(screen.getByLabelText(/Số điện thoại/)).toHaveValue('0901234567');
-    expect(screen.getByLabelText(/Ngày sinh/)).toHaveValue('1995-08-15');
+    expect(screen.getByLabelText(/Ngày sinh/)).toHaveTextContent('15/08/1995');
     expect(screen.getByLabelText(/Email/)).toHaveValue('hoa.nguyen@example.com');
     expect(screen.getByRole('button', { name: 'Lưu' })).toBeInTheDocument();
   });

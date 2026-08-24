@@ -34,6 +34,7 @@ function mapAccount(row) {
     role: row.role,
     active: row.active,
     branchName: row.branch_name,
+    branchTimezone: row.branch_timezone,
     staffCode: row.staff_code ?? null,
     phone: row.phone ?? '',
     email: row.email ?? '',
@@ -42,7 +43,7 @@ function mapAccount(row) {
 
 export async function login(username, password) {
   const result = await pool.query(
-    `SELECT ua.*, b.name AS branch_name, b.active AS branch_active, s.code AS staff_code
+    `SELECT ua.*, b.name AS branch_name, b.timezone AS branch_timezone, b.active AS branch_active, s.code AS staff_code
      FROM user_accounts ua
      JOIN branches b ON b.id = ua.branch_id
      LEFT JOIN staff s ON s.id = ua.staff_id
@@ -84,7 +85,7 @@ export async function login(username, password) {
 export async function accountFromToken(token) {
   if (!token) return null;
   const result = await pool.query(
-    `SELECT ua.*, b.name AS branch_name, b.active AS branch_active, s.code AS staff_code
+    `SELECT ua.*, b.name AS branch_name, b.timezone AS branch_timezone, b.active AS branch_active, s.code AS staff_code
      FROM auth_sessions ses
      JOIN user_accounts ua ON ua.id = ses.account_id
      JOIN branches b ON b.id = ua.branch_id

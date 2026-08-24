@@ -1,4 +1,5 @@
 import { pool } from '../../db.js';
+import { broadcastToBranch } from '../../lib/ws.js';
 import { resolveApplicablePricebook, resolvePricebookItemPrice } from '../inventory/inventory.service.js';
 
 function number(value) {
@@ -132,6 +133,37 @@ async function recalculateDraftInvoice(client, invoiceId) {
   );
 }
 
+async function validateScheduledPackageSelection(client, {
+  branchId,
+  customerId,
+  customerPackageId,
+  serviceId,
+  packageUnits,
+  serviceUnits,
+}) {
+  const result = await client.query(
+    `SELECT cp.id
+     FROM customer_packages cp
+     JOIN service_package_items spi ON spi.package_id = cp.package_id AND spi.service_id = $4
+     WHERE cp.id = $1
+       AND cp.branch_id = $2
+       AND cp.customer_id = $3
+       AND cp.status = 'active'
+       AND (cp.expires_at IS NULL OR cp.expires_at > NOW())
+       AND cp.used_units + $5 <= cp.total_units
+       AND (
+         SELECT COALESCE(SUM(pu.units_used), 0)
+         FROM package_usages pu
+         WHERE pu.customer_package_id = cp.id AND pu.service_id = $4
+       ) + $6 <= spi.units
+     FOR UPDATE OF cp`,
+    [customerPackageId, branchId, customerId, serviceId, packageUnits, serviceUnits],
+  );
+  if (!result.rows[0]) {
+    throw appError(400, 'PACKAGE_NOT_AVAILABLE', 'Gói dịch vụ không khả dụng, không chứa dịch vụ này hoặc không còn đủ lượt');
+  }
+}
+
 async function refreshInvoicePaymentReadiness(client, { invoiceId, triggeredByStaffId = null }) {
   if (!invoiceId) return { paymentRequestedAt: null };
 
@@ -213,13 +245,26 @@ async function syncDraftInvoiceItemForAppointment(client, {
   }
 
   if (!service) return;
+  const existingItemResult = await client.query(
+    `SELECT service_id, customer_package_id
+     FROM invoice_items
+     WHERE invoice_id = $1 AND appointment_id = $2 AND item_type = 'service'
+     FOR UPDATE`,
+    [invoiceId, appointmentId],
+  );
+  const existingItem = existingItemResult.rows[0];
+  const customerPackageId = Number(existingItem?.service_id) === Number(service.id)
+    ? existingItem?.customer_package_id || null
+    : null;
+  const unitPrice = customerPackageId ? 0 : service.price;
   const itemResult = await client.query(
     `UPDATE invoice_items
      SET service_id = $1, staff_id = $2, description = $3,
-         unit_price = $4, line_total = $4::numeric * quantity
-     WHERE invoice_id = $5 AND appointment_id = $6 AND item_type = 'service'
+         unit_price = $4, line_total = $4::numeric * quantity,
+         customer_package_id = $5
+     WHERE invoice_id = $6 AND appointment_id = $7 AND item_type = 'service'
      RETURNING id`,
-    [service.id, staffId, service.name, service.price, invoiceId, appointmentId],
+    [service.id, staffId, service.name, unitPrice, customerPackageId, invoiceId, appointmentId],
   );
   if (itemResult.rows[0]) await recalculateDraftInvoice(client, invoiceId);
 }
@@ -242,9 +287,18 @@ export async function createAppointments({ branchId, customerId, items, status, 
     const appliedPricebook = await resolveApplicablePricebook(client, { branchId, customerId });
 
     const normalizedItems = [];
+    const plannedPackageUnits = new Map();
+    const plannedPackageServiceUnits = new Map();
     for (const item of items) {
-      const { serviceId, staffId, startsAt, endsAt } = item;
+      const { serviceId, staffId, startsAt, endsAt, usePackageId, usePackageServiceId } = item;
       const quantity = Math.max(1, Math.floor(Number(item.quantity || 1)));
+      const hasPackageSelection = Boolean(usePackageId || usePackageServiceId);
+      if (hasPackageSelection && (!usePackageId || !usePackageServiceId)) {
+        throw appError(400, 'INVALID_PACKAGE_SELECTION', 'Cần chọn đầy đủ gói dịch vụ và dịch vụ thuộc gói');
+      }
+      if (usePackageServiceId && Number(usePackageServiceId) !== Number(serviceId)) {
+        throw appError(400, 'INVALID_PACKAGE_SELECTION', 'Dịch vụ dùng gói phải trùng với dịch vụ đặt lịch');
+      }
       const [serviceResult, staffResult] = await Promise.all([
         client.query('SELECT id, name, price FROM services WHERE id = $1 AND branch_id = $2 AND active', [serviceId, branchId]),
         staffId ? client.query('SELECT id, name FROM staff WHERE id = $1 AND branch_id = $2 AND active', [staffId, branchId]) : Promise.resolve({ rows: [] }),
@@ -278,6 +332,23 @@ export async function createAppointments({ branchId, customerId, items, status, 
         basePrice: serviceResult.rows[0].price,
       });
 
+      if (usePackageId) {
+        const packageKey = String(usePackageId);
+        const packageServiceKey = `${usePackageId}:${serviceId}`;
+        const packageUnits = (plannedPackageUnits.get(packageKey) || 0) + quantity;
+        const serviceUnits = (plannedPackageServiceUnits.get(packageServiceKey) || 0) + quantity;
+        await validateScheduledPackageSelection(client, {
+          branchId,
+          customerId,
+          customerPackageId: usePackageId,
+          serviceId,
+          packageUnits,
+          serviceUnits,
+        });
+        plannedPackageUnits.set(packageKey, packageUnits);
+        plannedPackageServiceUnits.set(packageServiceKey, serviceUnits);
+      }
+
       normalizedItems.push({
         serviceId,
         staffId: staffId || null,
@@ -286,10 +357,12 @@ export async function createAppointments({ branchId, customerId, items, status, 
         quantity,
         service: serviceResult.rows[0],
         staff: staffResult.rows[0] || null,
+        customerPackageId: usePackageId || null,
+        unitPrice: usePackageId ? 0 : number(serviceResult.rows[0].price),
       });
     }
 
-    const subtotal = normalizedItems.reduce((sum, item) => sum + number(item.service.price) * item.quantity, 0);
+    const subtotal = normalizedItems.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0);
     let invoice;
     if (invoiceId) {
       const existingInvoice = await client.query(
@@ -325,11 +398,11 @@ export async function createAppointments({ branchId, customerId, items, status, 
       const appointment = appointmentResult.rows[0];
       const invoiceItemResult = await client.query(
         `INSERT INTO invoice_items (
-           invoice_id, item_type, service_id, staff_id, appointment_id,
+           invoice_id, item_type, service_id, staff_id, appointment_id, customer_package_id,
            description, quantity, unit_price, line_total
-         ) VALUES ($1, 'service', $2, $3, $4, $5, $6, $7, $6::numeric * $7::numeric)
+         ) VALUES ($1, 'service', $2, $3, $4, $5, $6, $7, $8, $7::numeric * $8::numeric)
          RETURNING id`,
-        [invoice.id, item.serviceId, item.staffId, appointment.id, item.service.name, item.quantity, item.service.price],
+        [invoice.id, item.serviceId, item.staffId, appointment.id, item.customerPackageId, item.service.name, item.quantity, item.unitPrice],
       );
       appointments.push({
         id: number(appointment.id),
@@ -363,6 +436,12 @@ export async function createAppointments({ branchId, customerId, items, status, 
     }
 
     await client.query('COMMIT');
+
+    // Broadcast appointment creation to all clients in the branch
+    for (const appointment of appointments) {
+      broadcastToBranch(branchId, 'appointment:created', { appointment });
+    }
+
     return {
       invoice: {
         id: number(invoice.id), code: invoice.code, status: invoice.status,

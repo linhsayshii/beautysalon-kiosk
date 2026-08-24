@@ -5,6 +5,15 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { MobileAppointmentsListView } from './MobileAppointmentsListView';
 import * as posApi from '@/features/pos/pos.api';
 import { ToastProvider } from '@/components/ui/Toast/ToastProvider';
+import * as AuthProvider from '@/features/auth/AuthProvider';
+import { WebSocketProvider } from '@/context/WebSocketContext';
+
+vi.mock('@/services/websocket', () => ({
+  createPosSocketConnection: vi.fn(() => ({
+    isConnected: () => true,
+    disconnect: vi.fn(),
+  })),
+}));
 
 describe('MobileAppointmentsListView Component', () => {
   let queryClient: QueryClient;
@@ -44,6 +53,17 @@ describe('MobileAppointmentsListView Component', () => {
     queryClient = new QueryClient({
       defaultOptions: { queries: { retry: false } },
     });
+    vi.spyOn(AuthProvider, 'useAuth').mockReturnValue({
+      account: {
+        id: 1, branchId: 1, staffId: null, username: 'owner', displayName: 'Chủ cửa hàng', role: 'owner',
+        branchName: 'Chi nhánh trung tâm', branchTimezone: 'Asia/Ho_Chi_Minh', staffCode: null, phone: '', email: '',
+      },
+      loading: false,
+      login: vi.fn(),
+      logout: vi.fn(),
+      switchBranch: vi.fn(),
+      updateLocalAccount: vi.fn(),
+    });
 
     vi.spyOn(posApi, 'getPosAppointments').mockResolvedValue({
       data: mockAppointments as any,
@@ -54,11 +74,13 @@ describe('MobileAppointmentsListView Component', () => {
   const renderComponent = () =>
     render(
       <QueryClientProvider client={queryClient}>
-        <ToastProvider>
-          <MemoryRouter>
-            <MobileAppointmentsListView />
-          </MemoryRouter>
-        </ToastProvider>
+        <WebSocketProvider>
+          <ToastProvider>
+            <MemoryRouter>
+              <MobileAppointmentsListView />
+            </MemoryRouter>
+          </ToastProvider>
+        </WebSocketProvider>
       </QueryClientProvider>
     );
 

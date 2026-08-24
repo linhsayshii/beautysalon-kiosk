@@ -16,6 +16,8 @@ interface PosLine {
   salePrice: number;
   quantity: number;
   staffId: number | null;
+  usePackageId?: number | null;
+  usePackageServiceId?: number | null;
 }
 
 interface PosCustomer {
@@ -122,6 +124,8 @@ export function PosCheckoutModal({
           itemId: line.itemId,
           quantity: line.quantity,
           staffId: line.staffId ?? undefined,
+          usePackageId: line.usePackageId ?? undefined,
+          usePackageServiceId: line.usePackageServiceId ?? undefined,
         })),
       };
       return checkoutPosInvoice(payload);

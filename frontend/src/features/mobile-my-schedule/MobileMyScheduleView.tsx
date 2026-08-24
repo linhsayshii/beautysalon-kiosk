@@ -1,8 +1,10 @@
-import { useState, useMemo } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/features/auth/AuthProvider';
 import { getMyWorkItems, updateMyWorkItemStatus } from '@/features/staff/staff.api';
 import { useToast } from '@/components/ui/Toast/ToastProvider';
+import { DatePickerField } from '@/components/ui/DateTimePicker';
+import { DEFAULT_BRANCH_TIME_ZONE, formatBranchTime, localDateTimeFromInstant } from '@/lib/date';
 import './mobile-my-schedule.css';
 
 interface ScheduleItem {
@@ -18,24 +20,6 @@ interface ScheduleItem {
   paymentRequestedAt?: string | null;
   // invoice fields
   items?: Array<{ name: string; quantity: number }>;
-}
-
-function toIsoDate(date: Date): string {
-  const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, '0');
-  const d = String(date.getDate()).padStart(2, '0');
-  return `${y}-${m}-${d}`;
-}
-
-function formatTime(isoString: string): string {
-  try {
-    const d = new Date(isoString);
-    const hours = String(d.getHours()).padStart(2, '0');
-    const minutes = String(d.getMinutes()).padStart(2, '0');
-    return `${hours}:${minutes}`;
-  } catch {
-    return '--:--';
-  }
 }
 
 const STATUS_LABELS: Record<string, string> = {
@@ -56,9 +40,14 @@ export default Component;
 
 export function MobileMyScheduleView() {
   const { account } = useAuth();
+  const timeZone = account?.branchTimezone ?? DEFAULT_BRANCH_TIME_ZONE;
   const queryClient = useQueryClient();
   const { notify } = useToast();
-  const [selectedDate, setSelectedDate] = useState(() => toIsoDate(new Date()));
+  const [selectedDate, setSelectedDate] = useState(() => localDateTimeFromInstant(new Date(), timeZone).slice(0, 10));
+  const today = useMemo(() => localDateTimeFromInstant(new Date(), timeZone).slice(0, 10), [timeZone]);
+  useEffect(() => {
+    setSelectedDate(today);
+  }, [today]);
   const dateFrom = selectedDate;
   const dateTo = selectedDate;
 
@@ -156,17 +145,13 @@ export function MobileMyScheduleView() {
         </div>
         <div className="mobile-my-schedule-filter-strip">
           <div className="mobile-my-schedule-date-wrap">
-            <input
-              type="date"
-              className="mobile-my-schedule-date-input"
+            <DatePickerField
+              className="mobile-my-schedule-date-chip"
               value={selectedDate}
-              onChange={(e) => setSelectedDate(e.target.value)}
+              onChange={setSelectedDate}
+              timeZone={timeZone}
               aria-label="Chọn ngày"
             />
-            <button type="button" className="mobile-my-schedule-date-chip">
-              <span>{selectedDate.split('-').reverse().slice(0, 2).join('/')}</span>
-              <i className="ph ph-caret-down" />
-            </button>
           </div>
         </div>
       </div>
@@ -194,7 +179,7 @@ export function MobileMyScheduleView() {
             </div>
             <div className="mobile-my-schedule-list">
               {items.map((item) => {
-                const time = formatTime(item.time);
+                const time = formatBranchTime(item.time, timeZone);
                 const statusLabel = STATUS_LABELS[item.status] || item.status;
 
                 if (item.type === 'appointment') {

@@ -5,8 +5,10 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { ErrorState } from '@/components/data-display/DataState';
 import { useToast } from '@/components/ui/Toast/ToastProvider';
 import { Select } from '@/components/ui/Select/Select';
+import { DateTimePickerField } from '@/components/ui/DateTimePicker';
 import { useAuth } from '@/features/auth/AuthProvider';
 import { useWebSocket } from '@/hooks/useWebSocket';
+import { DEFAULT_BRANCH_TIME_ZONE, addCalendarDays, formatDateOnly, localDateTimeFromInstant, parseIsoDate, parseLocalDateTime, startOfIsoWeek, zonedLocalDateTimeToIso } from '@/lib/date';
 import { formatMoney } from '@/lib/format';
 import { createPosAppointment, updatePosAppointment, createPosCustomer, getPosAppointments, getPosCatalog, getPosInvoice, getPosPaymentRequests, getPosPriceQuote, getPosStaff, searchPosCustomers, getPosCustomerAvailablePackages, getPosCustomerServicePackages, type PosReceiptData, type ServicePackageOption } from '../pos.api';
 import { layoutOverlappingAppointments } from '../calendar-layout';
@@ -57,7 +59,7 @@ interface InvoiceDraft {
 }
 
 interface CalendarSelection {
-  startsAt: Date;
+  startsAt: string;
   durationMinutes: number;
 }
 
@@ -156,6 +158,8 @@ export function PosView() {
         code: item.code || '', name: item.name, category: '', unit: item.unit || 'lần', salePrice: item.unitPrice,
         stockQuantity: null, quantity: item.quantity, staffId: item.staffId || null,
         commissionType: item.commissionType || null, commissionRate: item.commissionRate || 0,
+        usePackageId: item.customerPackageId || null,
+        usePackageServiceId: item.customerPackageId ? item.serviceId : null,
       })),
     }));
     setMode('invoice');
@@ -205,7 +209,10 @@ export function PosView() {
         const prices = new Map(response.data.map((item) => [`${item.itemType}:${item.itemId}`, item.salePrice]));
         updateActive((invoice) => ({
           ...invoice,
-          lines: invoice.lines.map((line) => ({ ...line, salePrice: prices.get(`${line.itemType}:${line.itemId}`) ?? line.salePrice })),
+          lines: invoice.lines.map((line) => ({
+            ...line,
+            salePrice: line.usePackageId ? 0 : prices.get(`${line.itemType}:${line.itemId}`) ?? line.salePrice,
+          })),
         }));
       })
       .catch((error: Error) => notify('Không thể cập nhật bảng giá', error.message));
@@ -221,6 +228,13 @@ export function PosView() {
     setInvoices((current) => [...current, invoice]);
     setActiveId(invoice.id);
     setMode('invoice');
+  };
+
+  const openPaymentRequest = (invoiceId: number) => {
+    // The POS route remains mounted when only its query string changes. Switch
+    // immediately so the calendar cannot remain visible while the invoice loads.
+    setMode('invoice');
+    navigate(`/pos?invoice=${invoiceId}`);
   };
 
   const closeInvoice = (id: number) => {
@@ -366,7 +380,7 @@ export function PosView() {
             {paymentRequests.data.data.map((request) => (
               <article key={request.id}>
                 <div><strong>{request.customer.name}</strong><span>{request.serviceProgress.completed}/{request.serviceProgress.total} dịch vụ đã xong</span></div>
-                <button type="button" onClick={() => navigate(`/pos?invoice=${request.id}`)}>Thanh toán</button>
+                <button type="button" onClick={() => openPaymentRequest(request.id)}>Thanh toán</button>
               </article>
             ))}
           </div>
@@ -528,27 +542,14 @@ function CatalogSkeleton() {
   return <div className="pos-catalog-skeleton" aria-label="Đang tải danh mục">{Array.from({ length: 7 }, (_, index) => <span key={index} />)}</div>;
 }
 
-function toIsoDate(date: Date) {
-  return new Intl.DateTimeFormat('en-CA', { year: 'numeric', month: '2-digit', day: '2-digit' }).format(date);
+function timeFromLocalDateTime(value: string) {
+  const parts = parseLocalDateTime(value);
+  return parts ? `${String(parts.hour).padStart(2, '0')}:${String(parts.minute).padStart(2, '0')}` : '--:--';
 }
 
-function startOfWeek(date: Date) {
-  const result = new Date(date);
-  result.setHours(0, 0, 0, 0);
-  result.setDate(result.getDate() - ((result.getDay() + 6) % 7));
-  return result;
-}
-
-function addDays(date: Date, days: number) {
-  const result = new Date(date);
-  result.setDate(result.getDate() + days);
-  return result;
-}
-
-function isSameDay(first: Date, second: Date) {
-  return first.getFullYear() === second.getFullYear()
-    && first.getMonth() === second.getMonth()
-    && first.getDate() === second.getDate();
+function minutesFromLocalDateTime(value: string) {
+  const parts = parseLocalDateTime(value);
+  return parts ? parts.hour * 60 + parts.minute : 0;
 }
 
 interface AppointmentItem {
@@ -570,56 +571,62 @@ interface AppointmentItem {
 }
 
 function PosCalendar() {
-  const [weekStart, setWeekStart] = useState(() => startOfWeek(new Date()));
+  const { account } = useAuth();
+  const timeZone = account?.branchTimezone ?? DEFAULT_BRANCH_TIME_ZONE;
+  const branchToday = localDateTimeFromInstant(new Date(), timeZone).slice(0, 10);
+  const [weekStart, setWeekStart] = useState(() => startOfIsoWeek(branchToday));
   const [selection, setSelection] = useState<CalendarSelection | null>(null);
   const [editingAppointment, setEditingAppointment] = useState<AppointmentItem | null>(null);
-  const days = useMemo(() => Array.from({ length: 7 }, (_, index) => addDays(weekStart, index)), [weekStart]);
-  const dateFrom = toIsoDate(days[0]);
-  const dateTo = toIsoDate(days[6]);
+  const days = useMemo(() => Array.from({ length: 7 }, (_, index) => addCalendarDays(weekStart, index)), [weekStart]);
+  const dateFrom = days[0];
+  const dateTo = days[6];
   const query = useQuery({ queryKey: ['pos-appointments', dateFrom, dateTo], queryFn: () => getPosAppointments(dateFrom, dateTo) });
   const appointments = (query.data?.data ?? []) as AppointmentItem[];
   const hours = Array.from({ length: CALENDAR_END_HOUR - CALENDAR_START_HOUR }, (_, index) => index + CALENDAR_START_HOUR);
-  const rangeLabel = `${days[0].toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' })} - ${days[6].toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' })}`;
-  const today = toIsoDate(new Date());
+  const rangeLabel = `${formatDateOnly(days[0], { day: '2-digit', month: '2-digit' })} - ${formatDateOnly(days[6], { day: '2-digit', month: '2-digit' })}`;
+  const today = branchToday;
+
+  useEffect(() => {
+    setWeekStart(startOfIsoWeek(branchToday));
+  }, [branchToday, timeZone]);
 
   return <section className="pos-calendar" aria-label="Lịch hẹn theo tuần">
     <header className="pos-calendar-toolbar">
       <div><h1>Lịch hẹn</h1><span>{appointments.length} lịch trong tuần</span></div>
       <div className="pos-calendar-nav">
-        <button type="button" onClick={() => setWeekStart(startOfWeek(new Date()))}>Hôm nay</button>
-        <span className="pos-calendar-arrows"><button type="button" onClick={() => setWeekStart(addDays(weekStart, -7))} aria-label="Tuần trước"><i className="ph ph-caret-left" /></button><strong>{rangeLabel}</strong><button type="button" onClick={() => setWeekStart(addDays(weekStart, 7))} aria-label="Tuần sau"><i className="ph ph-caret-right" /></button></span>
+        <button type="button" onClick={() => setWeekStart(startOfIsoWeek(branchToday))}>Hôm nay</button>
+        <span className="pos-calendar-arrows"><button type="button" onClick={() => setWeekStart(addCalendarDays(weekStart, -7))} aria-label="Tuần trước"><i className="ph ph-caret-left" /></button><strong>{rangeLabel}</strong><button type="button" onClick={() => setWeekStart(addCalendarDays(weekStart, 7))} aria-label="Tuần sau"><i className="ph ph-caret-right" /></button></span>
       </div>
     </header>
     <div className="pos-calendar-scroll">
       <div className="pos-calendar-board">
-        <div className="pos-calendar-days"><span />{days.map((day, index) => <div className={toIsoDate(day) === today ? 'is-today' : ''} key={toIsoDate(day)}><span>{['Thứ Hai', 'Thứ Ba', 'Thứ Tư', 'Thứ Năm', 'Thứ Sáu', 'Thứ Bảy', 'Chủ Nhật'][index]}</span><strong>{day.getDate()}</strong></div>)}</div>
+        <div className="pos-calendar-days"><span />{days.map((day, index) => <div className={day === today ? 'is-today' : ''} key={day}><span>{['Thứ Hai', 'Thứ Ba', 'Thứ Tư', 'Thứ Năm', 'Thứ Sáu', 'Thứ Bảy', 'Chủ Nhật'][index]}</span><strong>{parseIsoDate(day)?.day}</strong></div>)}</div>
         <div className="pos-calendar-grid">
           <div className="pos-time-rail">{hours.map((hour) => <time style={{ top: (hour - CALENDAR_START_HOUR) * SLOT_HEIGHT }} key={hour}>{String(hour).padStart(2, '0')}:00</time>)}</div>
           {days.map((day) => {
-            const dayAppointments = appointments.filter((appointment) => toIsoDate(new Date(appointment.startsAt)) === toIsoDate(day));
+            const dayAppointments = appointments.filter((appointment) => localDateTimeFromInstant(appointment.startsAt, timeZone).slice(0, 10) === day);
             const appointmentLayout = layoutOverlappingAppointments(dayAppointments.map((appointment) => {
-              const startsAt = new Date(appointment.startsAt);
-              const endsAt = new Date(appointment.endsAt);
+              const startsAt = localDateTimeFromInstant(appointment.startsAt, timeZone);
+              const endsAt = localDateTimeFromInstant(appointment.endsAt, timeZone);
               return {
                 item: appointment,
-                start: startsAt.getHours() * 60 + startsAt.getMinutes(),
-                end: endsAt.getHours() * 60 + endsAt.getMinutes(),
+                start: minutesFromLocalDateTime(startsAt),
+                end: minutesFromLocalDateTime(endsAt),
               };
             }));
-            return <div className={`pos-calendar-column ${toIsoDate(day) === today ? 'is-today' : ''}`} title="Bấm vào khoảng trống để tạo lịch hẹn" onClick={(event) => {
+            return <div className={`pos-calendar-column ${day === today ? 'is-today' : ''}`} title="Bấm vào khoảng trống để tạo lịch hẹn" onClick={(event) => {
               if ((event.target as HTMLElement).closest('.pos-appointment')) return;
               const bounds = event.currentTarget.getBoundingClientRect();
               const clickedMinutes = (event.clientY - bounds.top) / SLOT_HEIGHT * 60;
               const roundedMinutes = Math.round(clickedMinutes / 15) * 15;
               const maximumMinutes = (CALENDAR_END_HOUR - CALENDAR_START_HOUR) * 60 - 30;
               const minutes = Math.max(0, Math.min(maximumMinutes, roundedMinutes));
-              const startsAt = new Date(day);
-              startsAt.setHours(CALENDAR_START_HOUR + Math.floor(minutes / 60), minutes % 60, 0, 0);
+              const startsAt = `${day}T${String(CALENDAR_START_HOUR + Math.floor(minutes / 60)).padStart(2, '0')}:${String(minutes % 60).padStart(2, '0')}`;
               setEditingAppointment(null);
               setSelection({ startsAt, durationMinutes: 60 });
-            }} key={toIsoDate(day)}>{appointmentLayout.map(({ item: appointment, start, end, column, columnCount }) => {
-              const startsAt = new Date(appointment.startsAt);
-              const endsAt = new Date(appointment.endsAt);
+            }} key={day}>{appointmentLayout.map(({ item: appointment, start, end, column, columnCount }) => {
+              const startsAt = localDateTimeFromInstant(appointment.startsAt, timeZone);
+              const endsAt = localDateTimeFromInstant(appointment.endsAt, timeZone);
               const startMinutes = start - CALENDAR_START_HOUR * 60;
               const duration = Math.max(15, end - start);
               const columnWidth = 100 / columnCount;
@@ -640,7 +647,7 @@ function PosCalendar() {
                 key={appointment.id}
               >
                 <div className="pos-appointment-header">
-                  <time>{startsAt.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', hour12: false })} - {endsAt.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', hour12: false })}</time>
+                  <time>{timeFromLocalDateTime(startsAt)} - {timeFromLocalDateTime(endsAt)}</time>
                   <span className="pos-app-badge" title="Đã có dịch vụ">$</span>
                 </div>
                 <strong className="pos-appointment-name">{appointment.customer.name}</strong>
@@ -653,12 +660,16 @@ function PosCalendar() {
             })}</div>;
           })}
           {selection && (() => {
-            const dayIndex = days.findIndex((day) => isSameDay(selection.startsAt, day));
+            const selectionParts = parseLocalDateTime(selection.startsAt);
+            const selectionDate = selectionParts
+              ? `${selectionParts.year}-${String(selectionParts.month).padStart(2, '0')}-${String(selectionParts.day).padStart(2, '0')}`
+              : '';
+            const dayIndex = days.findIndex((day) => day === selectionDate);
             if (dayIndex < 0) return null;
-            const startMinutes = (selection.startsAt.getHours() - CALENDAR_START_HOUR) * 60 + selection.startsAt.getMinutes();
-            const endsAt = new Date(selection.startsAt.getTime() + selection.durationMinutes * 60_000);
+            const startMinutes = minutesFromLocalDateTime(selection.startsAt) - CALENDAR_START_HOUR * 60;
+            const endsAtMinutes = minutesFromLocalDateTime(selection.startsAt) + selection.durationMinutes;
             return <div className="pos-slot-selection" style={{ gridColumn: dayIndex + 2, top: startMinutes / 60 * SLOT_HEIGHT, height: Math.max(28, selection.durationMinutes / 60 * SLOT_HEIGHT - 3) }} aria-hidden="true">
-              <strong>Lịch mới</strong><span>{selection.startsAt.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', hour12: false })} - {endsAt.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', hour12: false })}</span>
+              <strong>Lịch mới</strong><span>{timeFromLocalDateTime(selection.startsAt)} - {`${String(Math.floor(endsAtMinutes / 60) % 24).padStart(2, '0')}:${String(endsAtMinutes % 60).padStart(2, '0')}`}</span>
             </div>;
           })()}
         </div>
@@ -683,11 +694,6 @@ function PosCalendar() {
       />
     )}
   </section>;
-}
-
-function toDateTimeLocal(date: Date) {
-  const local = new Date(date.getTime() - date.getTimezoneOffset() * 60_000);
-  return local.toISOString().slice(0, 16);
 }
 
 const APPOINTMENT_STATUS_OPTIONS = [
@@ -726,8 +732,12 @@ function AppointmentDrawer({
   onSaved: () => void;
 }) {
   const isEditing = Boolean(initialAppointment);
+  const { account } = useAuth();
+  const timeZone = account?.branchTimezone ?? DEFAULT_BRANCH_TIME_ZONE;
 
-  const initialStart = initialAppointment ? new Date(initialAppointment.startsAt) : selection ? selection.startsAt : new Date();
+  const initialStart = initialAppointment
+    ? localDateTimeFromInstant(initialAppointment.startsAt, timeZone)
+    : selection?.startsAt ?? localDateTimeFromInstant(new Date(), timeZone);
   const initialDuration = initialAppointment
     ? Math.max(15, Math.round((new Date(initialAppointment.endsAt).getTime() - new Date(initialAppointment.startsAt).getTime()) / 60_000))
     : selection?.durationMinutes ?? 60;
@@ -752,14 +762,13 @@ function AppointmentDrawer({
     }] : [],
   );
 
-  const [startsAt, setStartsAt] = useState(toDateTimeLocal(initialStart));
+  const [startsAt, setStartsAt] = useState(initialStart);
   const [duration, setDuration] = useState(initialDuration);
   const [status, setStatus] = useState(initialAppointment?.status ?? 'confirmed');
 
   const [note, setNote] = useState(initialAppointment?.note ?? '');
   const [isNoteOpen, setIsNoteOpen] = useState(Boolean(initialAppointment?.note));
 
-  const [isTimeModalOpen, setIsTimeModalOpen] = useState(false);
   const [isServiceModalOpen, setIsServiceModalOpen] = useState(false);
   const [replaceServiceLineId, setReplaceServiceLineId] = useState<string | null>(null);
   const [serviceSearch, setServiceSearch] = useState('');
@@ -771,14 +780,13 @@ function AppointmentDrawer({
   useEffect(() => {
     const closeOnEscape = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
-        if (isTimeModalOpen) setIsTimeModalOpen(false);
-        else if (isServiceModalOpen) setIsServiceModalOpen(false);
+        if (isServiceModalOpen) setIsServiceModalOpen(false);
         else onClose();
       }
     };
     document.addEventListener('keydown', closeOnEscape);
     return () => document.removeEventListener('keydown', closeOnEscape);
-  }, [onClose, isTimeModalOpen, isServiceModalOpen]);
+  }, [onClose, isServiceModalOpen]);
 
   const customers = useQuery({
     queryKey: ['pos-appointment-customers', deferredCustomerSearch],
@@ -825,6 +833,9 @@ function AppointmentDrawer({
 
   const saveMutation = useMutation({
     mutationFn: async ({ services: nextServices, removedAppointmentIds }: { services: AppointmentServiceLine[]; removedAppointmentIds: number[] }) => {
+      const startsAtIso = zonedLocalDateTimeToIso(startsAt, timeZone);
+      if (!startsAtIso) throw new Error('Thời điểm bắt đầu không hợp lệ');
+      const endsAtIso = new Date(new Date(startsAtIso).getTime() + duration * 60_000).toISOString();
       const existing = nextServices.filter((service) => service.appointmentId);
       const additions = nextServices.filter((service) => !service.appointmentId);
       if (isEditing) {
@@ -834,17 +845,17 @@ function AppointmentDrawer({
           staffId: service.staffId,
           status: service.appointmentId === initialAppointment!.id ? status : undefined,
           note: service.appointmentId === initialAppointment!.id ? note : undefined,
-          startsAt: service.appointmentId === initialAppointment!.id ? new Date(startsAt).toISOString() : undefined,
+          startsAt: service.appointmentId === initialAppointment!.id ? startsAtIso : undefined,
           endsAt: service.appointmentId === initialAppointment!.id
-            ? new Date(new Date(startsAt).getTime() + duration * 60_000).toISOString()
+            ? endsAtIso
             : undefined,
         })));
         if (additions.length) {
           await createPosAppointment({
             invoiceId: initialAppointment!.invoiceId,
             customerId: customer!.id,
-            startsAt: new Date(startsAt).toISOString(),
-            endsAt: new Date(new Date(startsAt).getTime() + duration * 60_000).toISOString(),
+            startsAt: startsAtIso,
+            endsAt: endsAtIso,
             status,
             note,
             items: additions.map((service) => ({ serviceId: service.id, staffId: service.staffId, quantity: 1 })),
@@ -855,8 +866,8 @@ function AppointmentDrawer({
       }
       await createPosAppointment({
         customerId: customer!.id,
-        startsAt: new Date(startsAt).toISOString(),
-        endsAt: new Date(new Date(startsAt).getTime() + duration * 60_000).toISOString(),
+        startsAt: startsAtIso,
+        endsAt: endsAtIso,
         status,
         note,
         items: additions.map((service) => ({ serviceId: service.id, staffId: service.staffId, quantity: 1 })),
@@ -869,9 +880,8 @@ function AppointmentDrawer({
   });
 
   const isPending = saveMutation.isPending;
-  const currentStart = new Date(startsAt);
-  const dateTitle = currentStart.toLocaleDateString('vi-VN', { weekday: 'long', day: '2-digit', month: '2-digit' });
-  const timeTitle = currentStart.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', hour12: false });
+  const dateTitle = formatDateOnly(startsAt.slice(0, 10), { weekday: 'long', day: '2-digit', month: '2-digit' });
+  const timeTitle = timeFromLocalDateTime(startsAt);
   const addOrReplaceService = (service: Omit<AppointmentServiceLine, 'lineId' | 'appointmentId' | 'staffId'>) => {
     setSelectedServices((current) => {
       if (!replaceServiceLineId) {
@@ -917,15 +927,29 @@ function AppointmentDrawer({
           <header className="kv-drawer-header">
             <div className="kv-drawer-title-wrap">
               <span className="kv-drawer-sub">Lịch hẹn</span>
-              <button
-                type="button"
+              <DateTimePickerField
+                id="kv-drawer-title"
                 className="kv-drawer-time-btn"
-                onClick={() => setIsTimeModalOpen(true)}
-                title="Bấm để đổi ngày giờ & thời lượng"
-              >
-                <span id="kv-drawer-title">{timeTitle}, {dateTitle}</span>
-                <i className="ph ph-pencil-simple" aria-hidden="true" />
-              </button>
+                value={startsAt}
+                onChange={(value) => {
+                  setStartsAt(value);
+                  onSelectionChange({ startsAt: value, durationMinutes: duration });
+                }}
+                title="Đổi ngày giờ lịch hẹn"
+                timeZone={timeZone}
+                aria-label={`${timeTitle}, ${dateTitle}`}
+              />
+              <Select<number>
+                value={duration}
+                onChange={(nextDuration) => {
+                  setDuration(nextDuration);
+                  onSelectionChange({ startsAt, durationMinutes: nextDuration });
+                }}
+                size="sm"
+                aria-label="Thời lượng thực hiện"
+                triggerClassName="kv-duration-select"
+                options={[{ value: 15, label: '15 phút' }, { value: 30, label: '30 phút' }, { value: 45, label: '45 phút' }, { value: 60, label: '1 giờ' }, { value: 90, label: '1 giờ 30 phút' }, { value: 120, label: '2 giờ' }, { value: 180, label: '3 giờ' }]}
+              />
             </div>
 
             <div className="kv-drawer-actions">
@@ -1197,58 +1221,6 @@ function AppointmentDrawer({
             </button>
           </footer>
         </form>
-
-        {/* Modal chọn thời gian & thời lượng */}
-        {isTimeModalOpen && (
-          <div className="kv-time-picker-modal">
-            <header className="kv-time-picker-header">
-              <h3>Thời gian lịch hẹn</h3>
-              <button type="button" className="kv-drawer-close-btn" onClick={() => setIsTimeModalOpen(false)}>
-                <i className="ph ph-x" />
-              </button>
-            </header>
-            <div className="kv-time-picker-body">
-              <div className="kv-time-form-group">
-                <label>Thời điểm bắt đầu</label>
-                <input
-                  type="datetime-local"
-                  value={startsAt}
-                  onChange={(e) => {
-                    const val = e.target.value;
-                    setStartsAt(val);
-                    const d = new Date(val);
-                    if (!Number.isNaN(d.getTime())) {
-                      onSelectionChange({ startsAt: d, durationMinutes: duration });
-                    }
-                  }}
-                />
-              </div>
-
-              <div className="kv-time-form-group">
-                <label>Thời lượng thực hiện</label>
-                <Select<number>
-                  value={duration}
-                  onChange={(num) => {
-                    setDuration(num);
-                    onSelectionChange({ startsAt: new Date(startsAt), durationMinutes: num });
-                  }}
-                  fullWidth
-                  triggerClassName="kv-time-select-trigger"
-                  options={[{ value: 15, label: '15 phút' }, { value: 30, label: '30 phút' }, { value: 45, label: '45 phút' }, { value: 60, label: '1 giờ (60 phút)' }, { value: 90, label: '1 giờ 30 phút' }, { value: 120, label: '2 giờ' }, { value: 180, label: '3 giờ' }]}
-                />
-              </div>
-
-              <button
-                type="button"
-                className="kv-save-btn"
-                style={{ marginTop: 'auto' }}
-                onClick={() => setIsTimeModalOpen(false)}
-              >
-                Xác nhận
-              </button>
-            </div>
-          </div>
-        )}
 
         {/* Modal chọn Dịch vụ / Sản phẩm */}
         {isServiceModalOpen && (

@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
 import type { ServicePackageOption } from '../pos.api';
+import { MobileDialogPortal } from '@/features/mobile-common/MobileDialogPortal';
+import './UsePackageModal.css';
 
 interface UsePackageModalProps {
   isOpen: boolean;
@@ -32,6 +34,12 @@ export function UsePackageModal({
     if (isOpen) {
       setSelectedService(null);
     }
+  }, [isOpen]);
+
+  useEffect(() => {
+    if (!isOpen) return undefined;
+    document.body.classList.add('mobile-overlay-open');
+    return () => document.body.classList.remove('mobile-overlay-open');
   }, [isOpen]);
 
   const togglePackage = (customerPackageId: number) => {
@@ -69,6 +77,7 @@ export function UsePackageModal({
   if (!isOpen) return null;
 
   return (
+    <MobileDialogPortal>
     <div
       className="use-package-modal__overlay"
       onClick={onClose}
@@ -221,5 +230,6 @@ export function UsePackageModal({
         </footer>
       </div>
     </div>
+    </MobileDialogPortal>
   );
 }

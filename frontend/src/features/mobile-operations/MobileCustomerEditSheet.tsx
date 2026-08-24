@@ -3,6 +3,8 @@ import type { FormEvent, RefObject } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/components/ui/Toast/ToastProvider';
 import { Select } from '@/components/ui/Select/Select';
+import { DatePickerField } from '@/components/ui/DateTimePicker';
+import { todayIso } from '@/lib/date';
 import { updateCustomer } from '@/features/operations/operations.api';
 import type { ApiRecord } from '@/types/api';
 import { useMobileDialog } from '@/features/mobile-common/useMobileDialog';
@@ -196,12 +198,12 @@ export function MobileCustomerEditSheet({
                 Ngày sinh
               </label>
               <div className="mobile-form-card-row">
-                <input
+                <DatePickerField
                   id="customer-edit-dob"
-                  type="date"
                   className="mobile-form-card-input"
                   value={dob}
-                  onChange={(e) => setDob(e.target.value)}
+                  max={todayIso()}
+                  onChange={setDob}
                 />
               </div>
             </div>

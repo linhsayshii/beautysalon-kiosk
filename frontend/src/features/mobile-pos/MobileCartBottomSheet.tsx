@@ -18,6 +18,8 @@ interface PosLine {
   salePrice: number;
   quantity: number;
   staffId?: number | null;
+  usePackageId?: number | null;
+  usePackageServiceId?: number | null;
   commissionType: 'percent' | 'fixed' | null;
   commissionRate: number;
 }
@@ -143,6 +145,8 @@ export function MobileCartBottomSheet({
         itemType: l.itemType,
         quantity: l.quantity,
         staffId: l.staffId || null,
+        usePackageId: l.usePackageId ?? undefined,
+        usePackageServiceId: l.usePackageServiceId ?? undefined,
       })),
     } as any);
   };

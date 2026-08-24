@@ -3,11 +3,13 @@ import type { FormEvent } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { MoneyInput } from '@/components/forms/MoneyInput';
 import { Select } from '@/components/ui/Select/Select';
+import { DatePickerField } from '@/components/ui/DateTimePicker';
 import { useToast } from '@/components/ui/Toast/ToastProvider';
 import { getAccounts } from '@/features/accounts/accounts.api';
 import type { ApiRecord } from '@/types/api';
 import { createStaff, updateStaff } from '../staff.api';
 import { MobileDialogPortal } from '@/features/mobile-common/MobileDialogPortal';
+import { todayIso } from '@/lib/date';
 
 interface StaffCreateDialogProps {
   onClose: () => void;
@@ -39,7 +41,7 @@ const initialForm = {
   avatarTone: 'blue',
   department: '',
   role: 'Kỹ thuật viên',
-  startDate: new Date().toISOString().slice(0, 10),
+  startDate: todayIso(),
   accountId: '',
   note: '',
   // Bank info
@@ -515,12 +517,10 @@ export function StaffCreateDialog({ onClose, staff, initialTab = 'info', onSaved
                         <label style={{ fontSize: '12px', fontWeight: 600, color: 'var(--ink-700)' }}>
                           Ngày bắt đầu làm việc
                         </label>
-                        <input
-                          type="date"
+                        <DatePickerField
                           value={form.startDate}
-                          onChange={(e) => update('startDate', e.target.value)}
+                          onChange={(startDate) => update('startDate', startDate)}
                           className="filter-control"
-                          style={{ width: '100%', height: '38px', borderRadius: '8px' }}
                         />
                       </div>
 
@@ -664,12 +664,11 @@ export function StaffCreateDialog({ onClose, staff, initialTab = 'info', onSaved
 
                       <div className="goods-field">
                         <label style={{ fontSize: '12px', fontWeight: 600, color: 'var(--ink-700)' }}>Ngày sinh</label>
-                        <input
-                          type="date"
+                        <DatePickerField
                           value={form.dob}
-                          onChange={(e) => update('dob', e.target.value)}
+                          max={todayIso()}
+                          onChange={(dob) => update('dob', dob)}
                           className="filter-control"
-                          style={{ width: '100%', height: '38px', borderRadius: '8px' }}
                         />
                       </div>
 

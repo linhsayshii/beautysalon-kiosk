@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { TimePickerField } from '@/components/ui/DateTimePicker';
 import './AttendanceTimekeeping.css';
 
 export interface ShiftFormValues {
@@ -96,19 +97,15 @@ export function AddShiftModal({ isOpen, onClose, onSubmit }: AddShiftModalProps)
                 <i className="ph ph-info" title="Thời gian tính công của ca" />
               </div>
               <div className="form-control-col">
-                <input
-                  type="time"
+                <TimePickerField
                   value={startsAt}
-                  onChange={(e) => setStartsAt(e.target.value)}
-                  required
+                  onChange={setStartsAt}
                   className="form-input-time"
                 />
                 <span style={{ fontSize: 12, color: '#64748b' }}>Đến</span>
-                <input
-                  type="time"
+                <TimePickerField
                   value={endsAt}
-                  onChange={(e) => setEndsAt(e.target.value)}
-                  required
+                  onChange={setEndsAt}
                   className="form-input-time"
                 />
                 {durationText && (
@@ -126,17 +123,15 @@ export function AddShiftModal({ isOpen, onClose, onSubmit }: AddShiftModalProps)
                 <i className="ph ph-info" title="Khoảng thời gian nhân viên có thể điểm danh ca này" />
               </div>
               <div className="form-control-col">
-                <input
-                  type="time"
+                <TimePickerField
                   value={allowCheckInFrom}
-                  onChange={(e) => setAllowCheckInFrom(e.target.value)}
+                  onChange={setAllowCheckInFrom}
                   className="form-input-time"
                 />
                 <span style={{ fontSize: 12, color: '#64748b' }}>Đến</span>
-                <input
-                  type="time"
+                <TimePickerField
                   value={allowCheckInTo}
-                  onChange={(e) => setAllowCheckInTo(e.target.value)}
+                  onChange={setAllowCheckInTo}
                   className="form-input-time"
                 />
               </div>

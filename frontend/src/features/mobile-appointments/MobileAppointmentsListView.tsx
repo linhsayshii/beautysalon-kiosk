@@ -1,11 +1,15 @@
-import { useState, useMemo } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { getPosAppointments, updatePosAppointment } from '@/features/pos/pos.api';
 import { getStaff } from '@/features/staff/staff.api';
+import { useAuth } from '@/features/auth/AuthProvider';
 import { MobileDetailSheet, MobileSearchBar } from '@/features/mobile-common';
 import { useToast } from '@/components/ui/Toast/ToastProvider';
 import { Select } from '@/components/ui/Select/Select';
+import { DatePickerField } from '@/components/ui/DateTimePicker';
+import { DEFAULT_BRANCH_TIME_ZONE, formatBranchTime, formatDayHeader, localDateTimeFromInstant } from '@/lib/date';
+import { useWebSocket } from '@/hooks/useWebSocket';
 import type { ApiRecord } from '@/types/api';
 import './mobile-appointments.css';
 
@@ -34,45 +38,14 @@ const STATUS_LABELS: Record<string, string> = {
 
 const APPOINTMENT_STATUSES = ['pending', 'confirmed', 'waiting', 'in_service', 'completed', 'cancelled', 'no_show'] as const;
 
-function toIsoDate(date: Date): string {
-  const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, '0');
-  const d = String(date.getDate()).padStart(2, '0');
-  return `${y}-${m}-${d}`;
-}
-
-function formatTime(isoString: string): string {
-  try {
-    const d = new Date(isoString);
-    const hours = String(d.getHours()).padStart(2, '0');
-    const minutes = String(d.getMinutes()).padStart(2, '0');
-    return `${hours}:${minutes}`;
-  } catch {
-    return '--:--';
-  }
-}
-
-function formatDayHeader(dateStr: string): string {
-  try {
-    const d = new Date(`${dateStr}T00:00:00`);
-    const today = new Date();
-    const todayStr = toIsoDate(today);
-    const yesterday = new Date();
-    yesterday.setDate(yesterday.getDate() - 1);
-    const yesterdayStr = toIsoDate(yesterday);
-
-    const dayMonth = `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}`;
-    if (dateStr === todayStr) return `HÔM NAY, ${dayMonth}`;
-    if (dateStr === yesterdayStr) return `HÔM QUA, ${dayMonth}`;
-    return `NGÀY ${dayMonth}`;
-  } catch {
-    return dateStr;
-  }
-}
-
 export function MobileAppointmentsListView() {
-  const today = useMemo(() => new Date(), []);
-  const [selectedDate, setSelectedDate] = useState<string>(() => toIsoDate(today));
+  const { account } = useAuth();
+  const timeZone = account?.branchTimezone ?? DEFAULT_BRANCH_TIME_ZONE;
+  const today = useMemo(() => localDateTimeFromInstant(new Date(), timeZone).slice(0, 10), [timeZone]);
+  const [selectedDate, setSelectedDate] = useState<string>(() => today);
+  useEffect(() => {
+    setSelectedDate(today);
+  }, [today]);
   const [activeTab, setActiveTab] = useState<'list' | 'timeline' | 'staff_grid'>('list');
   const [staffFilter, setStaffFilter] = useState<string>('all');
   const [search, setSearch] = useState('');
@@ -80,6 +53,14 @@ export function MobileAppointmentsListView() {
   const [selectedApt, setSelectedApt] = useState<AppointmentData | null>(null);
   const { notify } = useToast();
   const queryClient = useQueryClient();
+  const { subscribe } = useWebSocket();
+
+  useEffect(() => {
+    const unsub = subscribe('appointment:created', () => {
+      queryClient.invalidateQueries({ queryKey: ['pos-appointments'] });
+    });
+    return unsub;
+  }, [subscribe, queryClient]);
 
   const { data: appointmentsResponse, isLoading } = useQuery({
     queryKey: ['pos-appointments', selectedDate, selectedDate],
@@ -178,17 +159,14 @@ export function MobileAppointmentsListView() {
         <div className="mobile-appointments-filter-strip">
           {/* Date Selector Chip */}
           <div className="mobile-appointments-chip-select-wrap">
-            <input
-              type="date"
-              className="mobile-appointments-date-hidden-input"
+            <DatePickerField
+              className={`mobile-appointments-filter-chip ${selectedDate ? 'is-active' : ''}`}
               value={selectedDate}
-              onChange={(e) => setSelectedDate(e.target.value)}
+              onChange={setSelectedDate}
+              timeZone={timeZone}
               aria-label="Chọn ngày"
+              placeholder="Tất cả ngày"
             />
-            <button type="button" className={`mobile-appointments-filter-chip ${selectedDate ? 'is-active' : ''}`}>
-              <span>{selectedDate ? selectedDate.split('-').reverse().slice(0, 2).join('/') : 'Tất cả ngày'}</span>
-              <i className="ph ph-caret-down" />
-            </button>
           </div>
 
           {/* Staff Filter Dropdown Chip */}
@@ -239,7 +217,7 @@ export function MobileAppointmentsListView() {
       {/* 4. Grouped Cards Container */}
       <div className="mobile-appointments-content-body">
         <div className="mobile-appointments-section-header">
-          {formatDayHeader(selectedDate)} ({filteredAppointments.length})
+          {formatDayHeader(selectedDate, today)} ({filteredAppointments.length})
         </div>
 
         {isLoading ? (
@@ -259,7 +237,7 @@ export function MobileAppointmentsListView() {
         ) : (
           <div className="mobile-appointments-cards-list">
             {filteredAppointments.map((apt) => {
-              const timeLabel = `${formatTime(apt.startsAt)} - ${formatTime(apt.endsAt)}`;
+              const timeLabel = `${formatBranchTime(apt.startsAt, timeZone)} - ${formatBranchTime(apt.endsAt, timeZone)}`;
               const statusLabel = STATUS_LABELS[apt.status] || apt.status;
               const isCompleted = apt.status === 'completed';
 
@@ -386,7 +364,7 @@ export function MobileAppointmentsListView() {
                   <i className="ph ph-calendar" />
                 </div>
                 <div className="mobile-apt-detail-time-text">
-                  Bắt đầu làm {formatTime(selectedApt.startsAt)} - {formatDayHeader(selectedDate)}
+                  Bắt đầu làm {formatBranchTime(selectedApt.startsAt, timeZone)} - {formatDayHeader(selectedDate, today)}
                 </div>
               </div>
             </div>
@@ -408,7 +386,7 @@ export function MobileAppointmentsListView() {
                 Trừ gói Combo 20 buổi gội đầu (Tặng 5 buổi gội)
               </div>
               <div className="mobile-apt-service-time-range">
-                {formatTime(selectedApt.startsAt)} - {formatTime(selectedApt.endsAt)}, {selectedDate.split('-').reverse().slice(0, 2).join('/')}
+                {formatBranchTime(selectedApt.startsAt, timeZone)} - {formatBranchTime(selectedApt.endsAt, timeZone)}, {selectedDate.split('-').reverse().slice(0, 2).join('/')}
               </div>
               {selectedApt.staff?.name && (
                 <div className="mobile-apt-staff-pill">

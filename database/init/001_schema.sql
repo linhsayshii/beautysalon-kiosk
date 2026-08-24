@@ -468,6 +468,9 @@ CREATE TABLE invoice_items (
   service_id BIGINT REFERENCES services(id) ON DELETE SET NULL,
   product_id BIGINT REFERENCES products(id) ON DELETE SET NULL,
   package_id BIGINT REFERENCES service_packages(id) ON DELETE SET NULL,
+  -- This identifies the customer's purchased package used for a redeemed
+  -- service. package_id continues to identify a package sale line instead.
+  customer_package_id BIGINT,
   account_card_id BIGINT REFERENCES account_cards(id) ON DELETE SET NULL,
   staff_id BIGINT REFERENCES staff(id) ON DELETE SET NULL,
   appointment_id BIGINT REFERENCES appointments(id) ON DELETE SET NULL,
@@ -503,6 +506,13 @@ CREATE TABLE customer_packages (
 
 CREATE INDEX idx_customer_packages_branch_sold ON customer_packages(branch_id, sold_at DESC);
 CREATE INDEX idx_customer_packages_customer ON customer_packages(customer_id, status);
+
+ALTER TABLE invoice_items
+  ADD CONSTRAINT invoice_items_customer_package_id_fkey
+  FOREIGN KEY (customer_package_id) REFERENCES customer_packages(id) ON DELETE SET NULL;
+
+CREATE INDEX idx_invoice_items_customer_package
+  ON invoice_items(customer_package_id) WHERE customer_package_id IS NOT NULL;
 
 CREATE TABLE package_usages (
   id BIGSERIAL PRIMARY KEY,

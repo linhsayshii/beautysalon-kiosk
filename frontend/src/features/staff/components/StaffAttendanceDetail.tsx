@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { formatDate } from '@/lib/format';
+import { addCalendarDays } from '@/lib/date';
 import type { ApiRecord } from '@/types/api';
 import { calculateAttendanceForShift, formatAttendanceTime } from '../attendance-calculation';
 import { getSchedule, getAttendance } from '../staff.api';
@@ -52,11 +53,7 @@ export function StaffAttendanceDetail({ staff, currentMonday }: StaffAttendanceD
 
   // Compute 7 dates of the week
   const weekDates = useMemo(() => {
-    return Array.from({ length: 7 }, (_, i) => {
-      const d = new Date(`${currentMonday}T00:00:00`);
-      d.setDate(d.getDate() + i);
-      return d.toISOString().slice(0, 10);
-    });
+    return Array.from({ length: 7 }, (_, i) => addCalendarDays(currentMonday, i));
   }, [currentMonday]);
 
   const startDateIso = weekDates[0];

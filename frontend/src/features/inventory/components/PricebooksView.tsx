@@ -8,6 +8,7 @@ import { FilterPanel, SelectFilter } from '@/components/forms/FilterPanel';
 import { MoneyInput } from '@/components/forms/MoneyInput';
 import { SearchToolbar } from '@/components/forms/SearchToolbar';
 import { PageHeader } from '@/components/ui/PageHeader/PageHeader';
+import { DatePickerField } from '@/components/ui/DateTimePicker';
 import { useToast } from '@/components/ui/Toast/ToastProvider';
 import { formatMoney } from '@/lib/format';
 import { createPricebook, deletePricebook, getPricebook, getPricebooks, updatePrice, updatePricebook } from '../inventory.api';
@@ -140,11 +141,11 @@ function PricebookDialog({ open, pricebook, onClose, onSuccess }: PricebookDialo
             </div>
             {!pricebook?.isDefault && <div className="form-field">
               <label>Ngày bắt đầu</label>
-              <input type="date" className="form-input" value={form.effectiveFrom ?? ''} onChange={(e) => setForm({ ...form, effectiveFrom: e.target.value || null })} />
+              <DatePickerField className="form-input" value={form.effectiveFrom ?? ''} onChange={(effectiveFrom) => setForm({ ...form, effectiveFrom: effectiveFrom || null })} />
             </div>}
             {!pricebook?.isDefault && <div className="form-field">
               <label>Ngày kết thúc</label>
-              <input type="date" className={`form-input ${errors.effectiveTo ? 'error' : ''}`} value={form.effectiveTo ?? ''} onChange={(e) => setForm({ ...form, effectiveTo: e.target.value || null })} />
+              <DatePickerField className={`form-input ${errors.effectiveTo ? 'error' : ''}`} value={form.effectiveTo ?? ''} onChange={(effectiveTo) => setForm({ ...form, effectiveTo: effectiveTo || null })} />
               {errors.effectiveTo && <span className="form-error">{errors.effectiveTo}</span>}
             </div>}
             {!pricebook?.isDefault && <div className="form-field" style={{ gridColumn: '1 / -1' }}>

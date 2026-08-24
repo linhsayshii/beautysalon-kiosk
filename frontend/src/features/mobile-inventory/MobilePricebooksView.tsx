@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { MoneyInput } from '@/components/forms/MoneyInput';
 import { Select } from '@/components/ui/Select/Select';
+import { DatePickerField } from '@/components/ui/DateTimePicker';
 import { useToast } from '@/components/ui/Toast/ToastProvider';
 import { formatMoney } from '@/lib/format';
 import { createPricebook, deletePricebook, getPricebook, getPricebooks, updatePrice, updatePricebook } from '@/features/inventory/inventory.api';
@@ -156,11 +157,11 @@ function MobilePricebookDialog({ open, pricebook, onClose, onSuccess }: MobilePr
           </div>
           {!pricebook?.isDefault && <div className="mobile-form-field">
             <label>Ngày bắt đầu</label>
-            <input type="date" className="mobile-form-input" value={form.effectiveFrom ?? ''} onChange={(e) => setForm({ ...form, effectiveFrom: e.target.value || null })} />
+            <DatePickerField className="mobile-form-input" value={form.effectiveFrom ?? ''} onChange={(effectiveFrom) => setForm({ ...form, effectiveFrom: effectiveFrom || null })} />
           </div>}
           {!pricebook?.isDefault && <div className="mobile-form-field">
             <label>Ngày kết thúc</label>
-            <input type="date" className="mobile-form-input" value={form.effectiveTo ?? ''} onChange={(e) => setForm({ ...form, effectiveTo: e.target.value || null })} />
+            <DatePickerField className="mobile-form-input" value={form.effectiveTo ?? ''} onChange={(effectiveTo) => setForm({ ...form, effectiveTo: effectiveTo || null })} />
             {errors.effectiveTo && <span className="mobile-form-error">{errors.effectiveTo}</span>}
           </div>}
           {!pricebook?.isDefault && <div className="mobile-form-field">

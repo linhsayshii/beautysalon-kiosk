@@ -26,7 +26,8 @@ export async function runMigrations() {
 
       ALTER TABLE invoice_items
         ADD COLUMN IF NOT EXISTS staff_id BIGINT REFERENCES staff(id) ON DELETE SET NULL,
-        ADD COLUMN IF NOT EXISTS appointment_id BIGINT REFERENCES appointments(id) ON DELETE SET NULL;
+        ADD COLUMN IF NOT EXISTS appointment_id BIGINT REFERENCES appointments(id) ON DELETE SET NULL,
+        ADD COLUMN IF NOT EXISTS customer_package_id BIGINT REFERENCES customer_packages(id) ON DELETE SET NULL;
 
       ALTER TABLE invoices
         ADD COLUMN IF NOT EXISTS payment_requested_at TIMESTAMPTZ,
@@ -43,6 +44,9 @@ export async function runMigrations() {
 
       CREATE INDEX IF NOT EXISTS idx_invoice_items_appointment
         ON invoice_items(appointment_id) WHERE appointment_id IS NOT NULL;
+
+      CREATE INDEX IF NOT EXISTS idx_invoice_items_customer_package
+        ON invoice_items(customer_package_id) WHERE customer_package_id IS NOT NULL;
 
       -- Backfill only unambiguous legacy service rows. Ambiguous historical
       -- rows are intentionally left untouched rather than guessed.

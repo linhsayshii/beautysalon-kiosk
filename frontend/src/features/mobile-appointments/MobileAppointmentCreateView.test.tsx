@@ -6,6 +6,7 @@ import { ToastProvider } from '@/components/ui/Toast/ToastProvider';
 import { MobileAppointmentCreateView } from './MobileAppointmentCreateView';
 import * as posApi from '@/features/pos/pos.api';
 import * as opsApi from '@/features/operations/operations.api';
+import * as AuthProvider from '@/features/auth/AuthProvider';
 
 // Mock useNavigate
 const mockNavigate = vi.fn();
@@ -64,6 +65,17 @@ describe('MobileAppointmentCreateView Component', () => {
     queryClient = new QueryClient({
       defaultOptions: { queries: { retry: false } },
     });
+    vi.spyOn(AuthProvider, 'useAuth').mockReturnValue({
+      account: {
+        id: 1, branchId: 1, staffId: null, username: 'owner', displayName: 'Chủ cửa hàng', role: 'owner',
+        branchName: 'Chi nhánh trung tâm', branchTimezone: 'Asia/Ho_Chi_Minh', staffCode: null, phone: '', email: '',
+      },
+      loading: false,
+      login: vi.fn(),
+      logout: vi.fn(),
+      switchBranch: vi.fn(),
+      updateLocalAccount: vi.fn(),
+    });
 
     vi.spyOn(opsApi, 'getCustomers').mockResolvedValue({
       data: mockCustomers as any,
@@ -78,6 +90,11 @@ describe('MobileAppointmentCreateView Component', () => {
     vi.spyOn(posApi, 'getPosStaff').mockResolvedValue({
       data: mockStaff as any,
       meta: { total: 2 } as any,
+    });
+
+    vi.spyOn(posApi, 'getPosCustomerServicePackages').mockResolvedValue({
+      data: [],
+      meta: {} as any,
     });
 
     vi.spyOn(posApi, 'createPosAppointment').mockResolvedValue({
@@ -239,6 +256,60 @@ describe('MobileAppointmentCreateView Component', () => {
           expect.objectContaining({ serviceId: 1, quantity: 1 }),
           expect.objectContaining({ serviceId: 2, quantity: 1 }),
         ],
+      }));
+    });
+  });
+
+  it('stores a selected package service on the appointment draft without charging it', async () => {
+    vi.spyOn(posApi, 'getPosCustomerServicePackages').mockResolvedValue({
+      data: [{
+        customerPackageId: 901,
+        packageCode: 'PKG-901',
+        packageId: 51,
+        packageName: 'Gói chăm sóc da 5 buổi',
+        totalUnits: 5,
+        usedUnits: 1,
+        remainingUnits: 4,
+        expiresAt: null,
+        status: 'active',
+        services: [{
+          serviceId: 1,
+          serviceName: 'Chăm sóc da chuyên sâu',
+          serviceCode: 'DV01',
+          totalUnits: 5,
+          usedCount: 1,
+          availableUnits: 4,
+        }],
+      }],
+      meta: {} as any,
+    });
+    renderComponent();
+
+    fireEvent.click(screen.getByText('Thêm khách hàng'));
+    await waitFor(() => expect(screen.getByText('Nguyễn Thị Hoa')).toBeInTheDocument());
+    fireEvent.click(screen.getByText('Nguyễn Thị Hoa'));
+
+    await waitFor(() => expect(screen.getByText('Sử dụng gói dịch vụ')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText('Chăm sóc da chuyên sâu')).toBeInTheDocument());
+    fireEvent.click(screen.getByText('Chăm sóc da chuyên sâu'));
+    fireEvent.click(screen.getByRole('button', { name: 'Dùng gói' }));
+
+    await waitFor(() => expect(screen.getByText('Chi tiết lịch dịch vụ')).toBeInTheDocument());
+    fireEvent.click(screen.getByRole('button', { name: 'Xong' }));
+
+    await waitFor(() => expect(screen.getByText('Dùng gói: Gói chăm sóc da 5 buổi')).toBeInTheDocument());
+    expect(screen.getByText('0')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Lưu' }));
+    await waitFor(() => {
+      expect(posApi.createPosAppointment).toHaveBeenCalledWith(expect.objectContaining({
+        customerId: 101,
+        items: [expect.objectContaining({
+          serviceId: 1,
+          quantity: 1,
+          usePackageId: 901,
+          usePackageServiceId: 1,
+        })],
       }));
     });
   });

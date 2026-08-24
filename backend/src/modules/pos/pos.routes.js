@@ -153,7 +153,7 @@ router.get('/customers/:id/service-packages', asyncRoute(async (request, respons
       SELECT
         customer_package_id,
         service_id,
-        COUNT(*) AS times_used
+        COALESCE(SUM(units_used), 0) AS times_used
       FROM package_usages
       WHERE service_id IS NOT NULL
       GROUP BY customer_package_id, service_id
@@ -277,6 +277,8 @@ router.post('/appointments', asyncRoute(async (request, response) => {
       serviceId: parsePositiveInteger(item.serviceId, 'serviceId'),
       staffId: item.staffId ? parsePositiveInteger(item.staffId, 'staffId') : null,
       quantity: Math.max(1, Math.floor(Number(item.quantity || 1))),
+      usePackageId: item.usePackageId ? parsePositiveInteger(item.usePackageId, 'usePackageId') : null,
+      usePackageServiceId: item.usePackageServiceId ? parsePositiveInteger(item.usePackageServiceId, 'usePackageServiceId') : null,
       startsAt,
       endsAt,
     };

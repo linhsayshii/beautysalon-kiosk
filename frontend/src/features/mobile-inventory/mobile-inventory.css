@@ -426,6 +426,8 @@
 .mobile-pricebook-money-input {
   width: 100%;
   min-height: var(--mobile-control-min, 44px);
+  box-sizing: border-box;
+  overflow: hidden;
   border-color: #94a3b8;
   border-radius: 12px;
   background: #ffffff;
@@ -434,11 +436,13 @@
 .mobile-pricebook-money-input > input {
   min-width: 0;
   height: 100%;
+  box-sizing: border-box;
   padding: 0 12px;
   border: 0;
   border-radius: 0;
   outline: 0;
   box-shadow: none;
+  background: transparent;
   text-align: right;
   color: #0062eb;
   font-size: 16px;
@@ -545,8 +549,8 @@
 .mobile-po-field textarea { width: 100%; min-height: 44px; box-sizing: border-box; padding: 9px 10px; border: 1px solid #cbd5e1; border-radius: 9px; background: #fff; color: #0f172a; font-size: 16px; }
 .mobile-po-field textarea { min-height: 88px; resize: vertical; }
 .mobile-po-field em { color: #dc2626; font-style: normal; }
-.mobile-po-money-input { min-height: 44px; }
-.mobile-po-field .mobile-po-money-input > input { min-width: 0; height: 100%; padding: 9px 10px; border: 0; border-radius: 0; outline: 0; box-shadow: none; }
+.mobile-po-money-input { min-height: 44px; box-sizing: border-box; overflow: hidden; }
+.mobile-po-field .mobile-po-money-input > input { min-width: 0; height: 100%; box-sizing: border-box; padding: 9px 10px; border: 0; border-radius: 0; outline: 0; box-shadow: none; background: transparent; }
 .mobile-po-field .mobile-po-money-input > input:focus { border: 0; outline: 0; box-shadow: none; }
 .mobile-po-draft-total,
 .mobile-po-create-total { display: flex; align-items: center; justify-content: space-between; gap: 12px; color: #475569; }

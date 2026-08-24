@@ -2,6 +2,8 @@ import { useRef, useState } from 'react';
 import type { FormEvent, RefObject } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Select } from '@/components/ui/Select/Select';
+import { DatePickerField } from '@/components/ui/DateTimePicker';
+import { todayIso } from '@/lib/date';
 import { useToast } from '@/components/ui/Toast/ToastProvider';
 import { createCustomer, updateCustomer } from '../operations.api';
 import type { ApiRecord } from '@/types/api';
@@ -189,15 +191,14 @@ export function CustomerCreateDialog({ onClose, onSuccess, customMutationFn, ini
 
                   <div className="goods-field">
                     <label htmlFor="customer-dob">Ngày sinh</label>
-                    <div className="customer-date-input-wrap">
-                      <input
-                        id="customer-dob"
-                        type="date"
-                        value={form.dob}
-                        onChange={(event) => update('dob', event.target.value)}
-                        placeholder="--/--/----"
-                      />
-                    </div>
+                    <DatePickerField
+                      id="customer-dob"
+                      className="form-input"
+                      value={form.dob}
+                      max={todayIso()}
+                      onChange={(dob) => update('dob', dob)}
+                      placeholder="--/--/----"
+                    />
                   </div>
 
                   <div className="goods-field">

@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo, useRef, type RefObject } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { formatNumber, initials } from '@/lib/format';
 import { getPosStaff } from '@/features/pos/pos.api';
+import { DEFAULT_BRANCH_TIME_ZONE, localDateTimeFromInstant } from '@/lib/date';
 import { MobileTimePickerSheet } from './MobileTimePickerSheet';
 import { useMobileDialog } from './useMobileDialog';
 import { MobileDialogPortal } from './MobileDialogPortal';
@@ -19,12 +20,17 @@ export interface ConfiguredServiceItem {
   staffName?: string | null;
   position?: string | null;
   note?: string;
+  usePackageId?: number | null;
+  usePackageServiceId?: number | null;
+  packageName?: string | null;
+  maxQuantity?: number | null;
 }
 
 export interface MobileServiceItemDetailSheetProps {
   isOpen: boolean;
   item: ConfiguredServiceItem | null;
   staffList?: Array<{ id: number; name: string; role: string; avatarTone?: string }>;
+  timeZone?: string;
   onClose: () => void;
   onSaveItem: (item: ConfiguredServiceItem) => void;
 }
@@ -45,10 +51,6 @@ const PRESET_POSITIONS = [
 
 const WEEKDAY_NAMES = ['CN', 'Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7'];
 
-function padZero(n: number) {
-  return n < 10 ? `0${n}` : `${n}`;
-}
-
 export function formatDurationLabel(minutes: number | undefined | null): string {
   if (!minutes || minutes <= 0) return "30'";
   const hours = Math.floor(minutes / 60);
@@ -66,6 +68,7 @@ export function MobileServiceItemDetailSheet({
   isOpen,
   item,
   staffList: propStaffList,
+  timeZone = DEFAULT_BRANCH_TIME_ZONE,
   onClose,
   onSaveItem,
 }: MobileServiceItemDetailSheetProps) {
@@ -108,7 +111,7 @@ export function MobileServiceItemDetailSheet({
   // Sync state with incoming item
   useEffect(() => {
     if (isOpen && item) {
-      setQuantity(item.quantity || 1);
+      setQuantity(Math.min(item.quantity || 1, item.maxQuantity ?? Number.POSITIVE_INFINITY));
       setDurationMinutes(item.durationMinutes || 60);
       const initialDate = item.startsAt ? new Date(item.startsAt) : new Date();
       setStartsAt(isNaN(initialDate.getTime()) ? new Date() : initialDate);
@@ -144,7 +147,7 @@ export function MobileServiceItemDetailSheet({
   const handleSave = () => {
     onSaveItem({
       ...item,
-      quantity,
+      quantity: Math.min(quantity, item.maxQuantity ?? Number.POSITIVE_INFINITY),
       durationMinutes,
       startsAt,
       staffId: selectedStaffId,
@@ -154,12 +157,11 @@ export function MobileServiceItemDetailSheet({
     onClose();
   };
 
-  const formattedDateStr = `${WEEKDAY_NAMES[startsAt.getDay()]}, ${padZero(
-    startsAt.getDate()
-  )}/${padZero(startsAt.getMonth() + 1)}`;
-  const formattedTimeRangeStr = `${padZero(startsAt.getHours())}:${padZero(
-    startsAt.getMinutes()
-  )} - ${padZero(endsAt.getHours())}:${padZero(endsAt.getMinutes())}`;
+  const localStart = localDateTimeFromInstant(startsAt, timeZone);
+  const localEnd = localDateTimeFromInstant(endsAt, timeZone);
+  const localStartParts = localStart.split(/[-T:]/).map(Number);
+  const formattedDateStr = `${WEEKDAY_NAMES[new Date(Date.UTC(localStartParts[0], localStartParts[1] - 1, localStartParts[2])).getUTCDay()]}, ${String(localStartParts[2]).padStart(2, '0')}/${String(localStartParts[1]).padStart(2, '0')}`;
+  const formattedTimeRangeStr = `${localStart.slice(11, 16)} - ${localEnd.slice(11, 16)}`;
 
   return (
     <MobileDialogPortal>
@@ -226,7 +228,8 @@ export function MobileServiceItemDetailSheet({
                 <button
                   type="button"
                   className="mobile-stepper-btn"
-                  onClick={() => setQuantity((prev) => prev + 1)}
+                  onClick={() => setQuantity((prev) => Math.min(prev + 1, item.maxQuantity ?? Number.POSITIVE_INFINITY))}
+                  disabled={quantity >= (item.maxQuantity ?? Number.POSITIVE_INFINITY)}
                   aria-label={`Tăng số lượng ${item.name}`}
                 >
                   +
@@ -496,6 +499,7 @@ export function MobileServiceItemDetailSheet({
         <MobileTimePickerSheet
           isOpen={isTimePickerOpen}
           value={startsAt}
+          timeZone={timeZone}
           onClose={() => setIsTimePickerOpen(false)}
           onSelectTime={(newDate) => {
             setStartsAt(newDate);

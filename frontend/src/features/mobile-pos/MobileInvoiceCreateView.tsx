@@ -2,17 +2,21 @@ import { useEffect, useState, useMemo, useRef, type RefObject } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/components/ui/Toast/ToastProvider';
+import { useWebSocket } from '@/hooks/useWebSocket';
 import { formatMoney, formatNumber } from '@/lib/format';
 import { MoneyInput } from '@/components/forms/MoneyInput';
 import {
   checkoutPosInvoice,
   getPosCatalog,
+  getPosCustomerServicePackages,
   getPosPriceQuote,
   getPosStaff,
   type PosCheckoutPayload,
   type PosReceiptData,
+  type ServicePackageOption,
 } from '@/features/pos/pos.api';
 import { PosReceiptPrint } from '@/features/pos/components/PosReceiptPrint';
+import { UsePackageModal } from '@/features/pos/components/UsePackageModal';
 import {
   MobileCustomerSelectSheet,
   type MobileCustomer,
@@ -32,6 +36,15 @@ export function MobileInvoiceCreateView() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { notify } = useToast();
+  const { subscribe } = useWebSocket();
+
+  // WebSocket subscription for live order updates
+  useEffect(() => {
+    const unsub = subscribe('pos:order_created', () => {
+      queryClient.invalidateQueries({ queryKey: ['orders'] });
+    });
+    return unsub;
+  }, [subscribe, queryClient]);
 
   // State
   const [customer, setCustomer] = useState<MobileCustomer | null>(null);
@@ -46,6 +59,8 @@ export function MobileInvoiceCreateView() {
   const [isCatalogSheetOpen, setIsCatalogSheetOpen] = useState(false);
   const [isDetailSheetOpen, setIsDetailSheetOpen] = useState(false);
   const [isNoteDialogOpen, setIsNoteDialogOpen] = useState(false);
+  const [isPackageModalOpen, setIsPackageModalOpen] = useState(false);
+  const [packagePromptCustomerId, setPackagePromptCustomerId] = useState<number | null>(null);
   const [tempNote, setTempNote] = useState('');
   const catalogSearchRef = useRef<HTMLInputElement>(null);
   const catalogDialog = useMobileDialog({ isOpen: isCatalogSheetOpen, onClose: () => setIsCatalogSheetOpen(false), initialFocusRef: catalogSearchRef });
@@ -66,6 +81,20 @@ export function MobileInvoiceCreateView() {
     queryFn: () => getPosCatalog(catalogSearch, activeCatalogTab, customer?.id),
   });
 
+  const servicePackagesQuery = useQuery({
+    queryKey: ['pos-customer-service-packages', customer?.id ?? null],
+    queryFn: () => getPosCustomerServicePackages(customer!.id),
+    enabled: Boolean(customer?.id),
+  });
+  const servicePackages = (servicePackagesQuery.data?.data || []) as ServicePackageOption[];
+
+  useEffect(() => {
+    if (!customer?.id || servicePackagesQuery.isPending || packagePromptCustomerId === customer.id) return;
+
+    setPackagePromptCustomerId(customer.id);
+    if (servicePackages.length > 0) setIsPackageModalOpen(true);
+  }, [customer?.id, packagePromptCustomerId, servicePackages, servicePackagesQuery.isPending]);
+
   useEffect(() => {
     if (!configuredItems.length) return;
     let cancelled = false;
@@ -75,7 +104,7 @@ export function MobileInvoiceCreateView() {
         const prices = new Map(response.data.map((item) => [`${item.itemType}:${item.itemId}`, item.salePrice]));
         setConfiguredItems((items) => items.map((item) => ({
           ...item,
-          unitPrice: prices.get(`${item.itemType}:${item.itemId}`) ?? item.unitPrice,
+          unitPrice: item.usePackageId ? 0 : prices.get(`${item.itemType}:${item.itemId}`) ?? item.unitPrice,
         })));
       })
       .catch(console.error);
@@ -169,6 +198,65 @@ export function MobileInvoiceCreateView() {
     setIsDetailSheetOpen(true);
   };
 
+  const handlePackageServiceSelect = (customerPackageId: number, serviceId: number) => {
+    const selectedPackage = servicePackages.find((pkg) => pkg.customerPackageId === customerPackageId);
+    const selectedService = selectedPackage?.services.find((service) => service.serviceId === serviceId);
+    if (!selectedPackage || !selectedService) {
+      notify('Gói dịch vụ không khả dụng', 'Vui lòng chọn lại gói dịch vụ còn lượt.');
+      return;
+    }
+
+    const existingItemIndex = configuredItems.findIndex(
+      (item) => item.usePackageId === customerPackageId && item.usePackageServiceId === serviceId,
+    );
+
+    if (existingItemIndex >= 0) {
+      setActiveEditingItem({
+        ...configuredItems[existingItemIndex],
+        maxQuantity: selectedService.availableUnits,
+      });
+      setEditingIndex(existingItemIndex);
+    } else {
+      setActiveEditingItem({
+        itemId: selectedService.serviceId,
+        itemType: 'service',
+        name: selectedService.serviceName,
+        unitPrice: 0,
+        quantity: 1,
+        durationMinutes: 60,
+        startsAt: new Date(),
+        staffId: null,
+        staffName: null,
+        position: null,
+        usePackageId: customerPackageId,
+        usePackageServiceId: selectedService.serviceId,
+        packageName: selectedPackage.packageName,
+        maxQuantity: selectedService.availableUnits,
+      });
+      setEditingIndex(null);
+    }
+
+    setIsPackageModalOpen(false);
+    setIsDetailSheetOpen(true);
+  };
+
+  const handleCustomerSelected = (selectedCustomer: MobileCustomer) => {
+    if (customer && customer.id !== selectedCustomer.id) {
+      setConfiguredItems((items) => items.filter((item) => !item.usePackageId));
+    }
+    setCustomer(selectedCustomer);
+    setPackagePromptCustomerId(null);
+    setIsPackageModalOpen(false);
+    setIsCustomerSheetOpen(false);
+  };
+
+  const handleCustomerCleared = () => {
+    setCustomer(null);
+    setConfiguredItems((items) => items.filter((item) => !item.usePackageId));
+    setPackagePromptCustomerId(null);
+    setIsPackageModalOpen(false);
+  };
+
   // When tapping an already added item in the list
   const handleEditItem = (item: ConfiguredServiceItem, index: number) => {
     setActiveEditingItem(item);
@@ -194,7 +282,7 @@ export function MobileInvoiceCreateView() {
 
   // Handle Clear Form
   const handleClearAll = () => {
-    setCustomer(null);
+    handleCustomerCleared();
     setConfiguredItems([]);
     setDiscountInput(0);
     setPaymentMethod('cash');
@@ -224,6 +312,8 @@ export function MobileInvoiceCreateView() {
         itemId: item.itemId,
         quantity: item.quantity || 1,
         staffId: item.staffId || null,
+        usePackageId: item.usePackageId || null,
+        usePackageServiceId: item.usePackageServiceId || null,
       })),
     };
 
@@ -319,7 +409,7 @@ export function MobileInvoiceCreateView() {
                   className="mobile-form-row-clear"
                   onClick={(e) => {
                     e.stopPropagation();
-                    setCustomer(null);
+                    handleCustomerCleared();
                   }}
                   aria-label="Xóa khách hàng"
                 >
@@ -394,24 +484,38 @@ export function MobileInvoiceCreateView() {
 
                     {/* Assigned tags */}
                     <div className="mobile-form-item-tags">
-                      {item.staffName ? (
-                        <span className="mobile-form-tag is-staff">
-                          <i className="ph ph-user-check" />
-                          {item.staffName}
-                        </span>
-                      ) : (
-                        <span className="mobile-form-tag">
-                          <i className="ph ph-user" />
-                          Chưa chọn nhân viên
-                        </span>
-                      )}
+                      <div className="mobile-form-item-tag-list">
+                        {item.staffName ? (
+                          <span className="mobile-form-tag is-staff">
+                            <i className="ph ph-user-check" />
+                            {item.staffName}
+                          </span>
+                        ) : (
+                          <span className="mobile-form-tag">
+                            <i className="ph ph-user" />
+                            Chưa chọn nhân viên
+                          </span>
+                        )}
 
-                      {item.position && (
-                        <span className="mobile-form-tag is-pos">
-                          <i className="ph ph-map-pin" />
-                          {item.position}
-                        </span>
-                      )}
+                        {item.position && (
+                          <span className="mobile-form-tag is-pos">
+                            <i className="ph ph-map-pin" />
+                            {item.position}
+                          </span>
+                        )}
+
+                        {item.usePackageId && (
+                          <span
+                            className="mobile-form-tag is-package"
+                            title={item.packageName ? `Trừ gói: ${item.packageName}` : 'Đã trừ gói'}
+                          >
+                            <i className="ph ph-ticket" />
+                            <span className="mobile-form-package-tag-label">
+                              {item.packageName ? `Trừ gói: ${item.packageName}` : 'Đã trừ gói'}
+                            </span>
+                          </span>
+                        )}
+                      </div>
 
                       <button
                         type="button"
@@ -610,10 +714,14 @@ export function MobileInvoiceCreateView() {
         isOpen={isCustomerSheetOpen}
         selectedCustomerId={customer?.id}
         onClose={() => setIsCustomerSheetOpen(false)}
-        onSelectCustomer={(c) => {
-          setCustomer(c);
-          setIsCustomerSheetOpen(false);
-        }}
+        onSelectCustomer={handleCustomerSelected}
+      />
+
+      <UsePackageModal
+        isOpen={isPackageModalOpen}
+        packages={servicePackages}
+        onClose={() => setIsPackageModalOpen(false)}
+        onSelect={handlePackageServiceSelect}
       />
 
       {/* Catalog Sheet */}

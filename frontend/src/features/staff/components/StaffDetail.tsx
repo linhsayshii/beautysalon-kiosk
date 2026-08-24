@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { EmptyState, ErrorState, LoadingState } from '@/components/data-display/DataState';
 import { StatusBadge } from '@/components/data-display/Badges';
+import { addCalendarDays, weekStartIso } from '@/lib/date';
 import { formatDate, formatMoney, formatNumber } from '@/lib/format';
 import type { ApiRecord } from '@/types/api';
 import { statusLabels } from '@/types/api';
@@ -16,16 +17,7 @@ const salaryDescriptions: Record<string, string> = {
 };
 
 function currentMonday() {
-  const date = new Date();
-  const day = date.getDay();
-  date.setDate(date.getDate() - (day === 0 ? 6 : day - 1));
-  return date.toISOString().slice(0, 10);
-}
-
-function addDays(isoDate: string, days: number) {
-  const date = new Date(`${isoDate}T00:00:00`);
-  date.setDate(date.getDate() + days);
-  return date.toISOString().slice(0, 10);
+  return weekStartIso();
 }
 
 function StaffScheduleTab({ staff }: { staff: ApiRecord }) {
@@ -38,7 +30,7 @@ function StaffScheduleTab({ staff }: { staff: ApiRecord }) {
   if (query.error) return <ErrorState error={query.error} onRetry={() => query.refetch()} />;
 
   const shifts = (query.data.data?.shifts ?? []).filter((shift: ApiRecord) => Number(shift.staffId) === Number(staff.id));
-  const days = Array.from({ length: 7 }, (_, index) => addDays(weekStart, index));
+  const days = Array.from({ length: 7 }, (_, index) => addCalendarDays(weekStart, index));
 
   return (
     <div className="staff-detail-panel" style={{ padding: '16px 0' }}>

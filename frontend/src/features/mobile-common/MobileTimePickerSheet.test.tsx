@@ -1,125 +1,48 @@
 import { describe, expect, it, vi } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { MobileTimePickerSheet } from './MobileTimePickerSheet';
 
 describe('MobileTimePickerSheet', () => {
-  const initialDate = new Date(2026, 7, 17, 8, 30); // 2026-08-17 08:30
+  // 08:30 at the branch (Asia/Ho_Chi_Minh), represented as an ISO instant.
+  const initialDate = new Date('2026-08-17T01:30:00.000Z');
 
-  it('renders header, date strip, shift sections, and confirm button', () => {
-    const onClose = vi.fn();
-    const onSelectTime = vi.fn();
-
+  it('uses the shared website picker instead of a browser or device-specific picker', () => {
     render(
       <MobileTimePickerSheet
-        isOpen={true}
+        isOpen
         value={initialDate}
-        onClose={onClose}
-        onSelectTime={onSelectTime}
-      />
+        onClose={vi.fn()}
+        onSelectTime={vi.fn()}
+      />,
     );
 
-    expect(screen.getByText('Chọn thời gian')).toBeInTheDocument();
-    expect(screen.getByText('Chọn ngày giờ cụ thể')).toBeInTheDocument();
-    expect(screen.getByText(/Ca sáng/i)).toBeInTheDocument();
-    expect(screen.getByText(/Ca chiều/i)).toBeInTheDocument();
-    expect(screen.getByText(/Ca tối/i)).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /tiếp tục|áp dụng/i })).toBeInTheDocument();
+    expect(screen.getByRole('dialog', { name: 'Chọn thời gian' })).toBeInTheDocument();
+    expect(screen.getByRole('grid', { name: /tháng 8 năm 2026/i })).toBeInTheDocument();
+    expect(screen.getByLabelText('Giờ')).toBeInTheDocument();
+    expect(screen.getByLabelText('Phút')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Xác nhận' })).toBeInTheDocument();
   });
 
-  it('allows selecting a time slot and submitting', () => {
+  it('converts the selected branch-local time into the expected ISO instant', () => {
     const onClose = vi.fn();
     const onSelectTime = vi.fn();
-
     render(
       <MobileTimePickerSheet
-        isOpen={true}
+        isOpen
         value={initialDate}
         onClose={onClose}
         onSelectTime={onSelectTime}
-      />
+      />,
     );
 
-    // Click slot 14:30
-    const slot1430 = screen.getByRole('button', { name: '14:30' });
-    fireEvent.click(slot1430);
-
-    // Click confirm button
-    const confirmBtn = screen.getByRole('button', { name: /tiếp tục|áp dụng/i });
-    fireEvent.click(confirmBtn);
-
-    expect(onSelectTime).toHaveBeenCalledTimes(1);
-    const selected: Date = onSelectTime.mock.calls[0][0];
-    expect(selected.getHours()).toBe(14);
-    expect(selected.getMinutes()).toBe(30);
-    expect(onClose).toHaveBeenCalledTimes(1);
-  });
-
-  it('allows switching dates from the 14-day horizontal strip', () => {
-    const onClose = vi.fn();
-    const onSelectTime = vi.fn();
-
-    render(
-      <MobileTimePickerSheet
-        isOpen={true}
-        value={initialDate}
-        onClose={onClose}
-        onSelectTime={onSelectTime}
-      />
-    );
-
-    // Strip buttons exist
-    const dateButtons = screen.getAllByRole('button', { name: /thứ|cn/i });
-    expect(dateButtons.length).toBeGreaterThanOrEqual(14);
-
-    // Select second day
-    fireEvent.click(dateButtons[1]);
-
-    // Select time slot 09:00
-    fireEvent.click(screen.getByRole('button', { name: '09:00' }));
-
-    // Confirm
-    fireEvent.click(screen.getByRole('button', { name: /tiếp tục|áp dụng/i }));
-    expect(onSelectTime).toHaveBeenCalled();
-  });
-
-  it('opens exact time roller modal when clicking "Chọn ngày giờ cụ thể" and updates selected time', () => {
-    const onClose = vi.fn();
-    const onSelectTime = vi.fn();
-
-    render(
-      <MobileTimePickerSheet
-        isOpen={true}
-        value={initialDate}
-        onClose={onClose}
-        onSelectTime={onSelectTime}
-      />
-    );
-
-    const customTimeBtn = screen.getByText('Chọn ngày giờ cụ thể');
-    fireEvent.click(customTimeBtn);
-
-    // Wheel picker modal should appear
-    expect(screen.getByRole('dialog', { name: /chọn ngày giờ chi tiết|chọn giờ chi tiết/i })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /hủy bỏ/i })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /áp dụng giờ/i })).toBeInTheDocument();
-
-    // Select custom hour and minute through the website dropdowns.
-    const hourInput = screen.getByLabelText(/^giờ/i);
-    const minuteInput = screen.getByLabelText(/^phút/i);
-
-    fireEvent.click(hourInput);
-    fireEvent.click(screen.getByRole('option', { name: '16 giờ' }));
-    fireEvent.click(minuteInput);
+    fireEvent.click(screen.getByLabelText('Giờ'));
+    fireEvent.click(screen.getByRole('option', { name: '14 giờ' }));
+    fireEvent.click(screen.getByLabelText('Phút'));
     fireEvent.click(screen.getByRole('option', { name: '45 phút' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Xác nhận' }));
 
-    // Apply custom time
-    fireEvent.click(screen.getByRole('button', { name: /áp dụng giờ/i }));
-
-    // Confirm sheet
-    fireEvent.click(screen.getByRole('button', { name: /tiếp tục|áp dụng/i }));
-    expect(onSelectTime).toHaveBeenCalledTimes(1);
-    const result: Date = onSelectTime.mock.calls[0][0];
-    expect(result.getHours()).toBe(16);
-    expect(result.getMinutes()).toBe(45);
+    expect(onSelectTime).toHaveBeenCalledWith(expect.any(Date));
+    expect(onSelectTime.mock.calls[0][0].toISOString()).toBe('2026-08-17T07:45:00.000Z');
+    expect(onClose).toHaveBeenCalledOnce();
   });
 });

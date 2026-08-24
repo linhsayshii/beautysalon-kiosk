@@ -102,17 +102,20 @@ export async function getOrder({ branchId, id }) {
   const itemsResult = await pool.query(
     `SELECT
        ii.id, ii.item_type, ii.description, ii.quantity, ii.unit_price, ii.line_total,
-       ii.service_id, ii.product_id, ii.package_id, ii.account_card_id,
+       ii.service_id, ii.product_id, ii.package_id, ii.customer_package_id, ii.account_card_id,
        ii.staff_id, st.name AS line_staff_name, ii.appointment_id,
        a.status AS appointment_status, a.starts_at AS appointment_starts_at, a.ends_at AS appointment_ends_at,
        ast.id AS appointment_staff_id, ast.name AS appointment_staff_name,
        s.commission_type AS service_commission_type, s.commission_rate AS service_commission_rate,
+       redeemed_package.name AS customer_package_name,
        COALESCE(s.code, p.sku, '-') AS item_code,
        COALESCE(s.name, p.name, ii.description) AS item_name,
        CASE WHEN ii.item_type = 'service' THEN 'lần' ELSE COALESCE(p.unit, 'sản phẩm') END AS unit
      FROM invoice_items ii
      LEFT JOIN services s ON s.id = ii.service_id
      LEFT JOIN products p ON p.id = ii.product_id
+     LEFT JOIN customer_packages cp ON cp.id = ii.customer_package_id
+     LEFT JOIN service_packages redeemed_package ON redeemed_package.id = cp.package_id
      LEFT JOIN staff st ON st.id = ii.staff_id
      LEFT JOIN appointments a ON a.id = ii.appointment_id
      LEFT JOIN staff ast ON ast.id = a.staff_id
@@ -130,6 +133,8 @@ export async function getOrder({ branchId, id }) {
     serviceId: item.service_id ? number(item.service_id) : null,
     productId: item.product_id ? number(item.product_id) : null,
     packageId: item.package_id ? number(item.package_id) : null,
+    customerPackageId: item.customer_package_id ? number(item.customer_package_id) : null,
+    customerPackageName: item.customer_package_name || null,
     accountCardId: item.account_card_id ? number(item.account_card_id) : null,
     staffId: item.staff_id ? number(item.staff_id) : null,
     staffName: item.line_staff_name || null,

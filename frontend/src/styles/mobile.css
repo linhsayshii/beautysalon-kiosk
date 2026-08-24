@@ -694,12 +694,20 @@ body:has(.mobile-form-sheet-backdrop) :is(.mobile-inventory-fab-btn, .mobile-ope
 
 .mobile-form-item-tags {
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
   gap: 6px;
   margin-top: 8px;
   padding-top: 8px;
   border-top: 1px dashed #e2e8f0;
+}
+
+.mobile-form-item-tag-list {
+  display: flex;
+  flex: 1 1 auto;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
 }
 
 .mobile-form-tag {
@@ -726,8 +734,29 @@ body:has(.mobile-form-sheet-backdrop) :is(.mobile-inventory-fab-btn, .mobile-ope
   color: #b45309;
 }
 
+.mobile-form-tag.is-package {
+  flex: 1 1 140px;
+  min-width: 0;
+  max-width: 100%;
+  background: #f0fdfa;
+  border-color: #99f6e4;
+  color: #0f766e;
+}
+
+.mobile-form-tag.is-package .ph {
+  flex: 0 0 auto;
+}
+
+.mobile-form-package-tag-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .mobile-form-item-remove-btn {
-  margin-left: auto;
+  flex: 0 0 44px;
+  margin-left: 0;
   border: none;
   background: transparent;
   color: #94a3b8;

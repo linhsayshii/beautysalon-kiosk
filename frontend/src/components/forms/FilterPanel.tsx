@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { Select } from '@/components/ui/Select/Select';
+import { DatePickerField } from '@/components/ui/DateTimePicker';
 
 export interface SelectOption {
   value: string;
@@ -31,20 +32,18 @@ export function DateRangeFilter({ label, from, to, onFromChange, onToChange, lay
     <div className={`filter-group date-filter-group date-filter-group--${layout}`}>
       <label>{label}:</label>
       <div className="date-range-inputs">
-        <input
+        <DatePickerField
           className="filter-control"
           aria-label={`${label} từ ngày`}
-          type="date"
           value={from}
-          onChange={(event) => onFromChange(event.target.value)}
+          onChange={onFromChange}
         />
         <span className="date-range-separator" aria-hidden="true">-</span>
-        <input
+        <DatePickerField
           className="filter-control"
           aria-label={`${label} đến ngày`}
-          type="date"
           value={to}
-          onChange={(event) => onToChange(event.target.value)}
+          onChange={onToChange}
         />
       </div>
     </div>

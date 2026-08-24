@@ -4,6 +4,7 @@ import { useWebSocket } from '@/hooks/useWebSocket';
 import { LoadingState } from '@/components/data-display/DataState';
 import { useToast } from '@/components/ui/Toast/ToastProvider';
 import { Select } from '@/components/ui/Select/Select';
+import { DatePickerField } from '@/components/ui/DateTimePicker';
 import { errorMessage } from '@/services/api-client';
 import { todayIso, toIsoDate, weekStartIso } from '@/lib/date';
 import { formatMoney } from '@/lib/format';
@@ -985,10 +986,9 @@ export function StaffScheduleView() {
                   Từ ngày:
                 </label>
                 <div className="form-control-col">
-                  <input
-                    type="date"
+                  <DatePickerField
                     value={newHolidayFrom}
-                    onChange={(e) => setNewHolidayFrom(e.target.value)}
+                    onChange={setNewHolidayFrom}
                     className="form-input-text"
                   />
                 </div>
@@ -998,10 +998,9 @@ export function StaffScheduleView() {
                   Đến ngày:
                 </label>
                 <div className="form-control-col">
-                  <input
-                    type="date"
+                  <DatePickerField
                     value={newHolidayTo}
-                    onChange={(e) => setNewHolidayTo(e.target.value)}
+                    onChange={setNewHolidayTo}
                     className="form-input-text"
                   />
                 </div>

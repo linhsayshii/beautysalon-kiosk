@@ -18,18 +18,19 @@ function generateInvoiceCode() {
 /**
  * Xử lý trừ lượt gói dịch vụ trong checkout
  * @param {Object} client - PostgreSQL client (transaction)
- * @param {Object} params - { customerId, packageId, serviceId, invoiceId }
+ * @param {Object} params - { customerId, packageId, serviceId, invoiceId, units }
  * @returns {Promise<void>}
  */
-async function processPackageRedemption(client, { customerId, packageId, serviceId, invoiceId }) {
+async function processPackageRedemption(client, { customerId, packageId, serviceId, invoiceId, units = 1 }) {
   // Verify package belongs to customer và còn lượt
   const pkgCheck = await client.query(
-    `SELECT id, used_units, total_units, status, expires_at
+    `SELECT id, package_id, used_units, total_units, status, expires_at
      FROM customer_packages
      WHERE id = $1 AND customer_id = $2 AND status = 'active'
-       AND used_units < total_units
-       AND (expires_at IS NULL OR expires_at > NOW())`,
-    [packageId, customerId],
+       AND used_units + $3 <= total_units
+       AND (expires_at IS NULL OR expires_at > NOW())
+     FOR UPDATE`,
+    [packageId, customerId, units],
   );
   if (!pkgCheck.rows[0]) {
     throw new HttpError(400, 'PACKAGE_NOT_AVAILABLE', 'Gói dịch vụ không khả dụng hoặc đã hết lượt');
@@ -39,23 +40,20 @@ async function processPackageRedemption(client, { customerId, packageId, service
   const serviceCheck = await client.query(
     `SELECT spi.id FROM service_package_items spi
      WHERE spi.package_id = $1 AND spi.service_id = $2`,
-    [pkgCheck.rows[0].id, serviceId],
+    [pkgCheck.rows[0].package_id, serviceId],
   );
   if (!serviceCheck.rows[0]) {
     throw new HttpError(400, 'SERVICE_NOT_IN_PACKAGE', 'Dịch vụ không nằm trong gói này');
   }
 
   // Update used_units
-  await client.query(
-    `UPDATE customer_packages SET used_units = used_units + 1 WHERE id = $1`,
-    [packageId],
-  );
+  await client.query(`UPDATE customer_packages SET used_units = used_units + $2 WHERE id = $1`, [packageId, units]);
 
   // Record usage
   await client.query(
     `INSERT INTO package_usages (customer_package_id, service_id, invoice_id, units_used, used_at)
-     VALUES ($1, $2, $3, 1, NOW())`,
-    [packageId, serviceId, invoiceId],
+     VALUES ($1, $2, $3, $4, NOW())`,
+    [packageId, serviceId, invoiceId, units],
   );
 }
 
@@ -157,6 +155,7 @@ export async function checkoutPosInvoice({
     const validatedItems = [];
     const packagesToCreate = [];
     const accountCardsToCreate = [];
+    const packageRedemptions = [];
 
     for (const line of lines) {
       const itemType = String(line.itemType || '').trim();
@@ -184,15 +183,8 @@ export async function checkoutPosInvoice({
       let unit = 'lần';
 
       if (line.usePackageId) {
-        // Package redemption: verify and deduct from customer's package
-        await processPackageRedemption(client, {
-          customerId,
-          packageId: line.usePackageId,
-          serviceId: line.usePackageServiceId,
-          invoiceId,
-        });
-
-        // Get service details for validatedItems
+        // A redeemed service is free on this invoice. Its package usage is
+        // recorded once the invoice has an id below.
         const pkgServiceResult = await client.query(
           `SELECT id, code, name, price, commission_type, commission_rate
            FROM services WHERE id = $1 AND branch_id = $2 AND active = TRUE`,
@@ -207,6 +199,7 @@ export async function checkoutPosInvoice({
           itemType: 'service',
           serviceId: line.usePackageServiceId,
           productId: null,
+          customerPackageId: line.usePackageId,
           staffId: lineStaffId || staffId || null,
           code: pkgSvc.code,
           name: pkgSvc.name,
@@ -216,6 +209,11 @@ export async function checkoutPosInvoice({
           lineTotal: 0,
           commissionType: pkgSvc.commission_type,
           commissionRate: number(pkgSvc.commission_rate),
+        });
+        packageRedemptions.push({
+          packageId: line.usePackageId,
+          serviceId: line.usePackageServiceId,
+          units: quantity,
         });
 
         // Skip normal itemType processing for package redemption
@@ -505,6 +503,17 @@ export async function checkoutPosInvoice({
     }
     const invoiceCode = invoice.code;
 
+    // The usage record is linked to the paid invoice, so redeem packages only
+    // after an invoice id exists. The surrounding transaction rolls this back
+    // together with the invoice if any validation fails.
+    for (const redemption of packageRedemptions) {
+      await processPackageRedemption(client, {
+        customerId,
+        invoiceId,
+        ...redemption,
+      });
+    }
+
     // 6. Insert invoice items and collect their IDs
     const invoiceItemIds = [];
     for (const item of validatedItems) {
@@ -514,9 +523,9 @@ export async function checkoutPosInvoice({
       const linkedAppointmentId = appointmentQueue?.shift() || null;
       const itemResult = await client.query(
         `INSERT INTO invoice_items (
-           invoice_id, item_type, service_id, product_id, package_id, account_card_id,
+           invoice_id, item_type, service_id, product_id, package_id, customer_package_id, account_card_id,
            staff_id, appointment_id, description, quantity, unit_price, line_total
-         ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+         ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
          RETURNING id`,
         [
           invoiceId,
@@ -524,6 +533,7 @@ export async function checkoutPosInvoice({
           item.serviceId,
           item.productId,
           item.packageId || null,
+          item.customerPackageId || null,
           item.accountCardId || null,
           item.staffId || null,
           linkedAppointmentId,

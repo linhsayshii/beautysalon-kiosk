@@ -117,6 +117,8 @@ export function MobilePosView() {
         commissionRate: item.commissionRate || 0,
         quantity: item.quantity,
         staffId: item.staffId || null,
+        usePackageId: item.customerPackageId || null,
+        usePackageServiceId: item.customerPackageId ? item.serviceId : null,
       }));
       setCartLines(lines);
       setIsCartExpanded(true);
@@ -134,7 +136,7 @@ export function MobilePosView() {
 
   // Check for available service packages when customer changes
   useEffect(() => {
-    if (customer) {
+    if (customer && !invoiceId) {
       getPosCustomerServicePackages(customer.id)
         .then((res: any) => {
           const packages = res?.data || [];
@@ -145,7 +147,7 @@ export function MobilePosView() {
         })
         .catch(console.error);
     }
-  }, [customer?.id]);
+  }, [customer?.id, invoiceId]);
 
   const [receiptToPrint, setReceiptToPrint] = useState<PosReceiptData | null>(null);
 
@@ -162,7 +164,10 @@ export function MobilePosView() {
       .then((response) => {
         if (cancelled) return;
         const prices = new Map(response.data.map((item) => [`${item.itemType}:${item.itemId}`, item.salePrice]));
-        setCartLines((lines) => lines.map((line) => ({ ...line, salePrice: prices.get(`${line.itemType}:${line.itemId}`) ?? line.salePrice })));
+        setCartLines((lines) => lines.map((line) => ({
+          ...line,
+          salePrice: line.usePackageId ? 0 : prices.get(`${line.itemType}:${line.itemId}`) ?? line.salePrice,
+        })));
       })
       .catch(console.error);
     return () => { cancelled = true; };

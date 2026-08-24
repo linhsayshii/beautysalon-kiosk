@@ -3,6 +3,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter } from 'react-router-dom';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { ToastProvider } from '@/components/ui/Toast/ToastProvider';
+import { WebSocketProvider } from '@/context/WebSocketContext';
 import { MobileInvoiceCreateView } from './MobileInvoiceCreateView';
 import * as posApi from '@/features/pos/pos.api';
 import * as opsApi from '@/features/operations/operations.api';
@@ -28,6 +29,14 @@ describe('MobileInvoiceCreateView Component', () => {
       phone: '0987654321',
       debtBalance: 0,
       remainingPackageUnits: 5,
+    },
+    {
+      id: 202,
+      code: 'KH00202',
+      name: 'Trần Thị B',
+      phone: '0909000202',
+      debtBalance: 0,
+      remainingPackageUnits: 0,
     },
   ];
 
@@ -57,6 +66,30 @@ describe('MobileInvoiceCreateView Component', () => {
   const mockStaff = [
     { id: 1, name: 'Nguyễn Kỹ Thuật Viên 1', role: 'Kỹ thuật viên' },
     { id: 2, name: 'Trần Kỹ Thuật Viên 2', role: 'Kỹ thuật viên' },
+  ];
+
+  const mockServicePackages: posApi.ServicePackageOption[] = [
+    {
+      customerPackageId: 901,
+      packageCode: 'PKG901',
+      packageId: 91,
+      packageName: 'Gói chăm sóc da 5 buổi',
+      totalUnits: 5,
+      usedUnits: 1,
+      remainingUnits: 4,
+      expiresAt: null,
+      status: 'active',
+      services: [
+        {
+          serviceId: 10,
+          serviceName: 'Chăm sóc da chuyên sâu',
+          serviceCode: 'DV10',
+          totalUnits: 5,
+          usedCount: 1,
+          availableUnits: 4,
+        },
+      ],
+    },
   ];
 
   const mockReceiptData: posApi.PosReceiptData = {
@@ -121,6 +154,11 @@ describe('MobileInvoiceCreateView Component', () => {
       meta: { total: 2 } as any,
     });
 
+    vi.spyOn(posApi, 'getPosCustomerServicePackages').mockResolvedValue({
+      data: [],
+      meta: {} as any,
+    });
+
     vi.spyOn(posApi, 'checkoutPosInvoice').mockResolvedValue({
       data: mockReceiptData,
       meta: {} as any,
@@ -129,13 +167,15 @@ describe('MobileInvoiceCreateView Component', () => {
 
   const renderComponent = () =>
     render(
-      <QueryClientProvider client={queryClient}>
-        <ToastProvider>
-          <MemoryRouter>
-            <MobileInvoiceCreateView />
-          </MemoryRouter>
-        </ToastProvider>
-      </QueryClientProvider>
+      <WebSocketProvider>
+        <QueryClientProvider client={queryClient}>
+          <ToastProvider>
+            <MemoryRouter>
+              <MobileInvoiceCreateView />
+            </MemoryRouter>
+          </ToastProvider>
+        </QueryClientProvider>
+      </WebSocketProvider>
     );
 
   it('renders initial state with customer selection, item list trigger, payment methods, and checkout button', async () => {
@@ -178,6 +218,80 @@ describe('MobileInvoiceCreateView Component', () => {
     await waitFor(() => {
       expect(screen.getByText('Lê Thị Mai')).toBeInTheDocument();
       expect(screen.getByText(/0987654321/)).toBeInTheDocument();
+    });
+    expect(posApi.getPosCustomerServicePackages).toHaveBeenCalledWith(201);
+    expect(screen.queryByRole('dialog', { name: 'Sử dụng gói dịch vụ' })).not.toBeInTheDocument();
+  });
+
+  it('opens available service packages after customer selection and sends package redemption metadata at checkout', async () => {
+    vi.spyOn(posApi, 'getPosCustomerServicePackages').mockResolvedValue({
+      data: mockServicePackages,
+      meta: {} as any,
+    });
+    renderComponent();
+
+    fireEvent.click(screen.getByText('Chọn khách hàng'));
+    await waitFor(() => expect(screen.getByText('Lê Thị Mai')).toBeInTheDocument());
+    fireEvent.click(screen.getByText('Lê Thị Mai'));
+
+    await waitFor(() => {
+      expect(screen.getByRole('dialog', { name: 'Sử dụng gói dịch vụ' })).toBeInTheDocument();
+      expect(screen.getByText('Gói chăm sóc da 5 buổi')).toBeInTheDocument();
+      expect(screen.getByText('Chăm sóc da chuyên sâu')).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByText('Chăm sóc da chuyên sâu'));
+    fireEvent.click(screen.getByRole('button', { name: 'Dùng gói' }));
+
+    await waitFor(() => expect(screen.getByText('Chi tiết lịch dịch vụ')).toBeInTheDocument());
+    fireEvent.click(screen.getByRole('button', { name: 'Xong' }));
+
+    await waitFor(() => {
+      expect(screen.getByText('Trừ gói: Gói chăm sóc da 5 buổi')).toBeInTheDocument();
+      expect(screen.getByText('0đ / cái, lần')).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: /Thanh toán & In hóa đơn/i }));
+
+    await waitFor(() => {
+      expect(posApi.checkoutPosInvoice).toHaveBeenCalledWith(expect.objectContaining({
+        customerId: 201,
+        amountPaid: 0,
+        lines: [expect.objectContaining({
+          itemId: 10,
+          itemType: 'service',
+          quantity: 1,
+          usePackageId: 901,
+          usePackageServiceId: 10,
+        })],
+      }));
+    });
+  });
+
+  it('removes package-redemption lines when the customer is changed', async () => {
+    vi.spyOn(posApi, 'getPosCustomerServicePackages').mockImplementation(async (customerId) => ({
+      data: customerId === 201 ? mockServicePackages : [],
+      meta: {} as any,
+    }));
+    renderComponent();
+
+    fireEvent.click(screen.getByText('Chọn khách hàng'));
+    await waitFor(() => expect(screen.getByText('Lê Thị Mai')).toBeInTheDocument());
+    fireEvent.click(screen.getByText('Lê Thị Mai'));
+    await waitFor(() => expect(screen.getByText('Chăm sóc da chuyên sâu')).toBeInTheDocument());
+    fireEvent.click(screen.getByText('Chăm sóc da chuyên sâu'));
+    fireEvent.click(screen.getByRole('button', { name: 'Dùng gói' }));
+    await waitFor(() => expect(screen.getByText('Chi tiết lịch dịch vụ')).toBeInTheDocument());
+    fireEvent.click(screen.getByRole('button', { name: 'Xong' }));
+    await waitFor(() => expect(screen.getByText('Trừ gói: Gói chăm sóc da 5 buổi')).toBeInTheDocument());
+
+    fireEvent.click(screen.getByText('Lê Thị Mai'));
+    await waitFor(() => expect(screen.getByText('Trần Thị B')).toBeInTheDocument());
+    fireEvent.click(screen.getByText('Trần Thị B'));
+
+    await waitFor(() => {
+      expect(screen.queryByText('Trừ gói: Gói chăm sóc da 5 buổi')).not.toBeInTheDocument();
+      expect(screen.getByText('Chưa có dịch vụ, sản phẩm trong hóa đơn')).toBeInTheDocument();
     });
   });
 
