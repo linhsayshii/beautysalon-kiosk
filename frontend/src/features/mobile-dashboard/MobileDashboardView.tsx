@@ -7,9 +7,11 @@ import { getDashboard } from '@/features/dashboard/dashboard.api';
 import { DashboardStats } from '@/features/dashboard/components/DashboardStats';
 import { DashboardCharts, type DashboardPeriod } from '@/features/dashboard/components/DashboardCharts';
 import { DashboardSide, TopGoods } from '@/features/dashboard/components/DashboardSide';
+import { useAuth } from '@/features/auth/AuthProvider';
 import './mobile-dashboard.css';
 
 export function MobileDashboardView() {
+  const { account } = useAuth();
   const [period, setPeriod] = useState<DashboardPeriod>('this_month');
   const date = todayIso();
 
@@ -62,6 +64,12 @@ export function MobileDashboardView() {
           <p className="mobile-welcome-date">{currentDate}</p>
           <h1 className="mobile-dashboard-heading">Tổng quan hoạt động</h1>
         </div>
+        {account?.branchName && (
+          <div className="mobile-branch-selector">
+            <i className="ph ph-map-pin" />
+            <span>{account.branchName}</span>
+          </div>
+        )}
       </div>
 
       {/* 2. Full Desktop Cards Arranged Vertically */}

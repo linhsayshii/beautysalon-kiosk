@@ -4,6 +4,15 @@ import { MemoryRouter } from 'react-router-dom';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { MobileCustomersView } from './MobileCustomersView';
 import * as opsApi from '@/features/operations/operations.api';
+import { AuthProvider } from '@/features/auth/AuthProvider';
+import { WebSocketProvider } from '@/context/WebSocketContext';
+
+vi.mock('@/services/websocket', () => ({
+  createPosSocketConnection: vi.fn(() => ({
+    isConnected: () => true,
+    disconnect: vi.fn(),
+  })),
+}));
 
 describe('MobileCustomersView Component', () => {
   let queryClient: QueryClient;
@@ -87,7 +96,11 @@ describe('MobileCustomersView Component', () => {
     render(
       <MemoryRouter>
         <QueryClientProvider client={queryClient}>
-          <MobileCustomersView />
+          <WebSocketProvider>
+            <AuthProvider>
+              <MobileCustomersView />
+            </AuthProvider>
+          </WebSocketProvider>
         </QueryClientProvider>
       </MemoryRouter>
     );
@@ -116,7 +129,11 @@ describe('MobileCustomersView Component', () => {
     render(
       <MemoryRouter>
         <QueryClientProvider client={queryClient}>
-          <MobileCustomersView />
+          <WebSocketProvider>
+            <AuthProvider>
+              <MobileCustomersView />
+            </AuthProvider>
+          </WebSocketProvider>
         </QueryClientProvider>
       </MemoryRouter>
     );
@@ -141,7 +158,11 @@ describe('MobileCustomersView Component', () => {
     render(
       <MemoryRouter>
         <QueryClientProvider client={queryClient}>
-          <MobileCustomersView />
+          <WebSocketProvider>
+            <AuthProvider>
+              <MobileCustomersView />
+            </AuthProvider>
+          </WebSocketProvider>
         </QueryClientProvider>
       </MemoryRouter>
     );

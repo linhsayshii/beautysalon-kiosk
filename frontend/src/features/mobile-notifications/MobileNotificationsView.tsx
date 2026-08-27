@@ -13,7 +13,7 @@ export interface MobileNotificationItem {
 
 type FilterTab = 'all' | 'appointment' | 'system';
 
-// TODO: Integrate with backend notification API when available
+// TODO: Integrate with backend notification API when available (pending backend endpoint)
 const EMPTY_NOTIFICATIONS: MobileNotificationItem[] = [];
 
 export function MobileNotificationsView() {

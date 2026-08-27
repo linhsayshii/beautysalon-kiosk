@@ -7,6 +7,7 @@ import { CustomerCreateDialog } from '@/features/operations/components/CustomerC
 import { StatusBadge } from '@/components/data-display/Badges';
 import { Select } from '@/components/ui/Select/Select';
 import { statusLabels } from '@/types/api';
+import { useAuth } from '@/features/auth/AuthProvider';
 import {
   MobileSearchBar,
   MobileFilterSheet,
@@ -78,6 +79,7 @@ function CustomerActivityList({ customerId, kind }: { customerId: number; kind: 
 }
 
 export function MobileCustomersView() {
+  const { account } = useAuth();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const [search, setSearch] = useState('');
@@ -451,6 +453,11 @@ export function MobileCustomersView() {
                 ) : (
                   <span className="mobile-detail-pill is-green">Không nợ</span>
                 )}
+              </div>
+
+              <div className="mobile-detail-nav-row" style={{ marginTop: 8 }}>
+                <span style={{ fontSize: '13px', color: '#64748b' }}><i className="ph ph-map-pin" /> Chi nhánh</span>
+                <strong style={{ fontSize: '14px' }}>{account?.branchName ?? 'Chi nhánh trung tâm'}</strong>
               </div>
 
               {/* 2x2 Grid */}

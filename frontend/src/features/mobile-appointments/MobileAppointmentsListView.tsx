@@ -39,12 +39,15 @@ const APPOINTMENT_STATUSES = ['pending', 'confirmed', 'waiting', 'in_service', '
 
 export function MobileAppointmentsListView() {
   const { account } = useAuth();
+  const branchName = account?.branchName ?? 'Chi nhánh trung tâm';
   const timeZone = account?.branchTimezone ?? DEFAULT_BRANCH_TIME_ZONE;
   const today = useMemo(() => localDateTimeFromInstant(new Date(), timeZone).slice(0, 10), [timeZone]);
   const [selectedDate, setSelectedDate] = useState<string>(() => today);
   useEffect(() => {
-    setSelectedDate(today);
-  }, [today]);
+    if (selectedDate !== today) {
+      setSelectedDate(today);
+    }
+  }, [today]); // eslint-disable-line react-hooks/exhaustive-deps
   const [activeTab, setActiveTab] = useState<'list' | 'timeline' | 'staff_grid'>('list');
   const [staffFilter, setStaffFilter] = useState<string>('all');
   const [search, setSearch] = useState('');
@@ -54,7 +57,7 @@ export function MobileAppointmentsListView() {
   const queryClient = useQueryClient();
 
   const { data: appointmentsResponse, isLoading } = useQuery({
-    queryKey: ['pos-appointments', selectedDate, selectedDate],
+    queryKey: ['pos-appointments', selectedDate],
     queryFn: () => getPosAppointments(selectedDate, selectedDate),
   });
 
@@ -355,7 +358,7 @@ export function MobileAppointmentsListView() {
                   <i className="ph ph-calendar" />
                 </div>
                 <div className="mobile-apt-detail-time-text">
-                  Bắt đầu làm {formatBranchTime(selectedApt.startsAt, timeZone)} - {formatDayHeader(selectedDate, today)}
+                  Bắt đầu làm {formatBranchTime(selectedApt.startsAt, timeZone)} - {formatDayHeader(selectedApt.startsAt.slice(0, 10), today)}
                 </div>
               </div>
             </div>
@@ -377,7 +380,7 @@ export function MobileAppointmentsListView() {
                 Trừ gói Combo 20 buổi gội đầu (Tặng 5 buổi gội)
               </div>
               <div className="mobile-apt-service-time-range">
-                {formatBranchTime(selectedApt.startsAt, timeZone)} - {formatBranchTime(selectedApt.endsAt, timeZone)}, {selectedDate.split('-').reverse().slice(0, 2).join('/')}
+                {formatBranchTime(selectedApt.startsAt, timeZone)} - {formatBranchTime(selectedApt.endsAt, timeZone)}, {selectedApt.startsAt.split('T')[0].split('-').reverse().slice(0, 2).join('/')}
               </div>
               {selectedApt.staff?.name && (
                 <div className="mobile-apt-staff-pill">
@@ -396,7 +399,7 @@ export function MobileAppointmentsListView() {
 
                 <div className="mobile-apt-grid-cell">
                   <span className="mobile-apt-grid-lbl">Chi nhánh</span>
-                  <span className="mobile-apt-grid-val">Chi nhánh trung tâm</span>
+                  <span className="mobile-apt-grid-val">{branchName}</span>
                 </div>
 
                 <div className="mobile-apt-grid-cell">
@@ -409,7 +412,7 @@ export function MobileAppointmentsListView() {
                 <div className="mobile-apt-grid-cell">
                   <span className="mobile-apt-grid-lbl">Mã hóa đơn</span>
                   <span className="mobile-apt-grid-val">
-                    {`HD00${selectedApt.id + 1000 || '7176'}`}
+                    {`HD00${(selectedApt.id || 0) + 1000}`}
                   </span>
                 </div>
               </div>

@@ -7,8 +7,10 @@ import { getDashboard } from '../dashboard.api';
 import { DashboardCharts, type DashboardPeriod } from './DashboardCharts';
 import { DashboardSide, TopGoods } from './DashboardSide';
 import { DashboardStats } from './DashboardStats';
+import { useAuth } from '@/features/auth/AuthProvider';
 
 export function DashboardView() {
+  const { account } = useAuth();
   const [period, setPeriod] = useState<DashboardPeriod>(() => (new URLSearchParams(window.location.search).get('period') as DashboardPeriod) || 'this_month');
   const date = todayIso();
   const setDashboardPeriod = (nextPeriod: DashboardPeriod) => { setPeriod(nextPeriod); const params = new URLSearchParams(window.location.search); params.set('period', nextPeriod); window.history.replaceState({}, '', `/dashboard?${params.toString()}`); };
@@ -35,7 +37,7 @@ export function DashboardView() {
           <span className="branch-icon"><i className="ph ph-map-pin" /></span>
           <span>
             <small>Chi nhánh đang xem</small>
-            <strong>{dashboard?.meta.branch.name ?? 'Đang tải...'}</strong>
+            <strong>{account?.branchName ?? dashboard?.meta.branch.name ?? 'Đang tải...'}</strong>
           </span>
         </div>
       </div>

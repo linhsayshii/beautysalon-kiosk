@@ -53,6 +53,7 @@ export function MobileStaffSalaryView() {
       queryClient.invalidateQueries({ queryKey: ['mobile-my-payroll-history'] });
     });
     return unsub;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [subscribe, queryClient]);
 
   const query = useQuery({

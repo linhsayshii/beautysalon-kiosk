@@ -1408,7 +1408,8 @@ body:has(.mobile-form-sheet-backdrop) :is(.mobile-inventory-fab-btn, .mobile-ope
   right: 0;
   left: 0;
   height: var(--mobile-overlay-viewport-height, 100dvh);
-  z-index: 80;
+  /* Must cover fixed POS controls such as the cart (z-index: 85). */
+  z-index: var(--mobile-layer-overlay, 100);
   background: rgba(15, 23, 42, 0.45);
   backdrop-filter: blur(2px);
   display: flex;

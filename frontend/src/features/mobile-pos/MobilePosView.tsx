@@ -215,7 +215,7 @@ export function MobilePosView() {
       let amount = 0;
 
       if (line.commissionType === 'percent') {
-        amount = revenue * line.commissionRate;
+        amount = (revenue * line.commissionRate) / 100;
       } else {
         amount = line.quantity * line.commissionRate;
       }
@@ -500,9 +500,11 @@ export function MobilePosView() {
 
                   <div className="commission-badge">
                     HH: {line.staffId && line.commissionType && line.commissionRate
-                      ? formatMoney(Math.round(line.commissionType === 'percent'
-                          ? line.salePrice * line.quantity * line.commissionRate
-                          : line.quantity * line.commissionRate))
+                      ? formatMoney(Math.round(
+                          line.commissionType === 'percent'
+                            ? (line.salePrice * line.quantity * line.commissionRate) / 100
+                            : line.commissionRate
+                        ))
                       : '-'}
                   </div>
                 </div>

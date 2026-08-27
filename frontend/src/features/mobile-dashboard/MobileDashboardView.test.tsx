@@ -5,6 +5,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { MobileDashboardView } from './MobileDashboardView';
 import * as dashApi from '@/features/dashboard/dashboard.api';
 import { WebSocketProvider } from '@/context/WebSocketContext';
+import { AuthProvider } from '@/features/auth/AuthProvider';
 
 vi.mock('@/services/websocket', () => ({
   createPosSocketConnection: vi.fn(() => ({
@@ -19,7 +20,11 @@ describe('MobileDashboardView Component', () => {
   const wrapper = ({ children }: { children: React.ReactNode }) => (
     <WebSocketProvider>
       <QueryClientProvider client={queryClient}>
-        <MemoryRouter>{children}</MemoryRouter>
+        <MemoryRouter>
+          <AuthProvider>
+            {children}
+          </AuthProvider>
+        </MemoryRouter>
       </QueryClientProvider>
     </WebSocketProvider>
   );
