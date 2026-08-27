@@ -2,10 +2,12 @@ import { useState } from 'react';
 import type { FormEvent } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { errorMessage } from '@/services/api-client';
+import { useMetadata } from '@/services/metadata';
 import { homeForRole, useAuth } from './AuthProvider';
 
 export function LoginView() {
   const { account, loading, login } = useAuth();
+  const { data: metadata } = useMetadata();
   const navigate = useNavigate();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -15,6 +17,8 @@ export function LoginView() {
 
   if (loading) return <AuthLoading />;
   if (account) return <Navigate to={homeForRole(account.role)} replace />;
+
+  const storeName = metadata?.data?.system?.storeName || 'Anna Chill Beauty';
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
@@ -28,18 +32,22 @@ export function LoginView() {
   };
 
   return <main className="login-page">
-    <section className="login-card">
-      <div className="login-brand"><span className="brand-mark" aria-hidden="true"><span /><span /></span><span>Beauty Salon</span></div>
-      <div className="login-heading"><span className="eyebrow">SALON MANAGEMENT</span><h1>Đăng nhập tài khoản</h1><p>Hệ thống sẽ tự mở đúng khu vực làm việc theo quyền của bạn.</p></div>
-      <form onSubmit={submit}>
-        <label className="auth-field"><span>Tên đăng nhập</span><div><i className="ph ph-user" /><input autoFocus autoComplete="username" value={username} onChange={(event) => setUsername(event.target.value)} placeholder="Nhập tên đăng nhập" /></div></label>
-        <label className="auth-field"><span>Mật khẩu</span><div><i className="ph ph-lock-key" /><input type={showPassword ? 'text' : 'password'} autoComplete="current-password" value={password} onChange={(event) => setPassword(event.target.value)} placeholder="Nhập mật khẩu" /><button type="button" onClick={() => setShowPassword((value) => !value)} aria-label={showPassword ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}><i className={`ph ${showPassword ? 'ph-eye-slash' : 'ph-eye'}`} /></button></div></label>
+    <div className="login-shell">
+      <div className="login-mobile-brand"><span className="brand-mark" aria-hidden="true"><span /><span /></span><span>{storeName}</span></div>
+      <aside className="login-visual">
+        <div className="login-brand"><span className="brand-mark" aria-hidden="true"><span /><span /></span><span>{storeName}</span></div>
+        <div className="login-visual-copy"><span>Hệ thống quản lý</span><h2>{storeName}</h2><p>Đăng nhập vào tài khoản của bạn</p></div>
+      </aside>
+      <section className="login-card" aria-labelledby="login-title">
+        <div className="login-heading"><h1 id="login-title">Đăng nhập hệ thống</h1><p>Đăng nhập vào tài khoản của bạn</p></div>
+        <form onSubmit={submit}>
+          <label className="auth-field"><span>Tên đăng nhập</span><div><input autoFocus autoComplete="username" value={username} onChange={(event) => setUsername(event.target.value)} placeholder="Nhập tên đăng nhập" /></div></label>
+          <label className="auth-field"><span>Mật khẩu</span><div><input type={showPassword ? 'text' : 'password'} autoComplete="current-password" value={password} onChange={(event) => setPassword(event.target.value)} placeholder="Nhập mật khẩu" /><button type="button" onClick={() => setShowPassword((value) => !value)} aria-label={showPassword ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}><i className={`ph ${showPassword ? 'ph-eye-slash' : 'ph-eye'}`} /></button></div></label>
         {error && <div className="auth-error" role="alert"><i className="ph ph-warning-circle" />{error}</div>}
-        <button className="login-submit" type="submit" disabled={submitting || !username.trim() || !password}>{submitting ? <><i className="ph ph-circle-notch spin" />Đang đăng nhập</> : <>Đăng nhập<i className="ph ph-arrow-right" /></>}</button>
-      </form>
-      <p className="login-footnote"><i className="ph ph-shield-check" /> Phiên đăng nhập được bảo vệ trên thiết bị này.</p>
-    </section>
-    <aside className="login-visual"><div className="login-orb"><i className="ph ph-sparkle" /></div><div><span>VẬN HÀNH GỌN GÀNG</span><h2>Mỗi vai trò,<br />đúng công việc.</h2><p>Quản lý toàn hệ thống, thu ngân tập trung bán hàng, nhân viên chấm công an toàn tại chi nhánh.</p></div></aside>
+          <button className="login-submit" type="submit" disabled={submitting || !username.trim() || !password}>{submitting ? <><i className="ph ph-circle-notch spin" />Đang đăng nhập</> : <><i className="ph ph-sign-in" />Đăng nhập</>}</button>
+        </form>
+      </section>
+    </div>
   </main>;
 }
 
