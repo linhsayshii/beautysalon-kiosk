@@ -118,9 +118,10 @@
   box-shadow: 0 0 0 3px rgba(7, 86, 204, 0.08);
 }
 
-.package-card__header {
+.use-package-modal .package-card__header {
   display: flex;
   flex-direction: column;
+  align-items: flex-start;
   gap: 4px;
   width: 100%;
   padding: 12px 14px;
@@ -134,9 +135,11 @@
   background: rgba(7, 86, 204, 0.04);
 }
 
-.package-card__info {
+.use-package-modal .package-card__info {
   display: flex;
   align-items: center;
+  justify-content: flex-start;
+  width: 100%;
   gap: 10px;
 }
 
@@ -162,9 +165,11 @@
   white-space: nowrap;
 }
 
-.package-card__meta {
+.use-package-modal .package-card__meta {
   display: flex;
   align-items: center;
+  justify-content: flex-start;
+  width: 100%;
   gap: 12px;
   padding-left: 42px;
   font-size: 12px;

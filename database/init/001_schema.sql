@@ -555,8 +555,6 @@ CREATE TABLE commission_records (
   amount NUMERIC(14, 2) NOT NULL DEFAULT 0 CHECK (amount >= 0),
   rate_type VARCHAR(10) CHECK (rate_type IN ('percent', 'fixed')),
   occurred_on DATE NOT NULL,
-  status VARCHAR(20) NOT NULL DEFAULT 'pending'
-    CHECK (status IN ('pending', 'approved', 'paid')),
   commission_type VARCHAR(30) DEFAULT 'service'
 );
 

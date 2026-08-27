@@ -834,6 +834,10 @@ function AppointmentDrawer({
         staffId: item.appointment.staff?.id ?? item.staffId ?? null,
         commissionType: item.commissionType ?? null,
         commissionRate: item.commissionRate ?? 0,
+        // Preserve the redemption source when reopening an appointment.  It
+        // must survive a later save so POS does not turn a package session
+        // back into a normally charged service.
+        fromPackageId: item.customerPackageId ?? null,
       }));
     if (serviceLines.length) setSelectedServices(serviceLines);
   }, [groupedInvoice.data, hasRemoteAppointmentChange]);
@@ -865,7 +869,13 @@ function AppointmentDrawer({
             endsAt: endsAtIso,
             status,
             note,
-            items: additions.map((service) => ({ serviceId: service.id, staffId: service.staffId, quantity: 1 })),
+            items: additions.map((service) => ({
+              serviceId: service.id,
+              staffId: service.staffId,
+              quantity: 1,
+              usePackageId: service.fromPackageId ?? null,
+              usePackageServiceId: service.fromPackageId ? service.id : null,
+            })),
           });
         }
         await Promise.all(removedAppointmentIds.map((appointmentId) => updatePosAppointment(appointmentId, { status: 'cancelled' })));
@@ -877,7 +887,13 @@ function AppointmentDrawer({
         endsAt: endsAtIso,
         status,
         note,
-        items: additions.map((service) => ({ serviceId: service.id, staffId: service.staffId, quantity: 1 })),
+        items: additions.map((service) => ({
+          serviceId: service.id,
+          staffId: service.staffId,
+          quantity: 1,
+          usePackageId: service.fromPackageId ?? null,
+          usePackageServiceId: service.fromPackageId ? service.id : null,
+        })),
       });
     },
     onSuccess: () => {

@@ -505,7 +505,7 @@ export async function listCommissions({ branchId, dateFrom, dateTo }) {
   const [rowsResult, staffSummaryResult] = await Promise.all([
     pool.query(
       `SELECT
-         cr.id, cr.source_name, cr.revenue, cr.rate, cr.amount, cr.occurred_on, cr.status,
+         cr.id, cr.source_name, cr.revenue, cr.rate, cr.amount, cr.occurred_on,
          cr.invoice_id, cr.invoice_item_id,
          COALESCE(cr.commission_type, CASE WHEN cr.source_name ILIKE '%tư vấn%' OR cr.source_name ILIKE '%sản phẩm%' THEN 'consulting' ELSE 'service' END) AS commission_type,
          s.id AS staff_id, s.code AS staff_code, s.name AS staff_name, s.role, s.avatar_tone,
@@ -553,7 +553,6 @@ export async function listCommissions({ branchId, dateFrom, dateTo }) {
       rate: number(row.rate),
       amount: number(row.amount),
       occurredOn: row.occurred_on,
-      status: row.status,
     })),
     staffSummary: staffSummaryResult.rows.map((row) => ({
       staff: { id: number(row.id), code: row.code, name: row.name, role: row.role, avatarTone: row.avatar_tone },

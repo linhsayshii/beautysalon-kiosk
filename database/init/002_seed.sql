@@ -1215,8 +1215,8 @@ JOIN staff s ON s.code = x.staff_code AND s.branch_id = b.id
 WHERE b.code = 'CN-TT'
 ON CONFLICT (code) DO NOTHING;
 
-INSERT INTO commission_records (branch_id, staff_id, invoice_id, source_name, revenue, rate, amount, occurred_on, status, commission_type)
-SELECT b.id, s.id, i.id, x.source_name, x.revenue, x.rate, x.amount, x.occurred_on::date, 'approved', x.commission_type
+INSERT INTO commission_records (branch_id, staff_id, invoice_id, source_name, revenue, rate, amount, occurred_on, commission_type)
+SELECT b.id, s.id, i.id, x.source_name, x.revenue, x.rate, x.amount, x.occurred_on::date, x.commission_type
 FROM branches b
 JOIN (VALUES
   ('NV000016', 'HD-202608-001', 'Thực hiện dịch vụ Gội đầu dưỡng sinh & chăm sóc da', 1100000, 0.05, 55000, '2026-08-14', 'service'),

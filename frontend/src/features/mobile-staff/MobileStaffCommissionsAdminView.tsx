@@ -6,10 +6,13 @@ import {
   MobileDetailSheet,
   MobileEmptyState,
 } from '@/features/mobile-common';
-import { getCommissions } from '@/features/staff/staff.api';
+import {
+  getCommissions,
+  type CommissionDetail,
+  type CommissionStaffSummary,
+} from '@/features/staff/staff.api';
 import { monthStartIso, todayIso } from '@/lib/date';
-import { formatMoney, initials } from '@/lib/format';
-import type { ApiRecord } from '@/types/api';
+import { formatMoney, formatPercent, initials } from '@/lib/format';
 import './mobile-staff.css';
 
 export function MobileStaffCommissionsAdminView() {
@@ -21,8 +24,8 @@ export function MobileStaffCommissionsAdminView() {
   const [isSearchVisible, setIsSearchVisible] = useState(false);
 
   // Selected item for bottom sheet
-  const [selectedStaffSummary, setSelectedStaffSummary] = useState<ApiRecord | null>(null);
-  const [selectedTxRecord, setSelectedTxRecord] = useState<ApiRecord | null>(null);
+  const [selectedStaffSummary, setSelectedStaffSummary] = useState<CommissionStaffSummary | null>(null);
+  const [selectedTxRecord, setSelectedTxRecord] = useState<CommissionDetail | null>(null);
 
   const { data: commData, isLoading } = useQuery({
     queryKey: ['admin-mobile-commissions', dateFrom, dateTo],
@@ -30,25 +33,25 @@ export function MobileStaffCommissionsAdminView() {
   });
 
   const payload = commData?.data;
-  const rows: ApiRecord[] = useMemo(() => {
+  const rows: CommissionDetail[] = useMemo(() => {
     return payload?.rows ?? [];
   }, [payload]);
 
-  const byStaff: ApiRecord[] = useMemo(() => {
-    return payload?.byStaff ?? [];
+  const staffSummary: CommissionStaffSummary[] = useMemo(() => {
+    return payload?.staffSummary ?? [];
   }, [payload]);
 
   // Filter staff list
   const filteredByStaff = useMemo(() => {
-    if (!search.trim()) return byStaff;
+    if (!search.trim()) return staffSummary;
     const q = search.toLowerCase();
-    return byStaff.filter(
+    return staffSummary.filter(
       (s) =>
-        s.staffName?.toLowerCase().includes(q) ||
-        s.staffCode?.toLowerCase().includes(q) ||
-        s.staffRole?.toLowerCase().includes(q)
+        s.staff.name?.toLowerCase().includes(q) ||
+        s.staff.code?.toLowerCase().includes(q) ||
+        s.staff.role?.toLowerCase().includes(q)
     );
-  }, [byStaff, search]);
+  }, [staffSummary, search]);
 
   // Filter transaction rows
   const filteredRows = useMemo(() => {
@@ -56,17 +59,18 @@ export function MobileStaffCommissionsAdminView() {
     const q = search.toLowerCase();
     return rows.filter(
       (r) =>
-        r.staffName?.toLowerCase().includes(q) ||
-        r.itemName?.toLowerCase().includes(q) ||
+        r.staff.name?.toLowerCase().includes(q) ||
+        r.productName?.toLowerCase().includes(q) ||
+        r.sourceName?.toLowerCase().includes(q) ||
         r.invoiceCode?.toLowerCase().includes(q)
     );
   }, [rows, search]);
 
   // Group staff by Role for Tab 1
   const groupedStaff = useMemo(() => {
-    const map = new Map<string, ApiRecord[]>();
+    const map = new Map<string, CommissionStaffSummary[]>();
     filteredByStaff.forEach((s) => {
-      const role = (s.staffRole || 'KỸ THUẬT VIÊN').toUpperCase();
+      const role = (s.staff.role || 'KỸ THUẬT VIÊN').toUpperCase();
       const list = map.get(role) || [];
       list.push(s);
       map.set(role, list);
@@ -76,9 +80,9 @@ export function MobileStaffCommissionsAdminView() {
 
   // Group transactions by date for Tab 2
   const groupedTransactions = useMemo(() => {
-    const map = new Map<string, ApiRecord[]>();
+    const map = new Map<string, CommissionDetail[]>();
     filteredRows.forEach((r) => {
-      const dateKey = r.createdAt ? r.createdAt.slice(0, 10) : 'GẦN ĐÂY';
+      const dateKey = r.occurredOn || 'GẦN ĐÂY';
       const list = map.get(dateKey) || [];
       list.push(r);
       map.set(dateKey, list);
@@ -87,7 +91,7 @@ export function MobileStaffCommissionsAdminView() {
   }, [filteredRows]);
 
   const totalCommissions = useMemo(() => {
-    return filteredByStaff.reduce((sum, s) => sum + Number(s.totalCommission || 0), 0);
+    return filteredByStaff.reduce((sum, s) => sum + s.totalAmount, 0);
   }, [filteredByStaff]);
 
   return (
@@ -187,27 +191,27 @@ export function MobileStaffCommissionsAdminView() {
                 <div className="mobile-section-card">
                   {staffItems.map((staff) => (
                     <div
-                      key={staff.staffId}
+                      key={staff.staff.id}
                       className="mobile-grouped-row"
                       onClick={() => setSelectedStaffSummary(staff)}
                     >
                       <div className="mobile-staff-row-left">
                         <div className="mobile-staff-avatar rose">
-                          {initials(staff.staffName || 'NV')}
+                          {initials(staff.staff.name || 'NV')}
                         </div>
                         <div className="mobile-staff-row-info">
-                          <span className="mobile-staff-row-name">{staff.staffName}</span>
+                          <span className="mobile-staff-row-name">{staff.staff.name}</span>
                           <span className="mobile-staff-row-sub">
-                            <span>{staff.staffCode}</span>
+                            <span>{staff.staff.code}</span>
                             <span>•</span>
-                            <span>{staff.itemCount || 0} lượt làm</span>
+                            <span>{staff.transactionCount} lượt làm</span>
                           </span>
                         </div>
                       </div>
 
                       <div className="mobile-staff-row-right">
                         <span className="mobile-staff-row-value emerald">
-                          {formatMoney(staff.totalCommission)}
+                          {formatMoney(staff.totalAmount)}
                         </span>
                         <span style={{ fontSize: 11.5, color: '#64748b' }}>
                           Doanh số: {formatMoney(staff.totalRevenue)}
@@ -256,9 +260,9 @@ export function MobileStaffCommissionsAdminView() {
                           />
                         </div>
                         <div className="mobile-staff-row-info">
-                          <span className="mobile-staff-row-name">{tx.itemName}</span>
+                          <span className="mobile-staff-row-name">{tx.productName || tx.sourceName}</span>
                           <span className="mobile-staff-row-sub">
-                            <span>{tx.staffName}</span>
+                            <span>{tx.staff.name}</span>
                             <span>•</span>
                             <span>{tx.invoiceCode}</span>
                           </span>
@@ -270,7 +274,7 @@ export function MobileStaffCommissionsAdminView() {
                           +{formatMoney(tx.amount)}
                         </span>
                         <span style={{ fontSize: 11.5, color: '#64748b' }}>
-                          {tx.ratePercent}% hoa hồng
+                          {formatPercent(tx.rate)} hoa hồng
                         </span>
                       </div>
                     </div>
@@ -286,7 +290,7 @@ export function MobileStaffCommissionsAdminView() {
       <MobileDetailSheet
         isOpen={Boolean(selectedStaffSummary)}
         title="Tổng hợp hoa hồng nhân viên"
-        subtitle={selectedStaffSummary ? `${selectedStaffSummary.staffName} • ${selectedStaffSummary.staffCode}` : ''}
+        subtitle={selectedStaffSummary ? `${selectedStaffSummary.staff.name} • ${selectedStaffSummary.staff.code}` : ''}
         onClose={() => setSelectedStaffSummary(null)}
       >
         {selectedStaffSummary && (
@@ -296,7 +300,7 @@ export function MobileStaffCommissionsAdminView() {
                 <div>
                   <div style={{ fontSize: 13, color: '#64748b' }}>Tổng hoa hồng nhận được</div>
                   <div className="mobile-detail-hero-amount" style={{ color: '#16a34a' }}>
-                    {formatMoney(selectedStaffSummary.totalCommission)}
+                    {formatMoney(selectedStaffSummary.totalAmount)}
                   </div>
                 </div>
                 <div style={{ textAlign: 'right' }}>
@@ -317,7 +321,7 @@ export function MobileStaffCommissionsAdminView() {
                     <span className="mobile-detail-item-sub">Gội đầu, làm móng, chăm sóc da...</span>
                   </div>
                   <span className="mobile-detail-item-value" style={{ color: '#16a34a' }}>
-                    +{formatMoney(selectedStaffSummary.serviceCommission)}
+                    +{formatMoney(selectedStaffSummary.serviceAmount)}
                   </span>
                 </div>
 
@@ -327,7 +331,7 @@ export function MobileStaffCommissionsAdminView() {
                     <span className="mobile-detail-item-sub">Bán mỹ phẩm, liệu trình spa...</span>
                   </div>
                   <span className="mobile-detail-item-value" style={{ color: '#16a34a' }}>
-                    +{formatMoney(selectedStaffSummary.consultingCommission)}
+                    +{formatMoney(selectedStaffSummary.consultingAmount)}
                   </span>
                 </div>
 
@@ -337,7 +341,7 @@ export function MobileStaffCommissionsAdminView() {
                     <span className="mobile-detail-item-sub">Hóa đơn có ghi nhận thợ</span>
                   </div>
                   <span className="mobile-detail-item-value">
-                    {selectedStaffSummary.itemCount} lượt
+                    {selectedStaffSummary.transactionCount} lượt
                   </span>
                 </div>
               </div>
@@ -350,7 +354,7 @@ export function MobileStaffCommissionsAdminView() {
       <MobileDetailSheet
         isOpen={Boolean(selectedTxRecord)}
         title="Chi tiết giao dịch hoa hồng"
-        subtitle={selectedTxRecord ? `${selectedTxRecord.invoiceCode} • ${selectedTxRecord.createdAt}` : ''}
+        subtitle={selectedTxRecord ? `${selectedTxRecord.invoiceCode} • ${selectedTxRecord.occurredOn}` : ''}
         onClose={() => setSelectedTxRecord(null)}
       >
         {selectedTxRecord && (
@@ -372,11 +376,11 @@ export function MobileStaffCommissionsAdminView() {
             <div className="mobile-detail-grid">
               <div className="mobile-detail-cell">
                 <span className="mobile-detail-cell-label">Mặt hàng / Dịch vụ</span>
-                <span className="mobile-detail-cell-value">{selectedTxRecord.itemName}</span>
+                <span className="mobile-detail-cell-value">{selectedTxRecord.productName || selectedTxRecord.sourceName}</span>
               </div>
               <div className="mobile-detail-cell">
                 <span className="mobile-detail-cell-label">Nhân viên nhận</span>
-                <span className="mobile-detail-cell-value">{selectedTxRecord.staffName}</span>
+                <span className="mobile-detail-cell-value">{selectedTxRecord.staff.name}</span>
               </div>
               <div className="mobile-detail-cell">
                 <span className="mobile-detail-cell-label">Doanh thu hóa đơn</span>
@@ -384,7 +388,7 @@ export function MobileStaffCommissionsAdminView() {
               </div>
               <div className="mobile-detail-cell">
                 <span className="mobile-detail-cell-label">Tỷ lệ hoa hồng</span>
-                <span className="mobile-detail-cell-value">{selectedTxRecord.ratePercent}%</span>
+                <span className="mobile-detail-cell-value">{formatPercent(selectedTxRecord.rate)}</span>
               </div>
             </div>
           </>

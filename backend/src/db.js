@@ -24,6 +24,11 @@ export async function runMigrations() {
       ALTER TABLE commission_records
         ADD COLUMN IF NOT EXISTS commission_type VARCHAR(30) DEFAULT 'service';
 
+      -- Commission is earned when its POS invoice is completed. Payroll owns
+      -- approval and payment state, so commission records intentionally have
+      -- no duplicate lifecycle status.
+      ALTER TABLE commission_records DROP COLUMN IF EXISTS status;
+
       ALTER TABLE invoice_items
         ADD COLUMN IF NOT EXISTS staff_id BIGINT REFERENCES staff(id) ON DELETE SET NULL,
         ADD COLUMN IF NOT EXISTS appointment_id BIGINT REFERENCES appointments(id) ON DELETE SET NULL,

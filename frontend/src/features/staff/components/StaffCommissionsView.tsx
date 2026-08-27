@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { AvatarName } from '@/components/data-display/AvatarName';
-import { StatusBadge } from '@/components/data-display/Badges';
 import { EmptyState, ErrorState, LoadingState } from '@/components/data-display/DataState';
 import { Pagination } from '@/components/data-display/Pagination';
 import { SummaryStrip } from '@/components/data-display/SummaryStrip';
@@ -25,7 +24,7 @@ export function StaffCommissionsView() {
 
   const data = query.data?.data;
   const rows = data?.rows ?? [];
-  const byStaff = data?.byStaff ?? [];
+  const staffSummary = data?.staffSummary ?? [];
 
   const totalRevenue = rows.reduce((sum: number, row: Record<string, any>) => sum + Number(row.revenue), 0);
   const totalCommission = rows.reduce((sum: number, row: Record<string, any>) => sum + Number(row.amount), 0);
@@ -62,7 +61,7 @@ export function StaffCommissionsView() {
                 onClick={() => setActiveTab('by_staff')}
               >
                 <i className="ph ph-users" style={{ marginRight: 6 }} />
-                Tổng hợp theo nhân viên ({byStaff.length})
+                Tổng hợp theo nhân viên ({staffSummary.length})
               </button>
               <button
                 type="button"
@@ -95,7 +94,7 @@ export function StaffCommissionsView() {
           ) : query.error ? (
             <ErrorState error={query.error} onRetry={() => query.refetch()} />
           ) : activeTab === 'by_staff' ? (
-            !byStaff.length ? (
+            !staffSummary.length ? (
               <EmptyState message="Không có dữ liệu nhân viên trong kỳ này." />
             ) : (
               <>
@@ -114,44 +113,44 @@ export function StaffCommissionsView() {
                       </tr>
                     </thead>
                     <tbody>
-                      {byStaff.map((staff: Record<string, any>) => (
-                        <tr key={staff.id}>
+                      {staffSummary.map((summary) => (
+                        <tr key={summary.staff.id}>
                           <td data-label="Nhân viên">
                             <AvatarName
-                              name={staff.name}
-                              subtitle={`${staff.code || ''} ${staff.role ? `• ${staff.role}` : ''}`}
-                              tone={staff.avatarTone}
+                              name={summary.staff.name}
+                              subtitle={`${summary.staff.code || ''} ${summary.staff.role ? `• ${summary.staff.role}` : ''}`}
+                              tone={summary.staff.avatarTone}
                             />
                           </td>
                           <td data-label="DT Dịch vụ" className="money-cell" style={{ textAlign: 'right' }}>
-                            {formatMoney(staff.serviceRevenue || 0)}
+                            {formatMoney(summary.serviceRevenue)}
                           </td>
                           <td
                             data-label="HH Thực hiện"
                             className="money-cell"
                             style={{ textAlign: 'right', color: 'var(--blue-700)', fontWeight: 750 }}
                           >
-                            {formatMoney(staff.serviceAmount || 0)}
+                            {formatMoney(summary.serviceAmount)}
                           </td>
                           <td data-label="DT Tư vấn" className="money-cell" style={{ textAlign: 'right' }}>
-                            {formatMoney(staff.consultingRevenue || 0)}
+                            {formatMoney(summary.consultingRevenue)}
                           </td>
                           <td
                             data-label="HH Tư vấn"
                             className="money-cell"
                             style={{ textAlign: 'right', color: 'var(--violet)', fontWeight: 750 }}
                           >
-                            {formatMoney(staff.consultingAmount || 0)}
+                            {formatMoney(summary.consultingAmount)}
                           </td>
                           <td
                             data-label="Tổng hoa hồng"
                             className="money-cell"
                             style={{ textAlign: 'right', color: 'var(--green)', fontSize: '13px', fontWeight: 800 }}
                           >
-                            {formatMoney(staff.amount || 0)}
+                            {formatMoney(summary.totalAmount)}
                           </td>
                           <td data-label="Lượt phát sinh" className="numeric-cell">
-                            {formatNumber(staff.transactionCount || 0)}
+                            {formatNumber(summary.transactionCount)}
                           </td>
                           <td className="mobile-hide">
                             <button
@@ -159,32 +158,32 @@ export function StaffCommissionsView() {
                               aria-label="Xem chi tiết"
                               title="Xem chi tiết nhân viên"
                               onClick={() =>
-                                openDrawer(staff.name, [
+                                openDrawer(summary.staff.name, [
                                   {
                                     title: 'Thông tin nhân viên',
                                     rows: [
-                                      ['Mã nhân viên', staff.code || '-'],
-                                      ['Chức danh', staff.role || '-'],
-                                      ['Số lượt ghi nhận', formatNumber(staff.transactionCount || 0)],
+                                      ['Mã nhân viên', summary.staff.code || '-'],
+                                      ['Chức danh', summary.staff.role || '-'],
+                                      ['Số lượt ghi nhận', formatNumber(summary.transactionCount)],
                                     ],
                                   },
                                   {
                                     title: 'Hoa hồng Thực hiện Dịch vụ',
                                     rows: [
-                                      ['Doanh thu dịch vụ', formatMoney(staff.serviceRevenue || 0)],
-                                      ['Hoa hồng dịch vụ', formatMoney(staff.serviceAmount || 0)],
+                                      ['Doanh thu dịch vụ', formatMoney(summary.serviceRevenue)],
+                                      ['Hoa hồng dịch vụ', formatMoney(summary.serviceAmount)],
                                     ],
                                   },
                                   {
                                     title: 'Hoa hồng Tư vấn Bán hàng',
                                     rows: [
-                                      ['Doanh thu tư vấn', formatMoney(staff.consultingRevenue || 0)],
-                                      ['Hoa hồng tư vấn', formatMoney(staff.consultingAmount || 0)],
+                                      ['Doanh thu tư vấn', formatMoney(summary.consultingRevenue)],
+                                      ['Hoa hồng tư vấn', formatMoney(summary.consultingAmount)],
                                     ],
                                   },
                                   {
                                     title: 'Tổng cộng',
-                                    rows: [['Tổng hoa hồng thụ hưởng', formatMoney(staff.amount || 0)]],
+                                    rows: [['Tổng hoa hồng thụ hưởng', formatMoney(summary.totalAmount)]],
                                   },
                                 ])
                               }
@@ -198,7 +197,7 @@ export function StaffCommissionsView() {
                   </table>
                 </div>
                 <Pagination
-                  pagination={{ page: 1, pageSize: byStaff.length, total: byStaff.length, totalPages: 1 }}
+                  pagination={{ page: 1, pageSize: staffSummary.length, total: staffSummary.length, totalPages: 1 }}
                   onChange={() => undefined}
                 />
               </>
@@ -221,7 +220,6 @@ export function StaffCommissionsView() {
                       <th style={{ textAlign: 'right' }}>Doanh thu</th>
                       <th>Tỷ lệ</th>
                       <th style={{ textAlign: 'right' }}>Hoa hồng</th>
-                      <th>Trạng thái</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -278,9 +276,6 @@ export function StaffCommissionsView() {
                           }}
                         >
                           {formatMoney(row.amount)}
-                        </td>
-                        <td data-label="Trạng thái">
-                          <StatusBadge status={row.status} />
                         </td>
                       </tr>
                     ))}

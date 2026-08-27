@@ -7,6 +7,43 @@ export interface CreateStaffInput extends ApiRecord {
   role: string;
 }
 
+export interface CommissionDetail {
+  id: number;
+  staff: {
+    id: number;
+    code: string;
+    name: string;
+    role: string;
+    avatarTone?: string;
+  };
+  invoiceCode?: string;
+  invoiceItemId?: number | null;
+  itemQuantity: number;
+  productName?: string;
+  sourceName: string;
+  commissionType: 'service' | 'consulting';
+  revenue: number;
+  rate: number;
+  amount: number;
+  occurredOn: string;
+}
+
+export interface CommissionStaffSummary {
+  staff: CommissionDetail['staff'];
+  totalRevenue: number;
+  totalAmount: number;
+  serviceRevenue: number;
+  serviceAmount: number;
+  consultingRevenue: number;
+  consultingAmount: number;
+  transactionCount: number;
+}
+
+export interface CommissionsPayload {
+  rows: CommissionDetail[];
+  staffSummary: CommissionStaffSummary[];
+}
+
 export interface CreateShiftInput {
   name: string;
   startsAt: string;
@@ -145,7 +182,7 @@ export const updateMyWorkItemStatus = (id: number, status: 'in_service' | 'compl
   { method: 'PATCH', body: JSON.stringify({ status }) },
 );
 export const getAttendance = (dateFrom: string, dateTo: string) => apiRequest<ApiEnvelope<ApiRecord[]>>(`/staff/attendance?${toQueryString({ dateFrom, dateTo })}`);
-export const getCommissions = (dateFrom: string, dateTo: string) => apiRequest<ApiEnvelope<{ rows: ApiRecord[]; byStaff: ApiRecord[] }>>(`/staff/commissions?${toQueryString({ dateFrom, dateTo })}`);
+export const getCommissions = (dateFrom: string, dateTo: string) => apiRequest<ApiEnvelope<CommissionsPayload>>(`/staff/commissions?${toQueryString({ dateFrom, dateTo })}`);
 
 // Schedule CRUD for recurring schedule support
 export const updateStaffSchedule = (id: number, body: {
