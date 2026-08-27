@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { readFileSync } from 'node:fs';
 import { hasPermission, permissions } from '../auth/auth.permissions.js';
 
 test('POS permissions are assigned properly to roles', () => {
@@ -41,4 +42,16 @@ test('listCustomers includes remaining package units and checkout keeps staff on
 
   assert.equal(processedItems[0].staffId, 10);
   assert.equal(processedItems[1].staffId, null);
+});
+
+test('POS persists checkout notes and exposes paginated catalog metadata', () => {
+  const serviceSource = readFileSync(new URL('./pos.service.js', import.meta.url), 'utf8');
+  const routeSource = readFileSync(new URL('./pos.routes.js', import.meta.url), 'utf8');
+  const ordersSource = readFileSync(new URL('../orders/orders.service.js', import.meta.url), 'utf8');
+
+  assert.match(serviceSource, /note = \$9, issued_at = NOW\(\)/);
+  assert.match(serviceSource, /issued_at, note\s*\)\s*VALUES/);
+  assert.match(routeSource, /pagination: result\.pagination/);
+  assert.match(ordersSource, /i\.sales_channel, i\.note, i\.issued_at/);
+  assert.match(ordersSource, /note: row\.note \|\| ''/);
 });

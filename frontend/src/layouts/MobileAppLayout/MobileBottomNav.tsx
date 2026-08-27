@@ -2,6 +2,7 @@ import { useState } from 'react';
 import type { RefObject } from 'react';
 import { NavLink, Link } from 'react-router-dom';
 import { useAuth } from '@/features/auth/AuthProvider';
+import { canAccessPath } from '@/features/auth/authorization';
 import { useMobileDialog } from '@/features/mobile-common/useMobileDialog';
 import { MobileDialogPortal } from '@/features/mobile-common/MobileDialogPortal';
 
@@ -27,7 +28,7 @@ export function MobileQuickActionSheet({ isOpen, onClose }: QuickActionSheetProp
           </button>
         </div>
         <div className="mobile-quick-action-list">
-          <Link to="/m/appointments/new" className="mobile-quick-action-item" onClick={onClose}>
+          {account && canAccessPath(account.role, '/m/appointments/new') && <Link to="/m/appointments/new" className="mobile-quick-action-item" onClick={onClose}>
             <div className="mobile-quick-action-icon action-appointment">
               <i className="ph ph-calendar-plus" />
             </div>
@@ -36,9 +37,9 @@ export function MobileQuickActionSheet({ isOpen, onClose }: QuickActionSheetProp
               <div className="mobile-quick-action-desc">Đặt lịch dịch vụ, chọn nhân viên & khung giờ</div>
             </div>
             <i className="ph ph-caret-right mobile-quick-action-arrow" />
-          </Link>
+          </Link>}
 
-          <Link to="/m/invoices/new" className="mobile-quick-action-item" onClick={onClose}>
+          {account && canAccessPath(account.role, '/m/invoices/new') && <Link to="/m/invoices/new" className="mobile-quick-action-item" onClick={onClose}>
             <div className="mobile-quick-action-icon action-invoice">
               <i className="ph ph-receipt" />
             </div>
@@ -47,9 +48,9 @@ export function MobileQuickActionSheet({ isOpen, onClose }: QuickActionSheetProp
               <div className="mobile-quick-action-desc">Thanh toán nhanh, xuất bill & tính hoa hồng thợ</div>
             </div>
             <i className="ph ph-caret-right mobile-quick-action-arrow" />
-          </Link>
+          </Link>}
 
-          {account?.role !== 'staff' && (
+          {account && canAccessPath(account.role, '/m/customers') && (
             <Link to="/m/customers?create=1" className="mobile-quick-action-item" onClick={onClose}>
               <div className="mobile-quick-action-icon action-customer">
                 <i className="ph ph-user-plus" />
@@ -95,9 +96,11 @@ export function MobileBottomNav() {
             <NavLink to="/m/my-schedule" className={({ isActive }) => `mobile-nav-item ${isActive ? 'is-active' : ''}`}>
               <i className="ph ph-calendar-check" /><span>Lịch của tôi</span>
             </NavLink>
-            {renderCenterButton()}
             <NavLink to="/m/salary" className={({ isActive }) => `mobile-nav-item ${isActive ? 'is-active' : ''}`}>
               <i className="ph ph-wallet" /><span>Lương</span>
+            </NavLink>
+            <NavLink to="/m/notifications" className={({ isActive }) => `mobile-nav-item ${isActive ? 'is-active' : ''}`}>
+              <i className="ph ph-bell" /><span>Thông báo</span>
             </NavLink>
             <NavLink to="/m/account" className={({ isActive }) => `mobile-nav-item ${isActive ? 'is-active' : ''}`}>
               <i className="ph ph-user-circle" /><span>Tài khoản</span>
@@ -108,12 +111,12 @@ export function MobileBottomNav() {
             <NavLink to="/m/pos" className={({ isActive }) => `mobile-nav-item ${isActive ? 'is-active' : ''}`}>
               <i className="ph ph-shopping-cart" /><span>Bán hàng</span>
             </NavLink>
-            <NavLink to="/m/pos?queue=1" className={({ isActive }) => `mobile-nav-item ${isActive ? 'is-active' : ''}`}>
-              <i className="ph ph-credit-card" /><span>Chờ thanh toán</span>
+            <NavLink to="/m/appointments" className={({ isActive }) => `mobile-nav-item ${isActive ? 'is-active' : ''}`}>
+              <i className="ph ph-calendar-check" /><span>Lịch hẹn</span>
             </NavLink>
             {renderCenterButton()}
-            <NavLink to="/m/customers" className={({ isActive }) => `mobile-nav-item ${isActive ? 'is-active' : ''}`}>
-              <i className="ph ph-users" /><span>Khách hàng</span>
+            <NavLink to="/m/notifications" className={({ isActive }) => `mobile-nav-item ${isActive ? 'is-active' : ''}`}>
+              <i className="ph ph-bell" /><span>Thông báo</span>
             </NavLink>
             <NavLink to="/m/account" className={({ isActive }) => `mobile-nav-item ${isActive ? 'is-active' : ''}`}>
               <i className="ph ph-gear" /><span>Tài khoản</span>

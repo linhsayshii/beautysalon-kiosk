@@ -337,7 +337,7 @@ export function GoodsCreateDialog({ type, onClose, itemId, initialData, initialT
             <div className="goods-field"><label htmlFor="goods-note">Ghi chú nội bộ</label><textarea id="goods-note" rows={4} value={form.note} onChange={(event) => update('note', event.target.value)} placeholder="Thông tin chỉ dùng trong nội bộ" /></div>
           </div>}
         </div>
-        <footer className="goods-dialog-footer"><button className="secondary-button" type="button" onClick={onClose} disabled={mutation.isPending}>Bỏ qua</button><button className="primary-button" type="submit" disabled={mutation.isPending || itemQuery.isPending || Boolean(itemQuery.error)}>{mutation.isPending ? 'Đang lưu...' : itemQuery.isPending ? 'Đang tải...' : 'Lưu'}</button></footer>
+        <footer className="goods-dialog-footer"><button className="secondary-button" type="button" onClick={onClose} disabled={mutation.isPending}>Bỏ qua</button><button className="primary-button" type="submit" disabled={mutation.isPending || (isEdit && itemQuery.isPending) || Boolean(itemQuery.error)}>{mutation.isPending ? 'Đang lưu...' : isEdit && itemQuery.isPending ? 'Đang tải...' : 'Lưu'}</button></footer>
       </form>
     </section>
   </div></MobileDialogPortal>;

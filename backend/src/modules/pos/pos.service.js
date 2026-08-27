@@ -1,6 +1,7 @@
 import { pool } from '../../db.js';
 import { HttpError } from '../../lib/http.js';
 import { broadcastToBranch, realtimeEvents } from '../../lib/ws.js';
+import { publishNotification } from '../notifications/notifications.service.js';
 import { resolveApplicablePricebook, resolvePricebookItemPrice } from '../inventory/inventory.service.js';
 
 const number = (value) => Number(value ?? 0);
@@ -473,12 +474,13 @@ export async function checkoutPosInvoice({
       }
       await client.query('DELETE FROM invoice_items WHERE invoice_id = $1', [invoiceId]);
       const updatedInvoiceResult = await client.query(
-        `UPDATE invoices
+         `UPDATE invoices
          SET customer_id = $1, staff_id = $2, status = 'paid', subtotal = $3,
-             discount = $4, total = $5, payment_method = $6, pricebook_id = $8, issued_at = NOW()
+             discount = $4, total = $5, payment_method = $6, pricebook_id = $8,
+             note = $9, issued_at = NOW()
          WHERE id = $7
-         RETURNING id, code, status, subtotal, discount, total, payment_method, sales_channel, issued_at`,
-        [customerId, staffId || null, subtotal, discountAmount, total, paymentMethod, invoiceId, appliedPricebook?.id ?? null],
+         RETURNING id, code, status, subtotal, discount, total, payment_method, sales_channel, note, issued_at`,
+        [customerId, staffId || null, subtotal, discountAmount, total, paymentMethod, invoiceId, appliedPricebook?.id ?? null, note || null],
       );
       invoice = updatedInvoiceResult.rows[0];
     } else {
@@ -496,10 +498,10 @@ export async function checkoutPosInvoice({
       const invoiceResult = await client.query(
         `INSERT INTO invoices (
            branch_id, customer_id, staff_id, code, status, pricebook_id,
-           subtotal, discount, total, payment_method, sales_channel, issued_at
-         ) VALUES ($1, $2, $3, $4, 'paid', $9, $5, $6, $7, $8, 'salon', NOW())
-         RETURNING id, code, status, subtotal, discount, total, payment_method, sales_channel, issued_at`,
-        [branchId, customerId, staffId || null, invoiceCode, subtotal, discountAmount, total, paymentMethod, appliedPricebook?.id ?? null],
+           subtotal, discount, total, payment_method, sales_channel, issued_at, note
+         ) VALUES ($1, $2, $3, $4, 'paid', $9, $5, $6, $7, $8, 'salon', NOW(), $10)
+         RETURNING id, code, status, subtotal, discount, total, payment_method, sales_channel, note, issued_at`,
+        [branchId, customerId, staffId || null, invoiceCode, subtotal, discountAmount, total, paymentMethod, appliedPricebook?.id ?? null, note || null],
       );
       invoice = invoiceResult.rows[0];
       invoiceId = Number(invoice.id);
@@ -749,6 +751,17 @@ export async function checkoutPosInvoice({
       appointmentId: appointmentId || null,
       actorAccountId,
     });
+    const invoiceNotification = {
+      branchId,
+      type: 'invoice',
+      title: 'Hóa đơn đã thanh toán',
+      detail: `${receipt.code} · ${new Intl.NumberFormat('vi-VN').format(receipt.total)} đ · ${receipt.customer.name}`,
+      targetPath: '/m/orders',
+    };
+    void Promise.all([
+      publishNotification({ ...invoiceNotification, role: 'manager' }),
+      publishNotification({ ...invoiceNotification, role: 'cashier' }),
+    ]);
     for (const customerPackageId of createdCustomerPackageIds) {
       broadcastToBranch(branchId, realtimeEvents.customerPackageCreated, {
         customerPackageId,

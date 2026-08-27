@@ -1,9 +1,29 @@
 import { apiRequest, type ApiEnvelope } from '@/services/api-client';
 import type { ApiRecord } from '@/types/api';
 
-export const getPosCatalog = (search: string, type: string, customerId?: number | null) => apiRequest<ApiEnvelope<ApiRecord[]>>(
-  `/pos/catalog?search=${encodeURIComponent(search)}&type=${encodeURIComponent(type)}${customerId ? `&customerId=${customerId}` : ''}`,
-);
+type PosCatalogMeta = {
+  pricebook?: ApiRecord | null;
+  pagination?: { page: number; pageSize: number; total: number; totalPages: number };
+};
+
+const getPosCatalogPage = (search: string, type: string, customerId: number | null | undefined, page: number) =>
+  apiRequest<ApiEnvelope<ApiRecord[], PosCatalogMeta>>(
+    `/pos/catalog?search=${encodeURIComponent(search)}&type=${encodeURIComponent(type)}&page=${page}&pageSize=100${customerId ? `&customerId=${customerId}` : ''}`,
+  );
+
+export const getPosCatalog = async (search: string, type: string, customerId?: number | null) => {
+  const firstPage = await getPosCatalogPage(search, type, customerId, 1);
+  const totalPages = firstPage.meta?.pagination?.totalPages ?? 1;
+  if (totalPages <= 1) return firstPage;
+
+  const remainingPages = await Promise.all(
+    Array.from({ length: totalPages - 1 }, (_, index) => getPosCatalogPage(search, type, customerId, index + 2)),
+  );
+  return {
+    ...firstPage,
+    data: [firstPage, ...remainingPages].flatMap((response) => response.data),
+  };
+};
 
 export const getPosPriceQuote = (customerId: number | null | undefined, items: Array<{ itemType: string; itemId: number }>) =>
   apiRequest<ApiEnvelope<Array<{ itemType: string; itemId: number; salePrice: number }>, { pricebook?: ApiRecord | null }>>('/pos/price-quote', {

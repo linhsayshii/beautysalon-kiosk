@@ -165,6 +165,12 @@
   transform: translateY(0);
 }
 
+/* A closed submenu must not extend the document canvas. Visibility alone
+ * still contributes to horizontal scroll width at compact desktop sizes. */
+.nav-menu:not(:hover):not(.is-open) .product-menu {
+  display: none;
+}
+
 .menu-group {
   padding: 5px 0;
 }

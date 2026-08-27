@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MobileMoreView } from './MobileMoreView';
@@ -156,6 +156,6 @@ describe('MobileMoreView', () => {
     const logoutBtn = screen.getByTestId('logout-btn');
     fireEvent.click(logoutBtn);
 
-    expect(mockLogout).toHaveBeenCalled();
+    await waitFor(() => expect(mockLogout).toHaveBeenCalled());
   });
 });

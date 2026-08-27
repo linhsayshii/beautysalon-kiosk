@@ -558,11 +558,11 @@ export async function listProducts({ branchId, search, type, category, stockStat
   };
 }
 
-export async function listPosProducts({ branchId, customerId, search, type, pageSize = 100 }) {
+export async function listPosProducts({ branchId, customerId, search, type, page = 1, pageSize = 100, offset = 0 }) {
   const pricebook = await resolveApplicablePricebook(pool, { branchId, customerId });
   const result = await pool.query(
     `${goodsCte}
-     SELECT g.*,
+     SELECT g.*, COUNT(*) OVER() AS filtered_total,
        COALESCE(selected.sale_price, fallback.sale_price, g.sale_price) AS resolved_sale_price
      FROM goods g
      LEFT JOIN pricebook_items selected
@@ -576,12 +576,14 @@ export async function listPosProducts({ branchId, customerId, search, type, page
        AND ($2 = '' OR g.item_type = $2)
        AND ($4 = '' OR g.code ILIKE '%' || $4 || '%' OR g.name ILIKE '%' || $4 || '%' OR COALESCE(g.brand, '') ILIKE '%' || $4 || '%')
      ORDER BY g.item_type, g.code DESC
-     LIMIT $5`,
-    [branchId, type, pricebook?.id ?? null, search, pageSize],
+     LIMIT $5 OFFSET $6`,
+    [branchId, type, pricebook?.id ?? null, search, pageSize, offset],
   );
+  const total = number(result.rows[0]?.filtered_total);
   return {
     rows: result.rows.map((row) => mapProduct({ ...row, sale_price: row.resolved_sale_price })),
     pricebook,
+    pagination: { page, pageSize, total, totalPages: Math.max(1, Math.ceil(total / pageSize)) },
   };
 }
 

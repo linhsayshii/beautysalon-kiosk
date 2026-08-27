@@ -4,11 +4,14 @@ import { MobileAppLayout } from '@/layouts/MobileAppLayout/MobileAppLayout';
 import { NotFoundPage } from '@/pages/not-found/NotFoundPage';
 import { RouteLoadErrorBoundary } from '@/app/RouteLoadErrorBoundary';
 
+const routeHydrationFallback = <div className="route-loading" role="status" aria-label="Đang tải trang" />;
+
 export const router = createBrowserRouter([
-  { path: '/login', lazy: () => import('@/pages/login/LoginPage'), errorElement: <RouteLoadErrorBoundary /> },
+  { path: '/login', lazy: () => import('@/pages/login/LoginPage'), hydrateFallbackElement: routeHydrationFallback, errorElement: <RouteLoadErrorBoundary /> },
   {
     path: '/m',
     element: <MobileAppLayout />,
+    hydrateFallbackElement: routeHydrationFallback,
     errorElement: <RouteLoadErrorBoundary />,
     children: [
       { index: true, element: <Navigate to="/m/dashboard" replace /> },
@@ -43,6 +46,7 @@ export const router = createBrowserRouter([
   {
     path: '/',
     element: <AdminLayout />,
+    hydrateFallbackElement: routeHydrationFallback,
     errorElement: <RouteLoadErrorBoundary />,
     children: [
       { index: true, element: <Navigate to="/dashboard" replace /> },

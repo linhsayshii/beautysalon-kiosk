@@ -1073,3 +1073,67 @@
   display: inline-flex;
   align-items: center;
 }
+.mobile-inventory-load-more {
+  display: block;
+  width: calc(100% - 32px);
+  min-height: 44px;
+  margin: 8px 16px 24px;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  background: #fff;
+  color: #334155;
+  font: inherit;
+  font-weight: 600;
+}
+
+.mobile-inventory-load-more:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
+@media (max-width: 340px) {
+  .mobile-inventory-top-nav,
+  .mobile-inventory-filter-strip,
+  .mobile-inventory-summary-bar {
+    padding-right: 10px;
+    padding-left: 10px;
+  }
+
+  .mobile-inventory-nav-left {
+    min-width: 0;
+    gap: 4px;
+  }
+
+  .mobile-inventory-nav-title {
+    overflow: hidden;
+    font-size: 17px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .mobile-inventory-nav-actions {
+    flex: 0 0 auto;
+    gap: 0;
+  }
+
+  .mobile-inventory-summary-bar {
+    align-items: flex-start;
+    gap: 5px;
+    flex-direction: column;
+  }
+
+  .mobile-pricebook-row-item {
+    padding-right: 10px;
+    padding-left: 10px;
+  }
+
+  .mobile-pricebook-row-top {
+    gap: 8px;
+  }
+
+  .mobile-pricebook-quick-input-bar {
+    grid-template-columns: minmax(0, 1fr) 128px;
+    gap: 6px;
+    padding-left: 0;
+  }
+}

@@ -22,11 +22,14 @@ Mở:
 
 ### Tài khoản mẫu
 
-Sau khi khởi tạo database mới, có ba tài khoản demo (mật khẩu chung `Anna@123`):
+Sau khi khởi tạo database mới từ seed hiện tại, các tài khoản demo dùng mật khẩu chung `Anna@123`:
 
-- `manager` — Quản lý, truy cập toàn bộ các phân hệ và màn hình QR chấm công.
+- `admin` — Quản lý, truy cập toàn bộ các phân hệ và màn hình QR chấm công.
 - `cashier` — Thu ngân, chỉ truy cập `/pos`.
 - `staff` — Nhân viên, chỉ truy cập `/attendance` để quét QR chấm công.
+- `trangvu`, `hau`, `emhue` — Các tài khoản nhân viên mẫu bổ sung.
+
+Thông tin trên chỉ đúng với volume được khởi tạo mới. Mật khẩu trong volume đang chạy có thể đã được đổi; hãy quản lý tài khoản tại `/staff/accounts` thay vì giả định seed được chạy lại.
 
 Quản lý có thể tạo hoặc khóa tài khoản tại `/staff/accounts`. Trước khi sử dụng chấm công, mở `/attendance/qr` tại salon và chọn **Dùng vị trí hiện tại** để lưu GPS chi nhánh. Camera và GPS cần HTTPS khi chạy ngoài `localhost`.
 
@@ -144,7 +147,7 @@ docker compose up --build
 
 ## Lưu ý production
 
-- Đổi toàn bộ credentials mặc định và mật khẩu ba tài khoản demo; API sẽ từ chối khởi động ở `NODE_ENV=production` nếu còn hash mật khẩu demo.
+- Đổi toàn bộ credentials mặc định và mật khẩu các tài khoản demo; API sẽ từ chối khởi động ở `NODE_ENV=production` nếu còn hash mật khẩu demo.
 - Không public cổng PostgreSQL ra internet.
 - Dùng managed database hoặc volume có backup.
 - Kết thúc TLS tại reverse proxy, đặt `AUTH_COOKIE_SECURE=true`, khai báo chính xác `AUTH_TRUSTED_ORIGINS` và dùng secret manager.

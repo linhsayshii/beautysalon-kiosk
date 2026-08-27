@@ -30,6 +30,11 @@ Object.defineProperty(window, 'matchMedia', {
   })),
 });
 
+Object.defineProperty(window, 'scrollTo', {
+  writable: true,
+  value: vi.fn(),
+});
+
 // Mock IntersectionObserver
 class IntersectionObserverMock {
   observe = vi.fn();

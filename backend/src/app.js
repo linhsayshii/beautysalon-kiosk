@@ -16,6 +16,7 @@ import { permissions, requirePermissions } from './modules/auth/auth.permissions
 import attendanceRoutes from './modules/attendance/attendance.routes.js';
 import posRoutes from './modules/pos/pos.routes.js';
 import branchRoutes from './modules/branches/branches.routes.js';
+import notificationRoutes from './modules/notifications/notifications.routes.js';
 
 export function requestIdentity(request, response, next) {
   request.id = randomUUID();
@@ -99,6 +100,7 @@ export function createApp() {
 
   app.use('/api/v1/attendance', attendanceRoutes);
   app.use('/api/v1/branches', branchRoutes);
+  app.use('/api/v1/notifications', notificationRoutes);
   app.use('/api/v1/pos', requirePermissions(permissions.usePos), posRoutes);
   app.use('/api/v1/dashboard', requirePermissions(permissions.readDashboard), dashboardRoutes);
   app.use('/api/v1/orders', requirePermissions(permissions.readOrders), orderRoutes);

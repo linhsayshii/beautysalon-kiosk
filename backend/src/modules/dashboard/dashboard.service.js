@@ -1,6 +1,7 @@
 import { pool } from '../../db.js';
 import { broadcastToBranch, realtimeEvents } from '../../lib/ws.js';
 import { resolveApplicablePricebook, resolvePricebookItemPrice } from '../inventory/inventory.service.js';
+import { publishNotification } from '../notifications/notifications.service.js';
 
 function number(value) {
   return Number(value ?? 0);
@@ -454,6 +455,17 @@ export async function createAppointments({ branchId, customerId, items, status, 
         actorAccountId,
       });
     }
+    const appointmentNotification = {
+      branchId,
+      type: 'appointment',
+      title: appointments.length > 1 ? `${appointments.length} lịch hẹn mới` : 'Lịch hẹn mới',
+      detail: `Khách hàng ${appointments[0]?.customer?.name || 'chưa xác định'} đã được xếp lịch.`,
+      targetPath: '/m/appointments',
+    };
+    void Promise.all([
+      publishNotification({ ...appointmentNotification, role: 'manager' }),
+      publishNotification({ ...appointmentNotification, role: 'cashier' }),
+    ]);
 
     return {
       invoice: {

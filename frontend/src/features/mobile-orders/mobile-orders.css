@@ -333,6 +333,58 @@
   transform-origin: right center;
 }
 
+@media (max-width: 340px) {
+  .mobile-orders-top-nav,
+  .mobile-orders-filter-strip,
+  .mobile-orders-summary-bar {
+    padding-right: 10px;
+    padding-left: 10px;
+  }
+
+  .mobile-orders-summary-bar {
+    align-items: flex-start;
+    gap: 6px;
+    flex-direction: column;
+  }
+
+  .mobile-orders-row-item {
+    display: grid;
+    grid-template-columns: 38px minmax(0, 1fr);
+    gap: 8px 10px;
+    padding: 10px;
+  }
+
+  .mobile-orders-square-avatar {
+    width: 38px;
+    height: 38px;
+  }
+
+  .mobile-orders-row-right {
+    grid-column: 2;
+    align-items: center;
+    justify-content: space-between;
+    flex-direction: row;
+    min-width: 0;
+  }
+
+  .mobile-orders-row-top-line,
+  .mobile-orders-meta-line {
+    flex-wrap: wrap;
+  }
+
+  .mobile-orders-cust-line {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 0;
+    overflow: visible;
+    white-space: normal;
+  }
+
+  .mobile-orders-phone-link {
+    width: 100%;
+  }
+}
+
 /* 5. Floating Action Button (FAB) */
 .mobile-orders-fab-btn {
   position: fixed;

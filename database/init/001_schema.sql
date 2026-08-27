@@ -454,6 +454,7 @@ CREATE TABLE invoices (
   payment_requested_at TIMESTAMPTZ,
   payment_requested_by_staff_id BIGINT REFERENCES staff(id) ON DELETE SET NULL,
   appointment_id BIGINT,
+  note TEXT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
@@ -586,6 +587,28 @@ CREATE TABLE activities (
 );
 
 CREATE INDEX idx_activities_branch_occurred ON activities(branch_id, occurred_at DESC);
+
+CREATE TABLE notifications (
+  id BIGSERIAL PRIMARY KEY,
+  branch_id BIGINT NOT NULL REFERENCES branches(id) ON DELETE CASCADE,
+  account_id BIGINT REFERENCES user_accounts(id) ON DELETE CASCADE,
+  role VARCHAR(20) CHECK (role IS NULL OR role IN ('manager', 'cashier', 'staff')),
+  type VARCHAR(20) NOT NULL CHECK (type IN ('appointment', 'invoice', 'attendance', 'system')),
+  title VARCHAR(160) NOT NULL,
+  detail VARCHAR(500) NOT NULL,
+  target_path VARCHAR(240),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE notification_reads (
+  notification_id BIGINT NOT NULL REFERENCES notifications(id) ON DELETE CASCADE,
+  account_id BIGINT NOT NULL REFERENCES user_accounts(id) ON DELETE CASCADE,
+  read_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  PRIMARY KEY (notification_id, account_id)
+);
+
+CREATE INDEX idx_notifications_branch_created ON notifications(branch_id, created_at DESC);
+CREATE INDEX idx_notifications_account_created ON notifications(account_id, created_at DESC) WHERE account_id IS NOT NULL;
 
 
 COMMIT;

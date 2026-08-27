@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { MoneyInput } from '@/components/forms/MoneyInput';
 import { Select } from '@/components/ui/Select/Select';
@@ -237,16 +237,28 @@ export function MobilePricebooksView() {
   const { notify } = useToast();
   const client = useQueryClient();
 
-  const { data: pricebooksData, isLoading } = useQuery({
+  const {
+    data: pricebooksData,
+    isLoading,
+    hasNextPage,
+    fetchNextPage,
+    isFetchingNextPage,
+  } = useInfiniteQuery({
     queryKey: ['mobile-pricebooks', search, pricebookId, categoryFilter, typeFilter],
-    queryFn: () =>
+    initialPageParam: 1,
+    queryFn: ({ pageParam }) =>
       getPricebooks({
         search,
         pricebookId,
         category: categoryFilter,
         type: typeFilter,
+        page: pageParam,
         pageSize: 100,
       }),
+    getNextPageParam: (lastPage) => {
+      const pagination = lastPage.meta?.pagination;
+      return pagination && pagination.page < pagination.totalPages ? pagination.page + 1 : undefined;
+    },
   });
 
   const mutation = useMutation({
@@ -269,8 +281,9 @@ export function MobilePricebooksView() {
     onError: (error) => notify('Không thể lưu giá', error.message),
   });
 
-  const rawRows = (pricebooksData?.data ?? []) as ApiRecord[];
-  const meta = pricebooksData?.meta;
+  const rawRows = (pricebooksData?.pages.flatMap((page) => page.data) ?? []) as ApiRecord[];
+  const meta = pricebooksData?.pages[0]?.meta;
+  const totalRows = meta?.pagination?.total ?? rawRows.length;
   const pricebooksList = meta?.pricebooks ?? [];
   const currentBook = meta?.pricebook ?? { id: 1, name: 'Bảng giá chung' };
   const pricebookOptions = [
@@ -474,7 +487,7 @@ export function MobilePricebooksView() {
           />
 
           <div className="mobile-inventory-count-summary" aria-live="polite">
-            {rawRows.length} mặt hàng{mutation.isPending ? ' · Đang lưu giá…' : ''}
+            {totalRows} mặt hàng{totalRows > rawRows.length ? ` · Đã tải ${rawRows.length}` : ''}{mutation.isPending ? ' · Đang lưu giá…' : ''}
           </div>
         </div>
       </div>
@@ -493,8 +506,9 @@ export function MobilePricebooksView() {
             />
           </div>
         ) : (
-          groupedCategories.map(([categoryName, items]) => (
-            <div key={categoryName} className="mobile-inventory-section">
+          <>
+            {groupedCategories.map(([categoryName, items]) => (
+              <div key={categoryName} className="mobile-inventory-section">
               <div className="mobile-inventory-section-title">{categoryName} ({items.length})</div>
               <div className="mobile-inventory-section-card">
                 {items.map((row) => {
@@ -569,8 +583,19 @@ export function MobilePricebooksView() {
                   );
                 })}
               </div>
-            </div>
-          ))
+              </div>
+            ))}
+            {hasNextPage && (
+              <button
+                type="button"
+                className="mobile-inventory-load-more"
+                onClick={() => fetchNextPage()}
+                disabled={isFetchingNextPage}
+              >
+                {isFetchingNextPage ? 'Đang tải thêm…' : 'Tải thêm mặt hàng'}
+              </button>
+            )}
+          </>
         )}
       </div>
 

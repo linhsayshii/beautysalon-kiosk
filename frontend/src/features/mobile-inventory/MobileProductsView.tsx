@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useInfiniteQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { formatMoney, formatNumber } from '@/lib/format';
 import { GoodsCreateDialog } from '@/features/inventory/components/GoodsCreateDialog';
@@ -60,21 +60,34 @@ export function MobileProductsView() {
   const [isCreateMenuOpen, setIsCreateMenuOpen] = useState(false);
   const [editInitialTab, setEditInitialTab] = useState<'information' | 'details'>('information');
 
-  const { data: productsData, isLoading } = useQuery({
+  const {
+    data: productsData,
+    isLoading,
+    hasNextPage,
+    fetchNextPage,
+    isFetchingNextPage,
+  } = useInfiniteQuery({
     queryKey: ['mobile-products', search, typeFilter, categoryFilter, stockStatusFilter],
-    queryFn: () =>
+    initialPageParam: 1,
+    queryFn: ({ pageParam }) =>
       getProducts({
         search,
         type: typeFilter,
         category: categoryFilter,
         stockStatus: stockStatusFilter,
         status: 'active',
+        page: pageParam,
         pageSize: 100,
       }),
+    getNextPageParam: (lastPage) => {
+      const pagination = lastPage.meta?.pagination;
+      return pagination && pagination.page < pagination.totalPages ? pagination.page + 1 : undefined;
+    },
   });
 
-  const rawRows = (productsData?.data ?? []) as ApiRecord[];
-  const meta = productsData?.meta;
+  const rawRows = (productsData?.pages.flatMap((page) => page.data) ?? []) as ApiRecord[];
+  const meta = productsData?.pages[0]?.meta;
+  const totalRows = meta?.pagination?.total ?? rawRows.length;
   const categories = meta?.categories ?? [];
 
   // Sort and group by category
@@ -240,7 +253,7 @@ export function MobileProductsView() {
           />
 
           <div className="mobile-inventory-count-summary">
-            {rawRows.length} hàng hóa · Tồn: {formatNumber(totalStockCount)}
+            {totalRows} hàng hóa{totalRows > rawRows.length ? ` · Đã tải ${rawRows.length}` : ''} · Tồn đã tải: {formatNumber(totalStockCount)}
           </div>
         </div>
       </div>
@@ -259,8 +272,9 @@ export function MobileProductsView() {
             />
           </div>
         ) : (
-          groupedCategories.map(([categoryName, items]) => (
-            <div key={categoryName} className="mobile-inventory-section">
+          <>
+            {groupedCategories.map(([categoryName, items]) => (
+              <div key={categoryName} className="mobile-inventory-section">
               <div className="mobile-inventory-section-title">{categoryName}</div>
               <div className="mobile-inventory-section-card">
                 {items.map((row) => {
@@ -305,8 +319,19 @@ export function MobileProductsView() {
                   );
                 })}
               </div>
-            </div>
-          ))
+              </div>
+            ))}
+            {hasNextPage && (
+              <button
+                type="button"
+                className="mobile-inventory-load-more"
+                onClick={() => fetchNextPage()}
+                disabled={isFetchingNextPage}
+              >
+                {isFetchingNextPage ? 'Đang tải thêm…' : 'Tải thêm hàng hóa'}
+              </button>
+            )}
+          </>
         )}
       </div>
 

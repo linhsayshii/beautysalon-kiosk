@@ -3,6 +3,7 @@ import { config } from '../../config.js';
 import { pool } from '../../db.js';
 import { HttpError } from '../../lib/http.js';
 import { broadcastToBranch } from '../../lib/ws.js';
+import { publishNotification } from '../notifications/notifications.service.js';
 
 const slotFor = (time = Date.now()) => Math.floor(time / (config.auth.qrLifetimeSeconds * 1000));
 export const attendanceGraceMinutes = config.payroll.graceMinutes;
@@ -160,6 +161,14 @@ export async function recordAttendance({ branchId, staffId, token, latitude, lon
     broadcastToBranch(branchId, 'attendance:recorded', {
       attendanceId: attendance.id,
       staffId,
+    });
+    void publishNotification({
+      branchId,
+      role: 'manager',
+      type: 'attendance',
+      title: action === 'check_in' ? 'Nhân viên đã vào ca' : 'Nhân viên đã tan ca',
+      detail: `Mã nhân viên ${staffId} đã ${action === 'check_in' ? 'chấm công vào' : 'chấm công ra'}.`,
+      targetPath: '/m/attendance',
     });
     return { action, distanceMeters: Math.round(distance), attendance };
   } catch (error) {

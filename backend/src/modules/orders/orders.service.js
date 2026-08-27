@@ -84,7 +84,7 @@ export async function getOrder({ branchId, id }) {
   const headerResult = await pool.query(
     `SELECT
        i.id, i.code, i.status, i.subtotal, i.discount, i.total, i.payment_method,
-       i.sales_channel, i.issued_at, i.created_at,
+       i.sales_channel, i.note, i.issued_at, i.created_at,
        b.name AS branch_name,
        c.id AS customer_id, c.code AS customer_code, COALESCE(c.name, 'Khách lẻ') AS customer_name,
        c.phone AS customer_phone,
@@ -167,6 +167,7 @@ export async function getOrder({ branchId, id }) {
     total: number(row.total),
     paymentMethod: row.payment_method,
     salesChannel: row.sales_channel,
+    note: row.note || '',
     issuedAt: row.issued_at,
     createdAt: row.created_at,
     branchName: row.branch_name,

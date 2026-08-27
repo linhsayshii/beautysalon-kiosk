@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { asyncRoute, HttpError, parseDateTime, parseEnum, parseIsoDate, parsePositiveInteger } from '../../lib/http.js';
+import { asyncRoute, HttpError, parseDateTime, parseEnum, parseIsoDate, parsePagination, parsePositiveInteger } from '../../lib/http.js';
 import { listPosProducts, quotePosPrices } from '../inventory/inventory.service.js';
 import { createCustomer, listCustomers } from '../customers/customers.service.js';
 import { listStaff } from '../staff/staff.service.js';
@@ -15,12 +15,13 @@ const paymentMethods = ['cash', 'bank_transfer', 'card', 'wallet', 'mixed'];
 const text = (value, maximum = 120) => String(value ?? '').trim().slice(0, maximum);
 
 router.get('/catalog', asyncRoute(async (request, response) => {
+  const pagination = parsePagination({ page: request.query.page, pageSize: request.query.pageSize ?? 100 });
   const result = await listPosProducts({
     branchId: request.account.branchId, search: text(request.query.search),
     customerId: request.query.customerId ? parsePositiveInteger(request.query.customerId, 'customerId') : null,
-    type: parseEnum(request.query.type, 'type', itemTypes), pageSize: 100,
+    type: parseEnum(request.query.type, 'type', itemTypes), ...pagination,
   });
-  response.json({ data: result.rows, meta: { pricebook: result.pricebook } });
+  response.json({ data: result.rows, meta: { pricebook: result.pricebook, pagination: result.pagination } });
 }));
 
 router.post('/price-quote', asyncRoute(async (request, response) => {

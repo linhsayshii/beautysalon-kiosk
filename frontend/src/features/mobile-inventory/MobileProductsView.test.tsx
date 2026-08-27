@@ -148,5 +148,24 @@ describe('MobileProductsView Component', () => {
       expect(screen.getByText('Phạm vi thanh toán')).toBeInTheDocument();
     });
   });
-});
 
+  it('loads the next server page instead of stopping at 100 records', async () => {
+    vi.mocked(inventoryApi.getProducts).mockImplementation(async ({ page }: any) => ({
+      data: [{
+        itemId: page, itemType: 'product', code: `SP${page}`, name: page === 2 ? 'Sản phẩm trang hai' : 'Sản phẩm trang một',
+        category: 'Mỹ phẩm', salePrice: 100000, stockQuantity: 1,
+      }],
+      meta: { pagination: { page, pageSize: 100, total: 101, totalPages: 2 }, categories: ['Mỹ phẩm'] },
+    } as any));
+
+    render(
+      <MemoryRouter>
+        <QueryClientProvider client={queryClient}><MobileProductsView /></QueryClientProvider>
+      </MemoryRouter>,
+    );
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Tải thêm hàng hóa' }));
+    expect(await screen.findByText('Sản phẩm trang hai')).toBeInTheDocument();
+    expect(inventoryApi.getProducts).toHaveBeenCalledWith(expect.objectContaining({ page: 2, pageSize: 100 }));
+  });
+});

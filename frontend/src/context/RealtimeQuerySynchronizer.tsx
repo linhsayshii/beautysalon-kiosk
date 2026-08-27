@@ -20,6 +20,8 @@ const customerValueEvents = new Set([
   'customer-account-card:updated',
 ]);
 
+const notificationEvents = new Set(['notification:created']);
+
 const appointmentQueryKeys = [
   ['pos-appointments'],
   ['my-work-items'],
@@ -84,11 +86,15 @@ export function synchronizeRealtimeEvent(queryClient: QueryClient, event: string
   }
   if (customerValueEvents.has(event)) {
     invalidate(queryClient, customerValueQueryKeys);
+    return;
+  }
+  if (notificationEvents.has(event)) {
+    invalidate(queryClient, [['notifications']]);
   }
 }
 
 export function resynchronizeRealtimeQueries(queryClient: QueryClient) {
-  invalidate(queryClient, [...appointmentQueryKeys, ...invoiceQueryKeys, ...customerValueQueryKeys]);
+  invalidate(queryClient, [...appointmentQueryKeys, ...invoiceQueryKeys, ...customerValueQueryKeys, ['notifications']]);
 }
 
 /**

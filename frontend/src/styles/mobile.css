@@ -222,6 +222,29 @@ body:has(.mobile-form-sheet-backdrop) :is(.mobile-inventory-fab-btn, .mobile-ope
   color: var(--blue-700, #004ecc);
 }
 
+@media (max-width: 340px) {
+  .mobile-topbar {
+    gap: 8px;
+    padding-right: 10px;
+    padding-left: 10px;
+  }
+
+  .mobile-brand {
+    min-width: 0;
+    gap: 7px;
+  }
+
+  .mobile-store-title {
+    max-width: 150px;
+    font-size: 15px;
+  }
+
+  .mobile-top-right {
+    flex: 0 0 auto;
+    gap: 6px;
+  }
+}
+
 /* Shop Dropdown Menu */
 .mobile-shop-dropdown-menu {
   position: absolute;

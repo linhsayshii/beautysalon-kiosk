@@ -97,7 +97,7 @@ export function StaffPayrollView() {
     <div className="attendance-page">
       <div className="attendance-container">
         {/* Main layout: Sidebar Filter (Left) + Table View (Right) */}
-        <div style={{ display: 'grid', gridTemplateColumns: '260px 1fr', gap: 14, alignItems: 'start' }}>
+        <div className="staff-payroll-layout" style={{ display: 'grid', gridTemplateColumns: '260px minmax(0, 1fr)', gap: 14, alignItems: 'start' }}>
           {/* =================================================================== */}
           {/* SIDEBAR FILTER (Chuẩn KiotViet)                                     */}
           {/* =================================================================== */}

@@ -3,7 +3,7 @@
  * Run with: cd backend && node --test src/modules/staff/__tests__/staff.service.recurring.integration.test.js
  *
  * NOTE: These tests require a running database with seed data.
- * Currently SKIPPED - need Docker database to run
+ * Enable with RUN_DB_INTEGRATION=1 when the Docker database is available.
  */
 
 import { describe, it, before, after, beforeEach } from 'node:test';
@@ -11,8 +11,9 @@ import assert from 'node:assert/strict';
 import { pool } from '../../../db.js';
 import * as staffService from '../staff.service.js';
 
-// Skip all tests in this file - require real database
-describe.skip('Recurring Schedule Integration', () => {
+const integrationEnabled = process.env.RUN_DB_INTEGRATION === '1';
+
+describe('Recurring Schedule Integration', { skip: !integrationEnabled }, () => {
   let testStaffId;
   let testBranchId;
   const TEST_PREFIX = 'RECURRING_TEST_';
@@ -328,7 +329,7 @@ describe.skip('Recurring Schedule Integration', () => {
       assert.equal(Number(remaining.rows[0].count), 2, '2 schedules should remain');
     });
 
-    it('should throw error when deleting source week that has copies', async () => {
+    it('should delete only the source week without deleting its copies', async () => {
       // Create recurring schedule: 2 weeks
       const assignResult = await staffService.assignShift({
         branchId: testBranchId,
@@ -348,23 +349,16 @@ describe.skip('Recurring Schedule Integration', () => {
 
       assert.ok(sourceSchedule != null, 'sourceSchedule should be defined');
 
-      // Try to delete source week without deleteFuture=true - should fail
-      await assert.rejects(
-        async () => staffService.deleteSchedule(testBranchId, sourceSchedule.id, false),
-        (err) => {
-          assert.equal(err.status, 400, 'status should be 400');
-          assert.equal(err.code, 'SOURCE_WEEK_HAS_COPIES', 'code should be SOURCE_WEEK_HAS_COPIES');
-          return true;
-        }
-      );
+      const result = await staffService.deleteSchedule(testBranchId, sourceSchedule.id, false);
+      assert.equal(result.deleted, true, 'source occurrence should be deleted');
 
-      // Verify no schedules were deleted
+      // The caller explicitly chose the current occurrence, so copies remain.
       const remaining = await pool.query(`
         SELECT COUNT(*) as count
         FROM staff_schedules
         WHERE staff_id = $1 AND branch_id = $2
       `, [testStaffId, testBranchId]);
-      assert.equal(Number(remaining.rows[0].count), 2, '2 schedules should remain');
+      assert.equal(Number(remaining.rows[0].count), 1, 'one copied schedule should remain');
     });
 
     it('should allow deleting source week with deleteFuture=true (cascade)', async () => {
