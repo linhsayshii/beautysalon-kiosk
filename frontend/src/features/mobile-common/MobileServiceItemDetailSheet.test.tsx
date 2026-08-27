@@ -35,6 +35,11 @@ function renderWithClient(ui: React.ReactElement) {
 }
 
 describe('MobileServiceItemDetailSheet', () => {
+  // Use Date.UTC to create a timezone-independent instant
+  // The component uses localDateTimeFromInstant() to convert to Asia/Ho_Chi_Minh
+  // UTC 14:30 → Asia/Ho_Chi_Minh 21:30 (UTC+7)
+  const sampleStartsAt = new Date(Date.UTC(2026, 7, 18, 14, 30)); // Tue 18/08/2026 14:30 UTC
+
   const sampleItem: ConfiguredServiceItem = {
     itemId: 101,
     itemType: 'service',
@@ -42,7 +47,7 @@ describe('MobileServiceItemDetailSheet', () => {
     unitPrice: 2500000,
     quantity: 1,
     durationMinutes: 90,
-    startsAt: new Date(2026, 7, 18, 14, 30), // Tue 18/08/2026 14:30
+    startsAt: sampleStartsAt,
     staffId: null,
     staffName: null,
     position: null,
@@ -115,8 +120,9 @@ describe('MobileServiceItemDetailSheet', () => {
       />
     );
 
-    // Starts at 14:30 + 90 mins = 16:00
-    expect(screen.getByText(/14:30\s*-\s*16:00/)).toBeInTheDocument();
+    // UTC 14:30 + 90 mins = UTC 16:00
+    // Component converts to Asia/Ho_Chi_Minh (UTC+7): 21:30 - 23:00
+    expect(screen.getByText(/21:30\s*-\s*23:00/)).toBeInTheDocument();
     // 18/08
     expect(screen.getByText(/18\/08/)).toBeInTheDocument();
   });
