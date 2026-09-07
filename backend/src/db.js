@@ -21,6 +21,11 @@ pool.on('error', (error) => {
 export async function runMigrations() {
   try {
     await pool.query(`
+      -- Customer account cards predate balance updates in POS. Keep existing
+      -- deployments compatible with the checkout path without touching data.
+      ALTER TABLE customer_account_cards
+        ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW();
+
       ALTER TABLE commission_records
         ADD COLUMN IF NOT EXISTS commission_type VARCHAR(30) DEFAULT 'service';
 

@@ -55,3 +55,13 @@ test('POS persists checkout notes and exposes paginated catalog metadata', () =>
   assert.match(ordersSource, /i\.sales_channel, i\.note, i\.issued_at/);
   assert.match(ordersSource, /note: row\.note \|\| ''/);
 });
+
+test('wallet checkout updates a column present on customer account cards', () => {
+  const schemaSource = readFileSync(new URL('../../../../database/init/001_schema.sql', import.meta.url), 'utf8');
+  const serviceSource = readFileSync(new URL('./pos.service.js', import.meta.url), 'utf8');
+  const migrationSource = readFileSync(new URL('../../db.js', import.meta.url), 'utf8');
+
+  assert.match(schemaSource, /CREATE TABLE customer_account_cards[\s\S]*?updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW\(\)/);
+  assert.match(serviceSource, /UPDATE customer_account_cards[\s\S]*?updated_at = NOW\(\)/);
+  assert.match(migrationSource, /ALTER TABLE customer_account_cards\s+ADD COLUMN IF NOT EXISTS updated_at/);
+});

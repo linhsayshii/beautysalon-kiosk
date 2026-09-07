@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter } from 'react-router-dom';
 import { MobileAccountView } from './MobileAccountView';
@@ -70,6 +70,24 @@ describe('MobileAccountView', () => {
     // Manager tabs should NOT be visible
     expect(screen.queryByRole('button', { name: /Quản lý chi nhánh/i })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Tài khoản & phân quyền/i })).not.toBeInTheDocument();
+  });
+
+  it('lets a staff account log out from the account page', async () => {
+    const logout = vi.fn().mockResolvedValue(undefined);
+    vi.spyOn(AuthProvider, 'useAuth').mockReturnValue({
+      account: {
+        id: 1, username: 'staff01', displayName: 'Nguyễn Văn A', role: 'staff',
+        branchId: 1, branchName: 'Chi nhánh Quận 1', staffId: 10, staffCode: 'NV-01',
+        phone: '0901234567', email: 'staff01@example.com',
+      },
+      loading: false, login: vi.fn(), logout, switchBranch: vi.fn(), updateLocalAccount: vi.fn(),
+    });
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+
+    renderComponent();
+    fireEvent.click(screen.getByTestId('mobile-account-logout-btn'));
+
+    await waitFor(() => expect(logout).toHaveBeenCalledTimes(1));
   });
 
   it('renders all 3 tabs for manager role and switches between them', () => {

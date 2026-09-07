@@ -539,7 +539,8 @@ CREATE TABLE customer_account_cards (
   expires_at TIMESTAMPTZ,
   status VARCHAR(20) NOT NULL DEFAULT 'active'
     CHECK (status IN ('active', 'depleted', 'expired', 'cancelled')),
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 CREATE INDEX idx_customer_account_cards_customer ON customer_account_cards(customer_id, status);

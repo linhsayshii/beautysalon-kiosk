@@ -38,7 +38,7 @@ const emptyBranch = {
 };
 
 export function MobileAccountView() {
-  const { account, updateLocalAccount, switchBranch } = useAuth();
+  const { account, logout, updateLocalAccount, switchBranch } = useAuth();
   const { notify } = useToast();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -168,6 +168,12 @@ export function MobileAccountView() {
     } else {
       navigate('/m/more');
     }
+  };
+
+  const handleLogout = async () => {
+    if (!window.confirm('Bạn có chắc chắn muốn đăng xuất?')) return;
+    await logout().catch(() => undefined);
+    navigate('/login', { replace: true });
   };
 
   const branches = (branchesQuery.data?.data ?? []) as ApiRecord[];
@@ -490,6 +496,16 @@ export function MobileAccountView() {
               </form>
             </section>
             )}
+
+            <button
+              type="button"
+              className="mobile-account-logout-btn"
+              onClick={handleLogout}
+              data-testid="mobile-account-logout-btn"
+            >
+              <i className="ph ph-sign-out" />
+              Đăng xuất tài khoản
+            </button>
           </div>
         )}
 

@@ -438,6 +438,27 @@
   cursor: not-allowed;
 }
 
+.mobile-account-logout-btn {
+  width: 100%;
+  min-height: 44px;
+  margin-top: 16px;
+  border: 1px solid #fecdd3;
+  border-radius: 10px;
+  background: #fff1f2;
+  color: #be123c;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.mobile-account-logout-btn:active {
+  background: #ffe4e6;
+}
+
 /* Floating Action Button (FAB) */
 .mobile-account-fab-btn {
   position: fixed;
