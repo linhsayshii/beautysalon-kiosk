@@ -29,7 +29,8 @@ export function requireTrustedOrigin(trustedOrigins) {
 
 export function requireJsonBody(request, response, next) {
   if (!unsafeMethods.has(request.method)) return next();
-  const hasBody = request.get('content-length') !== undefined || request.get('transfer-encoding') !== undefined;
+  const contentLength = Number(request.get('content-length') ?? 0);
+  const hasBody = request.get('transfer-encoding') !== undefined || contentLength > 0;
   if (!hasBody) {
     request.body = {};
     return next();

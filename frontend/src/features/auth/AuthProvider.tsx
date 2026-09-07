@@ -74,7 +74,11 @@ export function AuthProvider({ children }: PropsWithChildren) {
       return payload.data;
     },
     logout: async () => {
-      try { await apiRequest('/auth/logout', { method: 'POST' }); } finally { clearSensitiveBrowserState(); queryClient.clear(); disconnect(); setAccount(null); }
+      await apiRequest('/auth/logout', { method: 'POST' });
+      clearSensitiveBrowserState();
+      queryClient.clear();
+      disconnect();
+      setAccount(null);
     },
     updateLocalAccount: setAccount,
     switchBranch: async (branchId) => {

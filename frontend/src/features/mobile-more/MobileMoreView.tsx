@@ -5,11 +5,14 @@ import { useAuth } from '@/features/auth/AuthProvider';
 import { getBranches } from '@/features/branches/branches.api';
 import { initials } from '@/lib/format';
 import type { ApiRecord } from '@/types/api';
+import { errorMessage } from '@/services/api-client';
+import { useToast } from '@/components/ui/Toast/ToastProvider';
 import { useMobileDialog } from '@/features/mobile-common/useMobileDialog';
 import './mobile-more.css';
 
 export function MobileMoreView() {
   const { account, logout, switchBranch } = useAuth();
+  const { notify } = useToast();
   const navigate = useNavigate();
   const [isSwitchingBranch, setIsSwitchingBranch] = useState(false);
   const branchDialog = useMobileDialog({ isOpen: isSwitchingBranch, onClose: () => setIsSwitchingBranch(false) });
@@ -23,8 +26,12 @@ export function MobileMoreView() {
 
   const handleLogout = async () => {
     if (window.confirm('Bạn có chắc chắn muốn đăng xuất?')) {
-      await logout();
-      navigate('/login');
+      try {
+        await logout();
+        navigate('/login', { replace: true });
+      } catch (cause) {
+        notify('Không thể đăng xuất', errorMessage(cause, 'Vui lòng thử lại'));
+      }
     }
   };
 

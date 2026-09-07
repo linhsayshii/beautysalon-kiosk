@@ -18,6 +18,10 @@ vi.mock('@/features/branches/branches.api', () => ({
   getBranches: vi.fn(),
 }));
 
+vi.mock('@/components/ui/Toast/ToastProvider', () => ({
+  useToast: () => ({ notify: vi.fn() }),
+}));
+
 describe('MobileMoreView', () => {
   let queryClient: QueryClient;
   const mockSwitchBranch = vi.fn().mockResolvedValue(undefined);

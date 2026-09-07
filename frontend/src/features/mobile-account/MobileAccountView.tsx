@@ -172,8 +172,12 @@ export function MobileAccountView() {
 
   const handleLogout = async () => {
     if (!window.confirm('Bạn có chắc chắn muốn đăng xuất?')) return;
-    await logout().catch(() => undefined);
-    navigate('/login', { replace: true });
+    try {
+      await logout();
+      navigate('/login', { replace: true });
+    } catch (cause) {
+      notify('Không thể đăng xuất', errorMessage(cause, 'Vui lòng thử lại'));
+    }
   };
 
   const branches = (branchesQuery.data?.data ?? []) as ApiRecord[];
