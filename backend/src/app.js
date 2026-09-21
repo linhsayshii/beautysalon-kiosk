@@ -1,4 +1,5 @@
 import express from 'express';
+import debtRoutes from './modules/debts/debts.routes.js';
 import { randomUUID } from 'node:crypto';
 import { checkDatabase } from './db.js';
 import { config } from './config.js';
@@ -102,6 +103,7 @@ export function createApp() {
   app.use('/api/v1/branches', branchRoutes);
   app.use('/api/v1/notifications', notificationRoutes);
   app.use('/api/v1/pos', requirePermissions(permissions.usePos), posRoutes);
+  app.use('/api/v1/debts', requirePermissions(permissions.usePos), debtRoutes);
   app.use('/api/v1/dashboard', requirePermissions(permissions.readDashboard), dashboardRoutes);
   app.use('/api/v1/orders', requirePermissions(permissions.readOrders), orderRoutes);
   app.use('/api/v1/customers', requirePermissions(permissions.manageCustomers), customerRoutes);

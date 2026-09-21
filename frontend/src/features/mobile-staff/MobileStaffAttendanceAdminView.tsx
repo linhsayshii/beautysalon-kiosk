@@ -1,3 +1,4 @@
+import { ErrorState } from '@/components/data-display/DataState';
 import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -6,7 +7,8 @@ import {
   MobileDetailSheet,
   MobileEmptyState,
 } from '@/features/mobile-common';
-import { getStaff, getAttendance, getSchedule } from '@/features/staff/staff.api';
+import { getStaff, getAttendance } from '@/features/staff/staff.api';
+import { getScheduleRange } from '@/features/staff/schedule-range';
 import { weekStartIso, monthStartIso, todayIso, toIsoDate } from '@/lib/date';
 import { initials } from '@/lib/format';
 import type { ApiRecord } from '@/types/api';
@@ -108,8 +110,8 @@ export function MobileStaffAttendanceAdminView() {
   });
 
   const scheduleQuery = useQuery({
-    queryKey: ['admin-mobile-attendance-schedule', dateFrom],
-    queryFn: () => getSchedule(dateFrom),
+    queryKey: ['admin-mobile-attendance-schedule', dateFrom, dateTo],
+    queryFn: () => getScheduleRange(dateFrom, dateTo),
   });
 
   const staffList = (staffQuery.data?.data ?? []) as ApiRecord[];
@@ -309,7 +311,9 @@ export function MobileStaffAttendanceAdminView() {
 
       {/* Grouped Section List */}
       <div className="mobile-grouped-list-container">
-        {staffQuery.isLoading ? (
+        {(staffQuery.error || attendanceQuery.error || scheduleQuery.error) ? (
+          <ErrorState error={(staffQuery.error || attendanceQuery.error || scheduleQuery.error)!} onRetry={() => { void staffQuery.refetch(); void attendanceQuery.refetch(); void scheduleQuery.refetch(); }} />
+        ) : (staffQuery.isLoading || attendanceQuery.isLoading || scheduleQuery.isLoading) ? (
           <div style={{ textAlign: 'center', padding: '36px 0', color: '#64748b' }}>
             Đang tải dữ liệu chấm công...
           </div>

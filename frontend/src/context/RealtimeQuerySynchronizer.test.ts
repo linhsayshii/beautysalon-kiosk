@@ -51,3 +51,13 @@ describe('realtime query synchronization', () => {
     expect(keys).toContain(JSON.stringify(['customer-cards']));
   });
 });
+
+it('refreshes mobile commissions after payment and reconnect', () => {
+  const client = new QueryClient();
+  const spy = vi.spyOn(client, 'invalidateQueries').mockResolvedValue();
+  synchronizeRealtimeEvent(client, 'invoice:paid');
+  expect(invalidatedKeys(spy)).toContainEqual(['admin-mobile-commissions']);
+  spy.mockClear();
+  resynchronizeRealtimeQueries(client);
+  expect(invalidatedKeys(spy)).toContainEqual(['admin-mobile-commissions']);
+});

@@ -23,6 +23,7 @@ const customerValueEvents = new Set([
 const notificationEvents = new Set(['notification:created']);
 
 const appointmentQueryKeys = [
+  ['appointment-editor'],
   ['pos-appointments'],
   ['my-work-items'],
   ['pos-invoice'],
@@ -35,6 +36,10 @@ const appointmentQueryKeys = [
 ] as const;
 
 const invoiceQueryKeys = [
+  ['customer-debt'],
+  ['customer-activity'],
+  ['mobile-customer-activity'],
+  ['pos-customer-search'],
   ...appointmentQueryKeys,
   ['pos-catalog'],
   ['pos-customers'],
@@ -43,6 +48,7 @@ const invoiceQueryKeys = [
   ['customer'],
   ['mobile-customer-detail'],
   ['staff-commissions'],
+  ['admin-mobile-commissions'],
 ] as const;
 
 const customerValueQueryKeys = [

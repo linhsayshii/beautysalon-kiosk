@@ -1,11 +1,13 @@
 import { useEffect, useState, useMemo, useRef, type RefObject } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/components/ui/Toast/ToastProvider';
 import { useAuth } from '@/features/auth/AuthProvider';
 import { formatNumber } from '@/lib/format';
 import {
   createPosAppointment,
+  getPosAppointmentEditor,
+  savePosAppointmentEditor,
   getPosCatalog,
   getPosCustomerServicePackages,
   getPosStaff,
@@ -45,6 +47,10 @@ function padZero(n: number) {
 
 export function MobileAppointmentCreateView() {
   const navigate = useNavigate();
+  const { id } = useParams();
+  const editingId = id ? Number(id) : null;
+  const loadedId = useRef<number | null>(null);
+  const editorQuery = useQuery({ queryKey: ['appointment-editor', editingId], queryFn: () => getPosAppointmentEditor(editingId!), enabled: Boolean(editingId) });
   const queryClient = useQueryClient();
   const { notify } = useToast();
   const { account } = useAuth();
@@ -55,6 +61,17 @@ export function MobileAppointmentCreateView() {
   const [configuredItems, setConfiguredItems] = useState<ConfiguredServiceItem[]>([]);
   const [status, setStatus] = useState<string>('confirmed');
   const [note, setNote] = useState<string>('');
+
+  useEffect(() => {
+    if (!editingId || !editorQuery.data?.data || loadedId.current === editingId) return;
+    const data = editorQuery.data.data;
+    loadedId.current = editingId;
+    setCustomer(data.customer);
+    setStartTime(new Date(data.startsAt));
+    setConfiguredItems(data.items.map((item: ConfiguredServiceItem) => ({ ...item, startsAt: new Date(item.startsAt!) })));
+    setStatus(data.status);
+    setNote(data.note || '');
+  }, [editingId, editorQuery.data]);
 
   // Modals / Sheets State
   const [isCustomerSheetOpen, setIsCustomerSheetOpen] = useState(false);
@@ -90,7 +107,7 @@ export function MobileAppointmentCreateView() {
   const servicePackages = (servicePackagesQuery.data?.data || []) as ServicePackageOption[];
 
   useEffect(() => {
-    if (!customer?.id || servicePackagesQuery.isPending || packagePromptCustomerId === customer.id) return;
+    if (editingId || !customer?.id || servicePackagesQuery.isPending || packagePromptCustomerId === customer.id) return;
 
     setPackagePromptCustomerId(customer.id);
     if (servicePackages.length > 0) setIsPackageModalOpen(true);
@@ -125,16 +142,19 @@ export function MobileAppointmentCreateView() {
 
   // Create Mutation
   const createMutation = useMutation({
-    mutationFn: (payload: Parameters<typeof createPosAppointment>[0]) => createPosAppointment(payload),
+    mutationFn: (payload: Parameters<typeof createPosAppointment>[0]) => editingId ? savePosAppointmentEditor(editingId, payload) : createPosAppointment(payload),
     onSuccess: (response) => {
       queryClient.invalidateQueries({ queryKey: ['pos-appointments'] });
       queryClient.invalidateQueries({ queryKey: ['my-work-items'] });
+      queryClient.invalidateQueries({ queryKey: ['pos-invoice'] });
+      queryClient.invalidateQueries({ queryKey: ['pos-payment-requests'] });
+      queryClient.invalidateQueries({ queryKey: ['appointment-editor'] });
       const count = response.data?.appointments?.length || configuredItems.length;
-      notify('Tạo lịch hẹn thành công', `${customer?.name || 'Khách hàng'} có ${count} công việc dịch vụ trong cùng hóa đơn nháp.`);
-      navigate(-1);
+      notify(editingId ? 'Đã lưu thay đổi lịch hẹn' : 'Tạo lịch hẹn thành công', `${customer?.name || 'Khách hàng'} có ${count} công việc dịch vụ trong cùng hóa đơn nháp.`);
+      navigate('/m/appointments');
     },
     onError: (err: any) => {
-      notify('Lỗi tạo lịch hẹn', err?.message || 'Không thể tạo lịch hẹn. Vui lòng thử lại.');
+      notify(editingId ? 'Không thể lưu thay đổi' : 'Lỗi tạo lịch hẹn', err?.message || 'Không thể tạo lịch hẹn. Vui lòng thử lại.');
     },
   });
 
@@ -268,11 +288,14 @@ export function MobileAppointmentCreateView() {
     const payload = {
       customerId: customer.id,
       status,
-      note: note.trim() || undefined,
+      note: note.trim(),
       items: configuredItems.map((item) => {
         const itemStartsAt = item.startsAt ? new Date(item.startsAt) : startTime;
         const endsAt = new Date(itemStartsAt.getTime() + (item.durationMinutes || 60) * 60_000);
         return {
+          appointmentId: item.appointmentId,
+          status: editingId && status === editorQuery.data?.data?.status ? item.status || status : status,
+          note: editingId && note === editorQuery.data?.data?.note ? item.note ?? note : note,
           serviceId: item.itemId,
           staffId: item.staffId || null,
           quantity: item.quantity,
@@ -287,6 +310,14 @@ export function MobileAppointmentCreateView() {
     createMutation.mutate(payload);
   };
 
+  if (editingId && (editorQuery.isPending || editorQuery.isError || editorQuery.data?.data?.invoiceStatus !== 'draft')) {
+    return <div className="mobile-form-view-container" style={{ padding: 24 }}>
+      <h1>Chỉnh sửa lịch</h1><p role="status">{editorQuery.isPending ? 'Đang tải lịch hẹn…' : editorQuery.isError ? 'Không thể tải lịch hẹn. Vui lòng thử lại.' : 'Hóa đơn đã ghi nhận thanh toán. Vui lòng mở hóa đơn để xử lý điều chỉnh.'}</p>
+      {editorQuery.isError && <button onClick={() => editorQuery.refetch()}>Thử lại</button>}
+      <button onClick={() => navigate('/m/appointments')}>Về lịch dịch vụ</button>
+    </div>;
+  }
+
   return (
     <div className="mobile-form-view-container">
       {/* Top Header */}
@@ -300,7 +331,7 @@ export function MobileAppointmentCreateView() {
           >
             <i className="ph ph-caret-left" />
           </button>
-          <h1 className="mobile-form-header-title">Tạo lịch</h1>
+          <h1 className="mobile-form-header-title">{editingId ? 'Chỉnh sửa lịch' : 'Tạo lịch'}</h1>
         </div>
 
         <div className="mobile-form-header-actions">
@@ -555,7 +586,7 @@ export function MobileAppointmentCreateView() {
               <span>Đang lưu...</span>
             </>
           ) : (
-            <span>Lưu</span>
+            <span>{editingId ? 'Lưu thay đổi' : 'Lưu'}</span>
           )}
         </button>
       </footer>
@@ -582,6 +613,8 @@ export function MobileAppointmentCreateView() {
         timeZone={account?.branchTimezone}
         onClose={() => setIsTimePickerOpen(false)}
         onSelectTime={(date) => {
+          const delta = date.getTime() - startTime.getTime();
+          setConfiguredItems(items => items.map(item => ({ ...item, startsAt: new Date(new Date(item.startsAt || startTime).getTime() + delta) })));
           setStartTime(date);
           setIsTimePickerOpen(false);
         }}

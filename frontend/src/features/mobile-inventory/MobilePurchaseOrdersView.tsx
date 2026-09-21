@@ -1,3 +1,6 @@
+import { ErrorState } from '@/components/data-display/DataState';
+import { Pagination } from '@/components/data-display/Pagination';
+import { useFilterPagination } from '@/hooks/useFilterPagination';
 import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate, Link } from 'react-router-dom';
@@ -77,7 +80,7 @@ export function MobilePurchaseOrdersView() {
     }
     if (datePreset === '7days') {
       const d7 = new Date();
-      d7.setDate(d7.getDate() - 7);
+      d7.setDate(d7.getDate() - 6);
       return { dateFrom: toIsoDate(d7), dateTo: todayString };
     }
     if (datePreset === 'this_month') {
@@ -87,8 +90,10 @@ export function MobilePurchaseOrdersView() {
   }, [datePreset]);
 
   // Fetch Purchase Orders
-  const { data: purchaseOrdersData, isLoading } = useQuery({
-    queryKey: ['mobile-purchase-orders', search, statusFilter, dateParams.dateFrom, dateParams.dateTo],
+  const [page, setPage] = useFilterPagination([search, statusFilter, dateParams.dateFrom, dateParams.dateTo, sortValue]);
+
+  const { data: purchaseOrdersData, isLoading, error, refetch } = useQuery({
+    queryKey: ['mobile-purchase-orders', search, statusFilter, dateParams.dateFrom, dateParams.dateTo, page, sortValue],
     queryFn: () =>
       getPurchaseOrders({
         search,
@@ -96,13 +101,15 @@ export function MobilePurchaseOrdersView() {
         dateFrom: dateParams.dateFrom,
         dateTo: dateParams.dateTo,
         pageSize: 100,
+        page,
+        sort: sortValue,
       }),
   });
 
   const rawRows = (purchaseOrdersData?.data ?? []) as ApiRecord[];
 
   // Fetch Purchase Order Detail
-  const { data: orderDetailData, isLoading: isDetailLoading } = useQuery({
+  const { data: orderDetailData, isLoading: isDetailLoading, error: detailError, refetch: refetchDetail } = useQuery({
     queryKey: ['mobile-purchase-order-detail', selectedOrderId],
     queryFn: () => (selectedOrderId ? getPurchaseOrder(selectedOrderId) : null),
     enabled: selectedOrderId !== null,
@@ -110,38 +117,7 @@ export function MobilePurchaseOrdersView() {
 
   const activeOrder = orderDetailData?.data as ApiRecord | undefined;
 
-  // Filter and Sort Rows
-  const sortedRows = useMemo(() => {
-    return [...rawRows].sort((a, b) => {
-      if (sortValue === 'date_desc') {
-        const tA = a.receivedAt || a.createdAt ? new Date(a.receivedAt || a.createdAt).getTime() : 0;
-        const tB = b.receivedAt || b.createdAt ? new Date(b.receivedAt || b.createdAt).getTime() : 0;
-        return tB - tA;
-      }
-      if (sortValue === 'date_asc') {
-        const tA = a.receivedAt || a.createdAt ? new Date(a.receivedAt || a.createdAt).getTime() : 0;
-        const tB = b.receivedAt || b.createdAt ? new Date(b.receivedAt || b.createdAt).getTime() : 0;
-        return tA - tB;
-      }
-      if (sortValue === 'total_desc') {
-        const valA = Number(a.amountDue || 0);
-        const valB = Number(b.amountDue || 0);
-        return valB - valA;
-      }
-      if (sortValue === 'total_asc') {
-        const valA = Number(a.amountDue || 0);
-        const valB = Number(b.amountDue || 0);
-        return valA - valB;
-      }
-      if (sortValue === 'code_asc') {
-        return String(a.code || '').localeCompare(String(b.code || ''));
-      }
-      if (sortValue === 'code_desc') {
-        return String(b.code || '').localeCompare(String(a.code || ''));
-      }
-      return 0;
-    });
-  }, [rawRows, sortValue]);
+  const sortedRows = rawRows;
 
   // Group purchase orders by month/date (e.g. YYYY-MM)
   const groupedSections = useMemo(() => {
@@ -160,9 +136,7 @@ export function MobilePurchaseOrdersView() {
   }, [sortedRows]);
 
   // Total Amount Due calculation
-  const totalAmountDueSum = useMemo(() => {
-    return rawRows.reduce((sum, r) => sum + Number(r.amountDue || 0), 0);
-  }, [rawRows]);
+  const totalAmountDueSum = purchaseOrdersData?.meta?.summary?.totalDue;
 
   const openFilterSheet = () => {
     setDraftDatePreset(datePreset);
@@ -271,14 +245,14 @@ export function MobilePurchaseOrdersView() {
           />
 
           <div className="mobile-inventory-count-summary">
-            {rawRows.length} phiếu nhập · Cần trả: {formatMoney(totalAmountDueSum)}
+            {purchaseOrdersData?.meta?.pagination?.total ?? rawRows.length} phiếu nhập · Cần trả: {totalAmountDueSum === undefined ? '—' : formatMoney(totalAmountDueSum) }
           </div>
         </div>
       </div>
 
       {/* 4. Grouped Section List */}
       <div className="mobile-inventory-sections-wrapper">
-        {isLoading ? (
+        {error ? <ErrorState error={error} onRetry={() => refetch()} /> : isLoading ? (
           <div style={{ padding: '40px 16px', textAlign: 'center', color: '#64748b' }}>
             Đang tải danh sách phiếu nhập...
           </div>
@@ -355,6 +329,8 @@ export function MobilePurchaseOrdersView() {
         )}
       </div>
 
+      {purchaseOrdersData?.meta?.pagination && <Pagination pagination={purchaseOrdersData.meta.pagination} onChange={setPage} />}
+
       {/* 5. Floating Action Button (FAB) for Creating Purchase Order */}
       <Link
         to="/m/purchase-orders/new"
@@ -406,7 +382,7 @@ export function MobilePurchaseOrdersView() {
         title="Chi tiết phiếu nhập"
         onClose={() => setSelectedOrderId(null)}
       >
-        {isDetailLoading ? (
+        {detailError ? <ErrorState error={detailError} onRetry={() => refetchDetail()} /> : isDetailLoading ? (
           <div style={{ padding: '24px', textAlign: 'center', color: '#64748b' }}>
             Đang tải thông tin phiếu nhập...
           </div>

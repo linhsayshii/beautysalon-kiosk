@@ -1,7 +1,8 @@
+import { CustomerDebtPanel } from '@/features/debts/CustomerDebtPanel';
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { EmptyState, ErrorState, LoadingState } from '@/components/data-display/DataState';
-import { StatusBadge } from '@/components/data-display/Badges';
+import { StatusBadge, InvoiceStatusBadge } from '@/components/data-display/Badges';
 import { formatDate, formatDateTime, formatMoney, formatNumber } from '@/lib/format';
 import { statusLabels } from '@/types/api';
 import { getCustomer, getCustomerActivity } from '../operations.api';
@@ -43,7 +44,7 @@ function ActivityTable({ customerId, kind }: { customerId: number; kind: Activit
                   {formatMoney(row.amount)}
                 </td>
                 <td style={{ textAlign: 'center' }}>
-                  <StatusBadge status={row.status} />
+                  <InvoiceStatusBadge status={row.status} paymentStatus={row.paymentStatus} />
                 </td>
               </tr>
             ))}
@@ -349,42 +350,7 @@ export function CustomerDetail({ id }: { id: number }) {
           </div>
         )}
 
-        {tab === 'debt' && (
-          <div className="customer-debt-panel" style={{ padding: '8px 0', fontSize: 14.5 }}>
-            <div
-              style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(3, 1fr)',
-                gap: '16px 24px',
-                marginBottom: 16,
-              }}
-            >
-              <div>
-                <span style={{ color: '#64748b', display: 'block', marginBottom: 2 }}>Công nợ hiện tại:</span>
-                <strong style={{ fontSize: 18, color: customer.debtBalance > 0 ? '#e11d48' : '#059669' }}>
-                  {formatMoney(customer.debtBalance)}
-                </strong>
-              </div>
-              <div>
-                <span style={{ color: '#64748b', display: 'block', marginBottom: 2 }}>Số dư thẻ tài khoản:</span>
-                <strong style={{ fontSize: 18, color: '#059669' }}>
-                  {formatMoney(customer.cardBalance)}
-                </strong>
-              </div>
-              <div>
-                <span style={{ color: '#64748b', display: 'block', marginBottom: 2 }}>Trạng thái công nợ:</span>
-                <strong style={{ fontSize: 15, color: customer.debtBalance > 0 ? '#e11d48' : '#059669' }}>
-                  {customer.debtBalance > 0 ? 'Khách đang có khoản cần thu' : 'Không có công nợ'}
-                </strong>
-              </div>
-            </div>
-            <p style={{ color: '#64748b', margin: 0 }}>
-              {customer.debtBalance > 0
-                ? 'Khách hàng đang có khoản cần thu theo các hóa đơn mua hàng / dịch vụ.'
-                : 'Khách hàng hiện tại không có khoản nợ nào.'}
-            </p>
-          </div>
-        )}
+        {tab === 'debt' && <CustomerDebtPanel key={id} customerId={id} />}
 
         {tab !== 'overview' && tab !== 'debt' && (
           <ActivityTable customerId={id} kind={tab} />

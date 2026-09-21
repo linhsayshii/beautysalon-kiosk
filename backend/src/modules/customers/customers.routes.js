@@ -73,6 +73,7 @@ router.get('/', asyncRoute(async (request, response) => {
   const pagination = parsePagination(request.query);
   const debtStatus = parseEnum(request.query.debtStatus, 'debtStatus', domainOptions.filters.customers.debtStatuses);
   const result = await listCustomers({
+    sort: String(request.query.sort ?? ''),
     branchId,
     search: String(request.query.search ?? '').trim().slice(0, 120),
     group: String(request.query.group ?? '').trim().slice(0, 80),
@@ -88,6 +89,7 @@ router.get('/packages', asyncRoute(async (request, response) => {
   const status = parseEnum(request.query.status, 'status', domainOptions.filters.customerPackages.statuses);
   const itemType = parseEnum(request.query.itemType, 'itemType', ['package', 'account_card']);
   const result = await listCustomerPackages({
+    sort: String(request.query.sort ?? ''),
     branchId,
     search: String(request.query.search ?? '').trim().slice(0, 120),
     status,

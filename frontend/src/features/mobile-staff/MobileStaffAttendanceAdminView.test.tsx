@@ -55,7 +55,7 @@ describe('MobileStaffAttendanceAdminView Component', () => {
     queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
     vi.spyOn(staffApi, 'getStaff').mockResolvedValue(mockStaffResponse as any);
     vi.spyOn(staffApi, 'getAttendance').mockResolvedValue(mockAttendanceResponse as any);
-    vi.spyOn(staffApi, 'getSchedule').mockResolvedValue(mockScheduleResponse as any);
+    vi.spyOn(staffApi, 'getSchedule').mockImplementation(async start => ({ data: { schedules: mockScheduleResponse.data.schedules.map(shift => ({ ...shift, shiftDate: start })) } }));
   });
 
   const renderComponent = () =>

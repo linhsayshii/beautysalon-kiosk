@@ -1,9 +1,18 @@
+import { listSort } from '../../lib/list-sort.js';
 import { pool } from '../../db.js';
 import { HttpError } from '../../lib/http.js';
 
 const number = (value) => Number(value ?? 0);
 
-export async function listCustomers({ branchId, search, group, debtStatus, page, pageSize, offset }) {
+export async function listCustomers({ branchId, search, group, debtStatus, page, pageSize, offset, sort }) {
+  const orderBy = listSort(sort, {
+    name_asc: 'c.name ASC',
+    name_desc: 'c.name DESC',
+    debt_desc: 'c.debt_balance DESC',
+    debt_asc: 'c.debt_balance ASC',
+    lastVisit_desc: 'visits.last_visit DESC NULLS LAST',
+    lastVisit_asc: 'visits.last_visit ASC NULLS FIRST',
+  }, 'c.created_at DESC');
   const parameters = [branchId, search, group, debtStatus];
   const filters = `
     c.branch_id = $1
@@ -39,7 +48,7 @@ export async function listCustomers({ branchId, search, group, debtStatus, page,
            AND (cp.expires_at IS NULL OR cp.expires_at > NOW())
        ) pkg_units ON TRUE
        WHERE ${filters}
-       ORDER BY c.created_at DESC, c.id DESC
+       ORDER BY ${orderBy}, c.id DESC
        LIMIT $5 OFFSET $6`,
       [...parameters, pageSize, offset],
     ),
@@ -86,7 +95,15 @@ export async function listCustomers({ branchId, search, group, debtStatus, page,
   };
 }
 
-export async function listCustomerPackages({ branchId, search, status, itemType, page, pageSize, offset }) {
+export async function listCustomerPackages({ branchId, search, status, itemType, page, pageSize, offset, sort }) {
+  const orderBy = listSort(sort, {
+    soldAt_desc: 'sold_at DESC',
+    soldAt_asc: 'sold_at ASC',
+    name_asc: 'item_name ASC',
+    name_desc: 'item_name DESC',
+    price_desc: 'sale_price DESC',
+    price_asc: 'sale_price ASC',
+  }, 'sold_at DESC');
   const parameters = [branchId, search, status, itemType];
   const filters = `branch_id = $1
     AND ($2 = '' OR code ILIKE '%' || $2 || '%' OR item_name ILIKE '%' || $2 || '%'
@@ -117,7 +134,7 @@ export async function listCustomerPackages({ branchId, search, status, itemType,
        COALESCE(SUM(used_units) OVER(), 0) AS total_used,
        COALESCE(SUM(current_balance) OVER(), 0) AS total_balance
      FROM sold_cards WHERE ${filters}
-     ORDER BY sold_at DESC, item_type, id DESC
+     ORDER BY ${orderBy}, item_type, id DESC
      LIMIT $5 OFFSET $6`,
     [...parameters, pageSize, offset],
   );
@@ -195,9 +212,9 @@ export async function getCustomerActivity({ branchId, id, kind }) {
   if (!customer.rows[0]) throw new HttpError(404, 'CUSTOMER_NOT_FOUND', 'Không tìm thấy khách hàng');
 
   if (kind === 'orders') {
-    const result = await pool.query(`SELECT id, code, issued_at, total, status, payment_method
+    const result = await pool.query(`SELECT id, code, issued_at, total, amount_paid, payment_status, status, payment_method
       FROM invoices WHERE customer_id = $1 ORDER BY issued_at DESC, id DESC LIMIT 20`, [id]);
-    return result.rows.map((row) => ({ id: number(row.id), code: row.code, occurredAt: row.issued_at, amount: number(row.total), status: row.status, paymentMethod: row.payment_method }));
+    return result.rows.map((row) => ({ id: number(row.id), code: row.code, occurredAt: row.issued_at, amount: number(row.total), amountPaid: number(row.amount_paid), paymentStatus: row.payment_status, status: row.status, paymentMethod: row.payment_method }));
   }
   if (kind === 'appointments') {
     const result = await pool.query(`SELECT a.id, a.starts_at, a.status, sv.code AS service_code, sv.name AS service_name, s.name AS staff_name

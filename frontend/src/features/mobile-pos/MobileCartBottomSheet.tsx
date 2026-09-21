@@ -1,6 +1,10 @@
+import { resynchronizeRealtimeQueries } from '@/context/RealtimeQuerySynchronizer';
+import { PartialPaymentFields } from '@/features/debts/PartialPaymentFields';
+import { CustomerDebtPanel } from '@/features/debts/CustomerDebtPanel';
+import { usePaymentRequestKey } from '@/features/debts/debts.api';
 import { useState, useMemo } from 'react';
 import type { RefObject } from 'react';
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { formatMoney } from '@/lib/format';
 import { MoneyInput } from '@/components/forms/MoneyInput';
 import { Select } from '@/components/ui/Select/Select';
@@ -35,6 +39,9 @@ interface MobileCartBottomSheetProps {
   customer: PosCustomer | null;
   appointmentId?: number | null;
   invoiceId?: number | null;
+  invoiceCode?: string;
+  customerLocked?: boolean;
+  initialDiscount?: number;
   incompleteServiceCount?: number;
   onSelectCustomer: (cust: PosCustomer | null) => void;
   onUpdateQuantity: (itemId: number, itemType: string, delta: number) => void;
@@ -50,6 +57,9 @@ export function MobileCartBottomSheet({
   customer,
   appointmentId,
   invoiceId,
+  invoiceCode,
+  customerLocked = false,
+  initialDiscount = 0,
   incompleteServiceCount = 0,
   onSelectCustomer,
   onUpdateQuantity,
@@ -57,11 +67,16 @@ export function MobileCartBottomSheet({
   onClose,
   onSuccess,
 }: MobileCartBottomSheetProps) {
+  const [amountInput, setAmountInput] = useState<number | null>(null);
+  const [allowDebt, setAllowDebt] = useState(false);
+  const [showDebt, setShowDebt] = useState(false);
+  const requestKey = usePaymentRequestKey();
+  const queryClient = useQueryClient();
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('cash');
-  const [discountValue, setDiscountValue] = useState<number>(0);
+  const [discountValue, setDiscountValue] = useState<number>(initialDiscount);
   const [customerQuery, setCustomerQuery] = useState('');
   const [showCustomerSearch, setShowCustomerSearch] = useState(false);
-  const { dialogRef, titleId } = useMobileDialog({ isOpen: true, onClose });
+  const { dialogRef, titleId } = useMobileDialog({ isOpen: true, onClose: () => { if (!checkoutMutation.isPending) onClose(); } });
 
   // Fetch staff list
   const { data: staffResponse } = useQuery({
@@ -92,7 +107,7 @@ export function MobileCartBottomSheet({
     let amount = 0;
 
     if (line.commissionType === 'percent') {
-      amount = revenue * line.commissionRate;
+      amount = revenue * line.commissionRate / 100;
     } else {
       amount = line.quantity * line.commissionRate;
     }
@@ -110,7 +125,7 @@ export function MobileCartBottomSheet({
       let amount = 0;
 
       if (line.commissionType === 'percent') {
-        amount = revenue * line.commissionRate;
+        amount = revenue * line.commissionRate / 100;
       } else {
         amount = line.quantity * line.commissionRate;
       }
@@ -119,14 +134,17 @@ export function MobileCartBottomSheet({
     }, 0);
   }, [lines]);
 
+  const amountPaid = paymentMethod === 'wallet' ? total : amountInput ?? total;
   const checkoutMutation = useMutation({
-    mutationFn: checkoutPosInvoice,
+    mutationFn: (payload: Parameters<typeof checkoutPosInvoice>[0]) => checkoutPosInvoice({...payload,requestKey:requestKey(payload)}),
     onSuccess: (res) => {
+      resynchronizeRealtimeQueries(queryClient);
       onSuccess(res.data);
     },
   });
 
   const handleCheckout = () => {
+    if (checkoutMutation.isPending || (amountPaid < total && !allowDebt) || (paymentMethod !== 'cash' && amountPaid > total)) return;
     if (lines.length === 0) return;
     if (!customer) return;
     if (incompleteServiceCount > 0 && !window.confirm(
@@ -137,7 +155,8 @@ export function MobileCartBottomSheet({
       staffId: null,
       discount: discountValue,
       paymentMethod,
-      amountPaid: total,
+      amountPaid,
+      allowDebt,
       appointmentId,
       invoiceId,
       lines: lines.map((l) => ({
@@ -153,18 +172,19 @@ export function MobileCartBottomSheet({
 
   return (
     <MobileDialogPortal>
-    <div className="mobile-bottom-sheet-backdrop" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
-      <div ref={dialogRef as RefObject<HTMLDivElement>} className="mobile-bottom-sheet" style={{ maxHeight: '90dvh' }} role="dialog" aria-modal="true" aria-labelledby={titleId} tabIndex={-1}>
+    <div className="mobile-bottom-sheet-backdrop" onClick={(e) => { if (e.target === e.currentTarget && !checkoutMutation.isPending) onClose(); }}>
+      <div ref={dialogRef as RefObject<HTMLDivElement>} className="mobile-bottom-sheet mobile-checkout-sheet" role="dialog" aria-modal="true" aria-labelledby={titleId} tabIndex={-1}>
         <div className="mobile-sheet-drag-handle" />
 
         <div className="mobile-cart-sheet-header">
-          <h2 id={titleId} className="mobile-cart-sheet-title">Chi tiết giỏ hàng & Thanh toán</h2>
-          <button type="button" className="mobile-pos-search-clear" onClick={onClose} aria-label="Đóng">
+          <div><h2 id={titleId} className="mobile-cart-sheet-title">Thanh toán</h2>
+            <div className="checkout-invoice-identity"><strong>{customer?.name || 'Chưa chọn khách hàng'}</strong>{invoiceId && <small>{invoiceCode || `Hóa đơn #${invoiceId}`}</small>}</div></div>
+          <button type="button" className="mobile-pos-search-clear" onClick={onClose} disabled={checkoutMutation.isPending} aria-label="Đóng">
             <i className="ph ph-x" />
           </button>
         </div>
 
-        <div className="mobile-cart-sheet-content">
+        <div className="mobile-cart-sheet-content" inert={checkoutMutation.isPending}>
           {/* Customer Selection */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink-700)' }}>Khách hàng</span>
@@ -185,14 +205,15 @@ export function MobileCartBottomSheet({
                     {customer.phone && <div style={{ fontSize: 11.5, color: '#64748b' }}>{customer.phone}</div>}
                   </div>
                 </div>
-                <button
+                {!customerLocked && <button
                   type="button"
                   aria-label={`Bỏ chọn khách hàng ${customer.name}`}
                   style={{ border: 'none', background: 'transparent', color: '#dc2626', cursor: 'pointer', fontSize: 13, fontWeight: 600 }}
                   onClick={() => onSelectCustomer(null)}
                 >
                   Bỏ chọn
-                </button>
+                </button>}
+                {customerLocked && <span className="checkout-customer-locked"><i className="ph ph-lock" /> Theo lịch hẹn</span>}
               </div>
             ) : (
               <div>
@@ -278,7 +299,7 @@ export function MobileCartBottomSheet({
 
           {/* Cart Item List */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink-700)' }}>Món đã chọn ({lines.length})</span>
+            <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink-700)' }}>Dịch vụ, sản phẩm ({lines.length})</span>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
               {lines.map((line) => (
                 <div key={`${line.itemType}-${line.itemId}`} className="mobile-cart-item-row">
@@ -307,72 +328,58 @@ export function MobileCartBottomSheet({
                     </button>
                   </div>
 
-                  <div style={{ minWidth: 70, textAlign: 'right', fontWeight: 700, fontSize: 13 }}>
-                    {formatMoney(line.salePrice * line.quantity)}
+                  <div className="checkout-line-amounts">
+                    {line.itemType === 'service' && line.staffId != null && (
+                      <span className="checkout-commission" aria-label={`Hoa hồng ${line.name}: ${calculateExpectedCommission(line)}`} title="Hoa hồng nhân viên">
+                        {calculateExpectedCommission(line)}
+                      </span>
+                    )}
+                    <strong>{formatMoney(line.salePrice * line.quantity)}</strong>
                   </div>
+                  {line.itemType === 'service' && <div className="checkout-line-staff">
+                    <span>Nhân viên</span><Select<number | string> aria-label={`Nhân viên thực hiện ${line.name}`} value={line.staffId ?? ''}
+                      onChange={value => onUpdateLineStaff(line.itemId, line.itemType, value === '' ? null : Number(value))}
+                      size="sm" options={[{ value: '', label: 'Chọn nhân viên' }, ...staffList.map(staff => ({ value: staff.id, label: staff.name }))]} />
+                  </div>}
                 </div>
               ))}
             </div>
           </div>
 
-          {/* Staff assignment per line item */}
-          {staffList.length > 0 && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-              <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink-700)' }}>Nhân viên thực hiện</span>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                {lines.map((line) => (
-                  <div key={`staff-${line.itemType}-${line.itemId}`} style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    gap: 8,
-                    padding: '8px 0',
-                    borderBottom: '1px dashed var(--line, #e2e8f0)'
-                  }}>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <span style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink-800)' }}>{line.name}</span>
-                      {line.quantity > 1 && <span style={{ fontSize: 11.5, color: 'var(--ink-500)', marginLeft: 6 }}>x{line.quantity}</span>}
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <Select<number | string>
-                        aria-label={`Nhân viên thực hiện ${line.name}`}
-                        value={line.staffId ?? ''}
-                        onChange={(staffId) => onUpdateLineStaff(line.itemId, line.itemType, staffId === '' ? null : Number(staffId))}
-                        size="sm"
-                        triggerStyle={{
-                          padding: '4px 8px',
-                          borderRadius: 8,
-                          border: '1px solid var(--line, #e2e8f0)',
-                          background: 'var(--surface, #ffffff)',
-                          fontSize: 13,
-                          fontWeight: 600,
-                          color: 'var(--ink-800)',
-                          minWidth: 100,
-                          maxWidth: 140
-                        }}
-                        options={[{ value: '', label: '-- Chọn NV --' }, ...staffList.map((staff) => ({ value: staff.id, label: staff.name }))]}
-                      />
-                      {line.staffId && (
-                        <span style={{
-                          fontSize: 11.5,
-                          fontWeight: 700,
-                          color: '#059669',
-                          background: '#ecfdf5',
-                          padding: '2px 8px',
-                          borderRadius: 10,
-                          whiteSpace: 'nowrap'
-                        }}>
-                          HH: {calculateExpectedCommission(line)}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
           {/* Staff selection - removed, using per-line assignment above */}
+
+          {/* Discount input */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink-700)' }}>Giảm giá (VNĐ)</span>
+            <MoneyInput
+              aria-label="Giảm giá"
+              disabled={checkoutMutation.isPending}
+              placeholder="0"
+              value={discountValue}
+              onChange={(val) => setDiscountValue(val)}
+              suffix="đ"
+              wrapperClassName="input-suffix mobile-money-input"
+            />
+          </div>
+
+          {/* Summary */}
+          <div className="mobile-checkout-summary">
+            <div className="mobile-summary-row">
+              <span style={{ color: '#64748b' }}>Tạm tính:</span>
+              <span style={{ fontWeight: 600 }}>{formatMoney(subtotal)}</span>
+            </div>
+            {discountValue > 0 && (
+              <div className="mobile-summary-row" style={{ color: '#dc2626' }}>
+                <span>Giảm giá:</span>
+                <span>-{formatMoney(discountValue)}</span>
+              </div>
+            )}
+            {totalCommission > 0 && <div className="mobile-summary-row checkout-commission"><span>Hoa hồng dự kiến:</span><span>{formatMoney(totalCommission)}</span></div>}
+            <div className="mobile-summary-row total-row">
+              <span>Tổng hóa đơn:</span>
+              <span style={{ color: 'var(--blue-700)' }}>{formatMoney(total)}</span>
+            </div>
+          </div>
 
           {/* Payment Method */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
@@ -417,48 +424,17 @@ export function MobileCartBottomSheet({
             </div>
           </div>
 
-          {/* Discount input */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink-700)' }}>Giảm giá (VNĐ)</span>
-            <MoneyInput
-              aria-label="Giảm giá"
-              placeholder="0"
-              value={discountValue}
-              onChange={(val) => setDiscountValue(val)}
-              suffix="đ"
-              wrapperClassName="input-suffix mobile-money-input"
-            />
-          </div>
-
-          {/* Summary */}
-          <div className="mobile-checkout-summary">
-            <div className="mobile-summary-row">
-              <span style={{ color: '#64748b' }}>Tạm tính:</span>
-              <span style={{ fontWeight: 600 }}>{formatMoney(subtotal)}</span>
-            </div>
-            {discountValue > 0 && (
-              <div className="mobile-summary-row" style={{ color: '#dc2626' }}>
-                <span>Giảm giá:</span>
-                <span>-{formatMoney(discountValue)}</span>
-              </div>
-            )}
-            {totalCommission > 0 && (
-              <div className="mobile-summary-row" style={{ color: '#059669' }}>
-                <span>HH dự kiến:</span>
-                <span style={{ fontWeight: 700 }}>{formatMoney(totalCommission)}</span>
-              </div>
-            )}
-            <div className="mobile-summary-row total-row">
-              <span>Tổng thanh toán:</span>
-              <span style={{ color: 'var(--blue-700)' }}>{formatMoney(total)}</span>
-            </div>
-          </div>
-
+          <PartialPaymentFields customerId={customer?.id} total={total} amount={amountPaid} onAmountChange={setAmountInput} allowDebt={allowDebt} onAllowDebtChange={setAllowDebt} method={paymentMethod} compact disabled={checkoutMutation.isPending} />
+          {customer && <><button className="checkout-debt-toggle" type="button" onClick={()=>setShowDebt(!showDebt)}>{showDebt ? 'Ẩn công nợ' : 'Xem chi tiết công nợ / Thu nợ cũ'}</button>{showDebt && <CustomerDebtPanel key={customer.id} customerId={customer.id} />}</>}
+        </div>
+        <div className="mobile-checkout-footer">
+          <div className="checkout-collect-total"><span>Thu hóa đơn lần này</span><strong>{formatMoney(Math.min(total, amountPaid))}</strong></div>
+          {checkoutMutation.isError && <p role="alert">{checkoutMutation.error instanceof Error ? checkoutMutation.error.message : 'Không thể thanh toán. Vui lòng thử lại.'}</p>}
           {/* Submit Checkout */}
           <button
             type="button"
             className="mobile-checkout-submit-btn"
-            disabled={checkoutMutation.isPending || lines.length === 0 || !customer}
+            disabled={checkoutMutation.isPending || lines.length === 0 || !customer || (amountPaid < total && !allowDebt) || (paymentMethod !== 'cash' && amountPaid > total)}
             onClick={handleCheckout}
           >
             {checkoutMutation.isPending ? (
@@ -466,7 +442,7 @@ export function MobileCartBottomSheet({
             ) : (
               <>
                 <i className="ph ph-check-circle" style={{ fontSize: 20 }} />
-                <span>Thanh toán ngay ({formatMoney(total)})</span>
+                <span>Xác nhận thanh toán</span>
               </>
             )}
           </button>

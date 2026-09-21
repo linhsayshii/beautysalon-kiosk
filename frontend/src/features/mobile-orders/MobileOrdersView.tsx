@@ -1,9 +1,12 @@
+import { Pagination } from '@/components/data-display/Pagination';
+import { useFilterPagination } from '@/hooks/useFilterPagination';
+import { useSearchParams } from 'react-router-dom';
+import { InvoiceStatusBadge } from '@/components/data-display/Badges';
 import { useState, useMemo } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { formatDateTime, formatMoney, formatNumber } from '@/lib/format';
 import { toIsoDate, todayIso, monthStartIso, COMMON_DATE_PRESETS, formatDayHeader } from '@/lib/date';
-import { StatusBadge } from '@/components/data-display/Badges';
 import { Select } from '@/components/ui/Select/Select';
 import { LoadingState, ErrorState } from '@/components/data-display/DataState';
 import { statusLabels, type ApiRecord } from '@/types/api';
@@ -67,7 +70,8 @@ export function MobileOrdersView() {
   ];
 
   // Detail Sheet
-  const [selectedOrderId, setSelectedOrderId] = useState<number | null>(null);
+  const [orderParams] = useSearchParams();
+  const [selectedOrderId, setSelectedOrderId] = useState<number | null>(() => Number(orderParams.get('invoice')) || null);
 
   // Date ranges based on datePreset
   const dateParams = useMemo(() => {
@@ -85,7 +89,7 @@ export function MobileOrdersView() {
     }
     if (datePreset === '7days') {
       const d7 = new Date();
-      d7.setDate(d7.getDate() - 7);
+      d7.setDate(d7.getDate() - 6);
       return { dateFrom: toIsoDate(d7), dateTo: todayString };
     }
     if (datePreset === 'this_month') {
@@ -95,6 +99,8 @@ export function MobileOrdersView() {
   }, [datePreset]);
 
   // Fetch Orders
+  const [page, setPage] = useFilterPagination([search, statusFilter, channelFilter, paymentMethodFilter, dateParams.dateFrom, dateParams.dateTo, sortValue]);
+
   const ordersQuery = useQuery({
     queryKey: [
       'mobile-orders',
@@ -104,7 +110,7 @@ export function MobileOrdersView() {
       paymentMethodFilter,
       dateParams.dateFrom,
       dateParams.dateTo,
-    ],
+      page, sortValue],
     queryFn: () =>
       getOrders({
         search,
@@ -114,31 +120,15 @@ export function MobileOrdersView() {
         dateFrom: dateParams.dateFrom,
         dateTo: dateParams.dateTo,
         pageSize: 100,
+        page,
+        sort: sortValue,
       }),
   });
 
   const rawRows = (ordersQuery.data?.data ?? []) as ApiRecord[];
 
-  // Client-side search filter for instant responsiveness
-  const filteredRows = useMemo(() => {
-    if (!search.trim()) return rawRows;
-    const q = search.toLowerCase().trim();
-    return rawRows.filter((r) => {
-      const code = String(r.code || '').toLowerCase();
-      const custName = String(r.customer?.name || r.customerName || '').toLowerCase();
-      const custPhone = String(r.customer?.phone || r.customerPhone || '').toLowerCase();
-      const staffName = String(r.staff?.name || r.staffName || '').toLowerCase();
-      return (
-        code.includes(q) ||
-        custName.includes(q) ||
-        custPhone.includes(q) ||
-        staffName.includes(q)
-      );
-    });
-  }, [rawRows, search]);
-
   // Fetch Order Detail
-  const { data: detailData, isLoading: isDetailLoading } = useQuery({
+  const { data: detailData, isLoading: isDetailLoading, error: detailError, refetch: refetchDetail } = useQuery({
     queryKey: ['mobile-order-detail', selectedOrderId],
     queryFn: () => (selectedOrderId ? getOrder(selectedOrderId) : null),
     enabled: selectedOrderId !== null,
@@ -146,34 +136,7 @@ export function MobileOrdersView() {
 
   const activeOrder = detailData?.data as ApiRecord | undefined;
 
-  // Filter and Sort Rows
-  const sortedRows = useMemo(() => {
-    return [...filteredRows].sort((a, b) => {
-      if (sortValue === 'date_desc') {
-        const tA = a.issuedAt || a.createdAt ? new Date(a.issuedAt || a.createdAt).getTime() : 0;
-        const tB = b.issuedAt || b.createdAt ? new Date(b.issuedAt || b.createdAt).getTime() : 0;
-        return tB - tA;
-      }
-      if (sortValue === 'date_asc') {
-        const tA = a.issuedAt || a.createdAt ? new Date(a.issuedAt || a.createdAt).getTime() : 0;
-        const tB = b.issuedAt || b.createdAt ? new Date(b.issuedAt || b.createdAt).getTime() : 0;
-        return tA - tB;
-      }
-      if (sortValue === 'total_desc') {
-        return Number(b.total || 0) - Number(a.total || 0);
-      }
-      if (sortValue === 'total_asc') {
-        return Number(a.total || 0) - Number(b.total || 0);
-      }
-      if (sortValue === 'code_asc') {
-        return String(a.code || '').localeCompare(String(b.code || ''));
-      }
-      if (sortValue === 'code_desc') {
-        return String(b.code || '').localeCompare(String(a.code || ''));
-      }
-      return 0;
-    });
-  }, [filteredRows, sortValue]);
+  const sortedRows = rawRows;
 
   // Group orders by date (e.g. YYYY-MM-DD)
   const groupedSections = useMemo(() => {
@@ -191,12 +154,7 @@ export function MobileOrdersView() {
   }, [sortedRows]);
 
   // Total Revenue calculation
-  const totalRevenueSum = useMemo(() => {
-    return filteredRows.reduce((sum, r) => {
-      if (r.status === 'cancelled') return sum;
-      return sum + Number(r.total || 0);
-    }, 0);
-  }, [filteredRows]);
+  const totalRevenueSum = ordersQuery.data?.meta?.summary?.paidRevenue;
 
   const openFilterSheet = () => {
     setDraftDatePreset(datePreset);
@@ -323,7 +281,7 @@ export function MobileOrdersView() {
           />
 
           <div className="mobile-orders-count-summary">
-            {rawRows.length} đơn hàng · Doanh thu: {formatMoney(totalRevenueSum)}
+            {ordersQuery.data?.meta?.pagination?.total ?? rawRows.length} đơn hàng · Doanh thu: {totalRevenueSum === undefined ? '—' : formatMoney(totalRevenueSum) }
           </div>
         </div>
       </div>
@@ -357,7 +315,7 @@ export function MobileOrdersView() {
                   const custPhone = order.customer?.phone || order.customerPhone || '';
                   const rawTime = order.issuedAt || order.createdAt;
                   const orderTime = rawTime ? new Date(rawTime).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) : '--:--';
-                  const isPaid = order.status === 'paid';
+                  const isPaid = order.status === 'paid' && (!order.paymentStatus || order.paymentStatus === 'paid');
 
                   return (
                     <div
@@ -407,7 +365,7 @@ export function MobileOrdersView() {
                           {formatMoney(order.total || 0)}
                         </div>
                         <div className="mobile-orders-status-badge-wrap">
-                          <StatusBadge status={order.status} />
+                          <InvoiceStatusBadge status={order.status} paymentStatus={order.paymentStatus} />
                         </div>
                       </div>
                     </div>
@@ -418,6 +376,8 @@ export function MobileOrdersView() {
           ))
         )}
       </div>
+
+      {ordersQuery.data?.meta?.pagination && <Pagination pagination={ordersQuery.data.meta.pagination} onChange={setPage} />}
 
       {/* 5. Floating Action Button (FAB) */}
       <Link
@@ -461,7 +421,7 @@ export function MobileOrdersView() {
             onChange={setDraftStatus}
             options={[
               { value: '', label: 'Tất cả trạng thái' },
-              { value: 'paid', label: 'Đã thanh toán' },
+              { value: 'paid', label: 'Đã chốt hóa đơn' },
               { value: 'draft', label: 'Đơn nháp' },
               { value: 'refunded', label: 'Đã hoàn tiền' },
               { value: 'cancelled', label: 'Đã hủy' },
@@ -513,7 +473,7 @@ export function MobileOrdersView() {
         title="Chi tiết đơn hàng"
         onClose={() => setSelectedOrderId(null)}
       >
-        {isDetailLoading ? (
+        {detailError ? <ErrorState error={detailError} onRetry={() => refetchDetail()} /> : isDetailLoading ? (
           <div style={{ padding: '24px', textAlign: 'center', color: '#64748b' }}>
             Đang tải thông tin đơn hàng...
           </div>
@@ -524,7 +484,7 @@ export function MobileOrdersView() {
               <div className="mobile-orders-detail-header-row">
                 <h2 className="mobile-orders-detail-code">{activeOrder.code}</h2>
                 <div className="mobile-orders-detail-status-pill">
-                  <StatusBadge status={activeOrder.status} />
+                  <InvoiceStatusBadge status={activeOrder.status} paymentStatus={activeOrder.paymentStatus} />
                 </div>
               </div>
               {Number(activeOrder.serviceProgress?.total || 0) > 0 && (

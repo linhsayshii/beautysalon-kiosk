@@ -9,6 +9,8 @@ import { MobileDialogPortal } from './MobileDialogPortal';
 import './mobile-common.css';
 
 export interface ConfiguredServiceItem {
+  appointmentId?: number;
+  status?: string;
   itemId: number;
   itemType: 'product' | 'service' | 'package' | 'account_card';
   name: string;

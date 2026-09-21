@@ -198,7 +198,7 @@ describe('MobileInvoiceCreateView Component', () => {
     expect(screen.getByText('Thẻ tài khoản')).toBeInTheDocument();
 
     // Checkout & Print button
-    expect(screen.getByRole('button', { name: /Thanh toán & In hóa đơn/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Chốt & In hóa đơn/i })).toBeInTheDocument();
   });
 
   it('allows picking a registered customer from sheet and updates display', async () => {
@@ -251,7 +251,7 @@ describe('MobileInvoiceCreateView Component', () => {
       expect(screen.getByText('0đ / cái, lần')).toBeInTheDocument();
     });
 
-    fireEvent.click(screen.getByRole('button', { name: /Thanh toán & In hóa đơn/i }));
+    fireEvent.click(screen.getByRole('button', { name: /Chốt & In hóa đơn/i }));
 
     await waitFor(() => {
       expect(posApi.checkoutPosInvoice).toHaveBeenCalledWith(expect.objectContaining({
@@ -359,7 +359,7 @@ describe('MobileInvoiceCreateView Component', () => {
     fireEvent.change(discountInput, { target: { value: '50000' } });
 
     // 5. Submit Checkout
-    const checkoutBtn = screen.getByRole('button', { name: /Thanh toán & In hóa đơn/i });
+    const checkoutBtn = screen.getByRole('button', { name: /Chốt & In hóa đơn/i });
     fireEvent.click(checkoutBtn);
 
     await waitFor(() => {

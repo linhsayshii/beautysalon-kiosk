@@ -81,8 +81,8 @@ describe('MobilePosView Component', () => {
     expect(screen.getByText(/Giỏ hàng \(1\)/i)).toBeInTheDocument();
     expect(screen.getAllByText(/60[.,]000/i).length).toBeGreaterThanOrEqual(1);
 
-    fireEvent.click(screen.getByRole('button', { name: /^Thanh toán$/i }));
-    expect(screen.getByText('Chi tiết giỏ hàng & Thanh toán')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /^Thanh toán ·/i }));
+    expect(screen.getByRole('dialog', { name: 'Thanh toán' })).toBeInTheDocument();
   });
 
   it('shows an actionable payment request for cashier or manager', async () => {

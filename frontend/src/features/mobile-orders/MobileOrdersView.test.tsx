@@ -70,12 +70,17 @@ describe('MobileOrdersView Component', () => {
       defaultOptions: { queries: { retry: false } },
     });
 
-    vi.spyOn(operationsApi, 'getOrders').mockResolvedValue({
-      data: mockOrders as any,
-      meta: {
-        pagination: { page: 1, pageSize: 100, total: 2, totalPages: 1 },
-        summary: {},
-      } as any,
+    vi.spyOn(operationsApi, 'getOrders').mockImplementation(async (filters) => {
+      const search = String(filters.search ?? '').toLocaleLowerCase();
+      const rows = mockOrders.filter((order) =>
+        `${order.code} ${order.customer.name}`.toLocaleLowerCase().includes(search));
+      return {
+        data: rows as any,
+        meta: {
+          pagination: { page: 1, pageSize: 100, total: rows.length, totalPages: 1 },
+          summary: {},
+        } as any,
+      };
     });
 
     vi.spyOn(operationsApi, 'getOrder').mockImplementation((id: number) => {

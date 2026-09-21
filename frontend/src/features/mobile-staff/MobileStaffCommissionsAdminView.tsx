@@ -1,3 +1,5 @@
+import { DatePickerField } from '@/components/ui/DateTimePicker';
+import { ErrorState, LoadingState } from '@/components/data-display/DataState';
 import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -18,8 +20,8 @@ import './mobile-staff.css';
 export function MobileStaffCommissionsAdminView() {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<'by_staff' | 'details'>('by_staff');
-  const [dateFrom] = useState(monthStartIso());
-  const [dateTo] = useState(todayIso());
+  const [dateFrom, setDateFrom] = useState(monthStartIso());
+  const [dateTo, setDateTo] = useState(todayIso());
   const [search, setSearch] = useState('');
   const [isSearchVisible, setIsSearchVisible] = useState(false);
 
@@ -27,7 +29,7 @@ export function MobileStaffCommissionsAdminView() {
   const [selectedStaffSummary, setSelectedStaffSummary] = useState<CommissionStaffSummary | null>(null);
   const [selectedTxRecord, setSelectedTxRecord] = useState<CommissionDetail | null>(null);
 
-  const { data: commData, isLoading } = useQuery({
+  const { data: commData, isLoading, error, refetch } = useQuery({
     queryKey: ['admin-mobile-commissions', dateFrom, dateTo],
     queryFn: () => getCommissions(dateFrom, dateTo),
   });
@@ -157,11 +159,13 @@ export function MobileStaffCommissionsAdminView() {
           </button>
         </div>
 
+        <div className="mobile-commission-date-range">
+          <label><span>Từ ngày</span><DatePickerField aria-label="Hoa hồng từ ngày" value={dateFrom} max={dateTo} allowClear={false} onChange={(value) => { setDateFrom(value); setSelectedStaffSummary(null); setSelectedTxRecord(null); }} /></label>
+          <label><span>Đến ngày</span><DatePickerField aria-label="Hoa hồng đến ngày" value={dateTo} min={dateFrom} allowClear={false} onChange={(value) => { setDateTo(value); setSelectedStaffSummary(null); setSelectedTxRecord(null); }} /></label>
+        </div>
         {/* Summary Bar */}
         <div className="mobile-staff-summary-sort-bar">
-          <span className="mobile-sort-select-chip">
-            <span>Tháng này</span>
-          </span>
+          <span className="mobile-sort-select-chip">{dateFrom} – {dateTo}</span>
           <span className="mobile-summary-text">
             {activeTab === 'by_staff' ? `${filteredByStaff.length} nhân viên` : `${filteredRows.length} giao dịch`} · Tổng: <strong>{formatMoney(totalCommissions)}</strong>
           </span>
@@ -171,7 +175,7 @@ export function MobileStaffCommissionsAdminView() {
       {/* Tab 1: Grouped list by Role showing individual staff commission */}
       {activeTab === 'by_staff' && (
         <div className="mobile-grouped-list-container">
-          {isLoading ? (
+          {error ? <ErrorState error={error} onRetry={() => refetch()} /> : isLoading ? (
             <div style={{ textAlign: 'center', padding: '36px 0', color: '#64748b' }}>
               Đang tải dữ liệu hoa hồng...
             </div>
@@ -229,7 +233,7 @@ export function MobileStaffCommissionsAdminView() {
       {/* Tab 2: Grouped list by date showing transaction logs */}
       {activeTab === 'details' && (
         <div className="mobile-grouped-list-container">
-          {filteredRows.length === 0 ? (
+          {error ? <ErrorState error={error} onRetry={() => refetch()} /> : isLoading ? <LoadingState /> : filteredRows.length === 0 ? (
             <MobileEmptyState
               icon="ph ph-receipt"
               title="Không có giao dịch"

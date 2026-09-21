@@ -15,10 +15,12 @@ router.get('/', asyncRoute(async (request, response) => {
   const dateFrom = request.query.dateFrom ? parseIsoDate(request.query.dateFrom, 'dateFrom') : null;
   const dateTo = request.query.dateTo ? parseIsoDate(request.query.dateTo, 'dateTo') : null;
   const result = await listOrders({
+    sort: String(request.query.sort ?? ''),
     branchId,
     search: String(request.query.search ?? '').trim().slice(0, 120),
     status,
     paymentMethod,
+    salesChannel: parseEnum(request.query.salesChannel, 'salesChannel', ['salon', 'online', 'phone']),
     staffId,
     dateFrom,
     dateTo,

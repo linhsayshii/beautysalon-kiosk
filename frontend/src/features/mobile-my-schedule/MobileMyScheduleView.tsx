@@ -197,7 +197,7 @@ export function MobileMyScheduleView() {
                           <div className="my-schedule-item-service">{item.service}</div>
                         )}
                         {item.status === 'completed' && item.invoiceStatus === 'paid' && (
-                          <div className="my-schedule-payment-state">Đã thanh toán</div>
+                          <div className="my-schedule-payment-state">Đã chốt hóa đơn</div>
                         )}
                         {item.status === 'completed' && item.invoiceStatus === 'draft' && (
                           <div className="my-schedule-payment-state">

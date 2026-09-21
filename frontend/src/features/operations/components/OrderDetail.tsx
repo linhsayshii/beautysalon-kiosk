@@ -1,6 +1,6 @@
+import { InvoiceStatusBadge } from '@/components/data-display/Badges';
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { StatusBadge } from '@/components/data-display/Badges';
 import { ErrorState, LoadingState } from '@/components/data-display/DataState';
 import { formatDateTime, formatMoney, formatNumber } from '@/lib/format';
 import { statusLabels } from '@/types/api';
@@ -274,7 +274,7 @@ export function OrderDetail({ id }: { id: number }) {
             <div>
               <span style={{ color: '#64748b', display: 'block', marginBottom: 2 }}>Trạng thái:</span>
               <div>
-                <StatusBadge status={order.status} />
+                <InvoiceStatusBadge status={order.status} paymentStatus={order.paymentStatus} />
               </div>
             </div>
             <div>
@@ -292,11 +292,11 @@ export function OrderDetail({ id }: { id: number }) {
             </div>
             <div>
               <span style={{ color: '#64748b', display: 'block', marginBottom: 2 }}>Số tiền đã thanh toán:</span>
-              <strong style={{ color: '#059669', fontSize: 16 }}>{formatMoney(order.total)}</strong>
+              <strong style={{ color: '#059669', fontSize: 16 }}>{formatMoney(order.amountPaid ?? order.total)}</strong>
             </div>
             <div>
               <span style={{ color: '#64748b', display: 'block', marginBottom: 2 }}>Công nợ ghi nhận:</span>
-              <strong style={{ color: '#1e293b' }}>0đ</strong>
+              <strong style={{ color: '#1e293b' }}>{formatMoney(order.debtAmount ?? 0)}</strong>
             </div>
             <div>
               <span style={{ color: '#64748b', display: 'block', marginBottom: 2 }}>Trạng thái thu tiền:</span>
@@ -312,7 +312,7 @@ export function OrderDetail({ id }: { id: number }) {
                     color: order.status === 'paid' ? '#059669' : '#d97706',
                   }}
                 >
-                  {order.status === 'paid' ? 'Đã thanh toán đủ' : statusLabels[order.status] ?? order.status}
+                  {order.status === 'paid' ? (order.paymentStatus === 'partial' ? 'Thanh toán một phần' : order.paymentStatus === 'unpaid' ? 'Chưa thanh toán' : 'Đã thanh toán đủ') : statusLabels[order.status] ?? order.status}
                 </span>
               </div>
             </div>

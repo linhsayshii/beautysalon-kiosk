@@ -698,3 +698,55 @@
     border-radius: 12px;
   }
 }
+
+/* Checkout keeps identity and confirmation outside the only scrolling area. */
+.mobile-checkout-sheet { height:min(94dvh,var(--mobile-overlay-viewport-height,94dvh)); max-height:100%; padding:12px 16px max(12px,env(safe-area-inset-bottom)); overflow:hidden; }
+.mobile-checkout-sheet .mobile-sheet-drag-handle,.mobile-checkout-sheet .mobile-cart-sheet-header,.mobile-checkout-footer { flex-shrink:0; }
+.mobile-checkout-sheet .mobile-cart-sheet-header { align-items:flex-start; gap:12px; padding-bottom:12px; }
+.checkout-invoice-identity { font-size:13px; line-height:1.5; color:#475569; overflow-wrap:anywhere; }
+.mobile-checkout-sheet .mobile-cart-sheet-content { flex:1; max-height:none; min-height:0; padding:16px 0; gap:20px; }
+.mobile-checkout-sheet .mobile-cart-sheet-content > * { flex-shrink:0; }
+.mobile-checkout-footer { border-top:1px solid #e2e8f0; padding-top:12px; background:#fff; }
+.checkout-collect-total { display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:10px; font-size:14px; }
+.checkout-collect-total strong { font-size:20px; color:var(--blue-700,#1d4ed8); }
+.mobile-checkout-footer .mobile-checkout-submit-btn { min-height:48px; height:auto; padding:12px; flex-shrink:0; border-radius:10px; box-shadow:none; }
+.mobile-checkout-footer [role=alert] { color:#b91c1c; margin:0 0 8px; font-size:13px; }
+.mobile-checkout-sheet .mobile-payment-methods { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; }
+.mobile-checkout-sheet .mobile-pay-method-btn { min-height:48px; flex-direction:row; font-size:14px; }
+.mobile-checkout-sheet .mobile-pay-method-btn.is-active::after { content:'✓'; margin-left:auto; }
+.mobile-checkout-sheet .mobile-cart-item-row { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:10px; }
+.mobile-checkout-sheet .mobile-cart-item-row > :first-child { grid-column:1/-1; }
+.checkout-line-staff { grid-column:1/-1; display:flex; flex-wrap:wrap; gap:8px; align-items:center; font-size:13px; }
+.checkout-line-amounts { display:flex; flex-wrap:wrap; justify-content:flex-end; align-items:center; gap:12px; min-width:0; font-size:13px; font-variant-numeric:tabular-nums; }
+.checkout-line-amounts > * { white-space:nowrap; }
+.mobile-checkout-sheet .checkout-commission { color:#059669; font-weight:500; }
+.checkout-customer-locked { font-size:11px; color:#64748b; white-space:nowrap; margin-left:6px; }
+.mobile-checkout-sheet .debt-panel { padding:0; }
+.mobile-checkout-sheet .debt-panel input:not([type=checkbox]) { font-size:18px; min-height:48px; }
+.checkout-debt-toggle,.cart-close-invoice { min-height:44px; background:transparent; border:0; color:#1d4ed8; font:inherit; font-size:13px; text-align:left; padding:8px 0; }
+.cart-close-invoice { padding:6px 16px; border-bottom:1px solid #e2e8f0; }
+.cart-invoice-identity { display:flex; flex-direction:column; gap:3px; white-space:normal; overflow-wrap:anywhere; text-align:left; }
+.cart-invoice-identity strong { font-size:13px; }
+.cart-invoice-identity small { font-size:14px; font-weight:600; }
+.mobile-pos-payment-request.is-selected { border:2px solid #2563eb; background:#eff6ff; }
+.mobile-pos-payment-request.is-selected button { background:transparent; color:#1d4ed8; max-width:130px; }
+.mobile-checkout-sheet button:disabled { opacity:.55; cursor:wait; }
+
+.mobile-checkout-sheet .mobile-cart-sheet-header > div { flex:1; min-width:0; }
+.checkout-invoice-identity { display:flex; flex-direction:column; gap:2px; }
+.checkout-invoice-identity strong { color:#334155; }
+.checkout-invoice-identity small { font-size:12px; }
+.mobile-checkout-sheet .mobile-cart-qty-ctrl { justify-self:start; }
+.mobile-checkout-sheet .mobile-cart-sheet-header > button { flex-shrink:0; }
+
+/* Keep all checkout fields and secondary actions aligned with the payment controls. */
+.mobile-checkout-sheet .debt-panel input:not([type=checkbox]) { border-radius:10px; border-color:#dbe3ee; padding:12px; text-align:right; font-variant-numeric:tabular-nums; }
+.mobile-checkout-sheet .debt-panel > label:not(.debt-consent) { font-size:13px; font-weight:700; color:var(--ink-700); }
+.mobile-checkout-sheet .debt-panel > label input { font-weight:500; }
+.mobile-checkout-sheet .debt-panel .debt-fill-total { min-height:44px; border:1px solid #bfdbfe; border-radius:10px; background:#eff6ff; color:var(--blue-700,#1d4ed8); font:inherit; font-weight:600; }
+.mobile-checkout-sheet .debt-panel .debt-fill-total:hover:not(:disabled) { background:#dbeafe; border-color:#93c5fd; }
+.mobile-checkout-sheet .debt-panel .debt-fill-total:active:not(:disabled) { background:#bfdbfe; }
+.mobile-checkout-sheet button:focus-visible { outline:2px solid var(--blue-700,#1d4ed8); outline-offset:2px; }
+.mobile-checkout-sheet button:disabled { cursor:not-allowed; }
+.mobile-checkout-sheet .debt-panel small { line-height:1.5; }
+.mobile-checkout-sheet .debt-facts strong { font-variant-numeric:tabular-nums; text-align:right; }

@@ -1,8 +1,12 @@
+import { resynchronizeRealtimeQueries } from '@/context/RealtimeQuerySynchronizer';
+import { PartialPaymentFields } from '@/features/debts/PartialPaymentFields';
+import { CustomerDebtPanel } from '@/features/debts/CustomerDebtPanel';
+import { usePaymentRequestKey } from '@/features/debts/debts.api';
 import { useEffect, useMemo, useState } from 'react';
 import type { FormEvent } from 'react';
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { MoneyInput } from '@/components/forms/MoneyInput';
-import { formatMoney, formatNumber } from '@/lib/format';
+import { formatMoney } from '@/lib/format';
 import { useMetadata } from '@/services/metadata';
 import { checkoutPosInvoice, type PosCheckoutPayload, type PosReceiptData } from '../pos.api';
 
@@ -47,13 +51,17 @@ export function PosCheckoutModal({
   const [discountType, setDiscountType] = useState<'amount' | 'percent'>('amount');
   const [discountValue, setDiscountValue] = useState<number>(0);
   const [amountPaidInput, setAmountPaidInput] = useState<string>('');
+  const [allowDebt, setAllowDebt] = useState(false);
+  const [showDebt, setShowDebt] = useState(false);
+  const requestKey = usePaymentRequestKey();
+  const queryClient = useQueryClient();
   const [note, setNote] = useState<string>('');
   const [shouldPrintReceipt, setShouldPrintReceipt] = useState<boolean>(false);
   const { data: metadata } = useMetadata();
   const vietqrConfig = metadata?.data?.system?.vietqr || {
-    bankBin: 'ICB',
-    accountNumber: '108868686868',
-    accountName: 'ANNA CHILL BEAUTY',
+    bankBin: '',
+    accountNumber: '',
+    accountName: '',
   };
 
   const subtotal = useMemo(() => {
@@ -71,43 +79,21 @@ export function PosCheckoutModal({
   const total = Math.max(0, subtotal - calculatedDiscount);
 
   const amountPaid = useMemo(() => {
-    if (!amountPaidInput.trim()) return total;
+    if (paymentMethod === 'wallet' || !amountPaidInput.trim()) return total;
     const parsed = Number(amountPaidInput.replace(/\D/g, ''));
     return Number.isNaN(parsed) ? total : parsed;
-  }, [amountPaidInput, total]);
-
-  const changeAmount = Math.max(0, amountPaid - total);
-
-  // Suggested cash amounts
-  const suggestedCashAmounts = useMemo(() => {
-    const list: number[] = [total];
-    if (total <= 0) return [0];
-
-    const roundUps = [50000, 100000, 200000, 500000, 1000000, 2000000];
-    roundUps.forEach((denom) => {
-      if (denom > total && !list.includes(denom)) {
-        list.push(denom);
-      }
-    });
-
-    const nextHundred = Math.ceil(total / 100000) * 100000;
-    if (nextHundred > total && !list.includes(nextHundred)) list.push(nextHundred);
-
-    const nextFiveHundred = Math.ceil(total / 500000) * 500000;
-    if (nextFiveHundred > total && !list.includes(nextFiveHundred)) list.push(nextFiveHundred);
-
-    return Array.from(new Set(list)).sort((a, b) => a - b).slice(0, 5);
-  }, [total]);
+  }, [amountPaidInput, total, paymentMethod]);
 
   // VietQR URL for dynamic bank transfer
   const vietQrUrl = useMemo(() => {
-    if (paymentMethod !== 'bank_transfer' || total <= 0) return '';
-    const bankCode = vietqrConfig.bankBin || 'ICB';
-    const accNum = vietqrConfig.accountNumber || '108868686868';
+    if (paymentMethod !== 'bank_transfer' || amountPaid <= 0) return '';
+    const bankCode = vietqrConfig.bankBin;
+    const accNum = vietqrConfig.accountNumber;
+    if (!bankCode || !accNum) return '';
     const accName = encodeURIComponent(vietqrConfig.accountName || 'ANNA CHILL BEAUTY');
     const memo = encodeURIComponent(`THANH TOAN ${customer?.name ? customer.name.slice(0, 15) : 'SPA'}`);
-    return `https://img.vietqr.io/image/${bankCode}-${accNum}-qr_only.png?amount=${total}&addInfo=${memo}&accountName=${accName}`;
-  }, [paymentMethod, total, customer, vietqrConfig]);
+    return `https://img.vietqr.io/image/${bankCode}-${accNum}-qr_only.png?amount=${amountPaid}&addInfo=${memo}&accountName=${accName}`;
+  }, [paymentMethod, amountPaid, customer, vietqrConfig]);
 
   const checkoutMutation = useMutation({
     mutationFn: (print: boolean) => {
@@ -116,7 +102,8 @@ export function PosCheckoutModal({
         customerId: customer?.id ?? null,
         discount: calculatedDiscount,
         paymentMethod,
-        amountPaid: paymentMethod === 'cash' ? amountPaid : total,
+        amountPaid,
+        allowDebt,
         note: note.trim() || undefined,
         invoiceId,
         lines: lines.map((line) => ({
@@ -128,9 +115,10 @@ export function PosCheckoutModal({
           usePackageServiceId: line.usePackageServiceId ?? undefined,
         })),
       };
-      return checkoutPosInvoice(payload);
+      return checkoutPosInvoice({...payload,requestKey:requestKey(payload)});
     },
     onSuccess: (response) => {
+      resynchronizeRealtimeQueries(queryClient);
       onSuccess(response.data, shouldPrintReceipt);
     },
   });
@@ -138,22 +126,22 @@ export function PosCheckoutModal({
   const handleSubmit = (event: FormEvent, print: boolean) => {
     event.preventDefault();
     if (checkoutMutation.isPending) return;
-    if (!customer) return;
+    if (!customer || (amountPaid < total && !allowDebt) || (paymentMethod !== 'cash' && amountPaid > total)) return;
     checkoutMutation.mutate(print);
   };
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
+      if (e.key === 'Escape' && !checkoutMutation.isPending) {
         onClose();
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [onClose]);
+  }, [onClose, checkoutMutation.isPending]);
 
   return (
-    <div className="pos-checkout-backdrop" role="presentation" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+    <div className="pos-checkout-backdrop" role="presentation" onMouseDown={(e) => { if (e.target === e.currentTarget && !checkoutMutation.isPending) onClose(); }}>
       <div className="pos-checkout-modal" role="dialog" aria-modal="true" aria-labelledby="checkout-modal-title">
         <header className="pos-checkout-header">
           <div className="pos-checkout-header-title">
@@ -165,7 +153,7 @@ export function PosCheckoutModal({
               <p>Khách hàng: <strong>{customer ? `${customer.name} ${customer.phone ? `(${customer.phone})` : ''}` : 'Chưa chọn khách hàng'}</strong></p>
             </div>
           </div>
-          <button type="button" className="pos-checkout-close" onClick={onClose} aria-label="Đóng">
+          <button type="button" className="pos-checkout-close" onClick={onClose} disabled={checkoutMutation.isPending} aria-label="Đóng">
             <i className="ph ph-x" />
           </button>
         </header>
@@ -306,47 +294,16 @@ export function PosCheckoutModal({
               </div>
 
               {/* Tab nội dung theo phương thức thanh toán */}
-              {paymentMethod === 'cash' && (
-                <div className="payment-cash-box">
-                  <div className="cash-input-field">
-                    <label htmlFor="amount-paid">Tiền khách đưa (VNĐ)</label>
-                    <MoneyInput
-                      id="amount-paid"
-                      value={amountPaidInput}
-                      placeholder={formatNumber(total)}
-                      onChange={(val) => setAmountPaidInput(val ? String(val) : '')}
-                    />
-                  </div>
+              <PartialPaymentFields showTransferQr={false} customerId={customer?.id} total={total} amount={amountPaid} onAmountChange={v=>setAmountPaidInput(String(v))} allowDebt={allowDebt} onAllowDebtChange={setAllowDebt} method={paymentMethod} disabled={checkoutMutation.isPending} />
+              {customer && <><button type="button" onClick={()=>setShowDebt(!showDebt)}>{showDebt ? 'Ẩn công nợ' : 'Xem công nợ / Thu nợ cũ'}</button>{showDebt && <CustomerDebtPanel key={customer.id} customerId={customer.id} />}</>}
 
-                  <div className="suggested-cash-buttons">
-                    {suggestedCashAmounts.map((amt) => (
-                      <button
-                        key={amt}
-                        type="button"
-                        className={`suggested-cash-btn ${amountPaid === amt ? 'is-active' : ''}`}
-                        onClick={() => setAmountPaidInput(String(amt))}
-                      >
-                        {amt === total ? 'Đủ tiền' : formatMoney(amt)}
-                      </button>
-                    ))}
-                  </div>
-
-                  <div className="cash-change-display">
-                    <span className="cash-change-label">Tiền thừa thối lại</span>
-                    <strong className={`cash-change-value ${changeAmount > 0 ? 'has-change' : ''}`}>
-                      {formatMoney(changeAmount)}
-                    </strong>
-                  </div>
-                </div>
-              )}
-
-              {paymentMethod === 'bank_transfer' && (
+              {paymentMethod === 'bank_transfer' && amountPaid > 0 && vietQrUrl && (
                 <div className="payment-qr-box">
                   <div className="qr-container">
                     <img src={vietQrUrl} alt="VietQR Thanh toán" className="vietqr-image" />
                   </div>
                   <div className="qr-info">
-                    <p>Quét mã VietQR thanh toán <strong>{formatMoney(total)}</strong></p>
+                    <p>Quét mã VietQR thanh toán <strong>{formatMoney(amountPaid)}</strong></p>
                     <small>Số tài khoản: <strong>{vietqrConfig.accountNumber} ({vietqrConfig.bankBin})</strong></small>
                     <small>Chủ tài khoản: <strong>{vietqrConfig.accountName}</strong></small>
                   </div>
@@ -400,7 +357,7 @@ export function PosCheckoutModal({
               <button
                 type="button"
                 className="pos-btn-pay-print"
-                disabled={checkoutMutation.isPending || lines.length === 0 || !customer}
+                disabled={checkoutMutation.isPending || lines.length === 0 || !customer || (amountPaid < total && !allowDebt) || (paymentMethod !== 'cash' && amountPaid > total)}
                 onClick={(e) => handleSubmit(e, true)}
               >
                 <i className="ph ph-printer" />
@@ -410,11 +367,11 @@ export function PosCheckoutModal({
               <button
                 type="submit"
                 className="pos-btn-pay-direct"
-                disabled={checkoutMutation.isPending || lines.length === 0 || !customer}
+                disabled={checkoutMutation.isPending || lines.length === 0 || !customer || (amountPaid < total && !allowDebt) || (paymentMethod !== 'cash' && amountPaid > total)}
                 onClick={(e) => handleSubmit(e, false)}
               >
                 <i className="ph ph-check-circle" />
-                {checkoutMutation.isPending && !shouldPrintReceipt ? 'Đang xử lý...' : `Thanh toán (${formatMoney(total)})`}
+                {checkoutMutation.isPending && !shouldPrintReceipt ? 'Đang xử lý...' : `Chốt hóa đơn (${formatMoney(Math.min(amountPaid,total))})`}
               </button>
             </div>
           </footer>

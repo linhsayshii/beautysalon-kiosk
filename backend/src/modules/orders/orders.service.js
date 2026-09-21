@@ -1,10 +1,19 @@
+import { listSort } from '../../lib/list-sort.js';
 import { pool } from '../../db.js';
 import { HttpError } from '../../lib/http.js';
 
 const number = (value) => Number(value ?? 0);
 
-export async function listOrders({ branchId, search, status, paymentMethod, staffId, dateFrom, dateTo, page, pageSize, offset }) {
-  const parameters = [branchId, search, status, paymentMethod, staffId, dateFrom, dateTo];
+export async function listOrders({ branchId, search, status, paymentMethod, staffId, dateFrom, dateTo, page, pageSize, offset, sort, salesChannel = '' }) {
+  const orderBy = listSort(sort, {
+    date_desc: 'i.issued_at DESC',
+    date_asc: 'i.issued_at ASC',
+    total_desc: 'i.total DESC',
+    total_asc: 'i.total ASC',
+    code_asc: 'i.code ASC',
+    code_desc: 'i.code DESC',
+  }, 'i.issued_at DESC');
+  const parameters = [branchId, search, status, paymentMethod, staffId, dateFrom, dateTo, salesChannel];
   const filters = `
     i.branch_id = $1
     AND ($2 = '' OR i.code ILIKE '%' || $2 || '%' OR c.name ILIKE '%' || $2 || '%' OR c.phone ILIKE '%' || $2 || '%')
@@ -13,12 +22,13 @@ export async function listOrders({ branchId, search, status, paymentMethod, staf
     AND ($5::bigint IS NULL OR i.staff_id = $5)
     AND ($6::date IS NULL OR i.issued_at >= $6::date)
     AND ($7::date IS NULL OR i.issued_at < $7::date + INTERVAL '1 day')
+    AND ($8 = '' OR i.sales_channel = $8)
   `;
 
   const [rowsResult, summaryResult] = await Promise.all([
     pool.query(
       `SELECT
-         i.id, i.code, i.status, i.subtotal, i.discount, i.total, i.payment_method, i.sales_channel, i.issued_at,
+         i.id, i.code, i.status, i.subtotal, i.discount, i.total, i.amount_paid, i.payment_status, i.payment_method, i.sales_channel, i.issued_at,
          i.appointment_id,
          c.code AS customer_code, COALESCE(c.name, 'Khách lẻ') AS customer_name, c.phone AS customer_phone,
          s.name AS staff_name,
@@ -27,8 +37,8 @@ export async function listOrders({ branchId, search, status, paymentMethod, staf
        LEFT JOIN customers c ON c.id = i.customer_id
        LEFT JOIN staff s ON s.id = i.staff_id
        WHERE ${filters}
-       ORDER BY i.issued_at DESC, i.id DESC
-       LIMIT $8 OFFSET $9`,
+       ORDER BY ${orderBy}, i.id DESC
+       LIMIT $9 OFFSET $10`,
       [...parameters, pageSize, offset],
     ),
     pool.query(
@@ -54,6 +64,10 @@ export async function listOrders({ branchId, search, status, paymentMethod, staf
       subtotal: number(row.subtotal),
       discount: number(row.discount),
       total: number(row.total),
+      amountPaid: number(row.amount_paid),
+      paidAmount: number(row.amount_paid),
+      debtAmount: row.status === 'paid' ? Math.max(0, number(row.total)-number(row.amount_paid)) : 0,
+      paymentStatus: row.payment_status,
       paymentMethod: row.payment_method,
       salesChannel: row.sales_channel,
       issuedAt: row.issued_at,
@@ -83,8 +97,9 @@ export async function listOrders({ branchId, search, status, paymentMethod, staf
 export async function getOrder({ branchId, id }) {
   const headerResult = await pool.query(
     `SELECT
-       i.id, i.code, i.status, i.subtotal, i.discount, i.total, i.payment_method,
+       i.id, i.code, i.status, i.subtotal, i.discount, i.total, i.amount_paid, i.payment_status, i.payment_method,
        i.sales_channel, i.note, i.issued_at, i.created_at,
+       EXISTS (SELECT 1 FROM appointments linked WHERE linked.invoice_id=i.id) AS from_appointment,
        b.name AS branch_name,
        c.id AS customer_id, c.code AS customer_code, COALESCE(c.name, 'Khách lẻ') AS customer_name,
        c.phone AS customer_phone,
@@ -165,6 +180,10 @@ export async function getOrder({ branchId, id }) {
     subtotal: number(row.subtotal),
     discount: number(row.discount),
     total: number(row.total),
+      amountPaid: number(row.amount_paid),
+      paidAmount: number(row.amount_paid),
+      debtAmount: row.status === 'paid' ? Math.max(0, number(row.total)-number(row.amount_paid)) : 0,
+      paymentStatus: row.payment_status,
     paymentMethod: row.payment_method,
     salesChannel: row.sales_channel,
     note: row.note || '',
@@ -181,6 +200,7 @@ export async function getOrder({ branchId, id }) {
       code: row.staff_code,
       name: row.staff_name,
     },
+    fromAppointment: Boolean(row.from_appointment),
     serviceProgress: {
       total: scheduledServices.length,
       completed: scheduledServices.filter((item) => item.appointment.status === 'completed').length,

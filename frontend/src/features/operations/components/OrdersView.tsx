@@ -1,10 +1,10 @@
+import { InvoiceStatusBadge } from '@/components/data-display/Badges';
 import { Fragment, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { appConfig } from '@/app/config';
 import { AvatarName } from '@/components/data-display/AvatarName';
 import { ErrorState, EmptyState, LoadingState } from '@/components/data-display/DataState';
 import { Pagination } from '@/components/data-display/Pagination';
-import { StatusBadge } from '@/components/data-display/Badges';
 import { SummaryStrip } from '@/components/data-display/SummaryStrip';
 import { DateRangeFilter, FilterPanel, SelectFilter } from '@/components/forms/FilterPanel';
 import { SearchToolbar } from '@/components/forms/SearchToolbar';
@@ -38,13 +38,13 @@ export function OrdersView() {
     <PageHeader title="Đơn hàng salon" subtitle="Theo dõi hóa đơn, thanh toán và trạng thái đơn tại tất cả quầy." extraActions={<button className="secondary-button" type="button" onClick={() => exportCsv(rows, 'orders') || notify('Không có dữ liệu', 'Hãy tải dữ liệu trước khi xuất file.')}><i className="ph ph-export" />Xuất file</button>} />
     <SummaryStrip items={[
       { label: 'Tổng đơn', value: formatNumber(summary?.totalOrders), note: 'Theo bộ lọc hiện tại' },
-      { label: 'Doanh thu đã thu', value: formatMoney(summary?.paidRevenue), note: 'Không gồm đơn hoàn', tone: 'green' },
+      { label: 'Doanh thu hóa đơn', value: formatMoney(summary?.paidRevenue), note: 'Gồm phần khách còn nợ', tone: 'green' },
       { label: 'Đơn nháp', value: formatNumber(summary?.draftOrders), note: 'Cần hoàn tất', tone: 'orange' },
       { label: 'Đơn hoàn', value: formatNumber(summary?.refundedOrders), note: 'Đã hoàn tiền', tone: 'red' },
     ]} />
     <div className="workspace-grid">
       <FilterPanel title="Bộ lọc đơn hàng" onApply={apply} onReset={reset}>
-        <SelectFilter label="Trạng thái" value={draft.status} onChange={(status) => setDraft({ ...draft, status })} options={[{ value: '', label: 'Tất cả' }, ...toOptions(metadata.data?.data.filters.orders.statuses ?? [], statusLabels)]} />
+        <SelectFilter label="Trạng thái" value={draft.status} onChange={(status) => setDraft({ ...draft, status })} options={[{ value: '', label: 'Tất cả' }, ...toOptions(metadata.data?.data.filters.orders.statuses ?? [], {...statusLabels,paid:'Đã chốt hóa đơn'})]} />
         <SelectFilter label="Thanh toán" value={draft.paymentMethod} onChange={(paymentMethod) => setDraft({ ...draft, paymentMethod })} options={[{ value: '', label: 'Tất cả' }, ...toOptions(metadata.data?.data.filters.orders.paymentMethods ?? [], statusLabels)]} />
         <DateRangeFilter label="Thời gian bán" from={draft.dateFrom} to={draft.dateTo} onFromChange={(dateFrom) => setDraft({ ...draft, dateFrom })} onToChange={(dateTo) => setDraft({ ...draft, dateTo })} />
       </FilterPanel>
@@ -62,7 +62,7 @@ export function OrdersView() {
               <td data-label="Thời gian" className="numeric-cell">{formatDateTime(row.issuedAt)}</td>
               <td data-label="Thanh toán">{statusLabels[row.paymentMethod] ?? row.paymentMethod}</td>
               <td data-label="Tổng tiền" className="money-cell">{formatMoney(row.total)}</td>
-              <td data-label="Trạng thái"><StatusBadge status={row.status} /></td>
+              <td data-label="Trạng thái"><InvoiceStatusBadge status={row.status} paymentStatus={row.paymentStatus} /></td>
             </tr>
             {isExpanded && <tr className="order-detail-row expandable-detail-row" id={detailId}><td colSpan={8}><OrderDetail id={row.id} /></td></tr>}
           </Fragment>;

@@ -1,4 +1,5 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import { useMobileDialog } from '@/features/mobile-common/useMobileDialog';
+import { createContext, useCallback, useContext, useMemo, useState } from 'react';
 import type { PropsWithChildren } from 'react';
 
 export interface DrawerSection { title: string; rows: Array<[string, string]> }
@@ -11,20 +12,16 @@ export function DrawerProvider({ children }: PropsWithChildren) {
   const [drawer, setDrawer] = useState<DrawerState | null>(null);
   const closeDrawer = useCallback(() => setDrawer(null), []);
   const openDrawer = useCallback((title: string, sections: DrawerSection[]) => setDrawer({ title, sections }), []);
-  useEffect(() => {
-    const onKeyDown = (event: KeyboardEvent) => { if (event.key === 'Escape') closeDrawer(); };
-    document.addEventListener('keydown', onKeyDown);
-    return () => document.removeEventListener('keydown', onKeyDown);
-  }, [closeDrawer]);
+  const { dialogRef, titleId } = useMobileDialog({ isOpen: !!drawer, onClose: closeDrawer });
   const value = useMemo(() => ({ openDrawer, closeDrawer }), [openDrawer, closeDrawer]);
 
   return (
     <DrawerContext.Provider value={value}>
       {children}
       <div className={`drawer-backdrop ${drawer ? 'is-open' : ''}`} hidden={!drawer} onClick={closeDrawer} />
-      <aside className={`detail-drawer ${drawer ? 'is-open' : ''}`} aria-hidden={!drawer} aria-label="Chi tiết bản ghi">
+      {drawer && <aside ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby={titleId} tabIndex={-1} className={`detail-drawer ${drawer ? 'is-open' : ''}`} aria-hidden={!drawer} aria-label="Chi tiết bản ghi">
         <div className="drawer-header">
-          <div><small>Chi tiết</small><h2>{drawer?.title ?? 'Thông tin'}</h2></div>
+          <div><small>Chi tiết</small><h2 id={titleId}>{drawer?.title ?? 'Thông tin'}</h2></div>
           <button className="drawer-close" type="button" onClick={closeDrawer} aria-label="Đóng chi tiết"><i className="ph ph-x" /></button>
         </div>
         <div className="drawer-body">
@@ -35,7 +32,7 @@ export function DrawerProvider({ children }: PropsWithChildren) {
             </section>
           ))}
         </div>
-      </aside>
+      </aside>}
     </DrawerContext.Provider>
   );
 }

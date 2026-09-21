@@ -314,6 +314,7 @@ router.get('/suppliers', asyncRoute(async (request, response) => {
 
 router.get('/purchase-orders', asyncRoute(async (request, response) => {
   const result = await listPurchaseOrders({
+    sort: String(request.query.sort ?? ''),
     branchId: request.account.branchId, search: text(request.query.search),
     status: parseEnum(request.query.status, 'status', purchaseStatuses),
     dateFrom: request.query.dateFrom ? parseIsoDate(request.query.dateFrom, 'dateFrom') : null,

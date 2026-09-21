@@ -58,7 +58,9 @@ export function MobileTopBar() {
 
   const pathname = location.pathname.replace(/\/$/, '') || '/m';
   const isSubPage = !ROOT_TAB_ROUTES.has(pathname);
-  const subPageInfo = SUBPAGE_CONFIG[pathname];
+  const subPageInfo = /^\/m\/appointments\/\d+\/edit$/.test(pathname)
+    ? { title: 'Chỉnh sửa lịch', backTo: '/m/appointments', hideTopBar: true }
+    : SUBPAGE_CONFIG[pathname];
   const subPageTitle = subPageInfo?.title || 'Chi tiết';
 
   const { data: branchesData } = useQuery({

@@ -115,7 +115,7 @@ export function PosReceiptPrint({ receipt, onClose }: PosReceiptPrintProps) {
               <span>{paymentMethodLabel[receipt.paymentMethod] || receipt.paymentMethod}</span>
             </div>
             <div className="receipt-summary-row">
-              <span>Tiền khách đưa:</span>
+              <span>Đã thanh toán:</span>
               <span>{formatMoney(receipt.amountPaid)}</span>
             </div>
             <div className="receipt-summary-row">
@@ -124,6 +124,8 @@ export function PosReceiptPrint({ receipt, onClose }: PosReceiptPrintProps) {
             </div>
           </div>
 
+          <div className="receipt-summary-row"><span>Còn nợ hóa đơn:</span><strong>{formatMoney(receipt.debtAmount ?? 0)}</strong></div>
+          {receipt.customerDebtBalance !== undefined && <div className="receipt-summary-row"><span>Tổng dư nợ khách hàng:</span><strong>{formatMoney(receipt.customerDebtBalance)}</strong></div>}
           {receipt.note && (
             <div className="receipt-note">
               <em>Ghi chú: {receipt.note}</em>

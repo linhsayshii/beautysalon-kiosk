@@ -224,7 +224,7 @@ describe('MobileAppointmentCreateView Component', () => {
           items: [expect.objectContaining({ serviceId: 1 })],
         })
       );
-      expect(mockNavigate).toHaveBeenCalledWith(-1);
+      expect(mockNavigate).toHaveBeenCalledWith('/m/appointments');
     });
   });
 

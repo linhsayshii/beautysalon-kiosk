@@ -1,7 +1,8 @@
-import { useMemo, useState } from 'react';
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { invalidatePurchaseQueries } from '@/features/inventory/invalidatePurchaseQueries';
+import { useState } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
-import { appConfig } from '@/app/config';
+import { usePurchaseProductSearch } from '@/features/inventory/usePurchaseProductSearch';
 import { EmptyState, ErrorState, LoadingState } from '@/components/data-display/DataState';
 import { MoneyInput } from '@/components/forms/MoneyInput';
 import { Select } from '@/components/ui/Select/Select';
@@ -9,7 +10,7 @@ import { useToast } from '@/components/ui/Toast/ToastProvider';
 import { formatMoney, formatNumber } from '@/lib/format';
 import { toOptions, useMetadata } from '@/services/metadata';
 import { statusLabels, type ApiRecord } from '@/types/api';
-import { createPurchaseOrder, getProducts, getSuppliers } from '@/features/inventory/inventory.api';
+import { createPurchaseOrder, getSuppliers } from '@/features/inventory/inventory.api';
 import './mobile-inventory.css';
 
 interface DraftItem extends ApiRecord {
@@ -19,6 +20,7 @@ interface DraftItem extends ApiRecord {
 
 export function MobilePurchaseOrderCreateView() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { notify } = useToast();
   const metadata = useMetadata();
   const [search, setSearch] = useState('');
@@ -30,28 +32,18 @@ export function MobilePurchaseOrderCreateView() {
   const [paymentMethod, setPaymentMethod] = useState('cash');
   const [note, setNote] = useState('');
 
-  const products = useQuery({
-    queryKey: ['purchase-catalog'],
-    queryFn: () => getProducts({ type: 'product', status: 'active', page: 1, pageSize: appConfig.purchaseCatalogPageSize }),
-  });
+  const products = usePurchaseProductSearch(search);
   const suppliers = useQuery({ queryKey: ['suppliers'], queryFn: getSuppliers });
   const mutation = useMutation({
     mutationFn: createPurchaseOrder,
-    onSuccess: (payload) => {
+    onSuccess: async (payload) => { await invalidatePurchaseQueries(queryClient);
       notify('Lưu phiếu thành công', `${payload.data.code} đã được lưu.`);
       navigate('/m/purchase-orders');
     },
     onError: (error) => notify('Không thể lưu phiếu', error.message),
   });
 
-  const results = useMemo(() => {
-    const keyword = search.trim().toLowerCase();
-    if (!keyword) return [];
-    return (products.data?.data ?? [])
-      .filter((item) => `${item.code} ${item.name}`.toLowerCase().includes(keyword))
-      .slice(0, 8);
-  }, [products.data, search]);
-
+  const results = products.data?.data ?? [];
   const subtotal = items.reduce((sum, item) => sum + item.quantity * item.unitCost, 0);
   const due = Math.max(0, subtotal - discount + otherCost);
 
@@ -86,9 +78,9 @@ export function MobilePurchaseOrderCreateView() {
     });
   };
 
-  if (products.isPending || suppliers.isPending) return <LoadingState />;
-  if (products.error || suppliers.error) {
-    return <ErrorState error={(products.error || suppliers.error)!} onRetry={() => { products.refetch(); suppliers.refetch(); }} />;
+  if (suppliers.isPending) return <LoadingState />;
+  if (suppliers.error) {
+    return <ErrorState error={suppliers.error} onRetry={() => { suppliers.refetch(); }} />;
   }
 
   return (
@@ -108,7 +100,7 @@ export function MobilePurchaseOrderCreateView() {
 
         {search && (
           <div className="mobile-po-search-results" aria-live="polite">
-            {results.length ? results.map((item) => (
+            {products.isFetching ? <p>Đang tìm sản phẩm…</p> : products.error ? <ErrorState error={products.error} onRetry={() => products.refetch()} /> : results.length ? results.map((item) => (
               <button type="button" key={item.itemId} onClick={() => addItem(item)}>
                 <span><strong>{item.name}</strong><small>{item.code} · Tồn {formatNumber(item.stockQuantity)}</small></span>
                 <span><strong>{formatMoney(item.lastPurchasePrice || item.costPrice)}</strong><i className="ph ph-plus-circle" aria-hidden="true" /></span>

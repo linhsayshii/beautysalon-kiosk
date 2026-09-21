@@ -321,7 +321,7 @@ export function PosView() {
 
   const handleCheckoutSuccess = (receipt: PosReceiptData, shouldPrint: boolean) => {
     setIsCheckoutOpen(false);
-    notify('Thanh toán thành công', `Hóa đơn ${receipt.code} với số tiền ${formatMoney(receipt.total)} đã được ghi nhận.`);
+    notify('Đã chốt hóa đơn', `Hóa đơn ${receipt.code} · Đã thu ${formatMoney(receipt.amountPaid)} · Còn nợ ${formatMoney(receipt.debtAmount ?? 0)}.`);
 
     // Clear current invoice lines & customer
     updateActive((invoice) => ({

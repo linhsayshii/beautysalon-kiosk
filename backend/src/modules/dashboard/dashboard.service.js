@@ -12,10 +12,9 @@ function round(value, digits = 2) {
   return Math.round((value + Number.EPSILON) * factor) / factor;
 }
 
-function fillHourly(rows, valueKey) {
+export function fillHourly(rows, valueKey) {
   const byHour = new Map(rows.filter((row) => row.period === 'hour').map((row) => [Number(row.bucket), number(row[valueKey])]));
-  return Array.from({ length: 15 }, (_, index) => {
-    const hour = index + 8;
+  return Array.from({ length: 24 }, (_, hour) => {
     return {
       label: `${String(hour).padStart(2, '0')}:00`,
       value: byHour.get(hour) ?? 0,
@@ -64,8 +63,8 @@ export async function listAppointments({ branchId, dateFrom, dateTo }) {
          (($3::date + 1) AT TIME ZONE b.timezone) AS range_end
        FROM branches b WHERE b.id = $1
      )
-     SELECT a.id, a.starts_at, a.ends_at, a.status, a.note, a.invoice_id,
-            ii.id AS invoice_item_id, i.status AS invoice_status, i.payment_requested_at,
+     SELECT a.id, a.starts_at, a.ends_at, a.status, a.note, a.invoice_id, i.code AS invoice_code,
+            ii.id AS invoice_item_id, i.status AS invoice_status, i.payment_status AS invoice_payment_status, i.payment_requested_at,
             c.id AS customer_id, c.name AS customer_name, c.phone AS customer_phone,
             s.id AS staff_id, s.name AS staff_name,
             sv.id AS service_id, sv.name AS service_name, COALESCE(ii.unit_price, sv.price) AS service_sale_price,
@@ -91,9 +90,11 @@ export async function listAppointments({ branchId, dateFrom, dateTo }) {
     endsAt: row.ends_at,
     status: row.status,
     note: row.note,
-    invoiceId: row.invoice_id || null,
+    invoiceId: row.invoice_id ? number(row.invoice_id) : null,
+    invoiceCode: row.invoice_code || null,
     invoiceItemId: row.invoice_item_id ? number(row.invoice_item_id) : null,
     invoiceStatus: row.invoice_status || null,
+    paymentStatus: row.invoice_payment_status || null,
     paymentRequestedAt: row.payment_requested_at || null,
     customer: { id: row.customer_id ? number(row.customer_id) : null, name: row.customer_name ?? 'Khách lẻ', phone: row.customer_phone },
     staff: { id: row.staff_id ? number(row.staff_id) : null, name: row.staff_name },
@@ -270,7 +271,7 @@ async function syncDraftInvoiceItemForAppointment(client, {
   if (itemResult.rows[0]) await recalculateDraftInvoice(client, invoiceId);
 }
 
-export async function createAppointments({ branchId, customerId, items, status, note, invoiceId = null, actorAccountId = null }) {
+export async function createAppointments({ branchId, customerId, items, status, note, invoiceId = null, actorAccountId = null, editAppointmentId = null }) {
   if (!Array.isArray(items) || items.length === 0) {
     throw appError(400, 'SERVICES_REQUIRED', 'Cần chọn ít nhất một dịch vụ');
   }
@@ -278,6 +279,22 @@ export async function createAppointments({ branchId, customerId, items, status, 
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
+    let previousAppointments = [];
+    if (editAppointmentId) {
+      const target = await client.query('SELECT invoice_id FROM appointments WHERE id = $1 AND branch_id = $2', [editAppointmentId, branchId]);
+      if (!target.rows[0]?.invoice_id) throw appError(409, 'APPOINTMENT_INVOICE_REQUIRED', 'Lịch hẹn không có hóa đơn liên kết');
+      invoiceId = number(target.rows[0].invoice_id);
+      const locked = await client.query('SELECT status FROM invoices WHERE id = $1 AND branch_id = $2 FOR UPDATE', [invoiceId, branchId]);
+      if (locked.rows[0]?.status !== 'draft') throw appError(409, 'INVOICE_NOT_EDITABLE', 'Hóa đơn đã ghi nhận thanh toán cần được điều chỉnh tại trang hóa đơn');
+      const previous = await client.query("SELECT id, status, note FROM appointments WHERE invoice_id = $1 AND branch_id = $2 AND status <> 'cancelled' FOR UPDATE", [invoiceId, branchId]);
+      previousAppointments = previous.rows;
+      const ids = items.filter(item => item.appointmentId).map(item => Number(item.appointmentId));
+      if (new Set(ids).size !== ids.length || ids.some(id => !previousAppointments.some(row => number(row.id) === id))) throw appError(400, 'INVALID_APPOINTMENT_ITEMS', 'Dịch vụ không thuộc lịch đang sửa');
+      // Temporarily exclude this group from overlap checks; rollback restores it on any failure.
+      await client.query("UPDATE appointments SET status = 'cancelled' WHERE invoice_id = $1 AND branch_id = $2", [invoiceId, branchId]);
+      await client.query('DELETE FROM invoice_items WHERE invoice_id = $1 AND appointment_id IS NOT NULL', [invoiceId]);
+      await client.query('UPDATE invoices SET customer_id = $2 WHERE id = $1', [invoiceId, customerId]);
+    }
     const customerResult = await client.query(
       'SELECT id, name, phone FROM customers WHERE id = $1 AND branch_id = $2',
       [customerId, branchId],
@@ -292,7 +309,9 @@ export async function createAppointments({ branchId, customerId, items, status, 
     const plannedPackageServiceUnits = new Map();
     for (const item of items) {
       const { serviceId, staffId, startsAt, endsAt, usePackageId, usePackageServiceId } = item;
-      const quantity = Math.max(1, Math.floor(Number(item.quantity || 1)));
+      const quantity = Number(item.quantity ?? 1);
+      if (!Number.isSafeInteger(quantity) || quantity < 1) throw appError(400, 'INVALID_QUANTITY', 'Số lượng phải là số nguyên dương');
+      if (!(startsAt instanceof Date) || !(endsAt instanceof Date) || !Number.isFinite(startsAt.getTime()) || !Number.isFinite(endsAt.getTime()) || endsAt <= startsAt || endsAt - startsAt > 8 * 60 * 60 * 1000) throw appError(400, 'INVALID_TIME_RANGE', 'Thời gian lịch hẹn không hợp lệ');
       const hasPackageSelection = Boolean(usePackageId || usePackageServiceId);
       if (hasPackageSelection && (!usePackageId || !usePackageServiceId)) {
         throw appError(400, 'INVALID_PACKAGE_SELECTION', 'Cần chọn đầy đủ gói dịch vụ và dịch vụ thuộc gói');
@@ -302,7 +321,7 @@ export async function createAppointments({ branchId, customerId, items, status, 
       }
       const [serviceResult, staffResult] = await Promise.all([
         client.query('SELECT id, name, price FROM services WHERE id = $1 AND branch_id = $2 AND active', [serviceId, branchId]),
-        staffId ? client.query('SELECT id, name FROM staff WHERE id = $1 AND branch_id = $2 AND active', [staffId, branchId]) : Promise.resolve({ rows: [] }),
+        staffId ? client.query('SELECT id, name FROM staff WHERE id = $1 AND branch_id = $2 AND active FOR UPDATE', [staffId, branchId]) : Promise.resolve({ rows: [] }),
       ]);
       if (!serviceResult.rows[0]) throw appError(404, 'SERVICE_NOT_FOUND', 'Không tìm thấy dịch vụ');
       if (staffId && !staffResult.rows[0]) throw appError(404, 'STAFF_NOT_FOUND', 'Không tìm thấy nhân viên');
@@ -351,6 +370,9 @@ export async function createAppointments({ branchId, customerId, items, status, 
       }
 
       normalizedItems.push({
+        appointmentId: item.appointmentId || null,
+        status: item.status || status,
+        note: item.note !== undefined ? item.note : note,
         serviceId,
         staffId: staffId || null,
         startsAt,
@@ -389,12 +411,17 @@ export async function createAppointments({ branchId, customerId, items, status, 
     const appointments = [];
 
     for (const item of normalizedItems) {
-      const appointmentResult = await client.query(
+      const appointmentResult = item.appointmentId && editAppointmentId
+        ? await client.query(
+          `UPDATE appointments SET customer_id=$2, staff_id=$3, service_id=$4, starts_at=$5, ends_at=$6, status=$7, note=$8
+           WHERE id=$1 AND invoice_id=$9 RETURNING id, starts_at, ends_at, status, note`,
+          [item.appointmentId, customerId, item.staffId, item.serviceId, item.startsAt, item.endsAt, item.status, item.note || null, invoice.id])
+        : await client.query(
         `INSERT INTO appointments (
            branch_id, customer_id, staff_id, service_id, starts_at, ends_at, status, note, invoice_id
          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
          RETURNING id, starts_at, ends_at, status, note`,
-        [branchId, customerId, item.staffId, item.serviceId, item.startsAt, item.endsAt, status, note || null, invoice.id],
+        [branchId, customerId, item.staffId, item.serviceId, item.startsAt, item.endsAt, item.status, item.note || null, invoice.id],
       );
       const appointment = appointmentResult.rows[0];
       const invoiceItemResult = await client.query(
@@ -419,7 +446,7 @@ export async function createAppointments({ branchId, customerId, items, status, 
       });
     }
 
-    if (status === 'completed') {
+    if (status === 'completed' || editAppointmentId) {
       await refreshInvoicePaymentReadiness(client, {
         invoiceId: invoice.id,
         triggeredByStaffId: normalizedItems.at(-1)?.staffId || null,
@@ -448,12 +475,17 @@ export async function createAppointments({ branchId, customerId, items, status, 
       actorAccountId,
     });
     for (const appointment of appointments) {
-      broadcastToBranch(branchId, realtimeEvents.appointmentCreated, {
+      broadcastToBranch(branchId, editAppointmentId ? realtimeEvents.appointmentUpdated : realtimeEvents.appointmentCreated, {
         appointmentId: appointment.id,
         invoiceId: appointment.invoiceId,
         customerId: appointment.customer.id,
         actorAccountId,
       });
+    }
+    for (const previous of previousAppointments) {
+      if (!appointments.some(appointment => appointment.id === number(previous.id))) {
+        broadcastToBranch(branchId, realtimeEvents.appointmentUpdated, { appointmentId: number(previous.id), invoiceId: number(invoice.id), status: 'cancelled', actorAccountId });
+      }
     }
     const appointmentNotification = {
       branchId,
@@ -462,7 +494,7 @@ export async function createAppointments({ branchId, customerId, items, status, 
       detail: `Khách hàng ${appointments[0]?.customer?.name || 'chưa xác định'} đã được xếp lịch.`,
       targetPath: '/m/appointments',
     };
-    void Promise.all([
+    if (!editAppointmentId) void Promise.all([
       publishNotification({ ...appointmentNotification, role: 'manager' }),
       publishNotification({ ...appointmentNotification, role: 'cashier' }),
     ]);
@@ -1003,4 +1035,54 @@ export async function getDashboard({ branchId, date, period = 'this_month' }) {
   } finally {
     client.release();
   }
+}
+
+// A single appointment opens the complete scheduled group, including services on other dates.
+export async function getAppointmentEditor({ branchId, id }) {
+  const target = await pool.query('SELECT invoice_id FROM appointments WHERE id=$1 AND branch_id=$2', [id, branchId]);
+  if (!target.rows[0]) throw appError(404, 'APPOINTMENT_NOT_FOUND', 'Không tìm thấy lịch hẹn');
+  const result = await pool.query(
+    `SELECT a.*, i.code AS invoice_code, i.status AS invoice_status, c.name AS customer_name, c.phone,
+      s.name AS service_name, st.name AS staff_name, ii.quantity, ii.unit_price, ii.customer_package_id,
+      sp.name AS package_name
+     FROM appointments a JOIN invoices i ON i.id=a.invoice_id
+     JOIN customers c ON c.id=a.customer_id JOIN services s ON s.id=a.service_id
+     LEFT JOIN staff st ON st.id=a.staff_id
+     JOIN invoice_items ii ON ii.appointment_id=a.id AND ii.invoice_id=i.id
+     LEFT JOIN customer_packages cp ON cp.id=ii.customer_package_id
+     LEFT JOIN service_packages sp ON sp.id=cp.package_id
+     WHERE a.branch_id=$1 AND a.invoice_id=$2 AND a.status <> 'cancelled' ORDER BY a.starts_at,a.id`,
+    [branchId, target.rows[0].invoice_id]);
+  if (!result.rows.length) throw appError(409, 'APPOINTMENT_NOT_EDITABLE', 'Lịch hẹn không còn dịch vụ để chỉnh sửa');
+  const first = result.rows.find(row => number(row.id) === id) || result.rows[0];
+  return { invoiceId: number(first.invoice_id), invoiceCode: first.invoice_code, invoiceStatus: first.invoice_status,
+    customer: { id: number(first.customer_id), name: first.customer_name, phone: first.phone },
+    status: first.status, note: first.note || '', startsAt: first.starts_at,
+    items: result.rows.map(row => ({ appointmentId: number(row.id), status: row.status, note: row.note || '',
+      itemId: number(row.service_id), itemType: 'service', name: row.service_name,
+      unitPrice: number(row.unit_price), quantity: number(row.quantity),
+      durationMinutes: (new Date(row.ends_at)-new Date(row.starts_at))/60000, startsAt: row.starts_at,
+      staffId: row.staff_id ? number(row.staff_id) : null, staffName: row.staff_name,
+      usePackageId: row.customer_package_id ? number(row.customer_package_id) : null,
+      usePackageServiceId: row.customer_package_id ? number(row.service_id) : null, packageName: row.package_name,
+    })) };
+}
+
+export async function completeAppointmentInvoice({ branchId, id, actorAccountId }) {
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    const target = await client.query('SELECT invoice_id FROM appointments WHERE id=$1 AND branch_id=$2', [id, branchId]);
+    if (!target.rows[0]?.invoice_id) throw appError(409, 'APPOINTMENT_INVOICE_REQUIRED', 'Lịch hẹn không có hóa đơn liên kết');
+    const invoiceId = number(target.rows[0].invoice_id);
+    const invoice = await client.query('SELECT status FROM invoices WHERE id=$1 AND branch_id=$2 FOR UPDATE', [invoiceId, branchId]);
+    if (invoice.rows[0]?.status !== 'draft') throw appError(409, 'INVOICE_NOT_DRAFT', 'Hóa đơn đã ghi nhận thanh toán; vui lòng mở hóa đơn để xem hoặc thu phần còn nợ');
+    const updated = await client.query("UPDATE appointments SET status='completed' WHERE invoice_id=$1 AND branch_id=$2 AND status NOT IN ('cancelled','no_show','completed') RETURNING id", [invoiceId, branchId]);
+    await refreshInvoicePaymentReadiness(client, { invoiceId });
+    await client.query('COMMIT');
+    for (const row of updated.rows) broadcastToBranch(branchId, realtimeEvents.appointmentUpdated, { appointmentId: number(row.id), invoiceId, actorAccountId });
+    broadcastToBranch(branchId, realtimeEvents.invoiceUpdated, { invoiceId, actorAccountId });
+    return { invoiceId };
+  } catch (error) { await client.query('ROLLBACK'); throw error; }
+  finally { client.release(); }
 }

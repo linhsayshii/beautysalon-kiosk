@@ -127,6 +127,8 @@ export interface PosCheckoutPayload {
   discount?: number;
   paymentMethod: 'cash' | 'bank_transfer' | 'card' | 'wallet' | 'mixed';
   amountPaid?: number | null;
+  allowDebt?: boolean;
+  requestKey?: string;
   note?: string;
   appointmentId?: number | null;
   invoiceId?: number | null;
@@ -149,6 +151,10 @@ export interface PosReceiptData {
   total: number;
   amountPaid: number;
   changeAmount: number;
+  tenderedAmount?: number;
+  debtAmount?: number;
+  paymentStatus?: string;
+  customerDebtBalance?: number;
   paymentMethod: string;
   salesChannel: string;
   issuedAt: string;
@@ -183,3 +189,7 @@ export const checkoutPosInvoice = (body: PosCheckoutPayload) => apiRequest<ApiEn
   method: 'POST',
   body: JSON.stringify(body),
 });
+
+export const getPosAppointmentEditor = (id: number) => apiRequest<ApiEnvelope<ApiRecord>>(`/pos/appointments/${id}/editor`);
+export const savePosAppointmentEditor = (id: number, body: ApiRecord) => apiRequest<ApiEnvelope<ApiRecord>>(`/pos/appointments/${id}/editor`, { method: 'PUT', body: JSON.stringify(body) });
+export const prepareAppointmentCheckout = (id: number) => apiRequest<ApiEnvelope<{ invoiceId: number }>>(`/pos/appointments/${id}/prepare-checkout`, { method: 'POST' });

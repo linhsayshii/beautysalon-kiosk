@@ -1,3 +1,4 @@
+import { settlement, roundMoney, beginPaymentRequest, finishPaymentRequest, recordPayment } from '../debts/debts.service.js';
 import { pool } from '../../db.js';
 import { HttpError } from '../../lib/http.js';
 import { broadcastToBranch, realtimeEvents } from '../../lib/ws.js';
@@ -106,6 +107,8 @@ export async function checkoutPosInvoice({
   discount,
   paymentMethod,
   amountPaid,
+  allowDebt = false,
+  requestKey,
   note,
   appointmentId,
   invoiceId: requestedInvoiceId,
@@ -120,6 +123,8 @@ export async function checkoutPosInvoice({
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
+    const replay = await beginPaymentRequest(client, branchId, requestKey, {operation:'checkout', actorAccountId, customerId, staffId, lines, discount, paymentMethod, amountPaid, allowDebt, note, appointmentId, requestedInvoiceId});
+    if (replay) { await client.query('COMMIT'); return replay; }
 
     // 1. A sale must always belong to a customer so packages and account cards
     // can be tracked against the correct customer record.
@@ -127,7 +132,7 @@ export async function checkoutPosInvoice({
     let customerPhone = null;
     let customerCode = null;
     const custResult = await client.query(
-      'SELECT id, code, name, phone FROM customers WHERE id = $1 AND branch_id = $2 FOR UPDATE',
+      'SELECT id, code, name, phone, debt_balance FROM customers WHERE id = $1 AND branch_id = $2 FOR UPDATE',
       [customerId, branchId],
     );
     if (!custResult.rows[0]) {
@@ -389,11 +394,11 @@ export async function checkoutPosInvoice({
       subtotal += price * quantity;
     }
 
-    const discountAmount = Math.max(0, Math.min(subtotal, number(discount)));
-    const total = Math.max(0, subtotal - discountAmount);
-    if (amountPaid !== null && amountPaid < total) {
-      throw new HttpError(400, 'PARTIAL_PAYMENT_UNSUPPORTED', 'Hóa đơn hiện cần được thanh toán đủ');
-    }
+    subtotal = roundMoney(subtotal);
+    const discountAmount = roundMoney(Math.max(0, Math.min(subtotal, number(discount))));
+    const total = roundMoney(Math.max(0, subtotal - discountAmount));
+    const payment = settlement(total, amountPaid, paymentMethod, allowDebt);
+    const customerDebtBalance = roundMoney(number(custResult.rows[0].debt_balance) + payment.debt);
 
     // 4. Validate wallet payment has sufficient balance
     let cardBalance = 0;
@@ -439,7 +444,7 @@ export async function checkoutPosInvoice({
 
     if (invoiceId) {
       const existingInvoiceResult = await client.query(
-        `SELECT id, code, status FROM invoices
+        `SELECT id, code, status, customer_id FROM invoices
          WHERE id = $1 AND branch_id = $2 FOR UPDATE`,
         [invoiceId, branchId],
       );
@@ -464,6 +469,10 @@ export async function checkoutPosInvoice({
          FROM invoice_items WHERE invoice_id = $1 ORDER BY id`,
         [invoiceId],
       );
+      const scheduledInvoice = await client.query('SELECT id FROM appointments WHERE invoice_id=$1 AND branch_id=$2 LIMIT 1', [invoiceId, branchId]);
+      if (scheduledInvoice.rows.length && Number(existingInvoice.customer_id) !== Number(customerId)) {
+        throw new HttpError(409, 'INVOICE_CUSTOMER_LOCKED', 'Khách hàng của hóa đơn từ lịch hẹn không thể thay đổi khi thanh toán');
+      }
       for (const item of existingItemsResult.rows) {
         if (item.item_type === 'service' && item.service_id && item.appointment_id) {
           const key = String(item.service_id);
@@ -507,6 +516,15 @@ export async function checkoutPosInvoice({
       invoiceId = Number(invoice.id);
     }
     const invoiceCode = invoice.code;
+    await client.query('UPDATE invoices SET amount_paid=$2 WHERE id=$1', [invoiceId, payment.paid]);
+    if (payment.paid > 0) {
+      const paymentId = await recordPayment(client, {branchId,customerId,amount:payment.paid,paymentMethod,actorAccountId,note});
+      await client.query('INSERT INTO customer_payment_allocations(payment_id,invoice_id,amount) VALUES($1,$2,$3)', [paymentId,invoiceId,payment.paid]);
+    }
+    if (payment.debt > 0) {
+      await client.query('UPDATE customers SET debt_balance=$2 WHERE id=$1', [customerId,customerDebtBalance]);
+      await client.query(`INSERT INTO customer_debt_entries(branch_id,customer_id,invoice_id,kind,amount,balance_after,actor_account_id) VALUES($1,$2,$3,'charge',$4,$5,$6)`, [branchId,customerId,invoiceId,payment.debt,customerDebtBalance,actorAccountId]);
+    }
 
     // The usage record is linked to the paid invoice, so redeem packages only
     // after an invoice id exists. The surrounding transaction rolls this back
@@ -644,7 +662,7 @@ export async function checkoutPosInvoice({
         `INSERT INTO cash_transactions (
            branch_id, transaction_type, category, amount, note, occurred_at
          ) VALUES ($1, 'income', 'Thu tiền qua thẻ tài khoản', $2, $3, NOW())`,
-        [branchId, total, `Thu tiền hóa đơn ${invoiceCode} qua thẻ tài khoản (Số dư trước: ${cardBalance.toLocaleString('vi-VN')}đ)`],
+        [branchId, payment.paid, `Thu tiền hóa đơn ${invoiceCode} qua thẻ tài khoản (Số dư trước: ${cardBalance.toLocaleString('vi-VN')}đ)`],
       );
     }
 
@@ -677,12 +695,12 @@ export async function checkoutPosInvoice({
     }
 
     // 9. Record cash transaction (skip for wallet - recorded separately above)
-    if (total > 0 && paymentMethod !== 'wallet') {
+    if (payment.paid > 0 && paymentMethod !== 'wallet') {
       await client.query(
         `INSERT INTO cash_transactions (
            branch_id, transaction_type, category, amount, note, occurred_at
          ) VALUES ($1, 'income', 'Thu tiền bán hàng POS', $2, $3, NOW())`,
-        [branchId, total, `Thu tiền hóa đơn ${invoiceCode} (${paymentMethod})`],
+        [branchId, payment.paid, `Thu tiền hóa đơn ${invoiceCode} (${paymentMethod})`],
       );
     }
 
@@ -695,14 +713,12 @@ export async function checkoutPosInvoice({
         branchId,
         actorStaffId || null,
         invoiceCode,
-        `Thanh toán hóa đơn ${invoiceCode} - Tổng: ${new Intl.NumberFormat('vi-VN').format(total)} đ cho ${customerName}`,
+        `Chốt hóa đơn ${invoiceCode} - Tổng: ${total} đ, đã thu: ${payment.paid} đ, còn nợ: ${payment.debt} đ cho ${customerName}`,
       ],
     );
 
-    await client.query('COMMIT');
-
     // Get branch info for receipt printing
-    const branchRes = await pool.query('SELECT name, address, phone FROM branches WHERE id = $1', [branchId]);
+    const branchRes = await client.query('SELECT name, address, phone FROM branches WHERE id = $1', [branchId]);
     const branchInfo = branchRes.rows[0] || {};
 
     const receipt = {
@@ -712,8 +728,12 @@ export async function checkoutPosInvoice({
       subtotal: number(invoice.subtotal),
       discount: number(invoice.discount),
       total: number(invoice.total),
-      amountPaid: number(amountPaid || invoice.total),
-      changeAmount: Math.max(0, number(amountPaid || invoice.total) - number(invoice.total)),
+      amountPaid: payment.paid,
+      tenderedAmount: payment.tendered,
+      changeAmount: payment.change,
+      debtAmount: payment.debt,
+      paymentStatus: payment.paymentStatus,
+      customerDebtBalance,
       paymentMethod: invoice.payment_method,
       salesChannel: invoice.sales_channel,
       issuedAt: invoice.issued_at,
@@ -743,7 +763,10 @@ export async function checkoutPosInvoice({
       })),
     };
 
-    broadcastToBranch(branchId, realtimeEvents.invoicePaid, {
+    await finishPaymentRequest(client, branchId, requestKey, receipt);
+    await client.query('COMMIT');
+
+    broadcastToBranch(branchId, realtimeEvents.invoiceUpdated, {
       invoiceId: receipt.id,
       customerId: receipt.customer.id,
       code: receipt.code,
@@ -754,7 +777,7 @@ export async function checkoutPosInvoice({
     const invoiceNotification = {
       branchId,
       type: 'invoice',
-      title: 'Hóa đơn đã thanh toán',
+      title: payment.debt > 0 ? 'Hóa đơn đã ghi nợ' : 'Hóa đơn đã thanh toán',
       detail: `${receipt.code} · ${new Intl.NumberFormat('vi-VN').format(receipt.total)} đ · ${receipt.customer.name}`,
       targetPath: '/m/orders',
     };

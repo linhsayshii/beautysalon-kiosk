@@ -1,3 +1,6 @@
+import { ErrorState } from '@/components/data-display/DataState';
+import { Pagination } from '@/components/data-display/Pagination';
+import { useFilterPagination } from '@/hooks/useFilterPagination';
 import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
@@ -40,20 +43,24 @@ export function MobileCustomerCardsView() {
   const [selectedCardId, setSelectedCardId] = useState<number | null>(null);
   const [selectedCardType, setSelectedCardType] = useState<string>('package');
 
-  const { data: cardsData, isLoading } = useQuery({
-    queryKey: ['mobile-customer-cards', search, itemTypeFilter, statusFilter],
+  const [page, setPage] = useFilterPagination([search, itemTypeFilter, statusFilter, sortValue]);
+
+  const { data: cardsData, isLoading, error, refetch } = useQuery({
+    queryKey: ['mobile-customer-cards', search, itemTypeFilter, statusFilter, page, sortValue],
     queryFn: () =>
       getCustomerCards({
         search,
         itemType: itemTypeFilter,
         status: statusFilter,
         pageSize: 100,
+        page,
+        sort: sortValue,
       }),
   });
 
   const rawRows = (cardsData?.data ?? []) as ApiRecord[];
 
-  const { data: cardDetailData, isLoading: isDetailLoading } = useQuery({
+  const { data: cardDetailData, isLoading: isDetailLoading, error: detailError, refetch: refetchDetail } = useQuery({
     queryKey: ['mobile-customer-card-detail', selectedCardType, selectedCardId],
     queryFn: () => (selectedCardId ? getCustomerCard(selectedCardType, selectedCardId) : null),
     enabled: selectedCardId !== null,
@@ -61,34 +68,7 @@ export function MobileCustomerCardsView() {
 
   const activeCard = cardDetailData?.data as ApiRecord | undefined;
 
-  // Sort rows
-  const sortedRows = useMemo(() => {
-    return [...rawRows].sort((a, b) => {
-      if (sortValue === 'soldAt_desc') {
-        const tA = a.soldAt ? new Date(a.soldAt).getTime() : 0;
-        const tB = b.soldAt ? new Date(b.soldAt).getTime() : 0;
-        return tB - tA;
-      }
-      if (sortValue === 'soldAt_asc') {
-        const tA = a.soldAt ? new Date(a.soldAt).getTime() : 0;
-        const tB = b.soldAt ? new Date(b.soldAt).getTime() : 0;
-        return tA - tB;
-      }
-      if (sortValue === 'name_asc') {
-        return String(a.itemName || '').localeCompare(String(b.itemName || ''));
-      }
-      if (sortValue === 'name_desc') {
-        return String(b.itemName || '').localeCompare(String(a.itemName || ''));
-      }
-      if (sortValue === 'price_desc') {
-        return Number(b.salePrice || 0) - Number(a.salePrice || 0);
-      }
-      if (sortValue === 'price_asc') {
-        return Number(a.salePrice || 0) - Number(b.salePrice || 0);
-      }
-      return 0;
-    });
-  }, [rawRows, sortValue]);
+  const sortedRows = rawRows;
 
   // Group by item type: GÓI DỊCH VỤ and THẺ TÀI KHOẢN
   const groupedSections = useMemo(() => {
@@ -216,14 +196,14 @@ export function MobileCustomerCardsView() {
           />
 
           <div className="mobile-operations-count-summary">
-            {rawRows.length} gói, thẻ đã bán
+            {cardsData?.meta?.pagination?.total ?? rawRows.length} gói, thẻ đã bán
           </div>
         </div>
       </div>
 
       {/* 4. Grouped Section List */}
       <div className="mobile-operations-sections-wrapper">
-        {isLoading ? (
+        {error ? <ErrorState error={error} onRetry={() => refetch()} /> : isLoading ? (
           <div style={{ padding: '40px 16px', textAlign: 'center', color: '#64748b' }}>
             Đang tải danh sách gói thẻ...
           </div>
@@ -319,6 +299,8 @@ export function MobileCustomerCardsView() {
         )}
       </div>
 
+      {cardsData?.meta?.pagination && <Pagination pagination={cardsData.meta.pagination} onChange={setPage} />}
+
       {/* Filter Bottom Sheet */}
       <MobileFilterSheet
         isOpen={isFilterOpen}
@@ -360,7 +342,7 @@ export function MobileCustomerCardsView() {
         title="Thông tin chi tiết gói/thẻ"
         onClose={() => setSelectedCardId(null)}
       >
-        {isDetailLoading ? (
+        {detailError ? <ErrorState error={detailError} onRetry={() => refetchDetail()} /> : isDetailLoading ? (
           <div style={{ padding: '24px', textAlign: 'center', color: '#64748b' }}>
             Đang tải thông tin...
           </div>

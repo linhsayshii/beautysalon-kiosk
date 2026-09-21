@@ -1,7 +1,7 @@
 import { useEffect, useState, useMemo } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { getPosAppointments, updatePosAppointment } from '@/features/pos/pos.api';
+import { getPosAppointments, updatePosAppointment, prepareAppointmentCheckout } from '@/features/pos/pos.api';
 import { getStaff } from '@/features/staff/staff.api';
 import { useAuth } from '@/features/auth/AuthProvider';
 import { MobileDetailSheet, MobileSearchBar } from '@/features/mobile-common';
@@ -14,11 +14,15 @@ import './mobile-appointments.css';
 
 interface AppointmentData {
   id: number;
+  invoiceId?: number | null;
+  invoiceCode?: string | null;
+  invoiceStatus?: string | null;
   startsAt: string;
   endsAt: string;
   status: string;
   note?: string;
   paid?: boolean;
+  paymentStatus?: string;
   code?: string;
   customer?: { id: number | null; name: string; phone?: string; code?: string } | null;
   staff?: { id: number | null; name?: string | null } | null;
@@ -38,6 +42,7 @@ const STATUS_LABELS: Record<string, string> = {
 const APPOINTMENT_STATUSES = ['pending', 'confirmed', 'waiting', 'in_service', 'completed', 'cancelled', 'no_show'] as const;
 
 export function MobileAppointmentsListView() {
+  const navigate = useNavigate();
   const { account } = useAuth();
   const branchName = account?.branchName ?? 'Chi nhánh trung tâm';
   const timeZone = account?.branchTimezone ?? DEFAULT_BRANCH_TIME_ZONE;
@@ -81,6 +86,23 @@ export function MobileAppointmentsListView() {
       notify('Không thể cập nhật trạng thái', message);
     },
   });
+
+  const checkoutMutation = useMutation({
+    mutationFn: prepareAppointmentCheckout,
+    onSuccess: (response, appointmentId) => {
+      queryClient.invalidateQueries({ queryKey: ['pos-appointments'] });
+      queryClient.invalidateQueries({ queryKey: ['pos-payment-requests'] });
+      queryClient.invalidateQueries({ queryKey: ['pos-invoice'] });
+      navigate(`/m/pos?invoice=${response.data.invoiceId}&appointment=${appointmentId}&checkout=1`);
+    },
+    onError: (error) => notify('Không thể mở thanh toán', error instanceof Error ? error.message : 'Vui lòng thử lại.'),
+  });
+  const renderActions = (apt: AppointmentData) => <div className="mobile-apt-actions" onClick={event => event.stopPropagation()} onKeyDown={event => event.stopPropagation()}>
+    {apt.invoiceStatus === 'draft' && apt.paymentStatus !== 'paid' && apt.paymentStatus !== 'partial' && <Link to={`/m/appointments/${apt.id}/edit`}>Chỉnh sửa lịch</Link>}
+    {apt.invoiceStatus && apt.invoiceStatus !== 'draft'
+      ? <Link className="primary" to={`/m/orders?invoice=${apt.invoiceId}`}>Xem hóa đơn</Link>
+      : <button className="primary" disabled={checkoutMutation.isPending} onClick={() => checkoutMutation.mutate(apt.id)}>{checkoutMutation.isPending && checkoutMutation.variables === apt.id ? 'Đang mở…' : 'Thanh toán'}</button>}
+  </div>;
 
   const handleStatusChange = (status: string) => {
     if (!selectedApt || status === selectedApt.status || statusMutation.isPending) return;
@@ -233,7 +255,7 @@ export function MobileAppointmentsListView() {
             {filteredAppointments.map((apt) => {
               const timeLabel = `${formatBranchTime(apt.startsAt, timeZone)} - ${formatBranchTime(apt.endsAt, timeZone)}`;
               const statusLabel = STATUS_LABELS[apt.status] || apt.status;
-              const isCompleted = apt.status === 'completed';
+
 
               return (
                 <div
@@ -286,9 +308,10 @@ export function MobileAppointmentsListView() {
                     </div>
 
                     <div className="mobile-apt-payment-state">
-                      {apt.paid || isCompleted ? 'Đã thanh toán' : 'Chưa thanh toán'}
+                      {apt.paymentStatus === 'paid' ? 'Đã thanh toán' : apt.paymentStatus === 'partial' ? 'Thanh toán một phần' : 'Chưa thanh toán'}
                     </div>
                   </div>
+                  {renderActions(apt)}
                 </div>
               );
             })}
@@ -310,6 +333,7 @@ export function MobileAppointmentsListView() {
       <MobileDetailSheet
         isOpen={selectedApt !== null}
         title="Chi tiết lịch dịch vụ"
+        footerActions={selectedApt ? renderActions(selectedApt) : undefined}
         onClose={() => {
           setSelectedApt(null);
         }}
@@ -376,9 +400,7 @@ export function MobileAppointmentsListView() {
               <div className="mobile-apt-service-item-name">
                 {selectedApt.service?.name || 'Gội đầu mang dầu (45\')'} x1
               </div>
-              <div className="mobile-apt-service-item-sub">
-                Trừ gói Combo 20 buổi gội đầu (Tặng 5 buổi gội)
-              </div>
+
               <div className="mobile-apt-service-time-range">
                 {formatBranchTime(selectedApt.startsAt, timeZone)} - {formatBranchTime(selectedApt.endsAt, timeZone)}, {selectedApt.startsAt.split('T')[0].split('-').reverse().slice(0, 2).join('/')}
               </div>
@@ -405,14 +427,14 @@ export function MobileAppointmentsListView() {
                 <div className="mobile-apt-grid-cell">
                   <span className="mobile-apt-grid-lbl">Thông tin thanh toán</span>
                   <span className="mobile-apt-grid-val">
-                    {selectedApt.paid || selectedApt.status === 'completed' ? 'Đã thanh toán' : 'Chưa thanh toán'}
+                    {selectedApt.paymentStatus === 'paid' ? 'Đã thanh toán' : selectedApt.paymentStatus === 'partial' ? 'Thanh toán một phần' : 'Chưa thanh toán'}
                   </span>
                 </div>
 
                 <div className="mobile-apt-grid-cell">
                   <span className="mobile-apt-grid-lbl">Mã hóa đơn</span>
                   <span className="mobile-apt-grid-val">
-                    {`HD00${(selectedApt.id || 0) + 1000}`}
+                    {selectedApt.invoiceCode || 'Chưa có hóa đơn'}
                   </span>
                 </div>
               </div>

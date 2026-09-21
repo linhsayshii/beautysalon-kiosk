@@ -1,3 +1,7 @@
+import { resynchronizeRealtimeQueries } from '@/context/RealtimeQuerySynchronizer';
+import { PartialPaymentFields } from '@/features/debts/PartialPaymentFields';
+import { CustomerDebtPanel } from '@/features/debts/CustomerDebtPanel';
+import { usePaymentRequestKey } from '@/features/debts/debts.api';
 import { useEffect, useState, useMemo, useRef, type RefObject } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -39,6 +43,10 @@ export function MobileInvoiceCreateView() {
   // State
   const [customer, setCustomer] = useState<MobileCustomer | null>(null);
   const [configuredItems, setConfiguredItems] = useState<ConfiguredServiceItem[]>([]);
+  const [amountInput, setAmountInput] = useState<number | null>(null);
+  const [allowDebt, setAllowDebt] = useState(false);
+  const [showDebt, setShowDebt] = useState(false);
+  const requestKey = usePaymentRequestKey();
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('cash');
   const [discountType, setDiscountType] = useState<'vnd' | 'percent'>('vnd');
   const [discountInput, setDiscountInput] = useState<number>(0);
@@ -149,9 +157,11 @@ export function MobileInvoiceCreateView() {
   }, [subtotal, discountAmount]);
 
   // Checkout Mutation
+  const amountPaid = paymentMethod === 'wallet' ? totalPayment : amountInput ?? totalPayment;
   const checkoutMutation = useMutation({
-    mutationFn: (payload: PosCheckoutPayload) => checkoutPosInvoice(payload),
+    mutationFn: (payload: PosCheckoutPayload) => checkoutPosInvoice({...payload,requestKey:requestKey(payload)}),
     onSuccess: (res) => {
+      resynchronizeRealtimeQueries(queryClient);
       queryClient.invalidateQueries({ queryKey: ['pos-catalog'] });
       queryClient.invalidateQueries({ queryKey: ['orders'] });
       queryClient.invalidateQueries({ queryKey: ['invoices'] });
@@ -281,6 +291,7 @@ export function MobileInvoiceCreateView() {
 
   // Submit Checkout
   const handleCheckout = () => {
+    if (checkoutMutation.isPending || (amountPaid < totalPayment && !allowDebt) || (paymentMethod !== 'cash' && amountPaid > totalPayment)) return;
     if (configuredItems.length === 0) {
       notify('Chưa có dịch vụ, sản phẩm', 'Vui lòng thêm ít nhất một món vào hóa đơn.');
       return;
@@ -295,7 +306,8 @@ export function MobileInvoiceCreateView() {
       staffId: configuredItems[0]?.staffId || null,
       discount: discountAmount,
       paymentMethod,
-      amountPaid: totalPayment,
+      amountPaid,
+      allowDebt,
       note: note.trim() || undefined,
       lines: configuredItems.map((item) => ({
         itemType: item.itemType,
@@ -578,6 +590,8 @@ export function MobileInvoiceCreateView() {
             </div>
           </div>
 
+          <PartialPaymentFields customerId={customer?.id} total={totalPayment} amount={amountPaid} onAmountChange={setAmountInput} allowDebt={allowDebt} onAllowDebtChange={setAllowDebt} method={paymentMethod} disabled={checkoutMutation.isPending} />
+          {customer && <><button type="button" onClick={()=>setShowDebt(!showDebt)}>{showDebt ? 'Ẩn công nợ' : 'Xem công nợ / Thu nợ cũ'}</button>{showDebt && <CustomerDebtPanel key={customer.id} customerId={customer.id} />}</>}
           {/* Discount Field */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 14 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -679,7 +693,7 @@ export function MobileInvoiceCreateView() {
           type="button"
           className="mobile-form-submit-btn"
           onClick={handleCheckout}
-          disabled={checkoutMutation.isPending || configuredItems.length === 0 || !customer}
+          disabled={checkoutMutation.isPending || configuredItems.length === 0 || !customer || (amountPaid < totalPayment && !allowDebt) || (paymentMethod !== 'cash' && amountPaid > totalPayment)}
           style={{
             background: '#2563eb',
             boxShadow: '0 4px 12px rgba(37, 99, 235, 0.3)',
@@ -693,7 +707,7 @@ export function MobileInvoiceCreateView() {
           ) : (
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
               <i className="ph ph-check-circle" style={{ fontSize: 18 }} />
-              <span>Thanh toán & In hóa đơn ({formatMoney(totalPayment)})</span>
+              <span>Chốt & In hóa đơn ({formatMoney(Math.min(amountPaid,totalPayment))})</span>
             </div>
           )}
         </button>

@@ -1,12 +1,15 @@
+import { ErrorState } from '@/components/data-display/DataState';
+import { Pagination } from '@/components/data-display/Pagination';
+import { useFilterPagination } from '@/hooks/useFilterPagination';
+import { CustomerDebtPanel } from '@/features/debts/CustomerDebtPanel';
 import { useState, useMemo, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { formatDateTime, formatDate, formatMoney, formatNumber, initials } from '@/lib/format';
 import { getCustomers, getCustomer, getCustomerActivity } from '@/features/operations/operations.api';
 import { CustomerCreateDialog } from '@/features/operations/components/CustomerCreateDialog';
-import { StatusBadge } from '@/components/data-display/Badges';
+import { StatusBadge, InvoiceStatusBadge } from '@/components/data-display/Badges';
 import { Select } from '@/components/ui/Select/Select';
-import { statusLabels } from '@/types/api';
 import { useAuth } from '@/features/auth/AuthProvider';
 import {
   MobileSearchBar,
@@ -19,7 +22,7 @@ import {
 import type { ApiRecord } from '@/types/api';
 import './mobile-operations.css';
 
-type CustomerTab = 'orders' | 'packages';
+type CustomerTab = 'orders' | 'packages' | 'debt';
 
 function CustomerActivityList({ customerId, kind }: { customerId: number; kind: 'orders' | 'packages' }) {
   const query = useQuery({
@@ -48,7 +51,7 @@ function CustomerActivityList({ customerId, kind }: { customerId: number; kind: 
               <span className="mobile-activity-item-date">{formatDateTime(row.occurredAt)}</span>
             </div>
             <div className="mobile-activity-item-bottom">
-              <span>{statusLabels[row.paymentMethod] ?? row.paymentMethod}</span>
+              <InvoiceStatusBadge status={row.status} paymentStatus={row.paymentStatus} />
               <strong style={{ color: '#0062eb' }}>{formatMoney(row.amount)}</strong>
             </div>
           </div>
@@ -116,20 +119,24 @@ export function MobileCustomersView() {
     }
   }, [searchParams, setSearchParams]);
 
-  const { data: customersData, isLoading, refetch } = useQuery({
-    queryKey: ['mobile-customers', search, groupFilter, debtFilter],
+  const [page, setPage] = useFilterPagination([search, groupFilter, debtFilter, sortValue]);
+
+  const { data: customersData, isLoading, error, refetch } = useQuery({
+    queryKey: ['mobile-customers', search, groupFilter, debtFilter, page, sortValue],
     queryFn: () =>
       getCustomers({
         search,
         group: groupFilter,
         debtStatus: debtFilter,
         pageSize: 100,
+        page,
+        sort: sortValue,
       }),
   });
 
   const rawRows = (customersData?.data ?? []) as ApiRecord[];
 
-  const { data: customerDetailData, isLoading: isDetailLoading } = useQuery({
+  const { data: customerDetailData, isLoading: isDetailLoading, error: detailError, refetch: refetchDetail } = useQuery({
     queryKey: ['mobile-customer-detail', selectedCustomerId],
     queryFn: () => (selectedCustomerId ? getCustomer(selectedCustomerId) : null),
     enabled: selectedCustomerId !== null,
@@ -137,34 +144,7 @@ export function MobileCustomersView() {
 
   const activeCustomer = customerDetailData?.data as ApiRecord | undefined;
 
-  // Sort rows
-  const sortedRows = useMemo(() => {
-    return [...rawRows].sort((a, b) => {
-      if (sortValue === 'name_asc') {
-        return String(a.name || '').localeCompare(String(b.name || ''));
-      }
-      if (sortValue === 'name_desc') {
-        return String(b.name || '').localeCompare(String(a.name || ''));
-      }
-      if (sortValue === 'debt_desc') {
-        return Number(b.debtBalance || 0) - Number(a.debtBalance || 0);
-      }
-      if (sortValue === 'debt_asc') {
-        return Number(a.debtBalance || 0) - Number(b.debtBalance || 0);
-      }
-      if (sortValue === 'lastVisit_desc') {
-        const tA = a.lastVisit ? new Date(a.lastVisit).getTime() : 0;
-        const tB = b.lastVisit ? new Date(b.lastVisit).getTime() : 0;
-        return tB - tA;
-      }
-      if (sortValue === 'lastVisit_asc') {
-        const tA = a.lastVisit ? new Date(a.lastVisit).getTime() : 0;
-        const tB = b.lastVisit ? new Date(b.lastVisit).getTime() : 0;
-        return tA - tB;
-      }
-      return 0;
-    });
-  }, [rawRows, sortValue]);
+  const sortedRows = rawRows;
 
   // Group by customer group (or Alphabetical letter if group is same)
   const groupedSections = useMemo(() => {
@@ -178,9 +158,7 @@ export function MobileCustomersView() {
     return Array.from(map.entries());
   }, [sortedRows]);
 
-  const totalDebtSum = useMemo(() => {
-    return rawRows.reduce((sum, r) => sum + Number(r.debtBalance || 0), 0);
-  }, [rawRows]);
+  const totalDebtSum = customersData?.meta?.summary?.totalDebt;
 
   const handleApplyFilter = () => {
     setGroupFilter(draftGroup);
@@ -288,14 +266,14 @@ export function MobileCustomersView() {
           />
 
           <div className="mobile-operations-count-summary">
-            {rawRows.length} khách hàng · Nợ: {formatMoney(totalDebtSum)}
+            {customersData?.meta?.pagination?.total ?? rawRows.length} khách hàng · Nợ: {totalDebtSum === undefined ? '—' : formatMoney(totalDebtSum) }
           </div>
         </div>
       </div>
 
       {/* 4. Grouped Section List */}
       <div className="mobile-operations-sections-wrapper">
-        {isLoading ? (
+        {error ? <ErrorState error={error} onRetry={() => refetch()} /> : isLoading ? (
           <div style={{ padding: '40px 16px', textAlign: 'center', color: '#64748b' }}>
             Đang tải dữ liệu khách hàng...
           </div>
@@ -368,6 +346,8 @@ export function MobileCustomersView() {
         )}
       </div>
 
+      {customersData?.meta?.pagination && <Pagination pagination={customersData.meta.pagination} onChange={setPage} />}
+
       {/* 5. Floating Action Button (FAB) for Creating Customer */}
       <button
         type="button"
@@ -420,7 +400,7 @@ export function MobileCustomersView() {
         title="Thông tin chi tiết"
         onClose={() => setSelectedCustomerId(null)}
       >
-        {isDetailLoading ? (
+        {detailError ? <ErrorState error={detailError} onRetry={() => refetchDetail()} /> : isDetailLoading ? (
           <div style={{ padding: '24px', textAlign: 'center', color: '#64748b' }}>
             Đang tải thông tin...
           </div>
@@ -548,11 +528,12 @@ export function MobileCustomersView() {
                 options={[
                   { value: 'orders', label: 'Hóa đơn mua' },
                   { value: 'packages', label: 'Gói dịch vụ' },
+                  { value: 'debt', label: 'Công nợ' },
                 ]}
               />
 
               <div style={{ marginTop: '8px' }}>
-                {selectedCustomerId !== null && (
+                {selectedCustomerId !== null && (detailActivityTab === 'debt' ? <CustomerDebtPanel key={selectedCustomerId} customerId={selectedCustomerId} /> :
                   <CustomerActivityList
                     customerId={selectedCustomerId}
                     kind={detailActivityTab}

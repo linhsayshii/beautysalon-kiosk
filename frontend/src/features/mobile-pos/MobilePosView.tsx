@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { formatMoney, formatNumber } from '@/lib/format';
@@ -65,6 +65,14 @@ export function MobilePosView() {
   const invoiceId = invoiceIdParam ? Number(invoiceIdParam) : null;
   const appointmentId = appointmentIdParam ? Number(appointmentIdParam) : null;
 
+  const loadedInvoice = useRef<number | null>(null);
+  useEffect(() => {
+    loadedInvoice.current = null;
+    setCartLines([]);
+    setCustomer(null);
+    setIsCartOpen(false);
+  }, [invoiceId]);
+
   // Fetch invoice if editing existing draft
   const invoiceQuery = useQuery({
     queryKey: ['pos-invoice', invoiceId],
@@ -83,8 +91,10 @@ export function MobilePosView() {
 
   // Populate cart from invoice when loaded
   useEffect(() => {
-    if (invoiceQuery.data?.data) {
+    if (invoiceQuery.data?.data && loadedInvoice.current !== invoiceId) {
       const invoice = invoiceQuery.data.data as any;
+      if (invoice.status !== 'draft') return;
+      loadedInvoice.current = invoiceId;
       // Set customer from invoice
       if (invoice.customer) {
         setCustomer({
@@ -118,8 +128,9 @@ export function MobilePosView() {
       }));
       setCartLines(lines);
       setIsCartExpanded(true);
+      if (searchParams.get('checkout') === '1') setIsCartOpen(true);
     }
-  }, [invoiceQuery.data]);
+  }, [invoiceQuery.data, invoiceId, searchParams]);
 
   // Check for available service packages when customer changes
   useEffect(() => {
@@ -145,7 +156,7 @@ export function MobilePosView() {
   });
 
   useEffect(() => {
-    if (!cartLines.length) return;
+    if (!cartLines.length || invoiceId) return;
     let cancelled = false;
     getPosPriceQuote(customer?.id, cartLines)
       .then((response) => {
@@ -321,13 +332,13 @@ export function MobilePosView() {
           </div>
           <div className="mobile-pos-payment-request-list">
             {paymentRequestsQuery.data.data.map((request) => (
-              <article key={request.id} className="mobile-pos-payment-request">
+              <article key={request.id} className={`mobile-pos-payment-request ${invoiceId === request.id ? 'is-selected' : ''}`} aria-current={invoiceId === request.id ? 'true' : undefined}>
                 <div>
                   <strong>{request.customer.name}</strong>
                   <span>{request.serviceProgress.completed}/{request.serviceProgress.total} dịch vụ đã xong</span>
                   {request.requestedByName && <small>Chuyển bởi {request.requestedByName}</small>}
                 </div>
-                <button type="button" onClick={() => navigate(`/m/pos?invoice=${request.id}`)}>Thanh toán</button>
+                <button type="button" onClick={() => { navigate(`/m/pos?invoice=${request.id}`); setIsCartExpanded(true); }}>{invoiceId === request.id ? '✓ Đang thanh toán' : 'Thanh toán'}</button>
               </article>
             ))}
           </div>
@@ -467,13 +478,16 @@ export function MobilePosView() {
         >
           <span className="cart-title">
             <i className="ph ph-shopping-cart-simple" style={{ marginRight: 8 }} />
-            Giỏ hàng ({totalCartCount})
+            {invoiceId ? <span className="cart-invoice-identity"><strong>Đang thanh toán · {invoiceQuery.data?.data?.code || 'Đang tải…'}</strong><small>{customer?.name || 'Đang tải khách hàng…'} · {totalCartCount} mục</small></span> : <>Giỏ hàng ({totalCartCount})</>}
           </span>
           <span className="cart-toggle">
             {isCartExpanded ? '▼' : '▲'}
           </span>
         </button>
 
+        {invoiceId && <button type="button" className="cart-close-invoice" onClick={() => { setIsCartOpen(false); setCartLines([]); setCustomer(null); navigate('/m/pos'); }}>Đóng hóa đơn</button>}
+        {invoiceId && invoiceQuery.isError && <p role="alert">Không thể tải hóa đơn. <button onClick={() => invoiceQuery.refetch()}>Thử lại</button></p>}
+        {invoiceId && invoiceQuery.data?.data && invoiceQuery.data.data.status !== 'draft' && <p role="status">Hóa đơn đã ghi nhận thanh toán. <button onClick={() => navigate(`/m/orders?invoice=${invoiceId}`)}>Xem hóa đơn / Thu nợ</button></p>}
         {isCartExpanded && (
           <div className="cart-items">
             {cartLines.map((line) => (
@@ -528,10 +542,10 @@ export function MobilePosView() {
         <button
           type="button"
           className="checkout-btn"
-          disabled={cartLines.length === 0}
+          disabled={cartLines.length === 0 || Boolean(invoiceId && (invoiceQuery.isPending || invoiceQuery.isError || invoiceQuery.data?.data?.status !== 'draft'))}
           onClick={() => setIsCartOpen(true)}
         >
-          Thanh toán
+          Thanh toán · {formatMoney(Math.max(0, totalCartAmount - Number(invoiceQuery.data?.data?.discount || 0)))}
         </button>
       </div>
 
@@ -542,8 +556,11 @@ export function MobilePosView() {
           customer={customer}
           appointmentId={appointmentId}
           invoiceId={invoiceId}
+          invoiceCode={invoiceQuery.data?.data?.code}
+          initialDiscount={Number(invoiceQuery.data?.data?.discount || 0)}
+          customerLocked={Boolean(invoiceId && (invoiceQuery.data?.data?.fromAppointment || invoiceQuery.data?.data?.serviceProgress?.total > 0))}
           incompleteServiceCount={incompleteServiceCount}
-          onSelectCustomer={setCustomer}
+          onSelectCustomer={(value) => { if (!(invoiceId && (invoiceQuery.data?.data?.fromAppointment || invoiceQuery.data?.data?.serviceProgress?.total > 0))) setCustomer(value); }}
           onUpdateQuantity={handleUpdateQuantity}
           onUpdateLineStaff={handleUpdateLineStaff}
           onClose={() => setIsCartOpen(false)}
@@ -552,6 +569,7 @@ export function MobilePosView() {
             setCartLines([]);
             setCustomer(null);
             setReceiptToPrint(receipt);
+            navigate('/m/pos', { replace: true });
           }}
         />
       )}

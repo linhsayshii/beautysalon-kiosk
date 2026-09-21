@@ -19,6 +19,7 @@ export const router = createBrowserRouter([
       { path: 'pos', lazy: () => import('@/pages/pos/MobilePosPage') },
       { path: 'invoices/new', lazy: () => import('@/pages/pos/MobileInvoiceCreatePage') },
       { path: 'appointments', lazy: () => import('@/pages/appointments/MobileAppointmentsListPage') },
+      { path: 'appointments/:id/edit', lazy: () => import('@/pages/appointments/MobileAppointmentCreatePage') },
       { path: 'appointments/new', lazy: () => import('@/pages/appointments/MobileAppointmentCreatePage') },
       { path: 'orders', lazy: () => import('@/pages/orders/MobileOrdersPage') },
       { path: 'customers', lazy: () => import('@/pages/customers/MobileCustomersPage') },

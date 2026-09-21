@@ -1,9 +1,10 @@
+import { money } from '../debts/debts.service.js';
 import { Router } from 'express';
 import { asyncRoute, HttpError, parseDateTime, parseEnum, parseIsoDate, parsePagination, parsePositiveInteger } from '../../lib/http.js';
 import { listPosProducts, quotePosPrices } from '../inventory/inventory.service.js';
 import { createCustomer, listCustomers } from '../customers/customers.service.js';
 import { listStaff } from '../staff/staff.service.js';
-import { createAppointments, listAppointments, updateAppointment } from '../dashboard/dashboard.service.js';
+import { createAppointments, getAppointmentEditor, completeAppointmentInvoice, listAppointments, updateAppointment } from '../dashboard/dashboard.service.js';
 import { checkoutPosInvoice, listPosPaymentRequests } from './pos.service.js';
 import { pool } from '../../db.js';
 import { getOrder } from '../orders/orders.service.js';
@@ -296,6 +297,47 @@ router.post('/appointments', asyncRoute(async (request, response) => {
   response.status(201).json({ data });
 }));
 
+router.get('/appointments/:id/editor', asyncRoute(async (request, response) => {
+  response.json({ data: await getAppointmentEditor({ branchId: request.account.branchId, id: parsePositiveInteger(request.params.id, 'id') }) });
+}));
+router.post('/appointments/:id/prepare-checkout', asyncRoute(async (request, response) => {
+  response.json({ data: await completeAppointmentInvoice({ branchId: request.account.branchId, id: parsePositiveInteger(request.params.id, 'id'), actorAccountId: request.account.id }) });
+}));
+
+router.put('/appointments/:id/editor', asyncRoute(async (request, response) => {
+  const rawItems = Array.isArray(request.body.items) ? request.body.items : [request.body];
+  const items = rawItems.map((item) => {
+    const startsAt = parseDateTime(item.startsAt || request.body.startsAt, 'startsAt');
+    const endsAt = parseDateTime(item.endsAt || request.body.endsAt, 'endsAt');
+    if (endsAt <= startsAt || endsAt.getTime() - startsAt.getTime() > 8 * 60 * 60 * 1000) {
+      throw new HttpError(400, 'INVALID_TIME_RANGE', 'Thời gian lịch hẹn không hợp lệ');
+    }
+    return {
+      appointmentId: item.appointmentId ? parsePositiveInteger(item.appointmentId, 'appointmentId') : null,
+      status: item.status ? parseEnum(item.status, 'status', appointmentStatuses) : undefined,
+      note: item.note !== undefined ? text(item.note, 500) : undefined,
+      serviceId: parsePositiveInteger(item.serviceId, 'serviceId'),
+      staffId: item.staffId ? parsePositiveInteger(item.staffId, 'staffId') : null,
+      quantity: Math.max(1, Math.floor(Number(item.quantity || 1))),
+      usePackageId: item.usePackageId ? parsePositiveInteger(item.usePackageId, 'usePackageId') : null,
+      usePackageServiceId: item.usePackageServiceId ? parsePositiveInteger(item.usePackageServiceId, 'usePackageServiceId') : null,
+      startsAt,
+      endsAt,
+    };
+  });
+  const data = await createAppointments({
+    editAppointmentId: parsePositiveInteger(request.params.id, 'id'),
+    branchId: request.account.branchId,
+    actorAccountId: request.account.id,
+    customerId: parsePositiveInteger(request.body.customerId, 'customerId'),
+    invoiceId: request.body.invoiceId ? parsePositiveInteger(request.body.invoiceId, 'invoiceId') : null,
+    items,
+    status: parseEnum(request.body.status, 'status', appointmentStatuses, 'confirmed'),
+    note: text(request.body.note, 500),
+  });
+  response.json({ data });
+}));
+
 router.put('/appointments/:id', asyncRoute(async (request, response) => {
   const id = parsePositiveInteger(request.params.id, 'id');
   const startsAt = request.body.startsAt ? parseDateTime(request.body.startsAt, 'startsAt') : undefined;
@@ -329,9 +371,9 @@ router.post('/checkout', asyncRoute(async (request, response) => {
   const staffId = request.body.staffId ? parsePositiveInteger(request.body.staffId, 'staffId') : null;
   const invoiceId = request.body.invoiceId ? parsePositiveInteger(request.body.invoiceId, 'invoiceId') : null;
   const appointmentId = request.body.appointmentId ? parsePositiveInteger(request.body.appointmentId, 'appointmentId') : null;
-  const discount = Math.max(0, Number(request.body.discount || 0));
+  const discount = money(request.body.discount ?? 0, 'Giảm giá');
   const amountPaid = request.body.amountPaid !== undefined && request.body.amountPaid !== null
-    ? Math.max(0, Number(request.body.amountPaid))
+    ? money(request.body.amountPaid)
     : null;
   const paymentMethod = parseEnum(request.body.paymentMethod, 'paymentMethod', paymentMethods, 'cash');
   const note = text(request.body.note, 300);
@@ -359,6 +401,8 @@ router.post('/checkout', asyncRoute(async (request, response) => {
     discount,
     paymentMethod,
     amountPaid,
+    allowDebt: request.body.allowDebt === true,
+    requestKey: request.body.requestKey,
     note,
     appointmentId,
     invoiceId,

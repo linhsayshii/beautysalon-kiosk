@@ -1,3 +1,4 @@
+import { listSort } from '../../lib/list-sort.js';
 import { pool } from '../../db.js';
 import { HttpError } from '../../lib/http.js';
 
@@ -890,7 +891,15 @@ function mapPurchase(row) {
   };
 }
 
-export async function listPurchaseOrders({ branchId, search, status, dateFrom, dateTo, page, pageSize, offset }) {
+export async function listPurchaseOrders({ branchId, search, status, dateFrom, dateTo, page, pageSize, offset, sort }) {
+  const orderBy = listSort(sort, {
+    date_desc: 'COALESCE(po.received_at, po.created_at) DESC',
+    date_asc: 'COALESCE(po.received_at, po.created_at) ASC',
+    total_desc: 'po.amount_due DESC',
+    total_asc: 'po.amount_due ASC',
+    code_asc: 'po.code ASC',
+    code_desc: 'po.code DESC',
+  }, 'COALESCE(po.received_at, po.created_at) DESC');
   const parameters = [branchId, search, status, dateFrom, dateTo];
   const filters = `
     po.branch_id = $1
@@ -908,7 +917,7 @@ export async function listPurchaseOrders({ branchId, search, status, dateFrom, d
       LEFT JOIN staff st ON st.id = po.created_by
       LEFT JOIN (SELECT purchase_order_id, COUNT(*) AS item_count, SUM(quantity) AS total_quantity FROM purchase_order_items GROUP BY purchase_order_id) x ON x.purchase_order_id = po.id
       WHERE ${filters}
-      ORDER BY COALESCE(po.received_at, po.created_at) DESC, po.id DESC
+      ORDER BY ${orderBy}, po.id DESC
       LIMIT $6 OFFSET $7`, [...parameters, pageSize, offset]),
     pool.query(`SELECT COUNT(*) AS total_orders, COALESCE(SUM(po.amount_due), 0) AS total_due,
       COALESCE(SUM(po.amount_due - po.amount_paid), 0) AS total_debt,
