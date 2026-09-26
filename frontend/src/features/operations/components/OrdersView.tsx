@@ -34,15 +34,15 @@ export function OrdersView() {
   const reset = () => { setDraft(initialFilters); setFilters(initialFilters); setPage(1); setExpanded(null); };
   const toggleOrder = (id: number) => setExpanded((current) => current === id ? null : id);
 
-  return <main className="workspace"><div className="workspace-shell">
-    <PageHeader title="Đơn hàng salon" subtitle="Theo dõi hóa đơn, thanh toán và trạng thái đơn tại tất cả quầy." extraActions={<button className="secondary-button" type="button" onClick={() => exportCsv(rows, 'orders') || notify('Không có dữ liệu', 'Hãy tải dữ liệu trước khi xuất file.')}><i className="ph ph-export" />Xuất file</button>} />
+  return <main className="page"><div className="page-stack">
+    <PageHeader title="Đơn hàng salon" subtitle="Theo dõi hóa đơn, thanh toán và trạng thái đơn tại tất cả quầy." extraActions={<button className="btn btn-secondary" type="button" onClick={() => exportCsv(rows, 'orders') || notify('Không có dữ liệu', 'Hãy tải dữ liệu trước khi xuất file.')}><i className="ph ph-export" />Xuất file</button>} />
     <SummaryStrip items={[
       { label: 'Tổng đơn', value: formatNumber(summary?.totalOrders), note: 'Theo bộ lọc hiện tại' },
       { label: 'Doanh thu hóa đơn', value: formatMoney(summary?.paidRevenue), note: 'Gồm phần khách còn nợ', tone: 'green' },
       { label: 'Đơn nháp', value: formatNumber(summary?.draftOrders), note: 'Cần hoàn tất', tone: 'orange' },
       { label: 'Đơn hoàn', value: formatNumber(summary?.refundedOrders), note: 'Đã hoàn tiền', tone: 'red' },
     ]} />
-    <div className="workspace-grid">
+    <div className="page-grid">
       <FilterPanel title="Bộ lọc đơn hàng" onApply={apply} onReset={reset}>
         <SelectFilter label="Trạng thái" value={draft.status} onChange={(status) => setDraft({ ...draft, status })} options={[{ value: '', label: 'Tất cả' }, ...toOptions(metadata.data?.data.filters.orders.statuses ?? [], {...statusLabels,paid:'Đã chốt hóa đơn'})]} />
         <SelectFilter label="Thanh toán" value={draft.paymentMethod} onChange={(paymentMethod) => setDraft({ ...draft, paymentMethod })} options={[{ value: '', label: 'Tất cả' }, ...toOptions(metadata.data?.data.filters.orders.paymentMethods ?? [], statusLabels)]} />

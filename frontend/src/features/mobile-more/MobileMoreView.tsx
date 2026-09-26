@@ -1,4 +1,4 @@
-import { useState, type RefObject } from 'react';
+import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/features/auth/AuthProvider';
@@ -7,15 +7,14 @@ import { initials } from '@/lib/format';
 import type { ApiRecord } from '@/types/api';
 import { errorMessage } from '@/services/api-client';
 import { useToast } from '@/components/ui/Toast/ToastProvider';
-import { useMobileDialog } from '@/features/mobile-common/useMobileDialog';
-import './mobile-more.css';
+import { BottomSheet } from '@/components/ui/Sheet/BottomSheet';
+import { EmptyState } from '@/components/data-display/DataState';
 
 export function MobileMoreView() {
   const { account, logout, switchBranch } = useAuth();
   const { notify } = useToast();
   const navigate = useNavigate();
   const [isSwitchingBranch, setIsSwitchingBranch] = useState(false);
-  const branchDialog = useMobileDialog({ isOpen: isSwitchingBranch, onClose: () => setIsSwitchingBranch(false) });
 
   const { data: branchesData } = useQuery({
     queryKey: ['branches-list'],
@@ -65,7 +64,7 @@ export function MobileMoreView() {
         </div>
         <button
           type="button"
-          className="more-branch-switch-btn"
+          className="btn btn-soft btn-icon"
           onClick={() => setIsSwitchingBranch(true)}
           title="Chuyển chi nhánh"
           aria-label="Chuyển chi nhánh"
@@ -253,7 +252,7 @@ export function MobileMoreView() {
             <button type="button" className="more-nav-item logout" onClick={handleLogout} data-testid="logout-btn">
               <span className="more-item-badge rose"><i className="ph ph-sign-out" /></span>
               <div className="more-item-info">
-                <span className="more-item-label" style={{ color: '#e11d48', fontWeight: 600 }}>Đăng xuất tài khoản</span>
+                <span className="more-item-label text-strong text-danger">Đăng xuất tài khoản</span>
                 <span className="more-item-desc">Thoát phiên làm việc trên thiết bị này</span>
               </div>
               <i className="ph ph-caret-right more-item-arrow" />
@@ -262,57 +261,37 @@ export function MobileMoreView() {
         </div>
       </div>
 
-      {/* Branch Selection Sheet Modal */}
-      {isSwitchingBranch && (
-        <div
-          className="mobile-more-sheet-overlay"
-          onClick={() => setIsSwitchingBranch(false)}
-          data-testid="branch-modal-overlay"
-        >
-          <div ref={branchDialog.dialogRef as RefObject<HTMLDivElement>} className="mobile-more-sheet-content" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" aria-labelledby={branchDialog.titleId} tabIndex={-1}>
-            <div className="mobile-more-sheet-handle" />
-            <div className="mobile-more-sheet-header">
-              <h3 id={branchDialog.titleId}>Chọn chi nhánh làm việc</h3>
+      <BottomSheet
+        open={isSwitchingBranch}
+        onClose={() => setIsSwitchingBranch(false)}
+        title="Chọn chi nhánh làm việc"
+        testId="branch-modal"
+      >
+        {branches.length > 0 ? (
+          branches.map((b) => {
+            const isSelected = Number(b.id) === Number(account?.branchId);
+            return (
               <button
+                key={b.id}
                 type="button"
-                className="mobile-more-sheet-close"
-                onClick={() => setIsSwitchingBranch(false)}
-                aria-label="Đóng"
+                className={`branch-option-item ${isSelected ? 'selected' : ''}`}
+                onClick={() => handleSelectBranch(Number(b.id))}
+                data-testid={`branch-option-${b.id}`}
               >
-                <i className="ph ph-x" />
-              </button>
-            </div>
-            <div className="mobile-more-sheet-body">
-              {branches.length > 0 ? (
-                branches.map((b) => {
-                  const isSelected = Number(b.id) === Number(account?.branchId);
-                  return (
-                    <button
-                      key={b.id}
-                      type="button"
-                      className={`branch-option-item ${isSelected ? 'selected' : ''}`}
-                      onClick={() => handleSelectBranch(Number(b.id))}
-                      data-testid={`branch-option-${b.id}`}
-                    >
-                      <div>
-                        <div className="branch-option-title">{b.name}</div>
-                        <div className="branch-option-address">{b.address || 'Hồ Chí Minh'}</div>
-                      </div>
-                      {isSelected && (
-                        <i className="ph ph-check-circle" style={{ color: '#0284c7', fontSize: 20 }} />
-                      )}
-                    </button>
-                  );
-                })
-              ) : (
-                <div style={{ textAlign: 'center', padding: '16px', color: '#64748b', fontSize: '13px' }}>
-                  Không có chi nhánh khả dụng
+                <div>
+                  <div className="branch-option-title">{b.name}</div>
+                  <div className="branch-option-address">{b.address || 'Hồ Chí Minh'}</div>
                 </div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
+                {isSelected && (
+                  <i className="ph ph-check-circle branch-option-check" />
+                )}
+              </button>
+            );
+          })
+        ) : (
+          <EmptyState compact icon="ph ph-storefront" title="Không có chi nhánh khả dụng" message={null} />
+        )}
+      </BottomSheet>
     </div>
   );
 }

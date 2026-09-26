@@ -1,0 +1,44 @@
+/* Layout details for the schedule dialogs (ApplyWeeksModal, DeleteScheduleModal,
+ * PropagateModal). The dialog shell and option cards come from styles/ui. */
+.apply-weeks-range {
+  display: grid;
+  gap: 8px;
+}
+
+.apply-weeks-range-label {
+  display: flex;
+  justify-content: space-between;
+  color: var(--ink-700);
+  font-size: var(--text-md);
+}
+
+.apply-weeks-range input[type="range"] {
+  width: 100%;
+  accent-color: var(--blue-600);
+}
+
+.apply-weeks-range-scale {
+  display: flex;
+  justify-content: space-between;
+  color: var(--ink-500);
+  font-size: var(--text-xs);
+}
+
+.apply-weeks-skip {
+  display: grid;
+  gap: 4px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+}
+
+/* Recurring-schedule marker (ScheduleBadge) */
+.schedule-badge {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  color: var(--blue-600);
+  pointer-events: none;
+}

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { EmptyState, ErrorState, LoadingState } from '@/components/data-display/DataState';
+import { DetailFacts, DetailHead, InlineDetail, ValueStrip } from '@/components/data-display/InlineDetail';
 import { StatusBadge } from '@/components/data-display/Badges';
 import { addCalendarDays, weekStartIso } from '@/lib/date';
 import { formatDate, formatMoney, formatNumber } from '@/lib/format';
@@ -20,6 +21,23 @@ function currentMonday() {
   return weekStartIso();
 }
 
+const salaryTypeLabel = (staff: ApiRecord) =>
+  statusLabels[staff.salaryType] ?? salaryDescriptions[String(staff.salaryType)] ?? staff.salaryType ?? '-';
+
+const permissionsLabel = (staff: ApiRecord) =>
+  `${staff.canSell ? 'Bán hàng' : 'Không bán hàng'}${staff.canManageInventory ? ', Quản lý kho' : ''}`;
+
+function EditActions({ onEdit }: { onEdit: () => void }) {
+  return (
+    <div className="detail-actions">
+      <button className="btn btn-primary btn-sm" type="button" onClick={onEdit}>
+        <i className="ph ph-pencil-simple" />
+        <span>Cập nhật</span>
+      </button>
+    </div>
+  );
+}
+
 function StaffScheduleTab({ staff }: { staff: ApiRecord }) {
   const weekStart = currentMonday();
   const query = useQuery({
@@ -33,17 +51,12 @@ function StaffScheduleTab({ staff }: { staff: ApiRecord }) {
   const days = Array.from({ length: 7 }, (_, index) => addCalendarDays(weekStart, index));
 
   return (
-    <div className="staff-detail-panel" style={{ padding: '16px 0' }}>
-      <div className="staff-detail-heading" style={{ marginBottom: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <div>
-          <strong style={{ fontSize: 14.5, color: '#1e293b' }}>Lịch làm việc trong tuần</strong>
-          <span style={{ fontSize: 13, color: '#64748b', marginLeft: 8 }}>
-            {formatDate(weekStart)} - {formatDate(days[6])}
-          </span>
-        </div>
-      </div>
-      <div className="table-scroll" style={{ width: '100%' }}>
-        <table className="kiotviet-payroll-table" style={{ width: '100%' }}>
+    <>
+      <p className="detail-section-title">
+        Lịch làm việc trong tuần <small>{formatDate(weekStart)} - {formatDate(days[6])}</small>
+      </p>
+      <div className="table-scroll">
+        <table className="detail-table">
           <thead>
             <tr>
               <th>Ngày</th>
@@ -57,15 +70,11 @@ function StaffScheduleTab({ staff }: { staff: ApiRecord }) {
               const shift = shifts.find((item: ApiRecord) => item.date === date);
               return (
                 <tr key={date}>
-                  <td><strong>{formatDate(date)}</strong></td>
+                  <td className="text-strong">{formatDate(date)}</td>
                   <td>{shift?.shiftName ?? 'Chưa xếp ca'}</td>
                   <td>{shift ? `${shift.startsAt} - ${shift.endsAt}` : '-'}</td>
                   <td>
-                    {shift ? (
-                      <StatusBadge status={shift.status ?? 'scheduled'} />
-                    ) : (
-                      <span style={{ color: '#94a3b8' }}>Chưa có lịch</span>
-                    )}
+                    {shift ? <StatusBadge status={shift.status ?? 'scheduled'} /> : <span className="text-faint">Chưa có lịch</span>}
                   </td>
                 </tr>
               );
@@ -73,78 +82,23 @@ function StaffScheduleTab({ staff }: { staff: ApiRecord }) {
           </tbody>
         </table>
       </div>
-    </div>
+    </>
   );
 }
 
 function StaffSalaryTab({ staff, onEdit }: { staff: ApiRecord; onEdit: (initialTab: 'info' | 'salary') => void }) {
   return (
-    <div className="staff-detail-panel staff-salary-detail" style={{ padding: '16px 0' }}>
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(4, 1fr)',
-          gap: '16px 24px',
-          fontSize: 14.5,
-          marginBottom: 16,
-        }}
-      >
-        <div>
-          <span style={{ color: '#64748b', display: 'block', marginBottom: 2 }}>Hình thức lương:</span>
-          <strong style={{ color: '#1e293b' }}>
-            {statusLabels[staff.salaryType] ?? salaryDescriptions[String(staff.salaryType)] ?? staff.salaryType ?? '-'}
-          </strong>
-        </div>
-        <div>
-          <span style={{ color: '#64748b', display: 'block', marginBottom: 2 }}>Mức lương cơ bản:</span>
-          <strong style={{ color: '#0052cc' }}>{formatMoney(staff.baseSalary || 0)} / kỳ lương</strong>
-        </div>
-        <div>
-          <span style={{ color: '#64748b', display: 'block', marginBottom: 2 }}>Lương làm thêm giờ:</span>
-          <strong style={{ color: '#1e293b' }}>
-            {Number(staff.hourlyRate) > 0 ? `${formatMoney(staff.hourlyRate)} / giờ` : 'Không áp dụng'}
-          </strong>
-        </div>
-        <div style={{ gridColumn: 'span 4' }}>
-          <span style={{ color: '#64748b', display: 'block', marginBottom: 2 }}>Quyền thao tác:</span>
-          <strong style={{ color: '#1e293b' }}>
-            {staff.canSell ? 'Bán hàng' : 'Không bán hàng'}{staff.canManageInventory ? ', Quản lý kho' : ''}
-          </strong>
-        </div>
-      </div>
-      <div
-        className="staff-detail-actions"
-        style={{
-          display: 'flex',
-          justifyContent: 'flex-end',
-          marginTop: 16,
-          paddingTop: 12,
-          borderTop: '1px solid #f1f5f9',
-        }}
-      >
-        <button
-          className="primary-button"
-          type="button"
-          onClick={() => onEdit('salary')}
-          style={{
-            background: '#0052cc',
-            color: '#fff',
-            border: 'none',
-            borderRadius: 6,
-            padding: '7px 16px',
-            fontWeight: 600,
-            fontSize: 13,
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: 6,
-            cursor: 'pointer',
-          }}
-        >
-          <i className="ph ph-pencil-simple" />
-          <span>Cập nhật</span>
-        </button>
-      </div>
-    </div>
+    <>
+      <DetailFacts
+        items={[
+          { label: 'Hình thức lương', value: salaryTypeLabel(staff) },
+          { label: 'Mức lương cơ bản', value: `${formatMoney(staff.baseSalary || 0)} / kỳ lương`, tone: 'primary' },
+          { label: 'Lương làm thêm giờ', value: Number(staff.hourlyRate) > 0 ? `${formatMoney(staff.hourlyRate)} / giờ` : 'Không áp dụng' },
+          { label: 'Quyền thao tác', value: permissionsLabel(staff), span: 'full' },
+        ]}
+      />
+      <EditActions onEdit={() => onEdit('salary')} />
+    </>
   );
 }
 
@@ -157,35 +111,33 @@ function StaffPayslipsTab({ staff }: { staff: ApiRecord }) {
   if (!rows.length) return <EmptyState message="Nhân viên chưa có phiếu lương trong kỳ gần nhất." />;
 
   return (
-    <div className="staff-detail-panel" style={{ padding: '16px 0' }}>
-      <div className="table-scroll" style={{ width: '100%' }}>
-        <table className="kiotviet-payroll-table" style={{ width: '100%' }}>
-          <thead>
-            <tr>
-              <th>Mã phiếu</th>
-              <th>Kỳ làm việc</th>
-              <th style={{ textAlign: 'right' }}>Lương chính</th>
-              <th style={{ textAlign: 'right' }}>Hoa hồng</th>
-              <th style={{ textAlign: 'right' }}>Phụ cấp</th>
-              <th style={{ textAlign: 'right' }}>Thực lĩnh</th>
-              <th style={{ textAlign: 'center' }}>Trạng thái</th>
+    <div className="table-scroll">
+      <table className="detail-table">
+        <thead>
+          <tr>
+            <th>Mã phiếu</th>
+            <th>Kỳ làm việc</th>
+            <th className="is-num">Lương chính</th>
+            <th className="is-num">Hoa hồng</th>
+            <th className="is-num">Phụ cấp</th>
+            <th className="is-num">Thực lĩnh</th>
+            <th className="is-center">Trạng thái</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((row: ApiRecord) => (
+            <tr key={row.id}>
+              <td className="is-code">PL{String(row.id).padStart(6, '0')}</td>
+              <td>{data.period ? `${formatDate(data.period.startsOn)} - ${formatDate(data.period.endsOn)}` : '-'}</td>
+              <td className="is-num">{formatMoney(row.baseSalary)}</td>
+              <td className="is-num">{formatMoney(row.commission)}</td>
+              <td className="is-num">{formatMoney(row.allowance)}</td>
+              <td className="is-num text-strong text-success">{formatMoney(row.netSalary)}</td>
+              <td className="is-center"><StatusBadge status={row.status} /></td>
             </tr>
-          </thead>
-          <tbody>
-            {rows.map((row: ApiRecord) => (
-              <tr key={row.id}>
-                <td style={{ fontWeight: 600, color: '#0052cc' }}>PL{String(row.id).padStart(6, '0')}</td>
-                <td>{data.period ? `${formatDate(data.period.startsOn)} - ${formatDate(data.period.endsOn)}` : '-'}</td>
-                <td style={{ textAlign: 'right' }}>{formatMoney(row.baseSalary)}</td>
-                <td style={{ textAlign: 'right' }}>{formatMoney(row.commission)}</td>
-                <td style={{ textAlign: 'right' }}>{formatMoney(row.allowance)}</td>
-                <td style={{ textAlign: 'right', fontWeight: 700, color: '#059669' }}>{formatMoney(row.netSalary)}</td>
-                <td style={{ textAlign: 'center' }}><StatusBadge status={row.status} /></td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 }
@@ -195,37 +147,19 @@ function StaffDebtTab({ staff }: { staff: ApiRecord }) {
   const advanceBalance = Number(staff.advanceBalance || 0);
 
   return (
-    <div className="staff-detail-panel staff-debt-panel" style={{ padding: '16px 0' }}>
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(3, 1fr)',
-          gap: '16px 24px',
-          fontSize: 14.5,
-          marginBottom: 16,
-        }}
-      >
-        <div>
-          <span style={{ color: '#64748b', display: 'block', marginBottom: 2 }}>Dư nợ hiện tại:</span>
-          <strong style={{ color: debtBalance > 0 ? '#e11d48' : '#059669', fontSize: 16 }}>
-            {formatMoney(debtBalance)}
-          </strong>
-        </div>
-        <div>
-          <span style={{ color: '#64748b', display: 'block', marginBottom: 2 }}>Tạm ứng trong kỳ:</span>
-          <strong style={{ color: '#1e293b', fontSize: 16 }}>{formatMoney(advanceBalance)}</strong>
-        </div>
-        <div>
-          <span style={{ color: '#64748b', display: 'block', marginBottom: 2 }}>Trạng thái công nợ:</span>
-          <strong style={{ color: debtBalance > 0 ? '#e11d48' : '#059669' }}>
-            {debtBalance > 0 ? 'Đang có khoản nợ cần thu' : 'Không có công nợ'}
-          </strong>
-        </div>
-      </div>
+    <>
+      <DetailFacts
+        columns={3}
+        items={[
+          { label: 'Dư nợ hiện tại', value: formatMoney(debtBalance), tone: debtBalance > 0 ? 'danger' : 'success' },
+          { label: 'Tạm ứng trong kỳ', value: formatMoney(advanceBalance) },
+          { label: 'Trạng thái công nợ', value: debtBalance > 0 ? 'Đang có khoản nợ cần thu' : 'Không có công nợ', tone: debtBalance > 0 ? 'danger' : 'success' },
+        ]}
+      />
       {debtBalance === 0 && advanceBalance === 0 && (
         <EmptyState message="Nhân viên chưa có khoản tạm ứng hoặc công nợ phát sinh." />
       )}
-    </div>
+    </>
   );
 }
 
@@ -241,212 +175,46 @@ export function StaffDetail({ staff, onEdit }: { staff: ApiRecord; onEdit: (init
   ];
 
   return (
-    <div
-      className="staff-detail"
-      style={{
-        background: '#ffffff',
-        borderTop: '2px solid #0052cc',
-        borderBottom: '1px solid #cbd5e1',
-        padding: 0,
-      }}
-    >
-      {/* Layer 2: Inline Detail Tabs */}
-      <div className="inline-detail-tabs" role="tablist" aria-label={`Chi tiết nhân viên ${staff.name}`}>
-        {tabs.map((item) => (
-          <button
-            type="button"
-            role="tab"
-            aria-selected={tab === item.value}
-            className={tab === item.value ? 'is-active' : ''}
-            key={item.value}
-            onClick={() => setTab(item.value)}
-          >
-            {item.label}
-          </button>
-        ))}
-      </div>
+    <InlineDetail className="staff-detail" label={`Chi tiết nhân viên ${staff.name}`} tabs={tabs} tab={tab} onTabChange={setTab}>
+      <DetailHead
+        icon="ph-user"
+        tone={staff.avatarTone}
+        title={staff.name}
+        tags={<span className="badge badge-info">{staff.role}</span>}
+        meta={<>Mã nhân viên: <strong>{staff.code}</strong>{staff.department && ` • ${staff.department}`}</>}
+        aside={<><div><strong>{staff.branchName || 'Chi nhánh trung tâm'}</strong></div><div>Ngày tạo: {formatDate(staff.createdAt)}</div></>}
+      />
 
-      <div style={{ padding: '16px 20px' }}>
-        {/* Layer 3: Profile Head */}
-        <div
-          className="staff-profile-head"
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            gap: 16,
-            marginBottom: 16,
-            flexWrap: 'wrap',
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-            <span
-              className={`staff-profile-avatar ${staff.avatarTone ?? 'blue'}`}
-              style={{
-                display: 'grid',
-                placeItems: 'center',
-                width: 48,
-                height: 48,
-                borderRadius: '50%',
-                fontSize: 24,
-                flexShrink: 0,
-              }}
-            >
-              <i className="ph ph-user" />
-            </span>
-            <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                <strong style={{ fontSize: 16, color: '#1e293b' }}>{staff.name}</strong>
-                <span
-                  style={{
-                    fontSize: 12,
-                    padding: '2px 8px',
-                    borderRadius: 12,
-                    background: '#e0f2fe',
-                    color: '#0052cc',
-                    fontWeight: 600,
-                  }}
-                >
-                  {staff.role}
-                </span>
-              </div>
-              <div style={{ fontSize: 13, color: '#64748b', marginTop: 3 }}>
-                <span>Mã nhân viên: </span>
-                <strong style={{ color: '#1e293b' }}>{staff.code}</strong>
-                {staff.department && (
-                  <span style={{ color: '#64748b' }}> • {staff.department}</span>
-                )}
-              </div>
-            </div>
-          </div>
-          <div style={{ textAlign: 'right', fontSize: 12, color: '#64748b', lineHeight: 1.6 }}>
-            <div>
-              <strong style={{ color: '#1e293b' }}>{staff.branchName || 'Chi nhánh trung tâm'}</strong>
-            </div>
-            <div>Ngày tạo: {formatDate(staff.createdAt)}</div>
-          </div>
-        </div>
+      <ValueStrip
+        items={[
+          { label: 'Doanh thu tháng', value: formatMoney(staff.monthRevenue || 0), tone: 'primary' },
+          { label: 'Đơn tháng này', value: formatNumber(staff.monthOrders || 0) },
+          { label: 'Lương cơ bản', value: formatMoney(staff.baseSalary || 0), tone: 'success' },
+        ]}
+      />
 
-        {/* Layer 4: 4-Column Value Strip */}
-        <div
-          className="staff-value-strip"
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(4, 1fr)',
-            gap: 12,
-            background: '#f8fafc',
-            padding: 12,
-            borderRadius: 8,
-            border: '1px solid #e2e8f0',
-            marginBottom: 16,
-            fontSize: 14,
-          }}
-        >
-          <div>
-            <span style={{ color: '#64748b' }}>Doanh thu tháng: </span>
-            <strong style={{ color: '#0052cc' }}>{formatMoney(staff.monthRevenue || 0)}</strong>
-          </div>
-          <div>
-            <span style={{ color: '#64748b' }}>Đơn tháng này: </span>
-            <strong style={{ color: '#1e293b' }}>{formatNumber(staff.monthOrders || 0)}</strong>
-          </div>
-          <div>
-            <span style={{ color: '#64748b' }}>Lương cơ bản: </span>
-            <strong style={{ color: '#059669' }}>{formatMoney(staff.baseSalary || 0)}</strong>
-          </div>
-        </div>
+      {tab === 'info' && (
+        <>
+          <DetailFacts
+            items={[
+              { label: 'Số điện thoại', value: staff.phone ?? 'Chưa có' },
+              { label: 'Phòng ban', value: staff.department ?? 'Chưa thiết lập' },
+              { label: 'Chức danh', value: staff.role },
+              { label: 'Chi nhánh làm việc', value: staff.branchName ?? 'Chi nhánh hiện tại' },
+              { label: 'Hình thức lương', value: salaryTypeLabel(staff) },
+              { label: 'Trạng thái hoạt động', value: staff.active === false ? 'Ngừng hoạt động' : 'Đang hoạt động' },
+              { label: 'Ngày vào làm', value: staff.startDate ? formatDate(staff.startDate) : (staff.createdAt ? formatDate(staff.createdAt) : 'Chưa có') },
+              { label: 'Quyền thao tác', value: permissionsLabel(staff) },
+            ]}
+          />
+          <EditActions onEdit={() => onEdit('info')} />
+        </>
+      )}
 
-        {/* Layer 5: Tab Contents */}
-        {tab === 'info' && (
-          <div className="staff-detail-panel staff-information" style={{ padding: 0 }}>
-            <div
-              style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(4, 1fr)',
-                gap: '16px 24px',
-                fontSize: 14.5,
-                marginBottom: 16,
-              }}
-            >
-              <div>
-                <span style={{ color: '#64748b', display: 'block', marginBottom: 2 }}>Số điện thoại:</span>
-                <strong style={{ color: '#1e293b' }}>{staff.phone ?? 'Chưa có'}</strong>
-              </div>
-              <div>
-                <span style={{ color: '#64748b', display: 'block', marginBottom: 2 }}>Phòng ban:</span>
-                <strong style={{ color: '#1e293b' }}>{staff.department ?? 'Chưa thiết lập'}</strong>
-              </div>
-              <div>
-                <span style={{ color: '#64748b', display: 'block', marginBottom: 2 }}>Chức danh:</span>
-                <strong style={{ color: '#1e293b' }}>{staff.role}</strong>
-              </div>
-              <div>
-                <span style={{ color: '#64748b', display: 'block', marginBottom: 2 }}>Chi nhánh làm việc:</span>
-                <strong style={{ color: '#1e293b' }}>{staff.branchName ?? 'Chi nhánh hiện tại'}</strong>
-              </div>
-              <div>
-                <span style={{ color: '#64748b', display: 'block', marginBottom: 2 }}>Hình thức lương:</span>
-                <strong style={{ color: '#1e293b' }}>
-                  {statusLabels[staff.salaryType] ?? salaryDescriptions[String(staff.salaryType)] ?? staff.salaryType ?? '-'}
-                </strong>
-              </div>
-              <div>
-                <span style={{ color: '#64748b', display: 'block', marginBottom: 2 }}>Trạng thái hoạt động:</span>
-                <strong style={{ color: '#1e293b' }}>{staff.active === false ? 'Ngừng hoạt động' : 'Đang hoạt động'}</strong>
-              </div>
-              <div>
-                <span style={{ color: '#64748b', display: 'block', marginBottom: 2 }}>Ngày vào làm:</span>
-                <strong style={{ color: '#1e293b' }}>
-                  {staff.startDate ? formatDate(staff.startDate) : (staff.createdAt ? formatDate(staff.createdAt) : 'Chưa có')}
-                </strong>
-              </div>
-              <div>
-                <span style={{ color: '#64748b', display: 'block', marginBottom: 2 }}>Quyền thao tác:</span>
-                <strong style={{ color: '#1e293b' }}>
-                  {staff.canSell ? 'Bán hàng' : 'Không bán hàng'}{staff.canManageInventory ? ', Quản lý kho' : ''}
-                </strong>
-              </div>
-            </div>
-            <div
-              className="staff-detail-actions"
-              style={{
-                display: 'flex',
-                justifyContent: 'flex-end',
-                marginTop: 16,
-                paddingTop: 12,
-                borderTop: '1px solid #f1f5f9',
-              }}
-            >
-              <button
-                className="primary-button"
-                type="button"
-                onClick={() => onEdit('info')}
-                style={{
-                  background: '#0052cc',
-                  color: '#fff',
-                  border: 'none',
-                  borderRadius: 6,
-                  padding: '7px 16px',
-                  fontWeight: 600,
-                  fontSize: 13,
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: 6,
-                  cursor: 'pointer',
-                }}
-              >
-                <i className="ph ph-pencil-simple" />
-                <span>Cập nhật</span>
-              </button>
-            </div>
-          </div>
-        )}
-
-        {tab === 'schedule' && <StaffScheduleTab staff={staff} />}
-        {tab === 'salary' && <StaffSalaryTab staff={staff} onEdit={onEdit} />}
-        {tab === 'payslips' && <StaffPayslipsTab staff={staff} />}
-        {tab === 'debt' && <StaffDebtTab staff={staff} />}
-      </div>
-    </div>
+      {tab === 'schedule' && <StaffScheduleTab staff={staff} />}
+      {tab === 'salary' && <StaffSalaryTab staff={staff} onEdit={onEdit} />}
+      {tab === 'payslips' && <StaffPayslipsTab staff={staff} />}
+      {tab === 'debt' && <StaffDebtTab staff={staff} />}
+    </InlineDetail>
   );
 }

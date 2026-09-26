@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { MemoryRouter } from 'react-router-dom';
 import { MobileStaffScheduleView } from './MobileStaffScheduleView';
 import { todayIso, weekStartIso } from '@/lib/date';
 import * as staffApi from '@/features/staff/staff.api';
@@ -31,7 +32,9 @@ describe('MobileStaffScheduleView', () => {
     render(
       <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
         <WebSocketProvider>
-          <MobileStaffScheduleView />
+          <MemoryRouter>
+            <MobileStaffScheduleView />
+          </MemoryRouter>
         </WebSocketProvider>
       </QueryClientProvider>,
     );

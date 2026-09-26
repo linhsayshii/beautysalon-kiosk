@@ -1,9 +1,8 @@
-import { ErrorState } from '@/components/data-display/DataState';
+import { ErrorState, LoadingState } from '@/components/data-display/DataState';
 import { Pagination } from '@/components/data-display/Pagination';
 import { useFilterPagination } from '@/hooks/useFilterPagination';
 import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { useNavigate } from 'react-router-dom';
 import { formatDate, formatDateTime, formatMoney, formatNumber } from '@/lib/format';
 import { getCustomerCards, getCustomerCard } from '@/features/operations/operations.api';
 import { StatusBadge } from '@/components/data-display/Badges';
@@ -16,10 +15,9 @@ import {
   MobileSortDropdown,
 } from '@/features/mobile-common';
 import type { ApiRecord } from '@/types/api';
-import './mobile-operations.css';
+import { MobilePageHeader } from '@/components/ui/MobilePageHeader/MobilePageHeader';
 
 export function MobileCustomerCardsView() {
-  const navigate = useNavigate();
   const [search, setSearch] = useState('');
   const [isSearchVisible, setIsSearchVisible] = useState(false);
   const [itemTypeFilter, setItemTypeFilter] = useState('');
@@ -104,50 +102,33 @@ export function MobileCustomerCardsView() {
 
   return (
     <div className="mobile-operations-view">
-      {/* Sticky Top Cluster */}
-      <div className="mobile-operations-sticky-header-cluster">
-        {/* 1. Header Top Navigation */}
-        <div className="mobile-operations-top-nav">
-          <div className="mobile-operations-nav-left">
+      <MobilePageHeader
+        title="Gói & Thẻ đã bán" backTo="/m/more"
+        actions={(
+          <>
             <button
               type="button"
-              className="mobile-operations-back-icon"
-              onClick={() => navigate('/m/more')}
-              aria-label="Quay lại"
-            >
-              <i className="ph ph-caret-left" />
-            </button>
-            <h1 className="mobile-operations-nav-title">Gói & Thẻ đã bán</h1>
-          </div>
-
-          <div className="mobile-operations-nav-actions">
-            <button
-              type="button"
-              className={`mobile-operations-nav-btn ${isSearchVisible ? 'is-active' : ''}`}
+              className={`btn btn-ghost btn-icon m-header-action${isSearchVisible ? ' is-active' : ''}`}
               onClick={() => setIsSearchVisible((prev) => !prev)}
               aria-label="Tìm kiếm"
             >
               <i className="ph ph-magnifying-glass" />
             </button>
-          </div>
-        </div>
-
-        {/* Inline Search Bar */}
+          </>
+        )}
+      >
         {isSearchVisible && (
-          <div className="mobile-operations-search-bar-wrap">
-            <MobileSearchBar
-              value={search}
-              placeholder="Tìm mã, tên gói/thẻ, khách hàng..."
-              onChange={setSearch}
-            />
-          </div>
+          <MobileSearchBar
+            value={search}
+            placeholder="Tìm mã, tên gói/thẻ, khách hàng..."
+            onChange={setSearch}
+          />
         )}
 
-        {/* 2. Horizontal Filter Chips Strip */}
-        <div className="mobile-operations-filter-strip">
+        <div className="m-chip-strip">
           <button
             type="button"
-            className="mobile-filter-icon-btn"
+            className="chip chip-icon"
             onClick={openFilterSheet}
             aria-label="Mở bộ lọc"
           >
@@ -156,7 +137,7 @@ export function MobileCustomerCardsView() {
 
           <button
             type="button"
-            className={`mobile-filter-chip ${itemTypeFilter ? 'is-active' : ''}`}
+            className={`chip ${itemTypeFilter ? 'is-active' : ''}`}
             onClick={openFilterSheet}
           >
             <span>
@@ -171,7 +152,7 @@ export function MobileCustomerCardsView() {
 
           <button
             type="button"
-            className={`mobile-filter-chip ${statusFilter ? 'is-active' : ''}`}
+            className={`chip ${statusFilter ? 'is-active' : ''}`}
             onClick={openFilterSheet}
           >
             <span>
@@ -187,33 +168,28 @@ export function MobileCustomerCardsView() {
           </button>
         </div>
 
-        {/* 3. Summary & Sort Dropdown Bar */}
-        <div className="mobile-operations-summary-bar">
+        <div className="m-summary-bar">
           <MobileSortDropdown
             value={sortValue}
             options={sortOptions}
             onChange={setSortValue}
           />
 
-          <div className="mobile-operations-count-summary">
+          <div className="m-summary-count">
             {cardsData?.meta?.pagination?.total ?? rawRows.length} gói, thẻ đã bán
           </div>
         </div>
-      </div>
+      </MobilePageHeader>
 
       {/* 4. Grouped Section List */}
       <div className="mobile-operations-sections-wrapper">
         {error ? <ErrorState error={error} onRetry={() => refetch()} /> : isLoading ? (
-          <div style={{ padding: '40px 16px', textAlign: 'center', color: '#64748b' }}>
-            Đang tải danh sách gói thẻ...
-          </div>
+          <LoadingState compact label="Đang tải danh sách gói thẻ..." />
         ) : rawRows.length === 0 ? (
-          <div style={{ padding: '24px 16px' }}>
-            <MobileEmptyState
+          <MobileEmptyState
               title="Chưa có gói dịch vụ hoặc thẻ tài khoản nào"
               description="Thử tìm kiếm với từ khóa khác hoặc thay đổi bộ lọc."
             />
-          </div>
         ) : (
           groupedSections.map(([sectionName, items]) => (
             <div key={sectionName} className="mobile-operations-section">
@@ -260,7 +236,7 @@ export function MobileCustomerCardsView() {
 
                         {/* Progress or Balance preview */}
                         {isPkg ? (
-                          <div className="mobile-package-progress-wrap" style={{ marginTop: '2px' }}>
+                          <div className="mobile-package-progress-wrap">
                             <div className="mobile-package-progress-bar">
                               <div
                                 className="mobile-package-progress-fill"
@@ -271,13 +247,13 @@ export function MobileCustomerCardsView() {
                               <span>
                                 {usedUnits}/{totalUnits} lượt
                               </span>
-                              <span style={{ fontWeight: 700, color: '#0062eb' }}>
+                              <span className="text-strong text-primary">
                                 Còn {row.remainingUnits} lượt
                               </span>
                             </div>
                           </div>
                         ) : (
-                          <div style={{ fontSize: '12px', color: '#10b981', fontWeight: 700 }}>
+                          <div className="text-strong text-success">
                             Số dư: {formatMoney(row.currentBalance || 0)}
                           </div>
                         )}
@@ -286,7 +262,7 @@ export function MobileCustomerCardsView() {
                       {/* Right: Status badge & Price */}
                       <div className="mobile-row-right">
                         <StatusBadge status={row.status} />
-                        <span style={{ fontSize: '13px', fontWeight: 650, color: '#0f172a' }}>
+                        <span className="text-strong">
                           {formatMoney(row.salePrice || 0)}
                         </span>
                       </div>
@@ -343,11 +319,9 @@ export function MobileCustomerCardsView() {
         onClose={() => setSelectedCardId(null)}
       >
         {detailError ? <ErrorState error={detailError} onRetry={() => refetchDetail()} /> : isDetailLoading ? (
-          <div style={{ padding: '24px', textAlign: 'center', color: '#64748b' }}>
-            Đang tải thông tin...
-          </div>
+          <LoadingState compact label="Đang tải thông tin..." />
         ) : activeCard ? (
-          <div className="mobile-detail-page-container" style={{ padding: '4px 0 24px' }}>
+          <div className="mobile-detail-page-container">
             {/* Header Card */}
             <div className="mobile-detail-section-card">
               <div className="mobile-detail-card-header">
@@ -376,7 +350,7 @@ export function MobileCustomerCardsView() {
                   <span className="mobile-detail-grid-label">Số điện thoại</span>
                   <span className="mobile-detail-grid-value">
                     {activeCard.customer?.phone ? (
-                      <a href={`tel:${activeCard.customer.phone}`} style={{ color: '#0062eb' }}>
+                      <a href={`tel:${activeCard.customer.phone}`} className="text-primary">
                         {activeCard.customer.phone}
                       </a>
                     ) : (
@@ -387,7 +361,7 @@ export function MobileCustomerCardsView() {
 
                 <div className="mobile-detail-grid-item">
                   <span className="mobile-detail-grid-label">Giá bán</span>
-                  <span className="mobile-detail-grid-value" style={{ color: '#0062eb' }}>
+                  <span className="mobile-detail-grid-value text-primary">
                     {formatMoney(activeCard.salePrice)}
                   </span>
                 </div>
@@ -396,7 +370,7 @@ export function MobileCustomerCardsView() {
                   <span className="mobile-detail-grid-label">
                     {activeCard.itemType === 'package' ? 'Còn lại' : 'Số dư hiện tại'}
                   </span>
-                  <span className="mobile-detail-grid-value" style={{ color: '#10b981' }}>
+                  <span className="mobile-detail-grid-value text-success">
                     {activeCard.itemType === 'package'
                       ? `${formatNumber(activeCard.remainingUnits)} lượt`
                       : formatMoney(activeCard.currentBalance)}
@@ -423,10 +397,10 @@ export function MobileCustomerCardsView() {
                 </div>
                 {(activeCard.services || []).map((srv: ApiRecord) => (
                   <div key={srv.id} className="mobile-detail-nav-row">
-                    <span style={{ fontSize: '13.5px', fontWeight: 600 }}>
+                    <span className="text-strong">
                       {srv.name} ({srv.code})
                     </span>
-                    <span style={{ fontSize: '13px', color: '#64748b' }}>
+                    <span className="text-muted">
                       Đã dùng: {activeCard.usedUnits}/{activeCard.totalUnits}
                     </span>
                   </div>
@@ -438,22 +412,22 @@ export function MobileCustomerCardsView() {
                   <span className="mobile-detail-card-title">Số dư thẻ</span>
                 </div>
                 <div className="mobile-detail-nav-row">
-                  <span style={{ fontSize: '13.5px', color: '#64748b' }}>Số dư ban đầu:</span>
-                  <span style={{ fontSize: '14px', fontWeight: 700 }}>
+                  <span className="text-muted">Số dư ban đầu:</span>
+                  <span className="text-strong">
                     {formatMoney(activeCard.openingBalance)}
                   </span>
                 </div>
                 <div className="mobile-detail-nav-row">
-                  <span style={{ fontSize: '13.5px', color: '#64748b' }}>Đã sử dụng:</span>
-                  <span style={{ fontSize: '14px', fontWeight: 700, color: '#e11d48' }}>
+                  <span className="text-muted">Đã sử dụng:</span>
+                  <span className="text-strong text-danger">
                     {formatMoney(
                       Number(activeCard.openingBalance || 0) - Number(activeCard.currentBalance || 0)
                     )}
                   </span>
                 </div>
                 <div className="mobile-detail-nav-row">
-                  <span style={{ fontSize: '13.5px', color: '#64748b' }}>Còn lại:</span>
-                  <span style={{ fontSize: '15px', fontWeight: 800, color: '#10b981' }}>
+                  <span className="text-muted">Còn lại:</span>
+                  <span className="text-strong text-success">
                     {formatMoney(activeCard.currentBalance)}
                   </span>
                 </div>
@@ -480,15 +454,15 @@ export function MobileCustomerCardsView() {
                         </span>
                       </div>
                       <div className="mobile-activity-item-bottom">
-                        <span style={{ color: '#64748b' }}>
+                        <span className="text-muted">
                           Hóa đơn: {u.invoiceCode || '-'}
                         </span>
-                        <strong style={{ color: '#0062eb' }}>
+                        <strong className="text-primary">
                           -{formatNumber(u.unitsUsed)} lượt
                         </strong>
                       </div>
                       {u.note && (
-                        <small style={{ color: '#94a3b8' }}>Ghi chú: {u.note}</small>
+                        <small className="text-faint">Ghi chú: {u.note}</small>
                       )}
                     </div>
                   ))}

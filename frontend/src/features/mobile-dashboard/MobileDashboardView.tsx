@@ -8,7 +8,6 @@ import { DashboardStats } from '@/features/dashboard/components/DashboardStats';
 import { DashboardCharts, type DashboardPeriod } from '@/features/dashboard/components/DashboardCharts';
 import { DashboardSide, TopGoods } from '@/features/dashboard/components/DashboardSide';
 import { useAuth } from '@/features/auth/AuthProvider';
-import './mobile-dashboard.css';
 
 export function MobileDashboardView() {
   const { account } = useAuth();

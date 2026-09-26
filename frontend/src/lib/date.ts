@@ -122,8 +122,11 @@ export function zonedLocalDateTimeToIso(value: string, timeZone = DEFAULT_BRANCH
 export function formatDateOnly(value: string, options: Intl.DateTimeFormatOptions = { day: '2-digit', month: '2-digit', year: 'numeric' }): string {
   const date = parseIsoDate(value);
   if (!date) return value;
+  // vi-VN prints day + month without a year as "01-09"; keep the slash used everywhere else.
   return new Intl.DateTimeFormat('vi-VN', { ...options, timeZone: 'UTC' })
-    .format(new Date(Date.UTC(date.year, date.month - 1, date.day)));
+    .formatToParts(new Date(Date.UTC(date.year, date.month - 1, date.day)))
+    .map((part) => (part.type === 'literal' && part.value.trim() === '-' ? '/' : part.value))
+    .join('');
 }
 
 /** Returns today's calendar day for the operating branch, not the device. */

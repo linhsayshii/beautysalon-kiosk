@@ -1,0 +1,381 @@
+/*
+ * Overlays. Prefer the React components (components/ui/Modal, components/ui/Sheet)
+ * which add focus management, Escape and scroll locking on top of these classes.
+ *
+ * Desktop modal:  .modal-backdrop > .modal(.modal-sm|md|lg|xl) > .modal-header + .modal-body + .modal-footer
+ *                 (body/footer may sit inside a <form>). At ≤ 640px a modal docks to the bottom like a sheet.
+ * Mobile sheet:   .sheet-backdrop > .sheet > .sheet-handle + .sheet-header + .sheet-body + .sheet-footer
+ *
+ * Modifiers: .modal-fill fills the whole screen on phones (long forms);
+ * .modal-body-block lays the body out as normal flow instead of a flex stack.
+ */
+@keyframes ui-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes ui-pop-in {
+  from { opacity: 0; transform: translateY(8px) scale(0.985); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes ui-slide-up {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
+/* Desktop modal */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-overlay);
+  display: grid;
+  place-items: center;
+  padding: 22px;
+  background: var(--overlay-scrim);
+  overscroll-behavior: contain;
+  animation: ui-fade-in var(--duration) ease;
+}
+
+.modal-backdrop.is-nested {
+  z-index: var(--z-overlay-nested);
+}
+
+.modal {
+  display: flex;
+  flex-direction: column;
+  width: min(560px, 100%);
+  max-height: calc(100dvh - 44px);
+  min-height: 0;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  color: var(--ink-950);
+  background: var(--surface);
+  box-shadow: var(--shadow-modal);
+  animation: ui-pop-in var(--duration) var(--ease-out);
+}
+
+.modal-sm { width: min(420px, 100%); }
+.modal-md { width: min(560px, 100%); }
+.modal-lg { width: min(760px, 100%); }
+.modal-xl { width: min(960px, 100%); }
+
+.modal > form {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.modal-header {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  min-height: 58px;
+  padding: 12px 16px 12px 20px;
+  border-bottom: 1px solid var(--line-soft);
+}
+
+.modal-heading {
+  min-width: 0;
+}
+
+.modal-title {
+  color: var(--ink-950);
+  font-size: var(--text-xl);
+  font-weight: var(--weight-heavy);
+  line-height: var(--leading-tight);
+  letter-spacing: -0.02em;
+}
+
+.modal-subtitle {
+  margin-top: 2px;
+  color: var(--ink-600);
+  font-size: var(--text-xs);
+}
+
+.modal-close {
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-control);
+  color: var(--ink-500);
+  background: transparent;
+  font-size: 18px;
+  transition: color var(--duration-fast) ease, background-color var(--duration-fast) ease;
+}
+
+.modal-close:hover,
+.modal-close:focus-visible {
+  color: var(--blue-700);
+  background: var(--blue-50);
+}
+
+/* Tabs passed as headerExtra line up with the header and body padding. */
+.modal > .tabs {
+  flex: 0 0 auto;
+  padding: 0 20px;
+}
+
+.modal-body {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: var(--space-4);
+  min-height: 0;
+  padding: 18px 20px 22px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+/* The body scrolls; its blocks keep their height (collapsible sections clip with overflow: hidden). */
+.modal-body > * {
+  flex-shrink: 0;
+}
+
+.modal-body-block {
+  display: block;
+}
+
+.modal-description {
+  color: var(--ink-600);
+  font-size: var(--text-md);
+  line-height: var(--leading);
+}
+
+.modal-footer {
+  display: flex;
+  flex: 0 0 auto;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 12px 20px;
+  border-top: 1px solid var(--line-soft);
+  background: var(--surface-muted);
+}
+
+.modal-footer > .btn {
+  min-width: 76px;
+}
+
+.modal-footer-start {
+  margin-right: auto;
+}
+
+@media (max-width: 640px) {
+  .modal-backdrop {
+    place-items: end stretch;
+    padding: 0;
+  }
+
+  .modal,
+  .modal-sm,
+  .modal-md,
+  .modal-lg,
+  .modal-xl {
+    width: 100%;
+    max-width: none;
+    max-height: 92dvh;
+    border-bottom: 0;
+    border-radius: var(--radius-sheet) var(--radius-sheet) 0 0;
+    animation: ui-slide-up 220ms var(--ease-out);
+  }
+
+  .modal-header {
+    padding: 10px 8px 10px 16px;
+  }
+
+  .modal > .tabs {
+    padding: 0 16px;
+  }
+
+  .modal-body {
+    padding: 14px 16px 18px;
+  }
+
+  .modal-footer {
+    padding: 12px 16px calc(12px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .modal-footer > .btn {
+    flex: 1 1 0;
+  }
+
+  .modal-fill {
+    height: 100dvh;
+    max-height: 100dvh;
+    border: 0;
+    border-radius: 0;
+  }
+
+  .modal-fill .modal-header {
+    min-height: calc(60px + var(--mobile-safe-top, 0px));
+    padding-top: var(--mobile-safe-top, 0px);
+  }
+
+  .modal-close {
+    width: var(--control-h-lg);
+    height: var(--control-h-lg);
+  }
+}
+
+/* Mobile bottom sheet */
+.sheet-backdrop {
+  position: fixed;
+  top: 0;
+  right: 0;
+  left: 0;
+  z-index: var(--z-overlay);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  height: var(--mobile-overlay-viewport-height, 100dvh);
+  background: var(--overlay-scrim);
+  overscroll-behavior: none;
+  animation: ui-fade-in var(--duration) ease;
+}
+
+.sheet-backdrop.is-nested {
+  z-index: var(--z-overlay-nested);
+}
+
+.sheet {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 640px;
+  max-height: 90dvh;
+  min-height: 0;
+  overflow: hidden;
+  border-radius: var(--radius-sheet) var(--radius-sheet) 0 0;
+  color: var(--ink-950);
+  background: var(--surface);
+  box-shadow: var(--shadow-sheet);
+  animation: ui-slide-up 220ms var(--ease-out);
+}
+
+.sheet-full {
+  height: 94dvh;
+  max-height: 94dvh;
+}
+
+/* Detail sheets sit white cards on the canvas colour. */
+.sheet-muted,
+.sheet-muted .sheet-body {
+  background: var(--canvas);
+}
+
+.sheet-handle {
+  flex: 0 0 auto;
+  width: 36px;
+  height: 4px;
+  margin: 8px auto 2px;
+  border-radius: 2px;
+  background: var(--line-strong);
+}
+
+.sheet-header {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: 4px 8px 10px 16px;
+  border-bottom: 1px solid var(--line);
+  background: var(--surface);
+}
+
+.sheet-heading {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.sheet-title {
+  overflow: hidden;
+  color: var(--ink-950);
+  font-size: 17px;
+  font-weight: var(--weight-heavy);
+  line-height: var(--leading-tight);
+  letter-spacing: -0.01em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sheet-subtitle {
+  margin-top: 2px;
+  color: var(--ink-600);
+  font-size: var(--text-xs);
+}
+
+.sheet-close {
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  color: var(--ink-500);
+  background: transparent;
+  font-size: 20px;
+}
+
+.sheet-close:active,
+.sheet-close:hover {
+  color: var(--ink-950);
+  background: var(--surface-hover);
+}
+
+/* Search box or filters pinned under the sheet header (BottomSheet headerExtra). */
+.sheet-toolbar {
+  display: grid;
+  flex: 0 0 auto;
+  gap: 10px;
+  padding: 0 16px 12px;
+  border-bottom: 1px solid var(--line);
+  background: var(--surface);
+}
+
+.sheet-header:has(+ .sheet-toolbar) {
+  border-bottom: 0;
+}
+
+.sheet-body {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 14px;
+  min-height: 0;
+  padding: 14px 16px 20px;
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+.sheet-body > * {
+  flex-shrink: 0;
+}
+
+.sheet-footer {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px calc(12px + var(--mobile-safe-bottom, env(safe-area-inset-bottom, 0px)));
+  border-top: 1px solid var(--line);
+  background: var(--surface);
+}
+
+.sheet-footer > .btn {
+  flex: 1 1 0;
+}

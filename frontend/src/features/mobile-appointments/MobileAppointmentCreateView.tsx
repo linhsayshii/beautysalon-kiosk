@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo, useRef, type RefObject } from 'react';
+import { useEffect, useState, useMemo, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/components/ui/Toast/ToastProvider';
@@ -19,12 +19,13 @@ import {
   type MobileCustomer,
 } from '@/features/mobile-common/MobileCustomerSelectSheet';
 import { MobileTimePickerSheet } from '@/features/mobile-common/MobileTimePickerSheet';
-import { useMobileDialog } from '@/features/mobile-common/useMobileDialog';
 import {
   MobileServiceItemDetailSheet,
   type ConfiguredServiceItem,
 } from '@/features/mobile-common/MobileServiceItemDetailSheet';
-import './mobile-appointments.css';
+import { MobileHeaderAction, MobilePageHeader } from '@/components/ui/MobilePageHeader/MobilePageHeader';
+import { BottomSheet } from '@/components/ui/Sheet/BottomSheet';
+import { EmptyState, ErrorState, LoadingState } from '@/components/data-display/DataState';
 
 interface AppointmentStatusOption {
   value: string;
@@ -83,8 +84,6 @@ export function MobileAppointmentCreateView() {
   const [packagePromptCustomerId, setPackagePromptCustomerId] = useState<number | null>(null);
   const [tempNote, setTempNote] = useState('');
   const catalogSearchRef = useRef<HTMLInputElement>(null);
-  const catalogDialog = useMobileDialog({ isOpen: isCatalogSheetOpen, onClose: () => setIsCatalogSheetOpen(false), initialFocusRef: catalogSearchRef });
-  const noteDialog = useMobileDialog({ isOpen: isNoteDialogOpen, onClose: () => setIsNoteDialogOpen(false) });
 
   // Currently editing service item in detail sheet
   const [activeEditingItem, setActiveEditingItem] = useState<ConfiguredServiceItem | null>(null);
@@ -311,44 +310,43 @@ export function MobileAppointmentCreateView() {
   };
 
   if (editingId && (editorQuery.isPending || editorQuery.isError || editorQuery.data?.data?.invoiceStatus !== 'draft')) {
-    return <div className="mobile-form-view-container" style={{ padding: 24 }}>
-      <h1>Chỉnh sửa lịch</h1><p role="status">{editorQuery.isPending ? 'Đang tải lịch hẹn…' : editorQuery.isError ? 'Không thể tải lịch hẹn. Vui lòng thử lại.' : 'Hóa đơn đã ghi nhận thanh toán. Vui lòng mở hóa đơn để xử lý điều chỉnh.'}</p>
-      {editorQuery.isError && <button onClick={() => editorQuery.refetch()}>Thử lại</button>}
-      <button onClick={() => navigate('/m/appointments')}>Về lịch dịch vụ</button>
-    </div>;
+    return (
+      <div className="mobile-form-view-container">
+        <MobilePageHeader title="Chỉnh sửa lịch" backTo="/m/appointments" />
+        {editorQuery.isPending ? (
+          <LoadingState compact label="Đang tải lịch hẹn…" />
+        ) : editorQuery.isError ? (
+          <ErrorState compact error={editorQuery.error} onRetry={() => editorQuery.refetch()} />
+        ) : (
+          <EmptyState
+            compact
+            icon="ph ph-receipt"
+            title="Không thể chỉnh sửa lịch"
+            message="Hóa đơn đã ghi nhận thanh toán. Vui lòng mở hóa đơn để xử lý điều chỉnh."
+            action={<button type="button" className="btn btn-secondary" onClick={() => navigate('/m/appointments')}>Về lịch dịch vụ</button>}
+          />
+        )}
+      </div>
+    );
   }
 
   return (
-    <div className="mobile-form-view-container">
-      {/* Top Header */}
-      <header className="mobile-form-header">
-        <div className="mobile-form-header-left">
-          <button
-            type="button"
-            className="mobile-form-back-btn"
-            onClick={() => navigate(-1)}
-            aria-label="Quay lại"
-          >
-            <i className="ph ph-caret-left" />
-          </button>
-          <h1 className="mobile-form-header-title">{editingId ? 'Chỉnh sửa lịch' : 'Tạo lịch'}</h1>
-        </div>
-
-        <div className="mobile-form-header-actions">
-          <button
-            type="button"
-            className={`mobile-form-icon-btn ${note ? 'has-note' : ''}`}
+    <div className="m-page mobile-form-view-container">
+      <MobilePageHeader
+        title={editingId ? 'Chỉnh sửa lịch' : 'Tạo lịch'}
+        onBack={() => navigate(-1)}
+        actions={(
+          <MobileHeaderAction
+            icon="ph ph-note"
+            label="Ghi chú lịch hẹn"
+            tone={note ? 'soft' : 'ghost'}
             onClick={() => {
               setTempNote(note);
               setIsNoteDialogOpen(true);
             }}
-            aria-label="Ghi chú lịch hẹn"
-            title="Ghi chú"
-          >
-            <i className="ph ph-note" />
-          </button>
-        </div>
-      </header>
+          />
+        )}
+      />
 
       {/* Main Body Form Cards */}
       <div className="mobile-form-body">
@@ -562,6 +560,8 @@ export function MobileAppointmentCreateView() {
                   key={st.value}
                   type="button"
                   className={`mobile-form-status-pill ${isActive ? 'is-active' : ''}`}
+                  data-status={st.value}
+                  aria-pressed={isActive}
                   onClick={() => setStatus(st.value)}
                 >
                   {st.label}
@@ -572,11 +572,10 @@ export function MobileAppointmentCreateView() {
         </section>
       </div>
 
-      {/* Fixed Bottom Save Button */}
-      <footer className="mobile-form-footer">
+      <div className="m-footer">
         <button
           type="button"
-          className="mobile-form-submit-btn"
+          className="btn btn-primary btn-lg btn-block"
           onClick={handleSubmit}
           disabled={createMutation.isPending}
         >
@@ -589,7 +588,7 @@ export function MobileAppointmentCreateView() {
             <span>{editingId ? 'Lưu thay đổi' : 'Lưu'}</span>
           )}
         </button>
-      </footer>
+      </div>
 
       {/* Customer Select Sheet */}
       <MobileCustomerSelectSheet
@@ -620,69 +619,53 @@ export function MobileAppointmentCreateView() {
         }}
       />
 
-      {/* Catalog Sheet */}
-      {isCatalogSheetOpen && (
-        <div
-          className="mobile-catalog-sheet-backdrop"
-          onClick={(e) => {
-            if (e.target === e.currentTarget) setIsCatalogSheetOpen(false);
-          }}
-        >
-          <div ref={catalogDialog.dialogRef as RefObject<HTMLDivElement>} className="mobile-catalog-sheet" role="dialog" aria-modal="true" aria-labelledby={catalogDialog.titleId} tabIndex={-1}>
-            <header className="mobile-catalog-sheet-header">
-              <h3 id={catalogDialog.titleId}>Chọn dịch vụ</h3>
-              <button
-                type="button"
-                className="mobile-appointment-back-btn"
-                onClick={() => setIsCatalogSheetOpen(false)}
-                aria-label="Đóng"
-              >
-                <i className="ph ph-x" />
-              </button>
-            </header>
-
-            <div className="mobile-catalog-sheet-search">
-              <i className="ph ph-magnifying-glass" />
+      <BottomSheet
+        open={isCatalogSheetOpen}
+        onClose={() => setIsCatalogSheetOpen(false)}
+        title="Chọn dịch vụ"
+        height="full"
+        initialFocusRef={catalogSearchRef}
+        headerExtra={(
+          <div className="sheet-toolbar">
+            <label className="input-group">
+              <i className="ph ph-magnifying-glass" aria-hidden="true" />
               <input
                 ref={catalogSearchRef}
-                type="text"
+                type="search"
                 aria-label="Tìm dịch vụ"
                 placeholder="Tìm tên dịch vụ..."
                 value={catalogSearch}
                 onChange={(e) => setCatalogSearch(e.target.value)}
-                autoFocus
               />
-            </div>
-
-            <div className="mobile-catalog-items-list">
-              {catalogItems.length === 0 ? (
-                <div style={{ textAlign: 'center', padding: '30px 0', color: '#94a3b8' }}>
-                  Không tìm thấy mặt hàng nào
-                </div>
-              ) : (
-                catalogItems.map((cat) => (
-                  <button
-                    type="button"
-                    key={`${cat.itemType}-${cat.itemId}`}
-                    className="mobile-catalog-item-row"
-                    onClick={() => handleSelectCatalogItem(cat)}
-                  >
-                    <div className="mobile-catalog-item-info">
-                      <span className="mobile-catalog-item-name">{cat.name}</span>
-                      <span className="mobile-catalog-item-cat">
-                        {cat.category || 'Dịch vụ'} {cat.code ? `• ${cat.code}` : ''}
-                      </span>
-                    </div>
-                    <span className="mobile-catalog-item-price">
-                      {formatNumber(cat.salePrice)}
-                    </span>
-                  </button>
-                ))
-              )}
-            </div>
+            </label>
           </div>
+        )}
+      >
+        <div className="mobile-catalog-items-list">
+        {catalogItems.length === 0 ? (
+          <EmptyState compact title="Không tìm thấy mặt hàng nào" message={null} />
+        ) : (
+          catalogItems.map((cat) => (
+            <button
+              type="button"
+              key={`${cat.itemType}-${cat.itemId}`}
+              className="mobile-catalog-item-row"
+              onClick={() => handleSelectCatalogItem(cat)}
+            >
+              <div className="mobile-catalog-item-info">
+                <span className="mobile-catalog-item-name">{cat.name}</span>
+                <span className="mobile-catalog-item-cat">
+                  {cat.category || 'Dịch vụ'} {cat.code ? `• ${cat.code}` : ''}
+                </span>
+              </div>
+              <span className="mobile-catalog-item-price">
+                {formatNumber(cat.salePrice)}
+              </span>
+            </button>
+          ))
+        )}
         </div>
-      )}
+      </BottomSheet>
 
       {/* Service Item Detail Sheet */}
       <MobileServiceItemDetailSheet
@@ -698,57 +681,36 @@ export function MobileAppointmentCreateView() {
         onSaveItem={handleSaveConfiguredItem}
       />
 
-      {/* Note Dialog */}
-      {isNoteDialogOpen && (
-        <div
-          className="mobile-note-dialog-backdrop"
-          onClick={(e) => {
-            if (e.target === e.currentTarget) setIsNoteDialogOpen(false);
-          }}
-        >
-          <div ref={noteDialog.dialogRef as RefObject<HTMLDivElement>} className="mobile-note-dialog" role="dialog" aria-modal="true" aria-labelledby={noteDialog.titleId} tabIndex={-1}>
-            <div className="mobile-note-dialog-header">
-              <h3 id={noteDialog.titleId}>Ghi chú lịch hẹn</h3>
-              <button
-                type="button"
-                className="mobile-appointment-back-btn"
-                onClick={() => setIsNoteDialogOpen(false)}
-                aria-label="Đóng ghi chú"
-              >
-                <i className="ph ph-x" />
-              </button>
-            </div>
-            <div className="mobile-note-dialog-body">
-              <textarea
-                aria-label="Ghi chú lịch hẹn"
-                placeholder="Nhập ghi chú cho lịch hẹn (yêu cầu riêng của khách, dặn dò thợ...)"
-                value={tempNote}
-                onChange={(e) => setTempNote(e.target.value)}
-                autoFocus
-              />
-            </div>
-            <div className="mobile-note-dialog-footer">
-              <button
-                type="button"
-                className="mobile-note-cancel-btn"
-                onClick={() => setIsNoteDialogOpen(false)}
-              >
-                Hủy
-              </button>
-              <button
-                type="button"
-                className="mobile-note-save-btn"
-                onClick={() => {
-                  setNote(tempNote);
-                  setIsNoteDialogOpen(false);
-                }}
-              >
-                Lưu ghi chú
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <BottomSheet
+        open={isNoteDialogOpen}
+        onClose={() => setIsNoteDialogOpen(false)}
+        title="Ghi chú lịch hẹn"
+        footer={(
+          <>
+            <button type="button" className="btn btn-secondary" onClick={() => setIsNoteDialogOpen(false)}>Hủy</button>
+            <button
+              type="button"
+              className="btn btn-primary"
+              onClick={() => {
+                setNote(tempNote);
+                setIsNoteDialogOpen(false);
+              }}
+            >
+              Lưu ghi chú
+            </button>
+          </>
+        )}
+      >
+        <textarea
+          className="textarea"
+          rows={5}
+          aria-label="Ghi chú lịch hẹn"
+          placeholder="Nhập ghi chú cho lịch hẹn (yêu cầu riêng của khách, dặn dò thợ...)"
+          value={tempNote}
+          onChange={(e) => setTempNote(e.target.value)}
+          autoFocus
+        />
+      </BottomSheet>
     </div>
   );
 }

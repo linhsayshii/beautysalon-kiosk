@@ -5,7 +5,7 @@ import { getMyWorkItems, updateMyWorkItemStatus } from '@/features/staff/staff.a
 import { useToast } from '@/components/ui/Toast/ToastProvider';
 import { DatePickerField } from '@/components/ui/DateTimePicker';
 import { DEFAULT_BRANCH_TIME_ZONE, formatBranchTime, localDateTimeFromInstant } from '@/lib/date';
-import './mobile-my-schedule.css';
+import { MobilePageHeader } from '@/components/ui/MobilePageHeader/MobilePageHeader';
 
 interface ScheduleItem {
   type: 'appointment' | 'invoice';
@@ -139,11 +139,10 @@ export function MobileMyScheduleView() {
 
   return (
     <div className="mobile-my-schedule-view">
-      <div className="mobile-my-schedule-sticky-header-cluster">
-        <div className="mobile-my-schedule-top-nav">
-          <h1 className="mobile-my-schedule-nav-title">Lịch của tôi</h1>
-        </div>
-        <div className="mobile-my-schedule-filter-strip">
+      <MobilePageHeader
+        title="Lịch của tôi"
+      >
+        <div className="m-chip-strip">
           <div className="mobile-my-schedule-date-wrap">
             <DatePickerField
               className="mobile-my-schedule-date-chip"
@@ -154,7 +153,7 @@ export function MobileMyScheduleView() {
             />
           </div>
         </div>
-      </div>
+      </MobilePageHeader>
 
       {/* Content */}
       <div className="mobile-my-schedule-body">

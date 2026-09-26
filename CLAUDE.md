@@ -61,6 +61,7 @@ Node 24 in the Dockerfiles and `backend/package.json` engines. CI (`.github/work
 - `pages/` holds thin route components. `features/<domain>/` holds the `*.api.ts` query functions, types and domain UI. `components/` holds shared UI. The `@/` alias maps to `src/`.
 - `services/api-client.ts` is the typed fetch wrapper for relative `/api/v1` URLs. It expects the `{ data, meta }` envelope and has a 20s timeout. Server state lives only in TanStack Query. `context/RealtimeQuerySynchronizer.tsx` maps WebSocket events to query invalidations.
 - There is no mock or fallback data. Pages render API responses and show skeleton, error and retry states.
+- Forms never pre-fill sample business values (salary, allowances, prices); edit forms load what the API saved. A control whose feature is not built yet calls `useComingSoon()` (`components/ui/Toast/useComingSoon.ts`) to show the shared "Tính năng đang triển khai" toast.
 
 ## Seed Accounts (fresh volume only)
 All seeded accounts use the password `12345678`. `admin` and `manager` are managers with full access. `cashier` can only use `/pos`. `staff`, `trangvu`, `hau` and `emhue` are staff accounts limited to `/attendance`. README.md says `Anna@123`, which is stale.
@@ -69,7 +70,14 @@ All seeded accounts use the password `12345678`. `admin` and `manager` are manag
 Must be changed in production: `DB_PASSWORD` (≥16 chars), `ATTENDANCE_QR_SECRET` (≥32 chars), and `AUTH_COOKIE_SECURE=true` behind TLS. `AUTH_TRUSTED_ORIGINS` must list the web origin, or mutating requests are rejected. QR attendance uses GPS, and camera/GPS need HTTPS outside localhost. Containers run in `Asia/Ho_Chi_Minh`.
 
 ## Design System
-CSS only, with no framework. Tokens are in `frontend/src/styles/tokens.css`. System sans-serif stack, blue accent `#0756CC`, light theme only, KiotViet-inspired SaaS look. The full visual spec (radii, shadows, density) is in `DESIGN_REQUIREMENTS.md`. Icons come from `@phosphor-icons/web`.
+CSS only, with no framework. System sans-serif stack, blue accent `#0756CC`, light theme only, KiotViet-inspired SaaS look. Icons come from `@phosphor-icons/web`. The visual spec is `DESIGN_REQUIREMENTS.md`; the template design is `docs/superpowers/specs/2026-09-25-unified-ui-template-design.md`; mobile page recipes are in `docs/mobile-ui-header-template.md`.
+
+- **Tokens**: `frontend/src/styles/tokens.css` is the only place with literal colours. Each status tone has `--x`, `--x-soft` and `--x-line`; appointment statuses use `--appt-*`. Mobile only changes density (`--control-h` 44px inside `.mobile-app-shell` and `.sheet`).
+- **Stylesheets**: every CSS file is imported once, in order, from `src/styles/index.css`; components never import CSS (Leaflet's is the only exception). Standard classes are defined only in `src/styles/ui/`: `btn*`, `field*`/`input`/`input-suffix`/`switch`/`form-section`, `card*`, `badge*`/`chip*`, `tabs`/`segmented`, `data-table`/`data-panel`, `detail.css` (inline row detail + `detail-table`), `state`/`alert`, `modal*`/`sheet*`, `page*`/`m-*`. `text.css` utilities (`text-primary|success|danger|warning|muted|faint|strong|right`) load last. Feature CSS holds feature layout only, under a feature prefix.
+- **React primitives**: `Modal` and `BottomSheet` (focus trap, Escape, scroll lock), `PageHeader` (desktop, `backTo`/`onBack`), `MobilePageHeader` + `MobileHeaderAction`, `LoadingState`/`EmptyState`/`ErrorState` (`compact` on mobile), and `InlineDetail`/`DetailHead`/`ValueStrip`/`DetailFacts` for expanded table rows.
+- **Guard rails**: `src/styles/styles.contract.test.ts` fails on hex colours outside tokens (CSS and TSX), decorative inline styles (only computed geometry may be inline, including `*Style={{…}}` props), btn modifiers without `btn`, component CSS imports, stylesheets missing from the manifest, standard classes defined outside `styles/ui`, and Phosphor weights other than regular (`ph-fill` etc. are not loaded).
+- **Select**: `variant="filter"` in filter panels, `variant="pill"` for chip-style selects in mobile chip strips, `variant="ghost"` inside a `.chip`. Desktop board pages (Lịch làm, Chấm công) use `PageHeader` + `.attendance-toolbar-card`.
+- A DEV-only living reference renders at `/ui-kit` and `/ui-kit/mobile` (`npm run dev`).
 
 ## Further Docs
 `docs/architecture/ARCHITECTURE.md` and `adr-001-modular-monolith.md`. Module research and progress notes are in `docs/inventory-purchasing/`, `docs/operations-pages/`, `docs/frontend-react-refactor/` and `docs/testing/`.

@@ -33,8 +33,8 @@ export function AccountSettingsView() {
   } : undefined;
 
   return (
-    <main className="workspace">
-      <div className="workspace-shell account-settings-shell">
+    <main className="page">
+      <div className="page-stack account-settings-shell">
         <PageHeader
           title="Cài đặt tài khoản"
           subtitle={
@@ -105,7 +105,7 @@ export function AccountSettingsView() {
                 </div>
                 {profileError && <div className="auth-error"><i className="ph ph-warning-circle" />{profileError}</div>}
                 <footer>
-                  <button className="primary-button" disabled={profileMutation.isPending} type="submit">{profileMutation.isPending ? 'Đang lưu…' : 'Lưu thông tin'}</button>
+                  <button className="btn btn-primary" disabled={profileMutation.isPending} type="submit">{profileMutation.isPending ? 'Đang lưu…' : 'Lưu thông tin'}</button>
                 </footer>
               </form>
             </section>
@@ -125,7 +125,7 @@ export function AccountSettingsView() {
                 </div>
                 {passwordError && <div className="auth-error"><i className="ph ph-warning-circle" />{passwordError}</div>}
                 <footer>
-                  <button className="primary-button" disabled={passwordMutation.isPending} type="submit">{passwordMutation.isPending ? 'Đang đổi…' : 'Đổi mật khẩu'}</button>
+                  <button className="btn btn-primary" disabled={passwordMutation.isPending} type="submit">{passwordMutation.isPending ? 'Đang đổi…' : 'Đổi mật khẩu'}</button>
                 </footer>
               </form>
             </section>

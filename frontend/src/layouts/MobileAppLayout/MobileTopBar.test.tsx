@@ -98,14 +98,14 @@ describe('MobileTopBar Component', () => {
     expect(screen.queryByTestId('mobile-topbar-title')).not.toBeInTheDocument();
   });
 
-  it('renders sub-page title and navigation for all configured subpages', () => {
+  it('falls back to a titled sub-page bar for routes without their own header', () => {
     vi.spyOn(auth, 'useAuth').mockReturnValue({
       account: { id: 1, role: 'manager', displayName: 'Hằng', branchId: 1, branchName: 'Chi nhánh Quận 1', staffId: null, staffCode: null, phone: '', email: '', username: 'hang' },
       loading: false, login: vi.fn(), logout: vi.fn(), updateLocalAccount: vi.fn(), switchBranch: vi.fn(),
     });
 
     const subpageTestCases = [
-      { path: '/m/purchase-orders/new', expectedTitle: 'Tạo phiếu nhập' },
+      { path: '/m/unlisted-subpage', expectedTitle: 'Chi tiết' },
     ];
 
     for (const { path, expectedTitle } of subpageTestCases) {

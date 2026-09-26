@@ -1,0 +1,134 @@
+/*
+ * Loading / empty / error states, shared by desktop tables and mobile lists.
+ * Rendered by components/data-display/DataState.tsx:
+ *   <div className="state [state-compact] [state-error]">
+ *     <span className="state-icon"><i/></span><strong className="state-title"/><p className="state-text"/>
+ *   </div>
+ * table-loading / table-empty / table-error / state-box are legacy wrappers kept
+ * because several detail panels position them by those names.
+ */
+@keyframes ui-shimmer {
+  from { background-position: 100% 0; }
+  to { background-position: -100% 0; }
+}
+
+.state,
+.table-loading,
+.table-empty,
+.table-error {
+  display: grid;
+  place-items: center;
+  min-height: 300px;
+  padding: 36px 20px;
+  text-align: center;
+}
+
+.state-compact {
+  min-height: 0;
+  padding: 40px 20px;
+}
+
+.state-box,
+.state-inner {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  max-width: 320px;
+}
+
+.state-icon,
+.state-box > i {
+  display: inline-grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  color: var(--blue-600);
+  background: var(--blue-100);
+  font-size: 24px;
+}
+
+.state-error .state-icon,
+.table-error .state-box > i {
+  color: var(--red);
+  background: var(--red-soft);
+}
+
+.state-title,
+.state-box strong {
+  color: var(--ink-950);
+  font-size: 15px;
+  font-weight: var(--weight-bold);
+}
+
+.state-text,
+.state-box p {
+  color: var(--ink-600);
+  font-size: var(--text-sm);
+  line-height: var(--leading);
+}
+
+.state-action {
+  margin-top: 6px;
+}
+
+.skeleton,
+.skeleton-lines span {
+  display: block;
+  border-radius: 7px;
+  background: linear-gradient(90deg, var(--line-soft) 25%, var(--surface-hover) 50%, var(--line-soft) 75%);
+  background-size: 200% 100%;
+  animation: ui-shimmer 1.3s linear infinite;
+}
+
+.skeleton-lines {
+  display: grid;
+  gap: 10px;
+  width: min(420px, 80%);
+}
+
+.skeleton-lines span {
+  height: 13px;
+}
+
+.skeleton-lines span:nth-child(2) { width: 82%; }
+.skeleton-lines span:nth-child(3) { width: 66%; }
+
+/*
+ * Alert: an inline message box (form errors, warnings, notes).
+ * <div className="alert alert-danger" role="alert"><i className="ph ph-warning-circle" /><div>…</div></div>
+ */
+.alert {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--blue-200);
+  border-radius: var(--radius-control);
+  color: var(--blue-800);
+  background: var(--blue-50);
+  font-size: var(--text-sm);
+  line-height: 1.45;
+}
+
+.alert > i {
+  flex-shrink: 0;
+  margin-top: 1px;
+  font-size: 18px;
+}
+
+.alert > div,
+.alert > span {
+  min-width: 0;
+}
+
+/* A <small> under the bold title carries the detail line. */
+.alert small {
+  display: block;
+  margin-top: 2px;
+  font-size: var(--text-xs);
+}
+
+.alert-danger { border-color: var(--red-line); color: var(--red-strong); background: var(--red-soft); }
+.alert-warning { border-color: var(--orange-line); color: var(--orange); background: var(--orange-soft); }
+.alert-success { border-color: var(--green-line); color: var(--green-strong); background: var(--green-soft); }

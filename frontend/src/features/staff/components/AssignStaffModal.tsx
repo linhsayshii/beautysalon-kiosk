@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import type { ApiRecord } from '@/types/api';
 import { AvatarName } from '@/components/data-display/AvatarName';
-import './AttendanceTimekeeping.css';
+import { EmptyState } from '@/components/data-display/DataState';
+import { Modal } from '@/components/ui/Modal/Modal';
 
 interface AssignStaffModalProps {
   isOpen: boolean;
@@ -36,86 +37,60 @@ export function AssignStaffModal({
   );
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div
-        className="modal-dialog"
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* Header */}
-        <div className="modal-header">
-          <div>
-            <h3 className="modal-title">Xếp nhân viên vào ca</h3>
-            <p className="modal-subtitle">
-              {shiftName} ({startsAt} - {endsAt}) · Ngày {shiftDate}
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="modal-close-btn"
-          >
-            <i className="ph ph-x" />
-          </button>
-        </div>
+    <Modal
+      open
+      onClose={onClose}
+      title="Xếp nhân viên vào ca"
+      subtitle={<>{shiftName} ({startsAt} - {endsAt}) · Ngày {shiftDate}</>}
+      size="md"
+    >
+      <div className="modal-body">
+        <label className="search-control modal-staff-search">
+          <i className="ph ph-magnifying-glass" />
+          <input
+            type="search"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Tìm kiếm nhân viên..."
+            aria-label="Tìm kiếm nhân viên"
+          />
+        </label>
 
-        {/* Search */}
-        <div className="modal-staff-search">
-          <div className="attendance-search-box" style={{ minWidth: '100%' }}>
-            <i className="ph ph-magnifying-glass" />
-            <input
-              type="text"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Tìm kiếm nhân viên..."
-              className="attendance-search-input"
-            />
-          </div>
-        </div>
-
-        {/* Staff List */}
-        <div className="modal-staff-list">
-          {filteredStaff.length === 0 ? (
-            <div style={{ padding: 24, textAlign: 'center', color: '#94a3b8', fontSize: 13 }}>
-              Không tìm thấy nhân viên
-            </div>
-          ) : (
-            filteredStaff.map((staff) => {
+        {filteredStaff.length === 0 ? (
+          <EmptyState compact title="Không tìm thấy nhân viên" message="Thử tìm theo tên hoặc mã nhân viên khác." />
+        ) : (
+          <div className="modal-staff-list">
+            {filteredStaff.map((staff) => {
               const isAssigned = assignedStaffIds.includes(staff.id);
               return (
                 <div key={staff.id} className="modal-staff-item">
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <AvatarName name={staff.name} subtitle={staff.code} tone={staff.avatarTone} />
-                  </div>
+                  <AvatarName name={staff.name} subtitle={staff.code} tone={staff.avatarTone} />
                   {isAssigned ? (
-                    <span className="badge-assigned">
+                    <span className="badge badge-success">
                       <i className="ph ph-check" /> Đã xếp
                     </span>
                   ) : (
-                    <button
-                      type="button"
-                      onClick={() => onAssign(staff.id)}
-                      className="btn-assign-select"
-                    >
+                    <button type="button" onClick={() => onAssign(staff.id)} className="btn btn-soft btn-sm">
                       Chọn
                     </button>
                   )}
                 </div>
               );
-            })
-          )}
-        </div>
-
-        {/* Footer */}
-        <div className="modal-footer">
-          <button
-            type="button"
-            onClick={onClose}
-            className="btn-secondary"
-          >
-            Đóng
-          </button>
-        </div>
+            })}
+          </div>
+        )}
       </div>
-    </div>
+
+      {/* Footer */}
+      <div className="modal-footer">
+        <button
+          type="button"
+          onClick={onClose}
+          className="btn btn-secondary"
+        >
+          Đóng
+        </button>
+      </div>
+    </Modal>
   );
 }

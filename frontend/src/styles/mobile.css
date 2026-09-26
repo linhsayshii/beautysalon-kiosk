@@ -20,7 +20,7 @@ body:has(.mobile-app-shell) .toast {
 }
 
 body.mobile-overlay-open .mobile-bottom-nav,
-body:has(.goods-dialog-backdrop) .mobile-bottom-nav,
+body:has(.modal-backdrop) .mobile-bottom-nav,
 body:has(.mobile-form-sheet-backdrop) .mobile-bottom-nav {
   visibility: hidden;
   pointer-events: none;
@@ -31,14 +31,14 @@ body.mobile-overlay-open .mobile-main-content {
   touch-action: none;
 }
 
-body.mobile-overlay-open .mobile-form-footer {
+body.mobile-overlay-open .m-footer {
   visibility: hidden;
   pointer-events: none;
 }
 
-body.mobile-overlay-open :is(.mobile-inventory-fab-btn, .mobile-operations-fab-btn, .mobile-staff-fab),
-body:has(.goods-dialog-backdrop) :is(.mobile-inventory-fab-btn, .mobile-operations-fab-btn, .mobile-staff-fab),
-body:has(.mobile-form-sheet-backdrop) :is(.mobile-inventory-fab-btn, .mobile-operations-fab-btn, .mobile-staff-fab) {
+body.mobile-overlay-open .m-fab,
+body:has(.modal-backdrop) .m-fab,
+body:has(.mobile-form-sheet-backdrop) .m-fab {
   visibility: hidden;
   pointer-events: none;
 }
@@ -104,9 +104,9 @@ body:has(.mobile-form-sheet-backdrop) :is(.mobile-inventory-fab-btn, .mobile-ope
   width: 44px;
   height: 44px;
   border-radius: 10px;
-  border: 1px solid var(--line, #e2e8f0);
-  background: var(--surface, #ffffff);
-  color: var(--ink-700, #334155);
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--ink-700);
   font-size: 19px;
   cursor: pointer;
   padding: 0;
@@ -115,22 +115,10 @@ body:has(.mobile-form-sheet-backdrop) :is(.mobile-inventory-fab-btn, .mobile-ope
 }
 
 .mobile-topbar-back-btn:active {
-  background: var(--blue-50, #f0f9ff);
-  border-color: var(--blue-300, #93c5fd);
-  color: var(--blue-600, #2563eb);
+  background: var(--blue-50);
+  border-color: var(--blue-300);
+  color: var(--blue-600);
 }
-
-.mobile-topbar-subpage-title {
-  margin: 0;
-  font-size: 16px;
-  font-weight: 750;
-  color: var(--ink-950, #0f172a);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  letter-spacing: -0.01em;
-}
-
 .mobile-brand {
   display: flex;
   align-items: center;
@@ -168,7 +156,7 @@ body:has(.mobile-form-sheet-backdrop) :is(.mobile-inventory-fab-btn, .mobile-ope
   text-overflow: ellipsis;
   font-size: 17px;
   font-weight: 800;
-  color: #0f172a;
+  color: var(--ink-950);
 }
 
 .mobile-top-right {
@@ -181,7 +169,7 @@ body:has(.mobile-form-sheet-backdrop) :is(.mobile-inventory-fab-btn, .mobile-ope
   width: 9px;
   height: 9px;
   border-radius: 50%;
-  background: #cbd5e1;
+  background: var(--line-strong);
   transition: background-color 0.2s ease, box-shadow 0.2s ease;
 }
 
@@ -205,9 +193,9 @@ body:has(.mobile-form-sheet-backdrop) :is(.mobile-inventory-fab-btn, .mobile-ope
   width: 44px;
   height: 44px;
   border-radius: 12px;
-  border: 1px solid #dbeafe;
+  border: 1px solid var(--blue-100);
   background: #ffffff;
-  color: var(--blue-600, #0062eb);
+  color: var(--blue-600);
   font-size: 20px;
   cursor: pointer;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
@@ -217,9 +205,9 @@ body:has(.mobile-form-sheet-backdrop) :is(.mobile-inventory-fab-btn, .mobile-ope
 
 .mobile-shop-button.is-active,
 .mobile-shop-button:active {
-  background: var(--blue-50, #f0f9ff);
-  border-color: var(--blue-400, #60a5fa);
-  color: var(--blue-700, #004ecc);
+  background: var(--blue-50);
+  border-color: var(--blue-400);
+  color: var(--blue-700);
 }
 
 @media (max-width: 340px) {
@@ -254,7 +242,7 @@ body:has(.mobile-form-sheet-backdrop) :is(.mobile-inventory-fab-btn, .mobile-ope
   width: 260px;
   max-width: calc(100vw - 32px);
   background: #ffffff;
-  border: 1px solid var(--line, #e2e8f0);
+  border: 1px solid var(--line);
   border-radius: 14px;
   box-shadow: 0 12px 32px rgba(15, 23, 42, 0.16);
   padding: 8px;
@@ -268,7 +256,7 @@ body:has(.mobile-form-sheet-backdrop) :is(.mobile-inventory-fab-btn, .mobile-ope
 
 .mobile-dropdown-header {
   padding: 8px 10px 10px;
-  border-bottom: 1px solid #f1f5f9;
+  border-bottom: 1px solid var(--canvas);
   display: flex;
   flex-direction: column;
   gap: 2px;
@@ -278,17 +266,17 @@ body:has(.mobile-form-sheet-backdrop) :is(.mobile-inventory-fab-btn, .mobile-ope
   font-size: 11px;
   font-weight: 800;
   text-transform: uppercase;
-  color: #64748b;
+  color: var(--ink-500);
   letter-spacing: 0.03em;
 }
 
 .mobile-dropdown-header small {
   font-size: 12px;
-  color: #0f172a;
+  color: var(--ink-950);
 }
 
 .mobile-dropdown-header small strong {
-  color: #0284c7;
+  color: var(--blue-600);
 }
 
 .mobile-dropdown-list {
@@ -316,11 +304,11 @@ body:has(.mobile-form-sheet-backdrop) :is(.mobile-inventory-fab-btn, .mobile-ope
 
 .mobile-dropdown-item:active,
 .mobile-dropdown-item:hover {
-  background: #f8fafc;
+  background: var(--surface-muted);
 }
 
 .mobile-dropdown-item.is-current {
-  background: #f0f9ff;
+  background: var(--surface-hover);
 }
 
 .dropdown-item-info {
@@ -333,26 +321,26 @@ body:has(.mobile-form-sheet-backdrop) :is(.mobile-inventory-fab-btn, .mobile-ope
 .dropdown-item-info .branch-name {
   font-size: 13px;
   font-weight: 700;
-  color: #0f172a;
+  color: var(--ink-950);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
 .mobile-dropdown-item.is-current .branch-name {
-  color: #0284c7;
+  color: var(--blue-600);
 }
 
 .dropdown-item-info .branch-addr {
   font-size: 11px;
-  color: #64748b;
+  color: var(--ink-500);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
 .current-check-icon {
-  color: #0284c7;
+  color: var(--blue-600);
   font-size: 18px;
   flex-shrink: 0;
   margin-left: 8px;
@@ -362,7 +350,7 @@ body:has(.mobile-form-sheet-backdrop) :is(.mobile-inventory-fab-btn, .mobile-ope
   padding: 14px;
   text-align: center;
   font-size: 12px;
-  color: #64748b;
+  color: var(--ink-500);
 }
 
 .mobile-avatar-pill {
@@ -376,7 +364,7 @@ body:has(.mobile-form-sheet-backdrop) :is(.mobile-inventory-fab-btn, .mobile-ope
   font-size: 14px;
   font-weight: 750;
   text-decoration: none;
-  box-shadow: 0 1px 3px rgba(0, 98, 235, 0.3);
+  box-shadow: 0 1px 3px rgba(7, 86, 204, 0.3);
   transition: transform 0.15s ease;
   flex-shrink: 0;
 }
@@ -387,93 +375,8 @@ body:has(.mobile-form-sheet-backdrop) :is(.mobile-inventory-fab-btn, .mobile-ope
 
 /* Common Fullscreen Form Views (Appointments & Invoices) */
 .mobile-form-view-container {
-  display: flex;
-  flex-direction: column;
-  min-height: 100vh;
-  background-color: #f2f4f8;
-  padding-bottom: calc(var(--mobile-bottomnav-h, 60px) + var(--mobile-safe-bottom, 0px) + 100px);
-  box-sizing: border-box;
-  font-family: inherit;
-  color: #1e293b;
+  color: var(--ink-800);
 }
-
-.mobile-form-header {
-  position: sticky;
-  top: 0;
-  z-index: 30;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 12px 16px;
-  background: #ffffff;
-  border-bottom: 1px solid #e5e9f0;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
-}
-
-.mobile-form-header-left {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.mobile-form-back-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 36px;
-  height: 36px;
-  border-radius: 8px;
-  border: none;
-  background: transparent;
-  color: #1e293b;
-  font-size: 22px;
-  cursor: pointer;
-  padding: 0;
-  transition: background 0.15s ease;
-}
-
-.mobile-form-back-btn:active {
-  background-color: #f1f5f9;
-}
-
-.mobile-form-header-title {
-  font-size: 19px;
-  font-weight: 750;
-  color: #0f172a;
-  margin: 0;
-  letter-spacing: -0.01em;
-}
-
-.mobile-form-header-actions {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.mobile-form-icon-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 44px;
-  height: 44px;
-  border-radius: 8px;
-  border: none;
-  background: transparent;
-  color: #1e293b;
-  font-size: 21px;
-  cursor: pointer;
-  transition: all 0.15s ease;
-}
-
-.mobile-form-icon-btn:active {
-  background: #f1f5f9;
-}
-
-.mobile-form-icon-btn.has-note {
-  color: #0062eb;
-  background: #eff6ff;
-}
-
 .mobile-form-body {
   padding: 16px;
   display: flex;
@@ -484,7 +387,7 @@ body:has(.mobile-form-sheet-backdrop) :is(.mobile-inventory-fab-btn, .mobile-ope
 .mobile-form-card {
   background: #ffffff;
   border-radius: 12px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--line);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
   overflow: hidden;
 }
@@ -500,11 +403,11 @@ body:has(.mobile-form-sheet-backdrop) :is(.mobile-inventory-fab-btn, .mobile-ope
 }
 
 .mobile-form-row:not(:last-child) {
-  border-bottom: 1px solid #f1f5f9;
+  border-bottom: 1px solid var(--canvas);
 }
 
 .mobile-form-row:active {
-  background-color: #f8fafc;
+  background-color: var(--surface-muted);
 }
 
 .mobile-form-row-left {
@@ -522,20 +425,20 @@ body:has(.mobile-form-sheet-backdrop) :is(.mobile-inventory-fab-btn, .mobile-ope
   width: 38px;
   height: 38px;
   border-radius: 10px;
-  background: #f1f5f9;
-  color: #475569;
+  background: var(--canvas);
+  color: var(--ink-600);
   font-size: 20px;
   flex-shrink: 0;
 }
 
 .mobile-form-row-icon.is-customer {
-  background: #e0f2fe;
-  color: #0284c7;
+  background: var(--sky-soft);
+  color: var(--blue-600);
 }
 
 .mobile-form-row-icon.is-time {
-  background: #fef3c7;
-  color: #d97706;
+  background: var(--orange-soft);
+  color: var(--orange);
 }
 
 .mobile-form-row-info {
@@ -548,7 +451,7 @@ body:has(.mobile-form-sheet-backdrop) :is(.mobile-inventory-fab-btn, .mobile-ope
 .mobile-form-row-title {
   font-size: 15px;
   font-weight: 600;
-  color: #1e293b;
+  color: var(--ink-800);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -556,7 +459,7 @@ body:has(.mobile-form-sheet-backdrop) :is(.mobile-inventory-fab-btn, .mobile-ope
 
 .mobile-form-row-subtitle {
   font-size: 13px;
-  color: #64748b;
+  color: var(--ink-500);
   display: flex;
   align-items: center;
   gap: 6px;
@@ -569,7 +472,7 @@ body:has(.mobile-form-sheet-backdrop) :is(.mobile-inventory-fab-btn, .mobile-ope
   display: flex;
   align-items: center;
   gap: 6px;
-  color: #94a3b8;
+  color: var(--ink-300);
   font-size: 18px;
   flex-shrink: 0;
   margin-left: 8px;
@@ -579,7 +482,7 @@ body:has(.mobile-form-sheet-backdrop) :is(.mobile-inventory-fab-btn, .mobile-ope
   padding: 8px;
   border: none;
   background: transparent;
-  color: #94a3b8;
+  color: var(--ink-300);
   font-size: 16px;
   cursor: pointer;
   border-radius: 8px;
@@ -591,7 +494,7 @@ body:has(.mobile-form-sheet-backdrop) :is(.mobile-inventory-fab-btn, .mobile-ope
 }
 
 .mobile-form-row-clear:hover {
-  color: #ef4444;
+  color: var(--red);
 }
 
 .mobile-form-items-card {
@@ -611,19 +514,19 @@ body:has(.mobile-form-sheet-backdrop) :is(.mobile-inventory-fab-btn, .mobile-ope
   width: 56px;
   height: 56px;
   border-radius: 50%;
-  background: #f8fafc;
-  border: 1px dashed #cbd5e1;
+  background: var(--surface-muted);
+  border: 1px dashed var(--line-strong);
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #94a3b8;
+  color: var(--ink-300);
   font-size: 26px;
   margin-bottom: 10px;
 }
 
 .mobile-form-empty-text {
   font-size: 14px;
-  color: #64748b;
+  color: var(--ink-500);
   margin-bottom: 14px;
 }
 
@@ -635,9 +538,9 @@ body:has(.mobile-form-sheet-backdrop) :is(.mobile-inventory-fab-btn, .mobile-ope
   gap: 8px;
   padding: 10px 18px;
   border-radius: 8px;
-  background: #eff6ff;
-  border: 1px solid #bfdbfe;
-  color: #2563eb;
+  background: var(--blue-50);
+  border: 1px solid var(--blue-200);
+  color: var(--blue-600);
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
@@ -646,7 +549,7 @@ body:has(.mobile-form-sheet-backdrop) :is(.mobile-inventory-fab-btn, .mobile-ope
 }
 
 .mobile-form-add-btn:active {
-  background: #dbeafe;
+  background: var(--blue-100);
 }
 
 .mobile-form-items-list {
@@ -661,15 +564,15 @@ body:has(.mobile-form-sheet-backdrop) :is(.mobile-inventory-fab-btn, .mobile-ope
   flex-direction: column;
   padding: 12px;
   border-radius: 10px;
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
+  background: var(--surface-muted);
+  border: 1px solid var(--line);
   cursor: pointer;
   transition: all 0.15s ease;
 }
 
 .mobile-form-item-card:active {
-  background: #f1f5f9;
-  border-color: #cbd5e1;
+  background: var(--canvas);
+  border-color: var(--line-strong);
 }
 
 .mobile-form-item-main {
@@ -691,8 +594,8 @@ body:has(.mobile-form-sheet-backdrop) :is(.mobile-inventory-fab-btn, .mobile-ope
   width: 34px;
   height: 34px;
   border-radius: 8px;
-  background: #e0f2fe;
-  color: #0284c7;
+  background: var(--sky-soft);
+  color: var(--blue-600);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -703,14 +606,14 @@ body:has(.mobile-form-sheet-backdrop) :is(.mobile-inventory-fab-btn, .mobile-ope
 .mobile-form-item-name {
   font-size: 14px;
   font-weight: 600;
-  color: #1e293b;
+  color: var(--ink-800);
   line-height: 1.3;
 }
 
 .mobile-form-item-price {
   font-size: 14px;
   font-weight: 700;
-  color: #0f172a;
+  color: var(--ink-950);
   text-align: right;
   flex-shrink: 0;
 }
@@ -721,7 +624,7 @@ body:has(.mobile-form-sheet-backdrop) :is(.mobile-inventory-fab-btn, .mobile-ope
   gap: 6px;
   margin-top: 8px;
   padding-top: 8px;
-  border-top: 1px dashed #e2e8f0;
+  border-top: 1px dashed var(--line);
 }
 
 .mobile-form-item-tag-list {
@@ -741,29 +644,29 @@ body:has(.mobile-form-sheet-backdrop) :is(.mobile-inventory-fab-btn, .mobile-ope
   padding: 3px 8px;
   border-radius: 6px;
   background: #ffffff;
-  border: 1px solid #e2e8f0;
-  color: #475569;
+  border: 1px solid var(--line);
+  color: var(--ink-600);
 }
 
 .mobile-form-tag.is-staff {
-  background: #ecfdf5;
-  border-color: #a7f3d0;
-  color: #059669;
+  background: var(--green-soft);
+  border-color: var(--green-line);
+  color: var(--green);
 }
 
 .mobile-form-tag.is-pos {
-  background: #fffbeb;
-  border-color: #fde68a;
-  color: #b45309;
+  background: var(--orange-soft);
+  border-color: var(--orange-line);
+  color: var(--orange);
 }
 
 .mobile-form-tag.is-package {
   flex: 1 1 140px;
   min-width: 0;
   max-width: 100%;
-  background: #f0fdfa;
-  border-color: #99f6e4;
-  color: #0f766e;
+  background: var(--surface-muted);
+  border-color: var(--mint-line);
+  color: var(--mint);
 }
 
 .mobile-form-tag.is-package .ph {
@@ -782,7 +685,7 @@ body:has(.mobile-form-sheet-backdrop) :is(.mobile-inventory-fab-btn, .mobile-ope
   margin-left: 0;
   border: none;
   background: transparent;
-  color: #94a3b8;
+  color: var(--ink-300);
   font-size: 16px;
   padding: 8px;
   cursor: pointer;
@@ -795,7 +698,7 @@ body:has(.mobile-form-sheet-backdrop) :is(.mobile-inventory-fab-btn, .mobile-ope
 }
 
 .mobile-form-item-remove-btn:hover {
-  color: #ef4444;
+  color: var(--red);
 }
 
 .mobile-form-status-card {
@@ -805,7 +708,7 @@ body:has(.mobile-form-sheet-backdrop) :is(.mobile-inventory-fab-btn, .mobile-ope
 .mobile-form-section-label {
   font-size: 13px;
   font-weight: 700;
-  color: #64748b;
+  color: var(--ink-500);
   text-transform: uppercase;
   letter-spacing: 0.5px;
   margin-bottom: 12px;
@@ -830,9 +733,9 @@ body:has(.mobile-form-sheet-backdrop) :is(.mobile-inventory-fab-btn, .mobile-ope
   justify-content: center;
   padding: 10px 8px;
   border-radius: 8px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--line);
   background: #ffffff;
-  color: #475569;
+  color: var(--ink-600);
   font-size: 13px;
   font-weight: 500;
   cursor: pointer;
@@ -841,9 +744,7 @@ body:has(.mobile-form-sheet-backdrop) :is(.mobile-inventory-fab-btn, .mobile-ope
 }
 
 @media (max-width: 760px) {
-  .mobile-app-shell .app-select-trigger,
-  .mobile-app-shell .app-select-container.size-sm .app-select-trigger,
-  .mobile-app-shell .app-select-container.variant-filter .app-select-trigger {
+  .mobile-app-shell .app-select-container:not(.variant-pill, .variant-ghost) .app-select-trigger {
     min-height: 44px;
   }
 
@@ -854,60 +755,27 @@ body:has(.mobile-form-sheet-backdrop) :is(.mobile-inventory-fab-btn, .mobile-ope
   }
 }
 
+/* The selected status takes its appointment colour (same --appt-* tokens as the POS calendar). */
 .mobile-form-status-pill.is-active {
-  background: #10b981;
-  border-color: #10b981;
+  --pill-tone: var(--blue-600);
+  background: var(--pill-tone);
+  border-color: var(--pill-tone);
   color: #ffffff;
   font-weight: 600;
-  box-shadow: 0 2px 4px rgba(16, 185, 129, 0.2);
 }
+
+/* --appt-pending is a light grey meant for borders; white text needs a darker grey. */
+.mobile-form-status-pill[data-status="pending"] { --pill-tone: var(--ink-600); }
+.mobile-form-status-pill[data-status="confirmed"] { --pill-tone: var(--appt-confirmed); }
+.mobile-form-status-pill[data-status="waiting"] { --pill-tone: var(--appt-waiting); }
+.mobile-form-status-pill[data-status="in_service"] { --pill-tone: var(--appt-in-service); }
+.mobile-form-status-pill[data-status="completed"] { --pill-tone: var(--appt-completed); }
+.mobile-form-status-pill[data-status="cancelled"] { --pill-tone: var(--appt-cancelled); }
+.mobile-form-status-pill[data-status="no_show"] { --pill-tone: var(--appt-no-show); }
 
 .mobile-form-status-pill:not(.is-active):hover {
-  background: #f8fafc;
+  background: var(--surface-muted);
 }
-
-.mobile-form-footer {
-  position: fixed;
-  bottom: calc(var(--mobile-bottomnav-h, 60px) + var(--mobile-safe-bottom, 0px));
-  left: 0;
-  right: 0;
-  background: #ffffff;
-  padding: 12px 16px;
-  border-top: 1px solid #e2e8f0;
-  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.05);
-  z-index: 68;
-  display: flex;
-  justify-content: center;
-}
-
-.mobile-form-submit-btn {
-  width: 100%;
-  max-width: 500px;
-  height: 46px;
-  border-radius: 10px;
-  border: none;
-  background: #10b981;
-  color: #ffffff;
-  font-size: 16px;
-  font-weight: 600;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  transition: all 0.15s ease;
-}
-
-.mobile-form-submit-btn:disabled {
-  background: #94a3b8;
-  cursor: not-allowed;
-  box-shadow: none !important;
-}
-
-.mobile-form-submit-btn:not(:disabled):active {
-  background: #059669;
-}
-
 /* Mobile Bottom Navigation */
 .mobile-bottom-nav {
   position: fixed;
@@ -971,7 +839,7 @@ body:has(.mobile-form-sheet-backdrop) :is(.mobile-inventory-fab-btn, .mobile-ope
   background: linear-gradient(135deg, var(--blue-600) 0%, var(--blue-700) 100%);
   color: #ffffff;
   border: 4px solid var(--surface);
-  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.4);
+  box-shadow: 0 4px 14px rgba(7, 86, 204, 0.4);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -991,7 +859,7 @@ body:has(.mobile-form-sheet-backdrop) :is(.mobile-inventory-fab-btn, .mobile-ope
 
 .mobile-nav-center-action:active {
   transform: scale(0.92) translateY(2px);
-  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.3);
+  box-shadow: 0 2px 8px rgba(7, 86, 204, 0.3);
 }
 
 /* Mobile Quick Action Sheet */
@@ -999,68 +867,8 @@ body:has(.mobile-form-sheet-backdrop) :is(.mobile-inventory-fab-btn, .mobile-ope
   padding: 12px 18px calc(24px + var(--mobile-safe-bottom));
   border-top: 1px solid var(--line);
 }
-
-.mobile-quick-action-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 16px;
-  padding-bottom: 12px;
-  border-bottom: 1px solid var(--line);
-}
-
-.mobile-quick-action-title {
-  font-size: 17px;
-  font-weight: 750;
-  color: var(--ink-950);
-  margin: 0;
-}
-
-.mobile-quick-action-close {
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  border: none;
-  background: var(--slate-100, #f1f5f9);
-  color: var(--ink-600);
-  display: grid;
-  place-items: center;
-  cursor: pointer;
-  font-size: 16px;
-  transition: background 0.15s ease;
-}
-
-.mobile-quick-action-close:active {
-  background: var(--slate-200, #e2e8f0);
-}
-
 /* Touch target minimum sizes for accessibility */
-.mobile-touch-min {
-  min-height: 44px;
-  min-width: 44px;
-}
-
 /* Standardized border-radius scale for mobile */
-.mobile-radius-sm {
-  border-radius: 8px;
-}
-
-.mobile-radius-md {
-  border-radius: 12px;
-}
-
-.mobile-radius-lg {
-  border-radius: 16px;
-}
-
-.mobile-radius-xl {
-  border-radius: 20px;
-}
-
-.mobile-radius-pill {
-  border-radius: 999px;
-}
-
 .mobile-quick-action-list {
   display: flex;
   flex-direction: column;
@@ -1098,13 +906,13 @@ body:has(.mobile-form-sheet-backdrop) :is(.mobile-inventory-fab-btn, .mobile-ope
 }
 
 .mobile-quick-action-icon.action-appointment {
-  background: #eff6ff;
-  color: #2563eb;
+  background: var(--blue-50);
+  color: var(--blue-600);
 }
 
 .mobile-quick-action-icon.action-invoice {
-  background: #ecfdf5;
-  color: #059669;
+  background: var(--green-soft);
+  color: var(--green);
 }
 
 /* Floating helper banner for mobile screens viewing desktop mode */
@@ -1143,7 +951,7 @@ body:has(.mobile-form-sheet-backdrop) :is(.mobile-inventory-fab-btn, .mobile-ope
 
 .mobile-switch-floating-banner .banner-text i {
   font-size: 18px;
-  color: #60a5fa;
+  color: var(--blue-400);
 }
 
 .mobile-switch-floating-banner .banner-actions {
@@ -1154,7 +962,7 @@ body:has(.mobile-form-sheet-backdrop) :is(.mobile-inventory-fab-btn, .mobile-ope
 
 .mobile-switch-floating-banner .switch-btn {
   padding: 6px 12px;
-  background: #2563eb;
+  background: var(--blue-600);
   color: #ffffff;
   border: none;
   border-radius: 999px;
@@ -1166,7 +974,7 @@ body:has(.mobile-form-sheet-backdrop) :is(.mobile-inventory-fab-btn, .mobile-ope
 }
 
 .mobile-switch-floating-banner .switch-btn:active {
-  background: #1d4ed8;
+  background: var(--blue-700);
 }
 
 .mobile-switch-floating-banner .close-btn {
@@ -1176,7 +984,7 @@ body:has(.mobile-form-sheet-backdrop) :is(.mobile-inventory-fab-btn, .mobile-ope
   place-items: center;
   border: none;
   background: transparent;
-  color: #94a3b8;
+  color: var(--ink-300);
   border-radius: 50%;
   cursor: pointer;
   font-size: 14px;
@@ -1189,15 +997,15 @@ body:has(.mobile-form-sheet-backdrop) :is(.mobile-inventory-fab-btn, .mobile-ope
 
 /* Header switch pill */
 .mobile-switch-pill {
-  color: #2563eb !important;
-  background: #eff6ff !important;
-  border: 1px solid #bfdbfe !important;
+  color: var(--blue-600) !important;
+  background: var(--blue-50) !important;
+  border: 1px solid var(--blue-200) !important;
   font-weight: 700 !important;
   cursor: pointer;
 }
 
 .mobile-switch-pill:hover {
-  background: #dbeafe !important;
+  background: var(--blue-100) !important;
 }
 
 .account-popover .switch-mobile-menu-item {
@@ -1209,7 +1017,7 @@ body:has(.mobile-form-sheet-backdrop) :is(.mobile-inventory-fab-btn, .mobile-ope
   padding: 9px 10px;
   border: 0;
   border-radius: 9px;
-  color: #2563eb;
+  color: var(--blue-600);
   background: transparent;
   font-weight: 700;
   text-align: left;
@@ -1217,12 +1025,12 @@ body:has(.mobile-form-sheet-backdrop) :is(.mobile-inventory-fab-btn, .mobile-ope
 }
 
 .account-popover .switch-mobile-menu-item:hover {
-  background: #eff6ff;
+  background: var(--blue-50);
 }
 
 .mobile-quick-action-icon.action-customer {
-  background: #fdf4ff;
-  color: #a855f7;
+  background: var(--blue-50);
+  color: var(--violet);
 }
 
 .mobile-quick-action-info {
@@ -1253,61 +1061,29 @@ body:has(.mobile-form-sheet-backdrop) :is(.mobile-inventory-fab-btn, .mobile-ope
 }
 
 /* Touch-optimized button and sheet utilities */
-.mobile-touch-target {
-  min-height: 44px;
-  min-width: 44px;
-}
-
 /* Sub-page Responsive & Table Helpers inside Mobile Shell */
-.mobile-main-content .workspace {
+.mobile-main-content .page {
   padding: 0;
   min-height: auto;
   max-width: 100%;
 }
 
-.mobile-main-content .workspace-shell {
+.mobile-main-content .page-stack {
   display: flex;
   flex-direction: column;
   gap: 12px;
   max-width: 100%;
 }
-
-.mobile-main-content .page-header {
-  padding: 4px 0 8px;
-  margin-bottom: 0;
-}
-
-.mobile-main-content .page-header h1 {
-  font-size: 20px;
-}
-
-.mobile-main-content .page-header p {
-  font-size: 12.5px;
-}
-
-.mobile-main-content .page-header-actions {
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.mobile-main-content .page-header-actions button,
-.mobile-main-content .page-header-actions a {
-  min-height: 40px;
-  padding: 0 12px;
-}
-
 /* Horizontal scroll & touch optimizations for data tables on mobile */
-.mobile-main-content .table-scroll,
-.mobile-main-content .table-responsive,
-.mobile-table-scroll {
+.mobile-main-content .table-scroll {
   width: 100%;
   max-width: 100%;
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior-x: contain;
   border-radius: 10px;
-  border: 1px solid var(--line, #e2e8f0);
-  background: var(--surface, #ffffff);
+  border: 1px solid var(--line);
+  background: var(--surface);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
   margin-bottom: 12px;
 }
@@ -1323,8 +1099,8 @@ body:has(.mobile-form-sheet-backdrop) :is(.mobile-inventory-fab-btn, .mobile-ope
   padding: 10px 12px;
   font-size: 12px;
   white-space: nowrap;
-  background: #f8fafc;
-  border-bottom: 1px solid var(--line, #e2e8f0);
+  background: var(--surface-muted);
+  border-bottom: 1px solid var(--line);
 }
 
 .mobile-main-content .data-table td {
@@ -1333,7 +1109,7 @@ body:has(.mobile-form-sheet-backdrop) :is(.mobile-inventory-fab-btn, .mobile-ope
   vertical-align: middle;
 }
 
-.mobile-main-content .workspace-grid {
+.mobile-main-content .page-grid {
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -1374,10 +1150,6 @@ body:has(.mobile-form-sheet-backdrop) :is(.mobile-inventory-fab-btn, .mobile-ope
 }
 
 /* Attendance & Schedule Views Mobile Optimization */
-.mobile-main-content .attendance-page {
-  padding: 0;
-  min-height: auto;
-}
 
 .mobile-main-content .attendance-toolbar-card {
   padding: 10px 12px;
@@ -1392,10 +1164,6 @@ body:has(.mobile-form-sheet-backdrop) :is(.mobile-inventory-fab-btn, .mobile-ope
   width: 100%;
 }
 
-.mobile-main-content .attendance-search-box {
-  min-width: 100%;
-  width: 100%;
-}
 
 .mobile-main-content .attendance-table-card {
   width: 100%;
@@ -1417,66 +1185,7 @@ body:has(.mobile-form-sheet-backdrop) :is(.mobile-inventory-fab-btn, .mobile-ope
 }
 
 /* QR Code and Single Card Subpages */
-.mobile-main-content .attendance-qr-card,
-.mobile-main-content .single-card-view {
-  max-width: 100%;
-  padding: 16px 12px;
-  box-sizing: border-box;
-}
-
 /* Bottom Sheet Overlay & Drawer */
-.mobile-bottom-sheet-backdrop {
-  position: fixed;
-  top: 0;
-  right: 0;
-  left: 0;
-  height: var(--mobile-overlay-viewport-height, 100dvh);
-  /* Must cover fixed POS controls such as the cart (z-index: 85). */
-  z-index: var(--mobile-layer-overlay, 100);
-  background: rgba(15, 23, 42, 0.45);
-  backdrop-filter: blur(2px);
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-end;
-  overscroll-behavior: none;
-  overflow: hidden;
-  touch-action: none;
-  isolation: isolate;
-  animation: mobileFadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.mobile-customer-backdrop {
-  background: var(--canvas, #f8fafc);
-  backdrop-filter: none;
-  -webkit-backdrop-filter: none;
-}
-
-.mobile-bottom-sheet {
-  width: 100%;
-  max-height: 85dvh;
-  background: var(--surface);
-  border-radius: 20px 20px 0 0;
-  padding: 16px 16px calc(16px + var(--mobile-safe-bottom));
-  box-shadow: 0 -8px 30px rgba(15, 23, 42, 0.15);
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
-  animation: mobileSlideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.mobile-bottom-sheet-backdrop :is(.mobile-bottom-sheet, .mobile-customer-sheet) {
-  touch-action: manipulation;
-}
-
-.mobile-sheet-drag-handle {
-  width: 38px;
-  height: 4px;
-  border-radius: 2px;
-  background: var(--line);
-  align-self: center;
-  margin-bottom: 12px;
-}
-
 @keyframes mobileFadeIn {
   from { opacity: 0; }
   to { opacity: 1; }
@@ -1490,19 +1199,15 @@ body:has(.mobile-form-sheet-backdrop) :is(.mobile-inventory-fab-btn, .mobile-ope
 /* Tabular Numbers & Consistent Numeric Formatting across Mobile */
 .mobile-row-price,
 .mobile-pos-card-price,
-.mobile-pos-cart-bar-total,
 .mobile-cart-item-unitprice,
 .mobile-cart-qty-val,
 .mobile-orders-total-amount,
 .mobile-orders-item-total,
-.mobile-orders-kpi-value,
 .mobile-po-total-due,
 .mobile-pricebook-cost-line,
-.mobile-product-card-price,
 .salary-amount,
 .mobile-detail-hero-amount,
 .mobile-detail-grid-value,
-.mobile-appointment-time-badge,
 .mobile-form-tag,
 .mobile-summary-row span,
 .more-user-branch {

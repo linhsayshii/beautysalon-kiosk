@@ -1,5 +1,4 @@
 import { useState, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import {
   MobileSearchBar,
@@ -15,10 +14,11 @@ import {
   type PayrollPeriodListItem,
   type PayrollRecordItem,
 } from '@/features/staff/staff.api';
-import './mobile-staff.css';
+import { StatusBadge } from '@/components/data-display/Badges';
+import { MobilePageHeader } from '@/components/ui/MobilePageHeader/MobilePageHeader';
+import { LoadingState } from '@/components/data-display/DataState';
 
 export function MobileStaffPayrollAdminView() {
-  const navigate = useNavigate();
   const { notify } = useToast();
   const [periodType, setPeriodType] = useState<string>('monthly');
   const [search, setSearch] = useState('');
@@ -94,26 +94,13 @@ export function MobileStaffPayrollAdminView() {
 
   return (
     <div className="mobile-staff-view">
-      {/* Sticky Top Header Cluster */}
-      <div className="mobile-staff-sticky-header-cluster">
-        {/* 1. Header Top Navigation */}
-        <div className="mobile-staff-top-nav">
-          <div className="mobile-staff-nav-left">
+      <MobilePageHeader
+        title="Bảng lương" backTo="/m/more"
+        actions={(
+          <>
             <button
               type="button"
-              className="mobile-staff-back-icon"
-              onClick={() => navigate('/m/more')}
-              aria-label="Quay lại"
-            >
-              <i className="ph ph-caret-left" />
-            </button>
-            <h1 className="mobile-staff-nav-title">Bảng lương</h1>
-          </div>
-
-          <div className="mobile-staff-nav-actions">
-            <button
-              type="button"
-              className="mobile-staff-nav-btn"
+              className="btn btn-ghost btn-icon m-header-action"
               onClick={() => setIsSearchVisible((prev) => !prev)}
               aria-label="Tìm kiếm"
             >
@@ -121,32 +108,29 @@ export function MobileStaffPayrollAdminView() {
             </button>
             <button
               type="button"
-              className="mobile-staff-nav-btn"
+              className="btn btn-ghost btn-icon m-header-action"
               onClick={handleExport}
               aria-label="Xuất file"
               title="Xuất file bảng lương"
             >
               <i className="ph ph-export" />
             </button>
-          </div>
-        </div>
-
-        {/* Inline Search Bar */}
+          </>
+        )}
+      >
         {isSearchVisible && (
-          <div className="mobile-staff-search-bar-wrap">
-            <MobileSearchBar
-              value={search}
-              onChange={setSearch}
-              placeholder="Tìm phiếu lương theo tên, mã thợ..."
-            />
-          </div>
+          <MobileSearchBar
+            value={search}
+            onChange={setSearch}
+            placeholder="Tìm phiếu lương theo tên, mã thợ..."
+          />
         )}
 
         {/* Filter Strip */}
-        <div className="mobile-staff-filter-strip">
+        <div className="m-chip-strip">
           <button
             type="button"
-            className={`mobile-filter-chip ${periodType === 'monthly' ? 'is-active' : ''}`}
+            className={`chip ${periodType === 'monthly' ? 'is-active' : ''}`}
             onClick={() => setPeriodType('monthly')}
           >
             <span>Kỳ tháng</span>
@@ -154,7 +138,7 @@ export function MobileStaffPayrollAdminView() {
 
           <button
             type="button"
-            className={`mobile-filter-chip ${periodType === 'weekly' ? 'is-active' : ''}`}
+            className={`chip ${periodType === 'weekly' ? 'is-active' : ''}`}
             onClick={() => setPeriodType('weekly')}
           >
             <span>Kỳ tuần</span>
@@ -163,41 +147,26 @@ export function MobileStaffPayrollAdminView() {
           {rawPeriods.length > 0 && (
             <Select<number>
               aria-label="Kỳ lương"
-              size="sm"
+              variant="pill"
               value={activePeriod?.id}
               onChange={setSelectedPeriodId}
-              triggerStyle={{
-                minHeight: 44,
-                borderRadius: 10,
-                border: '1px solid #e2e8f0',
-                padding: '0 10px',
-                fontSize: 13,
-                fontWeight: 600,
-                background: '#ffffff',
-                color: '#334155',
-              }}
               options={rawPeriods.map((period) => ({ value: period.id, label: period.name }))}
             />
           )}
         </div>
 
         {/* Summary Bar */}
-        <div className="mobile-staff-summary-sort-bar">
-          <span className="mobile-sort-select-chip">
-            <span>{activePeriod?.name || 'Kỳ lương hiện tại'}</span>
-          </span>
-          <span className="mobile-summary-text">
+        <div className="m-summary-bar">
+          <span className="m-summary-count">
             {filteredRecords.length} nhân viên · Tổng: <strong>{formatMoney(totalNet)}</strong>
           </span>
         </div>
-      </div>
+      </MobilePageHeader>
 
       {/* Grouped Section List */}
       <div className="mobile-grouped-list-container">
         {payrollDetailQuery.isLoading ? (
-          <div style={{ textAlign: 'center', padding: '36px 0', color: '#64748b' }}>
-            Đang tải dữ liệu bảng lương...
-          </div>
+          <LoadingState compact label="Đang tải dữ liệu bảng lương..." />
         ) : filteredRecords.length === 0 ? (
           <MobileEmptyState
             icon="ph ph-money"
@@ -213,7 +182,6 @@ export function MobileStaffPayrollAdminView() {
               </div>
               <div className="mobile-section-card">
                 {groupRecords.map((record) => {
-                  const isApproved = record.status === 'approved' || record.status === 'paid';
                   return (
                     <div
                       key={record.id}
@@ -238,12 +206,7 @@ export function MobileStaffPayrollAdminView() {
                         <span className="mobile-staff-row-value blue">
                           {formatMoney(record.netSalary)}
                         </span>
-                        <span
-                          className={`mobile-shift-badge ${isApproved ? 'theme-green' : 'theme-orange'}`}
-                          style={{ fontSize: 11 }}
-                        >
-                          {isApproved ? 'Đã chốt lương' : 'Tạm tính'}
-                        </span>
+                        <StatusBadge status={record.status} payroll />
                       </div>
                     </div>
                   );
@@ -265,16 +228,9 @@ export function MobileStaffPayrollAdminView() {
         }
         onClose={() => setSelectedStaffRecord(null)}
         footerActions={
-          <div style={{ display: 'flex', gap: 10, width: '100%' }}>
-            <button
-              type="button"
-              className="mobile-staff-action-btn primary"
-              style={{ width: '100%' }}
-              onClick={() => setSelectedStaffRecord(null)}
-            >
-              Đóng phiếu lương
-            </button>
-          </div>
+          <button type="button" className="btn btn-primary" onClick={() => setSelectedStaffRecord(null)}>
+            Đóng phiếu lương
+          </button>
         }
       >
         {selectedStaffRecord && (
@@ -282,18 +238,12 @@ export function MobileStaffPayrollAdminView() {
             <div className="mobile-detail-hero">
               <div className="mobile-detail-hero-header">
                 <div>
-                  <div style={{ fontSize: 13, color: '#64748b' }}>Thực lĩnh kỳ này</div>
+                  <div className="text-muted">Thực lĩnh kỳ này</div>
                   <div className="mobile-detail-hero-amount">
                     {formatMoney(selectedStaffRecord.netSalary)}
                   </div>
                 </div>
-                <span
-                  className={`mobile-shift-badge ${
-                    selectedStaffRecord.status === 'approved' ? 'theme-green' : 'theme-orange'
-                  }`}
-                >
-                  {selectedStaffRecord.status === 'approved' ? 'Đã duyệt' : 'Chưa duyệt'}
-                </span>
+                <StatusBadge status={selectedStaffRecord.status} payroll />
               </div>
             </div>
 
@@ -316,7 +266,7 @@ export function MobileStaffPayrollAdminView() {
               </div>
               <div className="mobile-detail-cell">
                 <span className="mobile-detail-cell-label">Hoa hồng dịch vụ</span>
-                <span className="mobile-detail-cell-value" style={{ color: '#0062eb' }}>
+                <span className="mobile-detail-cell-value text-primary">
                   +{formatMoney(selectedStaffRecord.commission)}
                 </span>
               </div>
@@ -340,7 +290,7 @@ export function MobileStaffPayrollAdminView() {
                     <span className="mobile-detail-item-title">Phụ cấp & Ăn trưa</span>
                     <span className="mobile-detail-item-sub">Định mức cố định tháng</span>
                   </div>
-                  <span className="mobile-detail-item-value" style={{ color: '#16a34a' }}>
+                  <span className="mobile-detail-item-value text-success">
                     +{formatMoney(selectedStaffRecord.allowance)}
                   </span>
                 </div>
@@ -350,7 +300,7 @@ export function MobileStaffPayrollAdminView() {
                     <span className="mobile-detail-item-title">Thưởng đánh giá & KPI</span>
                     <span className="mobile-detail-item-sub">Đạt chỉ tiêu tháng</span>
                   </div>
-                  <span className="mobile-detail-item-value" style={{ color: '#16a34a' }}>
+                  <span className="mobile-detail-item-value text-success">
                     +{formatMoney(selectedStaffRecord.bonus)}
                   </span>
                 </div>
@@ -360,7 +310,7 @@ export function MobileStaffPayrollAdminView() {
                     <span className="mobile-detail-item-title">Giảm trừ / Phạt vi phạm</span>
                     <span className="mobile-detail-item-sub">Đi muộn hoặc vi phạm quy chế</span>
                   </div>
-                  <span className="mobile-detail-item-value" style={{ color: '#ea580c' }}>
+                  <span className="mobile-detail-item-value text-warning">
                     -{formatMoney(selectedStaffRecord.deduction)}
                   </span>
                 </div>

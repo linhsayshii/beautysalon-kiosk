@@ -1,6 +1,5 @@
-import { ErrorState } from '@/components/data-display/DataState';
+import { ErrorState, LoadingState } from '@/components/data-display/DataState';
 import { useState, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import {
   MobileSearchBar,
@@ -9,10 +8,10 @@ import {
 } from '@/features/mobile-common';
 import { getStaff, getAttendance } from '@/features/staff/staff.api';
 import { getScheduleRange } from '@/features/staff/schedule-range';
-import { weekStartIso, monthStartIso, todayIso, toIsoDate } from '@/lib/date';
+import { weekStartIso, monthStartIso, todayIso, toIsoDate, formatDateOnly } from '@/lib/date';
 import { initials } from '@/lib/format';
 import type { ApiRecord } from '@/types/api';
-import './mobile-staff.css';
+import { MobilePageHeader } from '@/components/ui/MobilePageHeader/MobilePageHeader';
 
 // Format timestamp to HH:MM in Vietnam timezone
 function formatTime(value: unknown): string {
@@ -68,7 +67,6 @@ function getAttendanceStatusLabel({
 }
 
 export function MobileStaffAttendanceAdminView() {
-  const navigate = useNavigate();
   const [periodType, setPeriodType] = useState<'week' | 'month'>('week');
   const [currentMonday, setCurrentMonday] = useState(weekStartIso());
   const [search, setSearch] = useState('');
@@ -94,7 +92,7 @@ export function MobileStaffAttendanceAdminView() {
     return {
       dateFrom: toIsoDate(dMon),
       dateTo: toIsoDate(dSun),
-      periodLabel: `${toIsoDate(dMon)} đến ${toIsoDate(dSun)}`,
+      periodLabel: `${formatDateOnly(toIsoDate(dMon), { day: '2-digit', month: '2-digit' })} – ${formatDateOnly(toIsoDate(dSun))}`,
     };
   }, [periodType, currentMonday]);
 
@@ -211,52 +209,36 @@ export function MobileStaffAttendanceAdminView() {
 
   return (
     <div className="mobile-staff-view">
-      {/* Sticky Top Header Cluster */}
-      <div className="mobile-staff-sticky-header-cluster">
-        {/* 1. Header Top Navigation */}
-        <div className="mobile-staff-top-nav">
-          <div className="mobile-staff-nav-left">
+      <MobilePageHeader
+        title="Bảng chấm công" backTo="/m/more"
+        actions={(
+          <>
             <button
               type="button"
-              className="mobile-staff-back-icon"
-              onClick={() => navigate('/m/more')}
-              aria-label="Quay lại"
-            >
-              <i className="ph ph-caret-left" />
-            </button>
-            <h1 className="mobile-staff-nav-title">Bảng chấm công</h1>
-          </div>
-
-          <div className="mobile-staff-nav-actions">
-            <button
-              type="button"
-              className="mobile-staff-nav-btn"
+              className="btn btn-ghost btn-icon m-header-action"
               onClick={() => setIsSearchVisible((prev) => !prev)}
               aria-label="Tìm kiếm"
             >
               <i className="ph ph-magnifying-glass" />
             </button>
-          </div>
-        </div>
-
-        {/* Inline Search Bar */}
+          </>
+        )}
+      >
         {isSearchVisible && (
-          <div className="mobile-staff-search-bar-wrap">
-            <MobileSearchBar
-              value={search}
-              onChange={setSearch}
-              placeholder="Tìm nhân viên theo tên, mã..."
-            />
-          </div>
+          <MobileSearchBar
+            value={search}
+            onChange={setSearch}
+            placeholder="Tìm nhân viên theo tên, mã..."
+          />
         )}
 
         {/* Horizontal Period Filter Strip */}
-        <div className="mobile-staff-filter-strip">
+        <div className="m-chip-strip">
           <button
             type="button"
             role="tab"
             aria-selected={periodType === 'week'}
-            className={`mobile-filter-chip ${periodType === 'week' ? 'is-active' : ''}`}
+            className={`chip ${periodType === 'week' ? 'is-active' : ''}`}
             onClick={() => setPeriodType('week')}
           >
             <i className="ph ph-calendar-blank" />
@@ -267,7 +249,7 @@ export function MobileStaffAttendanceAdminView() {
             type="button"
             role="tab"
             aria-selected={periodType === 'month'}
-            className={`mobile-filter-chip ${periodType === 'month' ? 'is-active' : ''}`}
+            className={`chip ${periodType === 'month' ? 'is-active' : ''}`}
             onClick={() => setPeriodType('month')}
           >
             <i className="ph ph-calendar" />
@@ -280,7 +262,7 @@ export function MobileStaffAttendanceAdminView() {
           <div className="mobile-week-navigator">
             <button
               type="button"
-              className="mobile-week-nav-btn"
+              className="btn btn-secondary btn-icon"
               aria-label="Tuần trước"
               onClick={handlePrevWeek}
             >
@@ -289,7 +271,7 @@ export function MobileStaffAttendanceAdminView() {
             <span className="mobile-week-label">{periodLabel}</span>
             <button
               type="button"
-              className="mobile-week-nav-btn"
+              className="btn btn-secondary btn-icon"
               aria-label="Tuần sau"
               onClick={handleNextWeek}
             >
@@ -299,24 +281,20 @@ export function MobileStaffAttendanceAdminView() {
         )}
 
         {/* Summary Bar */}
-        <div className="mobile-staff-summary-sort-bar">
-          <span className="mobile-sort-select-chip">
-            <span>{periodLabel}</span>
-          </span>
-          <span className="mobile-summary-text">
+        <div className="m-summary-bar">
+          {periodType === 'month' && <span className="m-summary-title">{periodLabel}</span>}
+          <span className="m-summary-count">
             {filteredStaff.length} nhân viên
           </span>
         </div>
-      </div>
+      </MobilePageHeader>
 
       {/* Grouped Section List */}
       <div className="mobile-grouped-list-container">
         {(staffQuery.error || attendanceQuery.error || scheduleQuery.error) ? (
           <ErrorState error={(staffQuery.error || attendanceQuery.error || scheduleQuery.error)!} onRetry={() => { void staffQuery.refetch(); void attendanceQuery.refetch(); void scheduleQuery.refetch(); }} />
         ) : (staffQuery.isLoading || attendanceQuery.isLoading || scheduleQuery.isLoading) ? (
-          <div style={{ textAlign: 'center', padding: '36px 0', color: '#64748b' }}>
-            Đang tải dữ liệu chấm công...
-          </div>
+          <LoadingState compact label="Đang tải dữ liệu chấm công..." />
         ) : filteredStaff.length === 0 ? (
           <MobileEmptyState
             icon="ph ph-clock-user"
@@ -349,12 +327,12 @@ export function MobileStaffAttendanceAdminView() {
                           <span className="mobile-staff-row-sub">
                             <span>{stats.completedShifts}/{stats.totalAssignedShifts} ca</span>
                             {stats.lateCount > 0 && (
-                              <span style={{ color: '#ea580c', fontWeight: 600 }}>
+                              <span className="text-strong text-warning">
                                 • Muộn {stats.lateCount} lần
                               </span>
                             )}
                             {stats.earlyCount > 0 && (
-                              <span style={{ color: '#9333ea', fontWeight: 600 }}>
+                              <span className="text-strong text-violet">
                                 • Sớm {stats.earlyCount} lần
                               </span>
                             )}
@@ -366,7 +344,7 @@ export function MobileStaffAttendanceAdminView() {
                         <span className="mobile-staff-row-value blue">
                           {stats.workedHours} giờ
                         </span>
-                        <span style={{ fontSize: 11.5, color: '#64748b' }}>
+                        <span className="text-muted">
                           {attendanceStatus}
                         </span>
                       </div>
@@ -391,12 +369,12 @@ export function MobileStaffAttendanceAdminView() {
             <div className="mobile-detail-hero">
               <div className="mobile-detail-hero-header">
                 <div>
-                  <div style={{ fontSize: 13, color: '#64748b' }}>Tổng giờ làm thực tế</div>
+                  <div className="text-muted">Tổng giờ làm thực tế</div>
                   <div className="mobile-detail-hero-amount">{activeStaffStats.workedHours} giờ</div>
                 </div>
-                <div style={{ textAlign: 'right' }}>
-                  <div style={{ fontSize: 13, color: '#64748b' }}>Ca hoàn thành</div>
-                  <div style={{ fontSize: 16, fontWeight: 750, color: '#0f172a' }}>
+                <div className="text-right">
+                  <div className="text-muted">Ca hoàn thành</div>
+                  <div className="text-strong">
                     {activeStaffStats.completedShifts}/{activeStaffStats.totalAssignedShifts} ca
                   </div>
                 </div>
@@ -418,13 +396,13 @@ export function MobileStaffAttendanceAdminView() {
               </div>
               <div className="mobile-detail-cell">
                 <span className="mobile-detail-cell-label">GPS Hợp lệ</span>
-                <span className="mobile-detail-cell-value" style={{ color: '#16a34a' }}>
+                <span className="mobile-detail-cell-value text-success">
                   100% trong bán kính
                 </span>
               </div>
               <div className="mobile-detail-cell">
                 <span className="mobile-detail-cell-label">Trạng thái duyệt</span>
-                <span className="mobile-detail-cell-value" style={{ color: '#0062eb' }}>
+                <span className="mobile-detail-cell-value text-primary">
                   Đã xác nhận
                 </span>
               </div>
@@ -434,9 +412,7 @@ export function MobileStaffAttendanceAdminView() {
             <div className="mobile-sheet-section">
               <span className="mobile-sheet-section-title">Nhật ký chấm công</span>
               {activeStaffStats.records.length === 0 ? (
-                <div style={{ padding: '16px', textAlign: 'center', color: '#94a3b8', fontSize: 13 }}>
-                  Chưa có lượt chấm công nào trong kỳ này.
-                </div>
+                <p className="m-note">Chưa có lượt chấm công nào trong kỳ này.</p>
               ) : (
                 <div className="mobile-gps-log-list">
                   {activeStaffStats.records.map((rec, idx) => (

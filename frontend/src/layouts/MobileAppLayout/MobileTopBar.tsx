@@ -8,7 +8,8 @@ import { getBranches } from '@/features/branches/branches.api';
 import type { ApiRecord } from '@/types/api';
 import { FloatingLayer } from '@/components/ui/FloatingLayer/FloatingLayer';
 
-// Sub-page titles and configuration
+// Sub-page titles. Pages with hideTopBar render their own MobilePageHeader; the
+// topbar's sub-page mode is only a fallback for routes not listed here.
 const SUBPAGE_CONFIG: Record<string, { title: string; backTo?: string; hideTopBar?: boolean }> = {
   '/m/orders': { title: 'Đơn hàng', hideTopBar: true },
   '/m/products': { title: 'Hàng hóa', backTo: '/m/more', hideTopBar: true },
@@ -17,7 +18,7 @@ const SUBPAGE_CONFIG: Record<string, { title: string; backTo?: string; hideTopBa
   '/m/customer-cards': { title: 'Gói & Thẻ khách hàng', backTo: '/m/more', hideTopBar: true },
   '/m/pricebooks': { title: 'Bảng giá', backTo: '/m/more', hideTopBar: true },
   '/m/purchase-orders': { title: 'Nhập hàng', backTo: '/m/more', hideTopBar: true },
-  '/m/purchase-orders/new': { title: 'Tạo phiếu nhập', backTo: '/m/purchase-orders' },
+  '/m/purchase-orders/new': { title: 'Tạo phiếu nhập', backTo: '/m/purchase-orders', hideTopBar: true },
   '/m/staff': { title: 'Nhân viên & Ca làm', backTo: '/m/more', hideTopBar: true },
   '/m/staff/schedule': { title: 'Lịch làm việc', backTo: '/m/more', hideTopBar: true },
   '/m/staff/attendance': { title: 'Bảng chấm công', backTo: '/m/more', hideTopBar: true },
@@ -112,14 +113,14 @@ export function MobileTopBar() {
         <div className="mobile-topbar-subpage-left">
           <button
             type="button"
-            className="mobile-topbar-back-btn"
+            className="m-header-back"
             onClick={handleBack}
             aria-label="Quay lại"
             data-testid="mobile-topbar-back-btn"
           >
-            <i className="ph ph-arrow-left" />
+            <i className="ph ph-caret-left" aria-hidden="true" />
           </button>
-          <h1 className="mobile-topbar-subpage-title" data-testid="mobile-topbar-title">
+          <h1 className="m-header-title" data-testid="mobile-topbar-title">
             {subPageTitle}
           </h1>
         </div>
@@ -173,7 +174,7 @@ export function MobileTopBar() {
                           <span className="branch-addr">{b.address || 'Chi nhánh hệ thống'}</span>
                         </div>
                         {isCurrent && (
-                          <i className="ph-fill ph-check-circle current-check-icon" />
+                          <i className="ph ph-check-circle current-check-icon" />
                         )}
                       </button>
                     );

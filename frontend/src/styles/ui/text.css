@@ -1,0 +1,24 @@
+/*
+ * Text tone utilities for one-off emphasis in tables and panels, in place of inline colours.
+ * Imported last in styles/index.css so they win over any single-class feature rule.
+ */
+.text-primary { color: var(--blue-600); }
+.text-success { color: var(--green); }
+.text-danger { color: var(--red); }
+.text-warning { color: var(--orange); }
+.text-violet { color: var(--violet); }
+.text-muted { color: var(--ink-500); }
+.text-faint { color: var(--ink-300); }
+
+.text-strong {
+  color: var(--ink-950);
+  font-weight: var(--weight-bold);
+}
+
+.text-strong.text-primary { color: var(--blue-600); }
+.text-strong.text-success { color: var(--green); }
+.text-strong.text-danger { color: var(--red); }
+.text-strong.text-warning { color: var(--orange); }
+.text-strong.text-violet { color: var(--violet); }
+
+.text-right { text-align: right; }

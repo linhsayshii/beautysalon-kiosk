@@ -27,9 +27,9 @@ describe('MobileNotificationsView Component', () => {
     expect(screen.getByRole('heading', { name: /Thông báo/i })).toBeInTheDocument();
 
     // Tabs
-    expect(screen.getByRole('button', { name: 'Tất cả' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Lịch hẹn' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Hệ thống' })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'Tất cả' })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'Lịch hẹn' })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'Hệ thống' })).toBeInTheDocument();
   });
 
   it('shows empty state when no notifications', async () => {
@@ -43,13 +43,13 @@ describe('MobileNotificationsView Component', () => {
     renderView();
     await waitFor(() => expect(screen.getByText('Không có thông báo nào')).toBeInTheDocument());
 
-    fireEvent.click(screen.getByRole('button', { name: 'Lịch hẹn' }));
+    fireEvent.click(screen.getByRole('tab', { name: 'Lịch hẹn' }));
     expect(screen.getByText('Không có thông báo nào')).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Hệ thống' }));
+    fireEvent.click(screen.getByRole('tab', { name: 'Hệ thống' }));
     expect(screen.getByText('Không có thông báo nào')).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Tất cả' }));
+    fireEvent.click(screen.getByRole('tab', { name: 'Tất cả' }));
     expect(screen.getByText('Không có thông báo nào')).toBeInTheDocument();
   });
 });

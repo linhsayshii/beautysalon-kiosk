@@ -116,7 +116,7 @@ export function FloatingLayer({
         right: 'auto',
         top: layout?.top ?? 'auto',
         visibility: layout ? 'visible' : 'hidden',
-        zIndex: 10000,
+        zIndex: 'var(--z-popover)',
       } as CSSProperties}
     >
       {children}

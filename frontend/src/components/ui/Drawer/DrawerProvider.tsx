@@ -1,4 +1,4 @@
-import { useMobileDialog } from '@/features/mobile-common/useMobileDialog';
+import { useDialog } from '@/components/ui/Dialog/useDialog';
 import { createContext, useCallback, useContext, useMemo, useState } from 'react';
 import type { PropsWithChildren } from 'react';
 
@@ -12,7 +12,7 @@ export function DrawerProvider({ children }: PropsWithChildren) {
   const [drawer, setDrawer] = useState<DrawerState | null>(null);
   const closeDrawer = useCallback(() => setDrawer(null), []);
   const openDrawer = useCallback((title: string, sections: DrawerSection[]) => setDrawer({ title, sections }), []);
-  const { dialogRef, titleId } = useMobileDialog({ isOpen: !!drawer, onClose: closeDrawer });
+  const { dialogRef, titleId } = useDialog({ isOpen: !!drawer, onClose: closeDrawer });
   const value = useMemo(() => ({ openDrawer, closeDrawer }), [openDrawer, closeDrawer]);
 
   return (

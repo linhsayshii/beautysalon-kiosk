@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import type { FormEvent, RefObject } from 'react';
+import type { FormEvent } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/components/ui/Toast/ToastProvider';
 import { Select } from '@/components/ui/Select/Select';
@@ -7,9 +7,7 @@ import { DatePickerField } from '@/components/ui/DateTimePicker';
 import { todayIso } from '@/lib/date';
 import { updateCustomer } from '@/features/operations/operations.api';
 import type { ApiRecord } from '@/types/api';
-import { useMobileDialog } from '@/features/mobile-common/useMobileDialog';
-import { MobileDialogPortal } from '@/features/mobile-common/MobileDialogPortal';
-import '@/features/mobile-common/mobile-common.css';
+import { BottomSheet } from '@/components/ui/Sheet/BottomSheet';
 
 export interface MobileCustomerEditSheetProps {
   isOpen: boolean;
@@ -24,7 +22,6 @@ export function MobileCustomerEditSheet({
   onClose,
   onSuccess,
 }: MobileCustomerEditSheetProps) {
-  const { dialogRef, titleId } = useMobileDialog({ isOpen: isOpen && Boolean(customer), onClose });
   const queryClient = useQueryClient();
   let notify = (_title: string, _msg: string = '') => {};
   try {
@@ -105,200 +102,181 @@ export function MobileCustomerEditSheet({
   };
 
   return (
-    <MobileDialogPortal>
-    <div className="mobile-form-sheet-backdrop" data-testid="mobile-customer-edit-sheet">
-      <div ref={dialogRef as RefObject<HTMLDivElement>} className="mobile-form-sheet-container" role="dialog" aria-modal="true" aria-labelledby={titleId} tabIndex={-1}>
-        {/* Sticky Header */}
-        <header className="mobile-form-sheet-header">
-          <button
-            type="button"
-            className="mobile-form-back-btn"
-            onClick={onClose}
-            aria-label="Quay lại"
-            disabled={mutation.isPending}
-          >
-            <i className="ph ph-caret-left" />
-          </button>
-          <h2 id={titleId} className="mobile-form-sheet-title">Sửa thông tin khách hàng</h2>
-        </header>
+    <BottomSheet
+      open={isOpen && Boolean(customer)}
+      onClose={() => { if (!mutation.isPending) onClose(); }}
+      title="Sửa thông tin khách hàng"
+      height="full"
+      tone="muted"
+      testId="mobile-customer-edit-sheet"
+      footer={(
+        <button type="button" className="btn btn-primary btn-lg" onClick={handleSave} disabled={mutation.isPending}>
+          {mutation.isPending ? 'Đang lưu...' : 'Lưu'}
+        </button>
+      )}
+    >
+      <form onSubmit={handleSave} className="form-stack">
+        {mutation.error && (
+          <div className="mobile-form-card-field has-error">
+            <span className="mobile-form-card-error">
+              <i className="ph ph-warning-circle" /> {(mutation.error as Error).message || 'Có lỗi xảy ra khi lưu khách hàng'}
+            </span>
+          </div>
+        )}
 
-        {/* Scrollable Form Body */}
-        <form onSubmit={handleSave} className="mobile-form-sheet-body">
-          {mutation.error && (
-            <div className="mobile-form-card-field has-error" style={{ padding: '12px 14px' }}>
-              <span className="mobile-form-card-error">
-                <i className="ph ph-warning-circle" /> {(mutation.error as Error).message || 'Có lỗi xảy ra khi lưu khách hàng'}
-              </span>
+        {/* Tên khách hàng */}
+        <div className={`mobile-form-card-field ${errors.name ? 'has-error' : ''}`}>
+          <label htmlFor="customer-edit-name" className="mobile-form-card-label">
+            Tên khách hàng<span className="required-star">*</span>
+          </label>
+          <div className="mobile-form-card-row">
+            <input
+              id="customer-edit-name"
+              className="mobile-form-card-input"
+              value={name}
+              onChange={(e) => {
+                setName(e.target.value);
+                if (errors.name) setErrors((prev) => ({ ...prev, name: '' }));
+              }}
+              placeholder="Nhập tên khách hàng"
+            />
+          </div>
+          {errors.name && <span className="mobile-form-card-error">{errors.name}</span>}
+        </div>
+
+        {/* Mã khách hàng */}
+        <div className="mobile-form-card-field">
+          <label htmlFor="customer-edit-code" className="mobile-form-card-label">
+            Mã khách hàng
+          </label>
+          <div className="mobile-form-card-row">
+            <input
+              id="customer-edit-code"
+              className="mobile-form-card-input"
+              value={code}
+              onChange={(e) => setCode(e.target.value.toUpperCase())}
+              placeholder="KH000000"
+            />
+            <div className="mobile-form-card-accessory">
+              <i className="ph ph-identification-card" />
             </div>
-          )}
+          </div>
+        </div>
 
-          {/* Tên khách hàng */}
-          <div className={`mobile-form-card-field ${errors.name ? 'has-error' : ''}`}>
-            <label htmlFor="customer-edit-name" className="mobile-form-card-label">
-              Tên khách hàng<span className="required-star">*</span>
+        {/* Số điện thoại */}
+        <div className="mobile-form-card-field">
+          <label htmlFor="customer-edit-phone" className="mobile-form-card-label">
+            Số điện thoại
+          </label>
+          <div className="mobile-form-card-row">
+            <input
+              id="customer-edit-phone"
+              type="tel"
+              className="mobile-form-card-input"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              placeholder="09xx xxx xxx"
+            />
+            <div className="mobile-form-card-accessory">
+              <i className="ph ph-phone" />
+            </div>
+          </div>
+        </div>
+
+        {/* 2-col Grid: Ngày sinh & Giới tính */}
+        <div className="mobile-form-card-grid-2">
+          <div className="mobile-form-card-field">
+            <label htmlFor="customer-edit-dob" className="mobile-form-card-label">
+              Ngày sinh
             </label>
             <div className="mobile-form-card-row">
-              <input
-                id="customer-edit-name"
+              <DatePickerField
+                id="customer-edit-dob"
                 className="mobile-form-card-input"
-                value={name}
-                onChange={(e) => {
-                  setName(e.target.value);
-                  if (errors.name) setErrors((prev) => ({ ...prev, name: '' }));
-                }}
-                placeholder="Nhập tên khách hàng"
+                value={dob}
+                max={todayIso()}
+                onChange={setDob}
               />
             </div>
-            {errors.name && <span className="mobile-form-card-error">{errors.name}</span>}
           </div>
 
-          {/* Mã khách hàng */}
           <div className="mobile-form-card-field">
-            <label htmlFor="customer-edit-code" className="mobile-form-card-label">
-              Mã khách hàng
-            </label>
-            <div className="mobile-form-card-row">
-              <input
-                id="customer-edit-code"
-                className="mobile-form-card-input"
-                value={code}
-                onChange={(e) => setCode(e.target.value.toUpperCase())}
-                placeholder="KH000000"
-              />
-              <div className="mobile-form-card-accessory">
-                <i className="ph ph-identification-card" />
-              </div>
-            </div>
-          </div>
-
-          {/* Số điện thoại */}
-          <div className="mobile-form-card-field">
-            <label htmlFor="customer-edit-phone" className="mobile-form-card-label">
-              Số điện thoại
-            </label>
-            <div className="mobile-form-card-row">
-              <input
-                id="customer-edit-phone"
-                type="tel"
-                className="mobile-form-card-input"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                placeholder="09xx xxx xxx"
-              />
-              <div className="mobile-form-card-accessory">
-                <i className="ph ph-phone" />
-              </div>
-            </div>
-          </div>
-
-          {/* 2-col Grid: Ngày sinh & Giới tính */}
-          <div className="mobile-form-card-grid-2">
-            <div className="mobile-form-card-field">
-              <label htmlFor="customer-edit-dob" className="mobile-form-card-label">
-                Ngày sinh
-              </label>
-              <div className="mobile-form-card-row">
-                <DatePickerField
-                  id="customer-edit-dob"
-                  className="mobile-form-card-input"
-                  value={dob}
-                  max={todayIso()}
-                  onChange={setDob}
-                />
-              </div>
-            </div>
-
-            <div className="mobile-form-card-field">
-              <label htmlFor="customer-edit-gender" className="mobile-form-card-label">
-                Giới tính
-              </label>
-              <div className="mobile-form-card-row">
-                <Select
-                  id="customer-edit-gender"
-                  triggerClassName="mobile-form-card-select"
-                  fullWidth
-                  value={gender}
-                  onChange={setGender}
-                  options={[{ value: '', label: 'Chưa chọn' }, { value: 'Nữ', label: 'Nữ' }, { value: 'Nam', label: 'Nam' }, { value: 'Khác', label: 'Khác' }]}
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Nhóm khách hàng */}
-          <div className="mobile-form-card-field">
-            <label htmlFor="customer-edit-group" className="mobile-form-card-label">
-              Nhóm khách hàng
+            <label htmlFor="customer-edit-gender" className="mobile-form-card-label">
+              Giới tính
             </label>
             <div className="mobile-form-card-row">
               <Select
-                id="customer-edit-group"
+                id="customer-edit-gender"
                 triggerClassName="mobile-form-card-select"
                 fullWidth
-                value={customerGroup}
-                onChange={setCustomerGroup}
-                options={[{ value: 'Cá nhân', label: 'Cá nhân' }, { value: 'Công ty', label: 'Công ty' }]}
+                value={gender}
+                onChange={setGender}
+                options={[{ value: '', label: 'Chưa chọn' }, { value: 'Nữ', label: 'Nữ' }, { value: 'Nam', label: 'Nam' }, { value: 'Khác', label: 'Khác' }]}
               />
             </div>
           </div>
+        </div>
 
-          {/* Email */}
-          <div className={`mobile-form-card-field ${errors.email ? 'has-error' : ''}`}>
-            <label htmlFor="customer-edit-email" className="mobile-form-card-label">
-              Email
-            </label>
-            <div className="mobile-form-card-row">
-              <input
-                id="customer-edit-email"
-                type="email"
-                className="mobile-form-card-input"
-                value={email}
-                onChange={(e) => {
-                  setEmail(e.target.value);
-                  if (errors.email) setErrors((prev) => ({ ...prev, email: '' }));
-                }}
-                placeholder="example@mail.com"
-              />
-              <div className="mobile-form-card-accessory">
-                <i className="ph ph-envelope-simple" />
-              </div>
-            </div>
-            {errors.email && <span className="mobile-form-card-error">{errors.email}</span>}
+        {/* Nhóm khách hàng */}
+        <div className="mobile-form-card-field">
+          <label htmlFor="customer-edit-group" className="mobile-form-card-label">
+            Nhóm khách hàng
+          </label>
+          <div className="mobile-form-card-row">
+            <Select
+              id="customer-edit-group"
+              triggerClassName="mobile-form-card-select"
+              fullWidth
+              value={customerGroup}
+              onChange={setCustomerGroup}
+              options={[{ value: 'Cá nhân', label: 'Cá nhân' }, { value: 'Công ty', label: 'Công ty' }]}
+            />
           </div>
+        </div>
 
-          {/* Facebook */}
-          <div className="mobile-form-card-field">
-            <label htmlFor="customer-edit-facebook" className="mobile-form-card-label">
-              Facebook
-            </label>
-            <div className="mobile-form-card-row">
-              <input
-                id="customer-edit-facebook"
-                className="mobile-form-card-input"
-                value={facebook}
-                onChange={(e) => setFacebook(e.target.value)}
-                placeholder="Link hoặc tên Facebook"
-              />
-              <div className="mobile-form-card-accessory">
-                <i className="ph ph-facebook-logo" />
-              </div>
+        {/* Email */}
+        <div className={`mobile-form-card-field ${errors.email ? 'has-error' : ''}`}>
+          <label htmlFor="customer-edit-email" className="mobile-form-card-label">
+            Email
+          </label>
+          <div className="mobile-form-card-row">
+            <input
+              id="customer-edit-email"
+              type="email"
+              className="mobile-form-card-input"
+              value={email}
+              onChange={(e) => {
+                setEmail(e.target.value);
+                if (errors.email) setErrors((prev) => ({ ...prev, email: '' }));
+              }}
+              placeholder="example@mail.com"
+            />
+            <div className="mobile-form-card-accessory">
+              <i className="ph ph-envelope-simple" />
             </div>
           </div>
-        </form>
+          {errors.email && <span className="mobile-form-card-error">{errors.email}</span>}
+        </div>
 
-        {/* Sticky Footer Save Action */}
-        <footer className="mobile-form-sheet-footer">
-          <button
-            type="button"
-            className="mobile-form-save-btn"
-            onClick={handleSave}
-            disabled={mutation.isPending}
-          >
-            {mutation.isPending ? 'Đang lưu...' : 'Lưu'}
-          </button>
-        </footer>
-      </div>
-    </div>
-    </MobileDialogPortal>
+        {/* Facebook */}
+        <div className="mobile-form-card-field">
+          <label htmlFor="customer-edit-facebook" className="mobile-form-card-label">
+            Facebook
+          </label>
+          <div className="mobile-form-card-row">
+            <input
+              id="customer-edit-facebook"
+              className="mobile-form-card-input"
+              value={facebook}
+              onChange={(e) => setFacebook(e.target.value)}
+              placeholder="Link hoặc tên Facebook"
+            />
+            <div className="mobile-form-card-accessory">
+              <i className="ph ph-facebook-logo" />
+            </div>
+          </div>
+        </div>
+      </form>
+    </BottomSheet>
   );
 }

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   addCalendarDays,
+  formatDateOnly,
   localDateTimeFromInstant,
   startOfIsoWeek,
   zonedLocalDateTimeToIso,
@@ -21,5 +22,12 @@ describe('branch-local appointment time helpers', () => {
 
     expect(iso).toBe('2026-08-17T07:45:00.000Z');
     expect(localDateTimeFromInstant(iso!, 'Asia/Ho_Chi_Minh')).toBe(localValue);
+  });
+});
+
+describe('formatDateOnly', () => {
+  it('uses slashes for full and day-month dates', () => {
+    expect(formatDateOnly('2026-09-01')).toBe('01/09/2026');
+    expect(formatDateOnly('2026-09-01', { day: '2-digit', month: '2-digit' })).toBe('01/09');
   });
 });

@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
-import type { FormEvent, RefObject } from 'react';
+import type { FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/components/ui/Toast/ToastProvider';
@@ -13,10 +13,10 @@ import { getStaff } from '@/features/staff/staff.api';
 import { LocationMapPicker } from '@/components/map/LocationMapPicker';
 import { Select } from '@/components/ui/Select/Select';
 import { MobileSearchBar, MobileEmptyState } from '@/features/mobile-common';
-import { useMobileDialog } from '@/features/mobile-common/useMobileDialog';
 import { formatDateTime } from '@/lib/format';
 import type { ApiRecord } from '@/types/api';
-import './mobile-account.css';
+import { MobileHeaderAction, MobilePageHeader } from '@/components/ui/MobilePageHeader/MobilePageHeader';
+import { Modal } from '@/components/ui/Modal/Modal';
 
 type AccountTab = 'profile' | 'branches' | 'accounts';
 type ProfileSubTab = 'info' | 'security';
@@ -193,83 +193,38 @@ export function MobileAccountView() {
 
   return (
     <div className="mobile-account-view">
-      {/* Sticky Header Cluster */}
-      <div className="mobile-account-sticky-header-cluster">
-        <div className="mobile-account-top-nav">
-          <div className="mobile-account-nav-left">
-            <button
-              type="button"
-              className="mobile-account-back-icon"
-              onClick={handleBack}
-              aria-label="Quay lại"
-            >
-              <i className="ph ph-caret-left" />
-            </button>
-            <div className="mobile-account-nav-title-group">
-              <h1 className="mobile-account-nav-title">Cài đặt tài khoản</h1>
-              <span className="mobile-account-nav-subtitle">
-                {!isManager || activeTab === 'profile'
-                  ? 'Thông tin cá nhân & bảo mật'
-                  : activeTab === 'branches'
-                    ? 'Thông tin chi nhánh & GPS'
-                    : 'Phân quyền & quản lý tài khoản'}
-              </span>
-            </div>
-          </div>
-
-          <div className="mobile-account-nav-actions">
-            {isManager && activeTab === 'accounts' && (
-              <button
-                type="button"
-                className={`mobile-account-nav-btn ${isSearchVisible ? 'is-active' : ''}`}
-                onClick={() => setIsSearchVisible((prev) => !prev)}
-                aria-label="Tìm kiếm tài khoản"
-              >
-                <i className="ph ph-magnifying-glass" />
-              </button>
-            )}
-            {isManager && activeTab === 'branches' && (
-              <button
-                type="button"
-                className="mobile-account-nav-btn is-action"
-                onClick={() => setEditingBranch('new')}
-                aria-label="Thêm chi nhánh"
-                title="Thêm chi nhánh"
-              >
-                <i className="ph ph-plus" />
-              </button>
-            )}
-            {isManager && activeTab === 'accounts' && (
-              <button
-                type="button"
-                className="mobile-account-nav-btn is-action"
-                onClick={() => setCreatingAccount(true)}
-                aria-label="Thêm tài khoản"
-                title="Thêm tài khoản"
-              >
-                <i className="ph ph-plus" />
-              </button>
-            )}
-          </div>
-        </div>
-
-        {/* Inline Search Bar for Accounts tab */}
+      <MobilePageHeader
+        title="Cài đặt tài khoản"
+        subtitle={!isManager || activeTab === 'profile'
+          ? 'Thông tin cá nhân & bảo mật'
+          : activeTab === 'branches'
+            ? 'Thông tin chi nhánh & GPS'
+            : 'Phân quyền & quản lý tài khoản'}
+        onBack={handleBack}
+        actions={isManager && activeTab === 'accounts' ? (
+          <MobileHeaderAction
+            icon="ph ph-magnifying-glass"
+            label="Tìm kiếm tài khoản"
+            active={isSearchVisible}
+            onClick={() => setIsSearchVisible((prev) => !prev)}
+          />
+        ) : undefined}
+      >
         {isManager && activeTab === 'accounts' && isSearchVisible && (
-          <div className="mobile-account-search-wrap">
-            <MobileSearchBar
-              value={accountSearch}
-              placeholder="Tìm theo tên, @username hoặc vai trò..."
-              onChange={setAccountSearch}
-            />
-          </div>
+          <MobileSearchBar
+            value={accountSearch}
+            placeholder="Tìm theo tên, @username hoặc vai trò..."
+            onChange={setAccountSearch}
+          />
         )}
 
-        {/* 3 Tabs Phân quyền (hiển thị khi là manager) */}
         {isManager && (
-          <div className="mobile-account-tabs-strip">
+          <div className="tabs" role="tablist">
             <button
               type="button"
-              className={`mobile-account-tab-btn ${activeTab === 'profile' ? 'is-active' : ''}`}
+              role="tab"
+              aria-selected={activeTab === 'profile'}
+              className={`tab${activeTab === 'profile' ? ' is-active' : ''}`}
               onClick={() => { setActiveTab('profile'); setProfileSubTab('info'); }}
             >
               <i className="ph ph-user-circle" />
@@ -277,7 +232,9 @@ export function MobileAccountView() {
             </button>
             <button
               type="button"
-              className={`mobile-account-tab-btn ${activeTab === 'branches' ? 'is-active' : ''}`}
+              role="tab"
+              aria-selected={activeTab === 'branches'}
+              className={`tab${activeTab === 'branches' ? ' is-active' : ''}`}
               onClick={() => setActiveTab('branches')}
             >
               <i className="ph ph-storefront" />
@@ -285,7 +242,9 @@ export function MobileAccountView() {
             </button>
             <button
               type="button"
-              className={`mobile-account-tab-btn ${activeTab === 'accounts' ? 'is-active' : ''}`}
+              role="tab"
+              aria-selected={activeTab === 'accounts'}
+              className={`tab${activeTab === 'accounts' ? ' is-active' : ''}`}
               onClick={() => setActiveTab('accounts')}
             >
               <i className="ph ph-shield-check" />
@@ -293,7 +252,7 @@ export function MobileAccountView() {
             </button>
           </div>
         )}
-      </div>
+      </MobilePageHeader>
 
       {/* Main Content Body */}
       <div className="mobile-account-content-body">
@@ -320,20 +279,12 @@ export function MobileAccountView() {
             </div>
 
             {/* Sub-tabs: Thông tin / Bảo mật */}
-            <div className="mobile-profile-sub-tabs">
-              <button
-                type="button"
-                className={`mobile-profile-sub-tab-btn ${profileSubTab === 'info' ? 'is-active' : ''}`}
-                onClick={() => setProfileSubTab('info')}
-              >
+            <div className="segmented segmented-block" role="tablist" aria-label="Hồ sơ">
+              <button type="button" role="tab" aria-selected={profileSubTab === 'info'} onClick={() => setProfileSubTab('info')}>
                 <i className="ph ph-user" />
                 <span>Thông tin</span>
               </button>
-              <button
-                type="button"
-                className={`mobile-profile-sub-tab-btn ${profileSubTab === 'security' ? 'is-active' : ''}`}
-                onClick={() => setProfileSubTab('security')}
-              >
+              <button type="button" role="tab" aria-selected={profileSubTab === 'security'} onClick={() => setProfileSubTab('security')}>
                 <i className="ph ph-lock-key" />
                 <span>Bảo mật</span>
               </button>
@@ -503,7 +454,7 @@ export function MobileAccountView() {
 
             <button
               type="button"
-              className="mobile-account-logout-btn"
+              className="btn btn-danger-soft btn-block mobile-account-logout-btn"
               onClick={handleLogout}
               data-testid="mobile-account-logout-btn"
             >
@@ -584,7 +535,7 @@ export function MobileAccountView() {
                       {b.active && !isCurrent && (
                         <button
                           type="button"
-                          className="mobile-branch-action-btn switch-btn"
+                          className="btn btn-soft btn-sm"
                           onClick={() => switchBranch(Number(b.id))}
                         >
                           <i className="ph ph-arrows-left-right" />
@@ -593,7 +544,7 @@ export function MobileAccountView() {
                       )}
                       <button
                         type="button"
-                        className="mobile-branch-action-btn edit-btn"
+                        className="btn btn-secondary btn-sm"
                         onClick={() => setEditingBranch(b)}
                       >
                         <i className="ph ph-pencil-simple" />
@@ -602,7 +553,7 @@ export function MobileAccountView() {
                       {b.active ? (
                         <button
                           type="button"
-                          className="mobile-branch-action-btn danger-btn"
+                          className="btn btn-danger-soft btn-sm"
                           disabled={deactivateBranchMutation.isPending || isCurrent}
                           onClick={() => {
                             if (window.confirm(`Bạn có chắc muốn ngừng hoạt động chi nhánh ${b.name}?`)) {
@@ -616,7 +567,7 @@ export function MobileAccountView() {
                       ) : (
                         <button
                           type="button"
-                          className="mobile-branch-action-btn activate-btn"
+                          className="btn btn-soft btn-sm"
                           disabled={activateBranchMutation.isPending}
                           onClick={() => activateBranchMutation.mutate({ id: Number(b.id) })}
                         >
@@ -726,7 +677,7 @@ export function MobileAccountView() {
       {isManager && activeTab === 'branches' && (
         <button
           type="button"
-          className="mobile-account-fab-btn"
+          className="m-fab"
           onClick={() => setEditingBranch('new')}
           aria-label="Thêm chi nhánh"
         >
@@ -737,7 +688,7 @@ export function MobileAccountView() {
       {isManager && activeTab === 'accounts' && (
         <button
           type="button"
-          className="mobile-account-fab-btn"
+          className="m-fab"
           onClick={() => setCreatingAccount(true)}
           aria-label="Thêm tài khoản"
         >
@@ -783,7 +734,6 @@ function MobileBranchDialog({
   const { notify } = useToast();
   const [form, setForm] = useState(branch ? { ...emptyBranch, ...branch } : emptyBranch);
   const [error, setError] = useState('');
-  const { dialogRef, titleId } = useMobileDialog({ isOpen: true, onClose });
 
   const mutation = useMutation({
     mutationFn: (body: ApiRecord) => (branch ? updateBranch(Number(branch.id), body) : createBranch(body)),
@@ -824,135 +774,127 @@ function MobileBranchDialog({
   };
 
   return (
-    <div
-      className="goods-dialog-backdrop"
-      onMouseDown={(event) => {
-        if (event.target === event.currentTarget) onClose();
-      }}
+    <Modal
+      open
+      onClose={onClose}
+      title={branch ? 'Chỉnh sửa chi nhánh' : 'Thêm chi nhánh'}
+      subtitle="Thông tin chi nhánh và vị trí GPS chấm công"
+      size="xl"
+      className="modal-fill branch-dialog"
+      nested
     >
-      <section ref={dialogRef as RefObject<HTMLElement>} className="branch-dialog" role="dialog" aria-modal="true" aria-labelledby={titleId} tabIndex={-1}>
-        <header>
-          <div>
-            <span className="eyebrow">THÔNG TIN CHI NHÁNH</span>
-            <h2 id={titleId}>{branch ? 'Chỉnh sửa chi nhánh' : 'Thêm chi nhánh'}</h2>
+      <form onSubmit={submit}>
+        <div className="modal-body modal-body-block branch-dialog-body">
+          <div className="branch-form-grid">
+            <label>
+              <span>Mã chi nhánh *</span>
+              <input
+                required
+                value={form.code}
+                onChange={(event) => setForm({ ...form, code: event.target.value.toUpperCase() })}
+                placeholder="CN-Q1"
+              />
+            </label>
+            <label>
+              <span>Tên chi nhánh *</span>
+              <input
+                required
+                value={form.name}
+                onChange={(event) => setForm({ ...form, name: event.target.value })}
+                placeholder="AnnaChill Quận 1"
+              />
+            </label>
+            <label className="wide">
+              <span>Địa chỉ</span>
+              <input
+                value={form.address}
+                onChange={(event) => setForm({ ...form, address: event.target.value })}
+                placeholder="Số nhà, đường, phường, quận"
+              />
+            </label>
+            <label>
+              <span>Điện thoại</span>
+              <input
+                value={form.phone}
+                onChange={(event) => setForm({ ...form, phone: event.target.value })}
+              />
+            </label>
+            <label>
+              <span>Email</span>
+              <input
+                type="email"
+                value={form.email}
+                onChange={(event) => setForm({ ...form, email: event.target.value })}
+              />
+            </label>
           </div>
-          <button type="button" onClick={onClose} aria-label="Đóng">
-            <i className="ph ph-x" />
+          <div className="branch-map-heading">
+            <div>
+              <span className="eyebrow">GPS CHẤM CÔNG</span>
+              <h3>Chọn vị trí trên bản đồ</h3>
+            </div>
+            <button className="btn btn-secondary" type="button" onClick={locate}>
+              <i className="ph ph-crosshair" />
+              Vị trí hiện tại
+            </button>
+          </div>
+          <LocationMapPicker
+            latitude={form.latitude}
+            longitude={form.longitude}
+            radiusMeters={form.attendanceRadiusMeters}
+            onChange={(latitude, longitude) => setForm((value) => ({ ...value, latitude, longitude }))}
+          />
+          <div className="coordinate-grid">
+            <label>
+              <span>Vĩ độ</span>
+              <input
+                type="number"
+                step="any"
+                value={form.latitude ?? ''}
+                onChange={(event) =>
+                  setForm({ ...form, latitude: event.target.value === '' ? null : Number(event.target.value) })
+                }
+              />
+            </label>
+            <label>
+              <span>Kinh độ</span>
+              <input
+                type="number"
+                step="any"
+                value={form.longitude ?? ''}
+                onChange={(event) =>
+                  setForm({ ...form, longitude: event.target.value === '' ? null : Number(event.target.value) })
+                }
+              />
+            </label>
+            <label>
+              <span>Bán kính (mét)</span>
+              <input
+                type="number"
+                min="10"
+                max="1000"
+                value={form.attendanceRadiusMeters}
+                onChange={(event) => setForm({ ...form, attendanceRadiusMeters: Number(event.target.value) })}
+              />
+            </label>
+          </div>
+          {error && (
+            <div className="auth-error">
+              <i className="ph ph-warning-circle" />
+              {error}
+            </div>
+          )}
+        </div>
+        <footer className="modal-footer">
+          <button className="btn btn-secondary" type="button" onClick={onClose}>
+            Hủy
           </button>
-        </header>
-        <form onSubmit={submit}>
-          <div className="branch-dialog-body">
-            <div className="branch-form-grid">
-              <label>
-                <span>Mã chi nhánh *</span>
-                <input
-                  required
-                  value={form.code}
-                  onChange={(event) => setForm({ ...form, code: event.target.value.toUpperCase() })}
-                  placeholder="CN-Q1"
-                />
-              </label>
-              <label>
-                <span>Tên chi nhánh *</span>
-                <input
-                  required
-                  value={form.name}
-                  onChange={(event) => setForm({ ...form, name: event.target.value })}
-                  placeholder="AnnaChill Quận 1"
-                />
-              </label>
-              <label className="wide">
-                <span>Địa chỉ</span>
-                <input
-                  value={form.address}
-                  onChange={(event) => setForm({ ...form, address: event.target.value })}
-                  placeholder="Số nhà, đường, phường, quận"
-                />
-              </label>
-              <label>
-                <span>Điện thoại</span>
-                <input
-                  value={form.phone}
-                  onChange={(event) => setForm({ ...form, phone: event.target.value })}
-                />
-              </label>
-              <label>
-                <span>Email</span>
-                <input
-                  type="email"
-                  value={form.email}
-                  onChange={(event) => setForm({ ...form, email: event.target.value })}
-                />
-              </label>
-            </div>
-            <div className="branch-map-heading">
-              <div>
-                <span className="eyebrow">GPS CHẤM CÔNG</span>
-                <h3>Chọn vị trí trên bản đồ</h3>
-              </div>
-              <button className="secondary-button" type="button" onClick={locate}>
-                <i className="ph ph-crosshair" />
-                Vị trí hiện tại
-              </button>
-            </div>
-            <LocationMapPicker
-              latitude={form.latitude}
-              longitude={form.longitude}
-              radiusMeters={form.attendanceRadiusMeters}
-              onChange={(latitude, longitude) => setForm((value) => ({ ...value, latitude, longitude }))}
-            />
-            <div className="coordinate-grid">
-              <label>
-                <span>Vĩ độ</span>
-                <input
-                  type="number"
-                  step="any"
-                  value={form.latitude ?? ''}
-                  onChange={(event) =>
-                    setForm({ ...form, latitude: event.target.value === '' ? null : Number(event.target.value) })
-                  }
-                />
-              </label>
-              <label>
-                <span>Kinh độ</span>
-                <input
-                  type="number"
-                  step="any"
-                  value={form.longitude ?? ''}
-                  onChange={(event) =>
-                    setForm({ ...form, longitude: event.target.value === '' ? null : Number(event.target.value) })
-                  }
-                />
-              </label>
-              <label>
-                <span>Bán kính (mét)</span>
-                <input
-                  type="number"
-                  min="10"
-                  max="1000"
-                  value={form.attendanceRadiusMeters}
-                  onChange={(event) => setForm({ ...form, attendanceRadiusMeters: Number(event.target.value) })}
-                />
-              </label>
-            </div>
-            {error && (
-              <div className="auth-error">
-                <i className="ph ph-warning-circle" />
-                {error}
-              </div>
-            )}
-          </div>
-          <footer>
-            <button className="secondary-button" type="button" onClick={onClose}>
-              Hủy
-            </button>
-            <button className="primary-button" type="submit" disabled={mutation.isPending}>
-              {mutation.isPending ? 'Đang lưu…' : 'Lưu chi nhánh'}
-            </button>
-          </footer>
-        </form>
-      </section>
-    </div>
+          <button className="btn btn-primary" type="submit" disabled={mutation.isPending}>
+            {mutation.isPending ? 'Đang lưu…' : 'Lưu chi nhánh'}
+          </button>
+        </footer>
+      </form>
+    </Modal>
   );
 }
 
@@ -968,7 +910,6 @@ function MobileAccountDialog({
   const staff = useQuery({ queryKey: ['staff-for-account'], queryFn: () => getStaff({ active: 'true' }) });
   const [form, setForm] = useState({ displayName: '', username: '', password: '', role: 'staff', staffId: '' });
   const [error, setError] = useState('');
-  const { dialogRef, titleId } = useMobileDialog({ isOpen: true, onClose });
 
   const mutation = useMutation({
     mutationFn: createAccount,
@@ -986,112 +927,105 @@ function MobileAccountDialog({
   };
 
   return (
-    <div
-      className="goods-dialog-backdrop"
-      role="presentation"
-      onMouseDown={(event) => {
-        if (event.target === event.currentTarget) onClose();
-      }}
+    <Modal
+      open
+      onClose={onClose}
+      title="Thêm tài khoản"
+      subtitle="Tạo đăng nhập và phân quyền cho nhân viên"
+      size="md"
+      className="modal-fill account-dialog"
+      nested
     >
-      <section ref={dialogRef as RefObject<HTMLElement>} className="account-dialog" role="dialog" aria-modal="true" aria-labelledby={titleId} tabIndex={-1}>
-        <header>
-          <div>
-            <span className="eyebrow">PHÂN QUYỀN</span>
-            <h2 id={titleId}>Thêm tài khoản</h2>
+      <form onSubmit={submit}>
+        <div className="modal-body">
+        <div className="account-form-grid">
+          <label>
+            <span>Tên hiển thị *</span>
+            <input
+              required
+              value={form.displayName}
+              onChange={(event) => setForm({ ...form, displayName: event.target.value })}
+              placeholder="Nguyễn Minh Anh"
+            />
+          </label>
+          <label>
+            <span>Tên đăng nhập *</span>
+            <input
+              required
+              minLength={3}
+              pattern="[a-zA-Z0-9._-]+"
+              value={form.username}
+              onChange={(event) => setForm({ ...form, username: event.target.value })}
+              placeholder="minhanh"
+            />
+          </label>
+          <label>
+            <span>Mật khẩu ban đầu *</span>
+            <input
+              required
+              minLength={12}
+              maxLength={128}
+              type="password"
+              autoComplete="new-password"
+              value={form.password}
+              onChange={(event) => setForm({ ...form, password: event.target.value })}
+              placeholder="Ít nhất 12 ký tự, gồm hoa, thường và số"
+            />
+          </label>
+          <div className="field">
+            <span className="field-label">Loại tài khoản</span>
+            <Select
+              aria-label="Loại tài khoản"
+              value={form.role}
+              onChange={(role) => setForm({ ...form, role })}
+              fullWidth
+              options={Object.entries(roleLabels).map(([value, label]) => ({
+                value,
+                label: `${label} · ${roleDescriptions[value]}`,
+              }))}
+            />
           </div>
-          <button type="button" onClick={onClose} aria-label="Đóng">
-            <i className="ph ph-x" />
+          <div className="field account-staff-field">
+            <span className="field-label">Liên kết nhân viên {form.role === 'staff' && '*'}</span>
+            <Select
+              aria-label="Liên kết nhân viên"
+              value={form.staffId}
+              onChange={(val) => {
+                const selected = staff.data?.data.find((row) => String(row.id) === val);
+                setForm({
+                  ...form,
+                  staffId: val,
+                  displayName: form.displayName || selected?.name || '',
+                });
+              }}
+              fullWidth
+              placeholder="Không liên kết"
+              options={[
+                { value: '', label: 'Không liên kết' },
+                ...(staff.data?.data.map((row) => ({
+                  value: String(row.id),
+                  label: `${row.code} · ${row.name}`,
+                })) ?? []),
+              ]}
+            />
+          </div>
+        </div>
+        {error && (
+          <div className="auth-error">
+            <i className="ph ph-warning-circle" />
+            {error}
+          </div>
+        )}
+        </div>
+        <footer className="modal-footer">
+          <button className="btn btn-secondary" type="button" onClick={onClose}>
+            Hủy
           </button>
-        </header>
-        <form onSubmit={submit}>
-          <div className="account-form-grid">
-            <label>
-              <span>Tên hiển thị *</span>
-              <input
-                required
-                value={form.displayName}
-                onChange={(event) => setForm({ ...form, displayName: event.target.value })}
-                placeholder="Nguyễn Minh Anh"
-              />
-            </label>
-            <label>
-              <span>Tên đăng nhập *</span>
-              <input
-                required
-                minLength={3}
-                pattern="[a-zA-Z0-9._-]+"
-                value={form.username}
-                onChange={(event) => setForm({ ...form, username: event.target.value })}
-                placeholder="minhanh"
-              />
-            </label>
-            <label>
-              <span>Mật khẩu ban đầu *</span>
-              <input
-                required
-                minLength={12}
-                maxLength={128}
-                type="password"
-                autoComplete="new-password"
-                value={form.password}
-                onChange={(event) => setForm({ ...form, password: event.target.value })}
-                placeholder="Ít nhất 12 ký tự, gồm hoa, thường và số"
-              />
-            </label>
-            <div className="form-field">
-              <span className="field-label">Loại tài khoản</span>
-              <Select
-                aria-label="Loại tài khoản"
-                value={form.role}
-                onChange={(role) => setForm({ ...form, role })}
-                fullWidth
-                options={Object.entries(roleLabels).map(([value, label]) => ({
-                  value,
-                  label: `${label} · ${roleDescriptions[value]}`,
-                }))}
-              />
-            </div>
-            <div className="form-field account-staff-field">
-              <span className="field-label">Liên kết nhân viên {form.role === 'staff' && '*'}</span>
-              <Select
-                aria-label="Liên kết nhân viên"
-                value={form.staffId}
-                onChange={(val) => {
-                  const selected = staff.data?.data.find((row) => String(row.id) === val);
-                  setForm({
-                    ...form,
-                    staffId: val,
-                    displayName: form.displayName || selected?.name || '',
-                  });
-                }}
-                fullWidth
-                placeholder="Không liên kết"
-                options={[
-                  { value: '', label: 'Không liên kết' },
-                  ...(staff.data?.data.map((row) => ({
-                    value: String(row.id),
-                    label: `${row.code} · ${row.name}`,
-                  })) ?? []),
-                ]}
-              />
-            </div>
-          </div>
-          {error && (
-            <div className="auth-error">
-              <i className="ph ph-warning-circle" />
-              {error}
-            </div>
-          )}
-          <footer>
-            <button className="secondary-button" type="button" onClick={onClose}>
-              Hủy
-            </button>
-            <button className="primary-button" type="submit" disabled={mutation.isPending}>
-              {mutation.isPending ? 'Đang tạo…' : 'Tạo tài khoản'}
-            </button>
-          </footer>
-        </form>
-      </section>
-    </div>
+          <button className="btn btn-primary" type="submit" disabled={mutation.isPending}>
+            {mutation.isPending ? 'Đang tạo…' : 'Tạo tài khoản'}
+          </button>
+        </footer>
+      </form>
+    </Modal>
   );
 }

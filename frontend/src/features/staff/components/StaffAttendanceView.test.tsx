@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ToastProvider } from '@/components/ui/Toast/ToastProvider';
 import { weekStartIso } from '@/lib/date';
@@ -89,5 +89,24 @@ describe('StaffAttendanceView', () => {
     });
     const ontimeCard = document.querySelector('.staff-shift-card.status-ontime');
     expect(ontimeCard).not.toHaveTextContent('Chưa chấm công');
+  });
+
+  it('tells the manager that attendance approval is not built yet', () => {
+    vi.mocked(staffApi.getStaff).mockResolvedValue({ data: [] } as any);
+    vi.mocked(staffApi.getShifts).mockResolvedValue({ data: [] } as any);
+    vi.mocked(staffApi.getSchedule).mockResolvedValue({ data: { schedules: [] } } as any);
+    vi.mocked(staffApi.getAttendance).mockResolvedValue({ data: [] } as any);
+
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    render(
+      <QueryClientProvider client={queryClient}>
+        <ToastProvider>
+          <StaffAttendanceView />
+        </ToastProvider>
+      </QueryClientProvider>,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: /Duyệt chấm công/ }));
+    expect(screen.getByText('Tính năng đang triển khai')).toBeInTheDocument();
   });
 });

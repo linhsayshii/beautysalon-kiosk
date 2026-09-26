@@ -1,6 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useNavigate } from 'react-router-dom';
 import { MoneyInput } from '@/components/forms/MoneyInput';
 import { Select } from '@/components/ui/Select/Select';
 import { DatePickerField } from '@/components/ui/DateTimePicker';
@@ -17,7 +16,9 @@ import {
   MobileSortDropdown,
 } from '@/features/mobile-common';
 import type { ApiRecord } from '@/types/api';
-import './mobile-inventory.css';
+import { MobilePageHeader } from '@/components/ui/MobilePageHeader/MobilePageHeader';
+import { BottomSheet } from '@/components/ui/Sheet/BottomSheet';
+import { LoadingState } from '@/components/data-display/DataState';
 
 function getItemIcon(itemType: string) {
   switch (itemType) {
@@ -132,77 +133,70 @@ function MobilePricebookDialog({ open, pricebook, onClose, onSuccess }: MobilePr
     }
   };
 
-  if (!open) return null;
-
   const isPending = createMutation.isPending || updateMutation.isPending || deleteMutation.isPending;
 
   return (
-    <div className="mobile-dialog-overlay" onClick={onClose}>
-      <div className="mobile-dialog-sheet" onClick={(e) => e.stopPropagation()}>
-        <div className="mobile-dialog-handle" />
-        <div className="mobile-dialog-header">
-          <h3>{isEditing ? 'Sửa bảng giá' : 'Thêm bảng giá mới'}</h3>
-          <button type="button" className="mobile-dialog-close" onClick={onClose}>&times;</button>
-        </div>
-        <div className="mobile-dialog-body">
-          <div className="mobile-form-field">
-            <label>Mã bảng giá <span className="required">*</span></label>
-            <input type="text" className={`mobile-form-input ${errors.code ? 'error' : ''}`} value={form.code} onChange={(e) => setForm({ ...form, code: e.target.value.toUpperCase() })} placeholder="BG-002" disabled={isEditing} />
-            {errors.code && <span className="mobile-form-error">{errors.code}</span>}
-          </div>
-          <div className="mobile-form-field">
-            <label>Tên bảng giá <span className="required">*</span></label>
-            <input type="text" className={`mobile-form-input ${errors.name ? 'error' : ''}`} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Bảng giá khuyến mãi" />
-            {errors.name && <span className="mobile-form-error">{errors.name}</span>}
-          </div>
-          {!pricebook?.isDefault && <div className="mobile-form-field">
-            <label>Ngày bắt đầu</label>
-            <DatePickerField className="mobile-form-input" value={form.effectiveFrom ?? ''} onChange={(effectiveFrom) => setForm({ ...form, effectiveFrom: effectiveFrom || null })} />
-          </div>}
-          {!pricebook?.isDefault && <div className="mobile-form-field">
-            <label>Ngày kết thúc</label>
-            <DatePickerField className="mobile-form-input" value={form.effectiveTo ?? ''} onChange={(effectiveTo) => setForm({ ...form, effectiveTo: effectiveTo || null })} />
-            {errors.effectiveTo && <span className="mobile-form-error">{errors.effectiveTo}</span>}
-          </div>}
-          {!pricebook?.isDefault && <div className="mobile-form-field">
-            <label>Khách hàng áp dụng (không bắt buộc)</label>
-            <PricebookCustomerPicker mobile value={form.customerIds ?? []} onChange={(customerIds) => setForm({ ...form, customerIds })} />
-          </div>}
-          {!isEditing && (
-            <div className="mobile-form-field">
-              <label className="checkbox-label">
-                <input type="checkbox" checked={form.copyFromDefault} onChange={(e) => setForm({ ...form, copyFromDefault: e.target.checked })} />
-                <span>Copy giá từ bảng giá mặc định</span>
-              </label>
-            </div>
-          )}
+    <BottomSheet
+      open={open}
+      onClose={onClose}
+      title={isEditing ? 'Sửa bảng giá' : 'Thêm bảng giá mới'}
+      closeOnBackdrop={!isPending}
+      footer={(
+        <>
           {isEditing && !pricebook?.isDefault && (
-            <div className="mobile-form-field">
-              <label className="checkbox-label">
-                <input type="checkbox" checked={form.active} onChange={(e) => setForm({ ...form, active: e.target.checked })} />
-                <span>Đang hoạt động</span>
-              </label>
-            </div>
+            <button type="button" className="btn btn-danger-soft" onClick={handleDelete} disabled={isPending}>Xóa</button>
           )}
-        </div>
-        <div className="mobile-dialog-footer">
-          {isEditing && !pricebook?.isDefault && (
-            <button type="button" className="btn btn-danger btn-sm" onClick={handleDelete} disabled={isPending}>Xóa</button>
-          )}
-          <div className="mobile-dialog-actions">
-            <button type="button" className="btn btn-secondary btn-sm" onClick={onClose} disabled={isPending}>Hủy</button>
-            <button type="button" className="btn btn-primary btn-sm" onClick={handleSubmit} disabled={isPending}>
-              {isEditing ? 'Lưu' : 'Tạo mới'}
-            </button>
-          </div>
-        </div>
+          <button type="button" className="btn btn-secondary" onClick={onClose} disabled={isPending}>Hủy</button>
+          <button type="button" className="btn btn-primary" onClick={handleSubmit} disabled={isPending}>
+            {isEditing ? 'Lưu' : 'Tạo mới'}
+          </button>
+        </>
+      )}
+    >
+      <div className="field">
+        <label className="field-label">Mã bảng giá <span className="field-required">*</span></label>
+        <input type="text" className="input" aria-invalid={Boolean(errors.code)} value={form.code} onChange={(e) => setForm({ ...form, code: e.target.value.toUpperCase() })} placeholder="BG-002" disabled={isEditing} />
+        {errors.code && <span className="field-error">{errors.code}</span>}
       </div>
-    </div>
+      <div className="field">
+        <label className="field-label">Tên bảng giá <span className="field-required">*</span></label>
+        <input type="text" className="input" aria-invalid={Boolean(errors.name)} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Bảng giá khuyến mãi" />
+        {errors.name && <span className="field-error">{errors.name}</span>}
+      </div>
+      {!pricebook?.isDefault && <div className="field">
+        <label className="field-label">Ngày bắt đầu</label>
+        <DatePickerField className="input" value={form.effectiveFrom ?? ''} onChange={(effectiveFrom) => setForm({ ...form, effectiveFrom: effectiveFrom || null })} />
+      </div>}
+      {!pricebook?.isDefault && <div className="field">
+        <label className="field-label">Ngày kết thúc</label>
+        <DatePickerField className="input" value={form.effectiveTo ?? ''} onChange={(effectiveTo) => setForm({ ...form, effectiveTo: effectiveTo || null })} />
+        {errors.effectiveTo && <span className="field-error">{errors.effectiveTo}</span>}
+      </div>}
+      {!pricebook?.isDefault && <div className="field">
+        <label className="field-label">Khách hàng áp dụng (không bắt buộc)</label>
+        <PricebookCustomerPicker value={form.customerIds ?? []} onChange={(customerIds) => setForm({ ...form, customerIds })} />
+      </div>}
+      {!isEditing && (
+        <div className="field">
+          <label className="check">
+            <input type="checkbox" checked={form.copyFromDefault} onChange={(e) => setForm({ ...form, copyFromDefault: e.target.checked })} />
+            <span>Copy giá từ bảng giá mặc định</span>
+          </label>
+        </div>
+      )}
+      {isEditing && !pricebook?.isDefault && (
+        <div className="field">
+          <label className="check">
+            <input type="checkbox" checked={form.active} onChange={(e) => setForm({ ...form, active: e.target.checked })} />
+            <span>Đang hoạt động</span>
+          </label>
+        </div>
+      )}
+    </BottomSheet>
   );
 }
 
 export function MobilePricebooksView() {
-  const navigate = useNavigate();
   const [search, setSearch] = useState('');
   const [isSearchVisible, setIsSearchVisible] = useState(false);
   const [pricebookId, setPricebookId] = useState('');
@@ -371,26 +365,13 @@ export function MobilePricebooksView() {
 
   return (
     <div className="mobile-inventory-view">
-      {/* Sticky Top Cluster */}
-      <div className="mobile-inventory-sticky-header-cluster">
-        {/* 1. Header Top Navigation */}
-        <div className="mobile-inventory-top-nav">
-          <div className="mobile-inventory-nav-left">
+      <MobilePageHeader
+        title="Thiết lập giá" backTo="/m/more"
+        actions={(
+          <>
             <button
               type="button"
-              className="mobile-inventory-back-icon"
-              onClick={() => navigate('/m/more')}
-              aria-label="Quay lại"
-            >
-              <i className="ph ph-caret-left" />
-            </button>
-            <h1 className="mobile-inventory-nav-title">Thiết lập giá</h1>
-          </div>
-
-          <div className="mobile-inventory-nav-actions">
-            <button
-              type="button"
-              className="mobile-inventory-nav-btn"
+              className="btn btn-ghost btn-icon m-header-action"
               onClick={() => { setEditingBook(currentBook as Partial<Pricebook>); setDialogOpen(true); }}
               aria-label="Sửa bảng giá đang chọn"
             >
@@ -398,7 +379,7 @@ export function MobilePricebooksView() {
             </button>
             <button
               type="button"
-              className="mobile-inventory-nav-btn"
+              className="btn btn-ghost btn-icon m-header-action"
               onClick={() => { setEditingBook(null); setDialogOpen(true); }}
               aria-label="Thêm bảng giá"
             >
@@ -406,31 +387,27 @@ export function MobilePricebooksView() {
             </button>
             <button
               type="button"
-              className={`mobile-inventory-nav-btn ${isSearchVisible ? 'is-active' : ''}`}
+              className={`btn btn-ghost btn-icon m-header-action${isSearchVisible ? ' is-active' : ''}`}
               onClick={() => setIsSearchVisible((prev) => !prev)}
               aria-label="Tìm kiếm"
             >
               <i className="ph ph-magnifying-glass" />
             </button>
-          </div>
-        </div>
-
-        {/* Inline Search Bar */}
+          </>
+        )}
+      >
         {isSearchVisible && (
-          <div className="mobile-inventory-search-bar-wrap">
-            <MobileSearchBar
-              value={search}
-              placeholder="Tìm theo tên, mã hàng..."
-              onChange={setSearch}
-            />
-          </div>
+          <MobileSearchBar
+            value={search}
+            placeholder="Tìm theo tên, mã hàng..."
+            onChange={setSearch}
+          />
         )}
 
-        {/* 2. Filter Strip */}
-        <div className="mobile-inventory-filter-strip">
+        <div className="m-chip-strip">
           <button
             type="button"
-            className="mobile-filter-icon-btn"
+            className="chip chip-icon"
             onClick={openFilterSheet}
             aria-label="Mở bộ lọc"
           >
@@ -440,7 +417,7 @@ export function MobilePricebooksView() {
           {/* Pricebook Chip */}
           <button
             type="button"
-            className={`mobile-filter-chip ${pricebookId ? 'is-active' : ''}`}
+            className={`chip ${pricebookId ? 'is-active' : ''}`}
             onClick={openFilterSheet}
           >
             <span>Bảng giá: {activeBookName}</span>
@@ -450,7 +427,7 @@ export function MobilePricebooksView() {
           {/* Category Chip */}
           <button
             type="button"
-            className={`mobile-filter-chip ${categoryFilter ? 'is-active' : ''}`}
+            className={`chip ${categoryFilter ? 'is-active' : ''}`}
             onClick={openFilterSheet}
           >
             <span>{categoryFilter ? categoryFilter : 'Tất cả nhóm'}</span>
@@ -460,7 +437,7 @@ export function MobilePricebooksView() {
           {/* Type Chip */}
           <button
             type="button"
-            className={`mobile-filter-chip ${typeFilter ? 'is-active' : ''}`}
+            className={`chip ${typeFilter ? 'is-active' : ''}`}
             onClick={openFilterSheet}
           >
             <span>
@@ -478,33 +455,28 @@ export function MobilePricebooksView() {
           </button>
         </div>
 
-        {/* 3. Summary & Sort Dropdown Bar */}
-        <div className="mobile-inventory-summary-bar">
+        <div className="m-summary-bar">
           <MobileSortDropdown
             value={sortValue}
             options={sortOptions}
             onChange={setSortValue}
           />
 
-          <div className="mobile-inventory-count-summary" aria-live="polite">
+          <div className="m-summary-count" aria-live="polite">
             {totalRows} mặt hàng{totalRows > rawRows.length ? ` · Đã tải ${rawRows.length}` : ''}{mutation.isPending ? ' · Đang lưu giá…' : ''}
           </div>
         </div>
-      </div>
+      </MobilePageHeader>
 
       {/* 4. Grouped Section List */}
       <div className="mobile-inventory-sections-wrapper">
         {isLoading ? (
-          <div style={{ padding: '40px 16px', textAlign: 'center', color: '#64748b' }}>
-            Đang tải bảng giá...
-          </div>
+          <LoadingState compact label="Đang tải bảng giá..." />
         ) : rawRows.length === 0 ? (
-          <div style={{ padding: '24px 16px' }}>
-            <MobileEmptyState
+          <MobileEmptyState
               title="Không tìm thấy hàng hóa trong bảng giá"
               description="Thử tìm kiếm với từ khóa khác hoặc điều chỉnh bộ lọc."
             />
-          </div>
         ) : (
           <>
             {groupedCategories.map(([categoryName, items]) => (
@@ -668,7 +640,7 @@ export function MobilePricebooksView() {
                   <span className="mobile-pricebook-detail-code">{selectedItem.code}</span>
                 </div>
 
-                <div className="mobile-detail-status-pills" style={{ marginTop: '6px' }}>
+                <div className="mobile-detail-status-pills">
                   <span className="mobile-detail-pill is-gray">
                     {selectedItem.itemType === 'product'
                       ? 'Sản phẩm'
@@ -712,7 +684,7 @@ export function MobilePricebooksView() {
 
                   <div className="mobile-pricebook-compare-cell is-highlight">
                     <span className="mobile-pricebook-compare-lbl">Giá {activeBookName}</span>
-                    <span className="mobile-pricebook-compare-val" style={{ color: '#0062eb' }}>
+                    <span className="mobile-pricebook-compare-val text-primary">
                       {formatMoney(book)}
                     </span>
                   </div>
@@ -721,7 +693,7 @@ export function MobilePricebooksView() {
                 {margin !== null && (
                   <div className="mobile-pricebook-margin-box">
                     <span>Biên lợi nhuận ước tính:</span>
-                    <strong style={{ color: margin >= 30 ? '#10b981' : margin > 0 ? '#f59e0b' : '#e11d48' }}>
+                    <strong className={margin >= 30 ? 'text-success' : margin > 0 ? 'text-warning' : 'text-danger'}>
                       {margin}%
                     </strong>
                   </div>

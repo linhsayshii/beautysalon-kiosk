@@ -1,12 +1,10 @@
-import { useState, useEffect, useMemo, useRef, type RefObject } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { formatNumber, initials } from '@/lib/format';
 import { getPosStaff } from '@/features/pos/pos.api';
 import { DEFAULT_BRANCH_TIME_ZONE, localDateTimeFromInstant } from '@/lib/date';
 import { MobileTimePickerSheet } from './MobileTimePickerSheet';
-import { useMobileDialog } from './useMobileDialog';
-import { MobileDialogPortal } from './MobileDialogPortal';
-import './mobile-common.css';
+import { BottomSheet } from '@/components/ui/Sheet/BottomSheet';
 
 export interface ConfiguredServiceItem {
   appointmentId?: number;
@@ -106,9 +104,6 @@ export function MobileServiceItemDetailSheet({
   const [staffSearch, setStaffSearch] = useState('');
   const [customPosition, setCustomPosition] = useState('');
   const staffSearchRef = useRef<HTMLInputElement>(null);
-  const mainDialog = useMobileDialog({ isOpen: isOpen && Boolean(item), onClose });
-  const staffDialog = useMobileDialog({ isOpen: isStaffPickerOpen, onClose: () => setIsStaffPickerOpen(false), initialFocusRef: staffSearchRef });
-  const positionDialog = useMobileDialog({ isOpen: isPositionPickerOpen, onClose: () => setIsPositionPickerOpen(false) });
 
   // Sync state with incoming item
   useEffect(() => {
@@ -166,335 +161,275 @@ export function MobileServiceItemDetailSheet({
   const formattedTimeRangeStr = `${localStart.slice(11, 16)} - ${localEnd.slice(11, 16)}`;
 
   return (
-    <MobileDialogPortal>
-    <div
-      className="mobile-bottom-sheet-backdrop"
-      style={{ zIndex: 95 }}
-      onClick={(e) => {
-        if (e.target === e.currentTarget) onClose();
-      }}
-    >
-      <div ref={mainDialog.dialogRef as RefObject<HTMLDivElement>} className="mobile-item-detail-sheet" role="dialog" aria-modal="true" aria-labelledby={mainDialog.titleId} tabIndex={-1}>
-        {/* Header */}
-        <header className="mobile-item-detail-header">
-          <button
-            type="button"
-            className="mobile-item-detail-back-btn"
-            onClick={onClose}
-            aria-label="Quay lại"
-          >
-            <i className="ph ph-caret-left" />
-          </button>
-          <h2 id={mainDialog.titleId} className="mobile-item-detail-title">Chi tiết lịch dịch vụ</h2>
-          <div style={{ width: 36 }} />
-        </header>
-
-        <div className="mobile-item-detail-body">
-          {/* Item Info Card */}
-          <div className="mobile-item-info-card">
-            <div className="mobile-item-info-icon">
-              <i
-                className={
-                  item.itemType === 'service'
-                    ? 'ph ph-sparkle'
-                    : item.itemType === 'package'
-                    ? 'ph ph-gift'
-                    : item.itemType === 'account_card'
-                    ? 'ph ph-credit-card'
-                    : 'ph ph-package'
-                }
-              />
-            </div>
-            <div className="mobile-item-info-meta">
-              <h3 className="mobile-item-info-name">{item.name}</h3>
-              <p className="mobile-item-info-duration">
-                Thời lượng: {formatDurationLabel(durationMinutes)}
-              </p>
-            </div>
+    <>
+      <BottomSheet
+        open
+        onClose={onClose}
+        title="Chi tiết lịch dịch vụ"
+        height="full"
+        tone="muted"
+        footer={<button type="button" className="btn btn-primary btn-lg" onClick={handleSave}>Xong</button>}
+      >
+        {/* Item Info Card */}
+        <div className="mobile-item-info-card">
+          <div className="mobile-item-info-icon">
+            <i
+              className={
+                item.itemType === 'service'
+                  ? 'ph ph-sparkle'
+                  : item.itemType === 'package'
+                  ? 'ph ph-gift'
+                  : item.itemType === 'account_card'
+                  ? 'ph ph-credit-card'
+                  : 'ph ph-package'
+              }
+            />
           </div>
-
-          {/* Quantity & Total Price Strip */}
-          <div className="mobile-item-calc-strip">
-            <div className="mobile-item-quantity-group">
-              <span className="mobile-item-field-label">Số lượng</span>
-              <div className="mobile-item-stepper">
-                <button
-                  type="button"
-                  className="mobile-stepper-btn"
-                  onClick={() => setQuantity((prev) => Math.max(1, prev - 1))}
-                  aria-label={`Giảm số lượng ${item.name}`}
-                >
-                  -
-                </button>
-                <span className="mobile-stepper-value">{quantity}</span>
-                <button
-                  type="button"
-                  className="mobile-stepper-btn"
-                  onClick={() => setQuantity((prev) => Math.min(prev + 1, item.maxQuantity ?? Number.POSITIVE_INFINITY))}
-                  disabled={quantity >= (item.maxQuantity ?? Number.POSITIVE_INFINITY)}
-                  aria-label={`Tăng số lượng ${item.name}`}
-                >
-                  +
-                </button>
-              </div>
-            </div>
-
-            <div className="mobile-item-total-group">
-              <span className="mobile-item-field-label">Thành tiền</span>
-              <div className="mobile-item-total-pill">
-                {formatNumber(totalPrice)}
-              </div>
-            </div>
-          </div>
-
-          {/* Section: LỊCH LÀM DỊCH VỤ */}
-          <div className="mobile-item-section">
-            <h4 className="mobile-item-section-title">LỊCH LÀM DỊCH VỤ</h4>
-
-            {/* Date & Time Range Pills */}
-            <div className="mobile-item-pills-row">
-              <button
-                type="button"
-                className="mobile-item-schedule-pill"
-                onClick={() => setIsTimePickerOpen(true)}
-              >
-                <span>{formattedDateStr}</span>
-                <i className="ph ph-calendar-blank" />
-              </button>
-
-              <button
-                type="button"
-                className="mobile-item-schedule-pill"
-                onClick={() => setIsTimePickerOpen(true)}
-              >
-                <span>{formattedTimeRangeStr}</span>
-                <i className="ph ph-clock" />
-              </button>
-            </div>
-
-            {/* Row: Chọn nhân viên */}
-            <button
-              type="button"
-              className="mobile-item-picker-row"
-              onClick={() => setIsStaffPickerOpen(true)}
-            >
-              <div className="mobile-picker-row-left">
-                <i className="ph ph-user-circle mobile-picker-row-icon" />
-                <div className="mobile-picker-row-text">
-                  <span className="mobile-picker-row-label">Chọn nhân viên</span>
-                  {selectedStaffName && (
-                    <span className="mobile-picker-row-sub">Đã chọn kỹ thuật viên</span>
-                  )}
-                </div>
-              </div>
-              <div className="mobile-picker-row-right">
-                <span className="mobile-picker-row-val">
-                  {selectedStaffName || 'Chưa chọn'}
-                </span>
-                <i className="ph ph-caret-right" />
-              </div>
-            </button>
-
-            {/* Row: Chọn vị trí */}
-            <button
-              type="button"
-              className="mobile-item-picker-row"
-              onClick={() => setIsPositionPickerOpen(true)}
-            >
-              <div className="mobile-picker-row-left">
-                <i className="ph ph-map-pin mobile-picker-row-icon" />
-                <div className="mobile-picker-row-text">
-                  <span className="mobile-picker-row-label">Chọn vị trí</span>
-                  {position && (
-                    <span className="mobile-picker-row-sub">Vị trí phòng / giường</span>
-                  )}
-                </div>
-              </div>
-              <div className="mobile-picker-row-right">
-                <span className="mobile-picker-row-val">
-                  {position || 'Chưa chọn'}
-                </span>
-                <i className="ph ph-caret-right" />
-              </div>
-            </button>
+          <div className="mobile-item-info-meta">
+            <h3 className="mobile-item-info-name">{item.name}</h3>
+            <p className="mobile-item-info-duration">
+              Thời lượng: {formatDurationLabel(durationMinutes)}
+            </p>
           </div>
         </div>
 
-        {/* Fixed Bottom Action */}
-        <footer className="mobile-item-detail-footer">
-          <button
-            type="button"
-            className="mobile-item-detail-submit-btn"
-            onClick={handleSave}
-          >
-            Xong
-          </button>
-        </footer>
-      </div>
-
-      {/* Staff Picker Sheet */}
-      {isStaffPickerOpen && (
-        <div
-          className="mobile-sub-sheet-backdrop"
-          onClick={(e) => {
-            if (e.target === e.currentTarget) setIsStaffPickerOpen(false);
-          }}
-        >
-          <div ref={staffDialog.dialogRef as RefObject<HTMLDivElement>} className="mobile-sub-sheet" role="dialog" aria-modal="true" aria-labelledby={staffDialog.titleId} tabIndex={-1}>
-            <header className="mobile-sub-sheet-header">
+        {/* Quantity & Total Price Strip */}
+        <div className="mobile-item-calc-strip">
+          <div className="mobile-item-quantity-group">
+            <span className="mobile-item-field-label">Số lượng</span>
+            <div className="mobile-item-stepper">
               <button
                 type="button"
-                className="mobile-item-detail-back-btn"
-                onClick={() => setIsStaffPickerOpen(false)}
-                aria-label="Quay lại"
+                className="mobile-stepper-btn"
+                onClick={() => setQuantity((prev) => Math.max(1, prev - 1))}
+                aria-label={`Giảm số lượng ${item.name}`}
               >
-                <i className="ph ph-caret-left" />
+                -
               </button>
-              <h3 id={staffDialog.titleId} className="mobile-sub-sheet-title">Chọn nhân viên</h3>
-              <div style={{ width: 36 }} />
-            </header>
+              <span className="mobile-stepper-value">{quantity}</span>
+              <button
+                type="button"
+                className="mobile-stepper-btn"
+                onClick={() => setQuantity((prev) => Math.min(prev + 1, item.maxQuantity ?? Number.POSITIVE_INFINITY))}
+                disabled={quantity >= (item.maxQuantity ?? Number.POSITIVE_INFINITY)}
+                aria-label={`Tăng số lượng ${item.name}`}
+              >
+                +
+              </button>
+            </div>
+          </div>
 
-            <div className="mobile-sub-sheet-search">
-              <i className="ph ph-magnifying-glass" />
+          <div className="mobile-item-total-group">
+            <span className="mobile-item-field-label">Thành tiền</span>
+            <div className="mobile-item-total-pill">
+              {formatNumber(totalPrice)}
+            </div>
+          </div>
+        </div>
+
+        {/* Section: LỊCH LÀM DỊCH VỤ */}
+        <div className="mobile-item-section">
+          <h4 className="mobile-item-section-title">LỊCH LÀM DỊCH VỤ</h4>
+
+          {/* Date & Time Range Pills */}
+          <div className="mobile-item-pills-row">
+            <button
+              type="button"
+              className="mobile-item-schedule-pill"
+              onClick={() => setIsTimePickerOpen(true)}
+            >
+              <span>{formattedDateStr}</span>
+              <i className="ph ph-calendar-blank" />
+            </button>
+
+            <button
+              type="button"
+              className="mobile-item-schedule-pill"
+              onClick={() => setIsTimePickerOpen(true)}
+            >
+              <span>{formattedTimeRangeStr}</span>
+              <i className="ph ph-clock" />
+            </button>
+          </div>
+
+          {/* Row: Chọn nhân viên */}
+          <button
+            type="button"
+            className="mobile-item-picker-row"
+            onClick={() => setIsStaffPickerOpen(true)}
+          >
+            <div className="mobile-picker-row-left">
+              <i className="ph ph-user-circle mobile-picker-row-icon" />
+              <div className="mobile-picker-row-text">
+                <span className="mobile-picker-row-label">Chọn nhân viên</span>
+                {selectedStaffName && (
+                  <span className="mobile-picker-row-sub">Đã chọn kỹ thuật viên</span>
+                )}
+              </div>
+            </div>
+            <div className="mobile-picker-row-right">
+              <span className="mobile-picker-row-val">
+                {selectedStaffName || 'Chưa chọn'}
+              </span>
+              <i className="ph ph-caret-right" />
+            </div>
+          </button>
+
+          {/* Row: Chọn vị trí */}
+          <button
+            type="button"
+            className="mobile-item-picker-row"
+            onClick={() => setIsPositionPickerOpen(true)}
+          >
+            <div className="mobile-picker-row-left">
+              <i className="ph ph-map-pin mobile-picker-row-icon" />
+              <div className="mobile-picker-row-text">
+                <span className="mobile-picker-row-label">Chọn vị trí</span>
+                {position && (
+                  <span className="mobile-picker-row-sub">Vị trí phòng / giường</span>
+                )}
+              </div>
+            </div>
+            <div className="mobile-picker-row-right">
+              <span className="mobile-picker-row-val">
+                {position || 'Chưa chọn'}
+              </span>
+              <i className="ph ph-caret-right" />
+            </div>
+          </button>
+        </div>
+      </BottomSheet>
+
+      <BottomSheet
+        open={isStaffPickerOpen}
+        onClose={() => setIsStaffPickerOpen(false)}
+        title="Chọn nhân viên"
+        height="full"
+        nested
+        initialFocusRef={staffSearchRef}
+        headerExtra={(
+          <div className="sheet-toolbar">
+            <label className="input-group">
+              <i className="ph ph-magnifying-glass" aria-hidden="true" />
               <input
                 ref={staffSearchRef}
-                type="text"
+                type="search"
                 aria-label="Tìm nhân viên"
                 placeholder="Tìm nhân viên..."
                 value={staffSearch}
                 onChange={(e) => setStaffSearch(e.target.value)}
-                autoFocus
               />
+            </label>
+          </div>
+        )}
+      >
+        <div className="mobile-sub-sheet-list">
+          <button
+            type="button"
+            className={`mobile-staff-picker-item ${
+              selectedStaffId === null ? 'is-selected' : ''
+            }`}
+            onClick={() => {
+              setSelectedStaffId(null);
+              setSelectedStaffName(null);
+              setIsStaffPickerOpen(false);
+            }}
+          >
+            <div className="mobile-staff-avatar no-staff">
+              <i className="ph ph-user-minus" />
             </div>
+            <div className="mobile-staff-info">
+              <span className="mobile-staff-name">Chưa chọn nhân viên</span>
+              <span className="mobile-staff-role">Tự động phân bổ sau</span>
+            </div>
+            {selectedStaffId === null && (
+              <i className="ph ph-check-circle mobile-staff-check" />
+            )}
+          </button>
 
-            <div className="mobile-sub-sheet-list">
+          {filteredStaff.map((staff) => {
+            const isSelected = selectedStaffId === staff.id;
+            return (
               <button
+                key={staff.id}
                 type="button"
                 className={`mobile-staff-picker-item ${
-                  selectedStaffId === null ? 'is-selected' : ''
+                  isSelected ? 'is-selected' : ''
                 }`}
                 onClick={() => {
-                  setSelectedStaffId(null);
-                  setSelectedStaffName(null);
+                  setSelectedStaffId(staff.id);
+                  setSelectedStaffName(staff.name);
                   setIsStaffPickerOpen(false);
                 }}
               >
-                <div className="mobile-staff-avatar no-staff">
-                  <i className="ph ph-user-minus" />
+                <div className="mobile-staff-avatar">
+                  {initials(staff.name)}
                 </div>
                 <div className="mobile-staff-info">
-                  <span className="mobile-staff-name">Chưa chọn nhân viên</span>
-                  <span className="mobile-staff-role">Tự động phân bổ sau</span>
+                  <span className="mobile-staff-name">{staff.name}</span>
+                  <span className="mobile-staff-role">
+                    {staff.role || 'Kỹ thuật viên'}
+                  </span>
                 </div>
-                {selectedStaffId === null && (
+                {isSelected && (
                   <i className="ph ph-check-circle mobile-staff-check" />
                 )}
               </button>
-
-              {filteredStaff.map((staff) => {
-                const isSelected = selectedStaffId === staff.id;
-                return (
-                  <button
-                    key={staff.id}
-                    type="button"
-                    className={`mobile-staff-picker-item ${
-                      isSelected ? 'is-selected' : ''
-                    }`}
-                    onClick={() => {
-                      setSelectedStaffId(staff.id);
-                      setSelectedStaffName(staff.name);
-                      setIsStaffPickerOpen(false);
-                    }}
-                  >
-                    <div className="mobile-staff-avatar">
-                      {initials(staff.name)}
-                    </div>
-                    <div className="mobile-staff-info">
-                      <span className="mobile-staff-name">{staff.name}</span>
-                      <span className="mobile-staff-role">
-                        {staff.role || 'Kỹ thuật viên'}
-                      </span>
-                    </div>
-                    {isSelected && (
-                      <i className="ph ph-check-circle mobile-staff-check" />
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
+            );
+          })}
         </div>
-      )}
+      </BottomSheet>
 
-      {/* Position Picker Sheet */}
-      {isPositionPickerOpen && (
-        <div
-          className="mobile-sub-sheet-backdrop"
-          onClick={(e) => {
-            if (e.target === e.currentTarget) setIsPositionPickerOpen(false);
-          }}
-        >
-          <div ref={positionDialog.dialogRef as RefObject<HTMLDivElement>} className="mobile-sub-sheet" role="dialog" aria-modal="true" aria-labelledby={positionDialog.titleId} tabIndex={-1}>
-            <header className="mobile-sub-sheet-header">
+      <BottomSheet
+        open={isPositionPickerOpen}
+        onClose={() => setIsPositionPickerOpen(false)}
+        title="Chọn vị trí làm dịch vụ"
+        nested
+      >
+        <div className="mobile-position-custom-row">
+          <input
+            className="input"
+            type="text"
+            aria-label="Tên phòng hoặc giường"
+            placeholder="Nhập tên phòng / giường..."
+            value={customPosition}
+            onChange={(e) => setCustomPosition(e.target.value)}
+          />
+          <button
+            type="button"
+            className="btn btn-primary"
+            onClick={() => {
+              setPosition(customPosition.trim() || null);
+              setIsPositionPickerOpen(false);
+            }}
+          >
+            Áp dụng
+          </button>
+        </div>
+
+        <div className="mobile-position-presets-grid">
+          {PRESET_POSITIONS.map((pos) => {
+            const isSelected = position === pos;
+            return (
               <button
+                key={pos}
                 type="button"
-                className="mobile-item-detail-back-btn"
-                onClick={() => setIsPositionPickerOpen(false)}
-                aria-label="Quay lại"
+                className={`mobile-position-pill ${
+                  isSelected ? 'is-selected' : ''
+                }`}
+                onClick={() => {
+                  setPosition(pos);
+                  setCustomPosition(pos);
+                  setIsPositionPickerOpen(false);
+                }}
               >
-                <i className="ph ph-caret-left" />
+                <i className="ph ph-map-pin" />
+                <span>{pos}</span>
               </button>
-              <h3 id={positionDialog.titleId} className="mobile-sub-sheet-title">Chọn vị trí làm dịch vụ</h3>
-              <div style={{ width: 36 }} />
-            </header>
-
-            <div className="mobile-sub-sheet-content">
-              <div className="mobile-position-custom-row">
-                <input
-                  type="text"
-                  aria-label="Tên phòng hoặc giường"
-                  placeholder="Nhập tên phòng / giường..."
-                  value={customPosition}
-                  onChange={(e) => setCustomPosition(e.target.value)}
-                />
-                <button
-                  type="button"
-                  className="mobile-position-apply-btn"
-                  onClick={() => {
-                    setPosition(customPosition.trim() || null);
-                    setIsPositionPickerOpen(false);
-                  }}
-                >
-                  Áp dụng
-                </button>
-              </div>
-
-              <div className="mobile-position-presets-grid">
-                {PRESET_POSITIONS.map((pos) => {
-                  const isSelected = position === pos;
-                  return (
-                    <button
-                      key={pos}
-                      type="button"
-                      className={`mobile-position-pill ${
-                        isSelected ? 'is-selected' : ''
-                      }`}
-                      onClick={() => {
-                        setPosition(pos);
-                        setCustomPosition(pos);
-                        setIsPositionPickerOpen(false);
-                      }}
-                    >
-                      <i className="ph ph-map-pin" />
-                      <span>{pos}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          </div>
+            );
+          })}
         </div>
-      )}
+      </BottomSheet>
 
       {/* Time Picker Sub-sheet */}
       {isTimePickerOpen && (
@@ -509,7 +444,6 @@ export function MobileServiceItemDetailSheet({
           }}
         />
       )}
-    </div>
-    </MobileDialogPortal>
+    </>
   );
 }

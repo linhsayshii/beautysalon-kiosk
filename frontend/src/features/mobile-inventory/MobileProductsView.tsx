@@ -1,6 +1,5 @@
 import { useState, useMemo } from 'react';
 import { useInfiniteQuery } from '@tanstack/react-query';
-import { useNavigate } from 'react-router-dom';
 import { formatMoney, formatNumber } from '@/lib/format';
 import { GoodsCreateDialog } from '@/features/inventory/components/GoodsCreateDialog';
 import { Select } from '@/components/ui/Select/Select';
@@ -13,7 +12,8 @@ import {
   MobileSortDropdown,
 } from '@/features/mobile-common';
 import type { ApiRecord } from '@/types/api';
-import './mobile-inventory.css';
+import { MobilePageHeader } from '@/components/ui/MobilePageHeader/MobilePageHeader';
+import { LoadingState } from '@/components/data-display/DataState';
 
 function getItemIcon(itemType: string) {
   switch (itemType) {
@@ -31,7 +31,6 @@ function getItemIcon(itemType: string) {
 }
 
 export function MobileProductsView() {
-  const navigate = useNavigate();
   const [search, setSearch] = useState('');
   const [isSearchVisible, setIsSearchVisible] = useState(false);
   const [typeFilter, setTypeFilter] = useState('');
@@ -156,50 +155,33 @@ export function MobileProductsView() {
 
   return (
     <div className="mobile-inventory-view">
-      {/* Sticky Top Cluster */}
-      <div className="mobile-inventory-sticky-header-cluster">
-        {/* 1. Header Top Navigation */}
-        <div className="mobile-inventory-top-nav">
-          <div className="mobile-inventory-nav-left">
+      <MobilePageHeader
+        title="Hàng hóa" backTo="/m/more"
+        actions={(
+          <>
             <button
               type="button"
-              className="mobile-inventory-back-icon"
-              onClick={() => navigate('/m/more')}
-              aria-label="Quay lại"
-            >
-              <i className="ph ph-caret-left" />
-            </button>
-            <h1 className="mobile-inventory-nav-title">Hàng hóa</h1>
-          </div>
-
-          <div className="mobile-inventory-nav-actions">
-            <button
-              type="button"
-              className={`mobile-inventory-nav-btn ${isSearchVisible ? 'is-active' : ''}`}
+              className={`btn btn-ghost btn-icon m-header-action${isSearchVisible ? ' is-active' : ''}`}
               onClick={() => setIsSearchVisible((prev) => !prev)}
               aria-label="Tìm kiếm"
             >
               <i className="ph ph-magnifying-glass" />
             </button>
-          </div>
-        </div>
-
-        {/* Inline Search Bar */}
+          </>
+        )}
+      >
         {isSearchVisible && (
-          <div className="mobile-inventory-search-bar-wrap">
-            <MobileSearchBar
-              value={search}
-              placeholder="Tìm theo tên, mã hàng..."
-              onChange={setSearch}
-            />
-          </div>
+          <MobileSearchBar
+            value={search}
+            placeholder="Tìm theo tên, mã hàng..."
+            onChange={setSearch}
+          />
         )}
 
-        {/* 2. Horizontal Filter Chips Strip */}
-        <div className="mobile-inventory-filter-strip">
+        <div className="m-chip-strip">
           <button
             type="button"
-            className="mobile-filter-icon-btn"
+            className="chip chip-icon"
             onClick={openFilterSheet}
             aria-label="Mở bộ lọc"
           >
@@ -208,7 +190,7 @@ export function MobileProductsView() {
 
           <button
             type="button"
-            className={`mobile-filter-chip ${categoryFilter ? 'is-active' : ''}`}
+            className={`chip ${categoryFilter ? 'is-active' : ''}`}
             onClick={openFilterSheet}
           >
             <span>{categoryFilter ? categoryFilter : 'Tất cả nhóm hàng'}</span>
@@ -217,7 +199,7 @@ export function MobileProductsView() {
 
           <button
             type="button"
-            className={`mobile-filter-chip ${typeFilter ? 'is-active' : ''}`}
+            className={`chip ${typeFilter ? 'is-active' : ''}`}
             onClick={openFilterSheet}
           >
             <span>
@@ -236,7 +218,7 @@ export function MobileProductsView() {
 
           <button
             type="button"
-            className={`mobile-filter-chip ${stockStatusFilter ? 'is-active' : ''}`}
+            className={`chip ${stockStatusFilter ? 'is-active' : ''}`}
             onClick={openFilterSheet}
           >
             <span>{stockStatusFilter === 'in_stock' ? 'Còn tồn kho' : stockStatusFilter === 'below_min' ? 'Dưới định mức' : 'Tồn kho'}</span>
@@ -244,33 +226,28 @@ export function MobileProductsView() {
           </button>
         </div>
 
-        {/* 3. Summary & Sort Dropdown Bar */}
-        <div className="mobile-inventory-summary-bar">
+        <div className="m-summary-bar">
           <MobileSortDropdown
             value={sortValue}
             options={sortOptions}
             onChange={setSortValue}
           />
 
-          <div className="mobile-inventory-count-summary">
+          <div className="m-summary-count">
             {totalRows} hàng hóa{totalRows > rawRows.length ? ` · Đã tải ${rawRows.length}` : ''} · Tồn đã tải: {formatNumber(totalStockCount)}
           </div>
         </div>
-      </div>
+      </MobilePageHeader>
 
       {/* 4. Grouped Section List */}
       <div className="mobile-inventory-sections-wrapper">
         {isLoading ? (
-          <div style={{ padding: '40px 16px', textAlign: 'center', color: '#64748b' }}>
-            Đang tải dữ liệu hàng hóa...
-          </div>
+          <LoadingState compact label="Đang tải dữ liệu hàng hóa..." />
         ) : rawRows.length === 0 ? (
-          <div style={{ padding: '24px 16px' }}>
-            <MobileEmptyState
+          <MobileEmptyState
               title="Chưa có hàng hóa phù hợp"
               description="Thử tìm kiếm với từ khóa khác hoặc điều chỉnh bộ lọc."
             />
-          </div>
         ) : (
           <>
             {groupedCategories.map(([categoryName, items]) => (
@@ -338,7 +315,7 @@ export function MobileProductsView() {
       {/* 5. Floating Action Button (FAB) for Creating Goods */}
       <button
         type="button"
-        className="mobile-inventory-fab-btn"
+        className="m-fab"
         onClick={() => setIsCreateMenuOpen(true)}
         aria-label="Thêm hàng hóa"
         title="Thêm hàng hóa / Dịch vụ"
@@ -431,7 +408,7 @@ export function MobileProductsView() {
         onClose={() => setSelectedItem(null)}
       >
         {selectedItem && (
-          <div className="mobile-detail-page-container" style={{ padding: '4px 0 24px' }}>
+          <div className="mobile-detail-page-container">
             {/* THÔNG TIN CƠ BẢN Card */}
             <div className="mobile-detail-section-card">
               <div className="mobile-detail-card-header">
@@ -505,8 +482,8 @@ export function MobileProductsView() {
 
             {/* THẺ KHO / QUẢN LÝ TỒN */}
             {selectedItem.itemType === 'product' && (
-              <div className="mobile-detail-section-card" style={{ padding: '12px 16px' }}>
-                <div className="mobile-detail-nav-row is-static" style={{ border: 'none', padding: 0 }}>
+              <div className="mobile-detail-section-card is-compact">
+                <div className="mobile-detail-nav-row is-static is-flush">
                   <span>Quản lý tồn kho</span>
                   <strong>{formatNumber(selectedItem.stockQuantity || 0)} {selectedItem.unit || ''}</strong>
                 </div>
@@ -514,7 +491,7 @@ export function MobileProductsView() {
             )}
 
             {/* THÊM HÌNH ẢNH */}
-            <div className="mobile-detail-section-card" style={{ padding: '14px 16px' }}>
+            <div className="mobile-detail-section-card is-compact">
               <button type="button" className="mobile-detail-blue-action" onClick={() => {
                 setEditInitialTab('details');
                 setEditingItem(selectedItem);
@@ -533,9 +510,9 @@ export function MobileProductsView() {
                 }}>Sửa</button>
               </div>
 
-              <div className="mobile-detail-nav-row" style={{ border: 'none', padding: '4px 0 0' }}>
-                <span style={{ color: '#0f172a', fontWeight: 650 }}>Hạn sử dụng</span>
-                <span style={{ color: '#0f172a', fontWeight: 650 }}>Vô thời hạn</span>
+              <div className="mobile-detail-nav-row is-flush">
+                <span className="text-strong">Hạn sử dụng</span>
+                <span className="text-strong">Vô thời hạn</span>
               </div>
             </div>
 
@@ -549,7 +526,7 @@ export function MobileProductsView() {
                 }}>Sửa</button>
               </div>
 
-              <div style={{ fontSize: '15px', fontWeight: 650, color: '#0f172a' }}>
+              <div className="text-strong">
                 Tất cả loại hàng
               </div>
 

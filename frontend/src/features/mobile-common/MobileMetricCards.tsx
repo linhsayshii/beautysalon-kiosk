@@ -1,4 +1,3 @@
-import './mobile-common.css';
 
 export interface MobileMetricItem {
   label: string;

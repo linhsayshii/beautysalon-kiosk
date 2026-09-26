@@ -1,10 +1,12 @@
 import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { EmptyState } from '@/components/data-display/DataState';
 import { MoneyInput } from '@/components/forms/MoneyInput';
 import { Select } from '@/components/ui/Select/Select';
 import { useToast } from '@/components/ui/Toast/ToastProvider';
 import { formatMoney } from '@/lib/format';
 import { payPayroll, type PayrollPeriodDetail } from '../staff.api';
+import { Modal } from '@/components/ui/Modal/Modal';
 
 interface StaffPayrollPaymentModalProps {
   periodDetail: PayrollPeriodDetail;
@@ -43,164 +45,89 @@ export function StaffPayrollPaymentModal({ periodDetail, onClose }: StaffPayroll
   });
 
   return (
-    <div className="modal-overlay" onClick={onClose} style={{ zIndex: 1200 }}>
-      <div className="modal-dialog" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 500 }}>
-        <div className="modal-header">
-          <div>
-            <h3 className="modal-title">Thanh toán lương nhân viên</h3>
-            <p className="modal-subtitle">{periodDetail.period.name} ({periodDetail.period.code})</p>
-          </div>
-          <button type="button" onClick={onClose} className="modal-close-btn">
-            <i className="ph ph-x" />
-          </button>
-        </div>
+    <Modal
+      open
+      onClose={onClose}
+      title="Thanh toán lương nhân viên"
+      subtitle={<>{periodDetail.period.name} ({periodDetail.period.code})</>}
+      size="md"
+      nested
+    >
 
-        <div className="work-settings-modal-body" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-          {!records.length ? (
-            <div style={{ padding: '24px 0', textAlign: 'center', color: '#64748b' }}>
-              Tất cả nhân viên trong kỳ này đã được thanh toán đầy đủ lương!
+      <div className="modal-body">
+        {!records.length ? (
+          <EmptyState compact icon="ph ph-check-circle" title="Đã thanh toán đủ" message="Tất cả nhân viên trong kỳ này đã được thanh toán đầy đủ lương!" />
+        ) : (
+          <>
+            <div className="field">
+              <label className="field-label" htmlFor="payroll-pay-staff">
+                Chọn nhân viên nhận lương <span className="field-required">*</span>
+              </label>
+              <Select<number>
+                id="payroll-pay-staff"
+                value={selectedStaffId}
+                onChange={(sId) => {
+                  setSelectedStaffId(sId);
+                  const rec = records.find((r) => r.staff.id === sId);
+                  if (rec) setAmount(rec.remainingAmount);
+                }}
+                fullWidth
+                options={records.map((rec) => ({ value: rec.staff.id, label: `${rec.staff.name} (${rec.staff.code}) - Còn nợ: ${formatMoney(rec.remainingAmount)}` }))}
+              />
             </div>
-          ) : (
-            <>
-              <div>
-                <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#334155', marginBottom: 6 }}>
-                  Chọn nhân viên nhận lương <span style={{ color: '#ef4444' }}>*</span>
+
+            {selectedRecord && (
+              <dl className="value-strip">
+                <div><dt>Lương thực nhận</dt><dd>{formatMoney(selectedRecord.netSalary)}</dd></div>
+                <div><dt>Đã thanh toán</dt><dd className="is-success">{formatMoney(selectedRecord.paidAmount)}</dd></div>
+                <div><dt>Còn cần trả</dt><dd className="is-danger">{formatMoney(selectedRecord.remainingAmount)}</dd></div>
+              </dl>
+            )}
+
+            <div className="field">
+              <label className="field-label" htmlFor="payroll-pay-amount">
+                Số tiền thanh toán (VNĐ) <span className="field-required">*</span>
+              </label>
+              <MoneyInput id="payroll-pay-amount" className="input payroll-pay-amount" value={amount} onChange={setAmount} />
+            </div>
+
+            <fieldset className="field">
+              <legend className="field-label">Phương thức thanh toán</legend>
+              <div className="payroll-pay-methods">
+                <label className="check">
+                  <input type="radio" name="paymentMethod" value="transfer" checked={paymentMethod === 'transfer'} onChange={() => setPaymentMethod('transfer')} />
+                  <span>Chuyển khoản</span>
                 </label>
-                <Select<number>
-                  value={selectedStaffId}
-                  onChange={(sId) => {
-                    setSelectedStaffId(sId);
-                    const rec = records.find((r) => r.staff.id === sId);
-                    if (rec) setAmount(rec.remainingAmount);
-                  }}
-                  fullWidth
-                  triggerStyle={{
-                    width: '100%',
-                    padding: '8px 12px',
-                    borderRadius: 8,
-                    border: '1px solid #cbd5e1',
-                    fontSize: 13,
-                    background: '#fff',
-                  }}
-                  options={records.map((rec) => ({ value: rec.staff.id, label: `${rec.staff.name} (${rec.staff.code}) - Còn nợ: ${formatMoney(rec.remainingAmount)}` }))}
-                />
-              </div>
-
-              {selectedRecord && (
-                <div
-                  style={{
-                    background: '#f8fafc',
-                    padding: 12,
-                    borderRadius: 8,
-                    border: '1px solid #e2e8f0',
-                    fontSize: 13,
-                    display: 'grid',
-                    gridTemplateColumns: '1fr 1fr',
-                    gap: 8,
-                  }}
-                >
-                  <div>
-                    <span style={{ color: '#64748b' }}>Lương thực nhận:</span>{' '}
-                    <strong>{formatMoney(selectedRecord.netSalary)}</strong>
-                  </div>
-                  <div>
-                    <span style={{ color: '#64748b' }}>Đã thanh toán:</span>{' '}
-                    <strong style={{ color: '#059669' }}>{formatMoney(selectedRecord.paidAmount)}</strong>
-                  </div>
-                  <div style={{ gridColumn: 'span 2' }}>
-                    <span style={{ color: '#64748b' }}>Còn cần trả:</span>{' '}
-                    <strong style={{ color: '#e11d48' }}>{formatMoney(selectedRecord.remainingAmount)}</strong>
-                  </div>
-                </div>
-              )}
-
-              <div>
-                <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#334155', marginBottom: 6 }}>
-                  Số tiền thanh toán (VNĐ) <span style={{ color: '#ef4444' }}>*</span>
+                <label className="check">
+                  <input type="radio" name="paymentMethod" value="cash" checked={paymentMethod === 'cash'} onChange={() => setPaymentMethod('cash')} />
+                  <span>Tiền mặt</span>
                 </label>
-                <MoneyInput
-                  value={amount}
-                  onChange={setAmount}
-                  style={{
-                    width: '100%',
-                    padding: '8px 12px',
-                    borderRadius: 8,
-                    border: '1px solid #cbd5e1',
-                    fontSize: 15,
-                    fontWeight: 600,
-                    color: '#0052cc',
-                    outline: 'none',
-                  }}
-                />
               </div>
+            </fieldset>
 
-              <div>
-                <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#334155', marginBottom: 6 }}>
-                  Phương thức thanh toán
-                </label>
-                <div style={{ display: 'flex', gap: 12 }}>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', fontSize: 14 }}>
-                    <input
-                      type="radio"
-                      name="paymentMethod"
-                      value="transfer"
-                      checked={paymentMethod === 'transfer'}
-                      onChange={() => setPaymentMethod('transfer')}
-                    />
-                    <span>Chuyển khoản</span>
-                  </label>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', fontSize: 14 }}>
-                    <input
-                      type="radio"
-                      name="paymentMethod"
-                      value="cash"
-                      checked={paymentMethod === 'cash'}
-                      onChange={() => setPaymentMethod('cash')}
-                    />
-                    <span>Tiền mặt</span>
-                  </label>
-                </div>
-              </div>
-
-              <div>
-                <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#334155', marginBottom: 6 }}>
-                  Ghi chú
-                </label>
-                <input
-                  type="text"
-                  value={note}
-                  onChange={(e) => setNote(e.target.value)}
-                  placeholder="Ghi chú chi tiền..."
-                  style={{
-                    width: '100%',
-                    padding: '8px 12px',
-                    borderRadius: 8,
-                    border: '1px solid #cbd5e1',
-                    fontSize: 14,
-                  }}
-                />
-              </div>
-            </>
-          )}
-        </div>
-
-        <div className="modal-footer">
-          <button type="button" onClick={onClose} className="btn-secondary">
-            Hủy bỏ
-          </button>
-          {records.length > 0 && (
-            <button
-              type="button"
-              disabled={amount <= 0 || payMutation.isPending}
-              onClick={() => payMutation.mutate()}
-              className="btn-primary"
-              style={{ background: '#0052cc', borderColor: '#0052cc' }}
-            >
-              {payMutation.isPending ? 'Đang xử lý...' : 'Xác nhận thanh toán'}
-            </button>
-          )}
-        </div>
+            <div className="field">
+              <label className="field-label" htmlFor="payroll-pay-note">Ghi chú</label>
+              <input id="payroll-pay-note" type="text" className="input" value={note} onChange={(e) => setNote(e.target.value)} placeholder="Ghi chú chi tiền..." />
+            </div>
+          </>
+        )}
       </div>
-    </div>
+
+      <div className="modal-footer">
+        <button type="button" onClick={onClose} className="btn btn-secondary">
+          Hủy bỏ
+        </button>
+        {records.length > 0 && (
+          <button
+            type="button"
+            disabled={amount <= 0 || payMutation.isPending}
+            onClick={() => payMutation.mutate()}
+            className="btn btn-primary"
+          >
+            {payMutation.isPending ? 'Đang xử lý...' : 'Xác nhận thanh toán'}
+          </button>
+        )}
+      </div>
+    </Modal>
   );
 }

@@ -16,7 +16,8 @@ import {
   MobileSortDropdown,
 } from '@/features/mobile-common';
 import type { ApiRecord } from '@/types/api';
-import './mobile-staff.css';
+import { MobilePageHeader } from '@/components/ui/MobilePageHeader/MobilePageHeader';
+import { LoadingState } from '@/components/data-display/DataState';
 
 export function MobileStaffManagementView() {
   const navigate = useNavigate();
@@ -199,50 +200,33 @@ export function MobileStaffManagementView() {
 
   return (
     <div className="mobile-staff-view">
-      {/* Sticky Top Cluster for Staff Management */}
-      <div className="mobile-staff-sticky-header-cluster">
-        {/* 1. Header Top Navigation */}
-        <div className="mobile-staff-top-nav">
-          <div className="mobile-staff-nav-left">
+      <MobilePageHeader
+        title="Nhân viên & Ca làm" backTo="/m/more"
+        actions={(
+          <>
             <button
               type="button"
-              className="mobile-staff-back-icon"
-              onClick={() => navigate('/m/more')}
-              aria-label="Quay lại"
-            >
-              <i className="ph ph-caret-left" />
-            </button>
-            <h1 className="mobile-staff-nav-title">Nhân viên & Ca làm</h1>
-          </div>
-
-          <div className="mobile-staff-nav-actions">
-            <button
-              type="button"
-              className={`mobile-staff-nav-btn ${isSearchVisible ? 'is-active' : ''}`}
+              className={`btn btn-ghost btn-icon m-header-action${isSearchVisible ? ' is-active' : ''}`}
               onClick={() => setIsSearchVisible((prev) => !prev)}
               aria-label="Tìm kiếm"
             >
               <i className="ph ph-magnifying-glass" />
             </button>
-          </div>
-        </div>
-
-        {/* Inline Search Bar */}
+          </>
+        )}
+      >
         {isSearchVisible && (
-          <div className="mobile-staff-search-bar-wrap">
-            <MobileSearchBar
-              value={search}
-              onChange={setSearch}
-              placeholder="Tìm tên nhân viên, mã, SĐT..."
-            />
-          </div>
+          <MobileSearchBar
+            value={search}
+            onChange={setSearch}
+            placeholder="Tìm tên nhân viên, mã, SĐT..."
+          />
         )}
 
-        {/* 2. Filter Strip */}
-        <div className="mobile-staff-filter-strip">
+        <div className="m-chip-strip">
           <button
             type="button"
-            className="mobile-filter-icon-btn"
+            className="chip chip-icon"
             onClick={openFilterSheet}
             aria-label="Bộ lọc nâng cao"
           >
@@ -251,7 +235,7 @@ export function MobileStaffManagementView() {
 
           <button
             type="button"
-            className={`mobile-filter-chip ${roleFilter ? 'is-active' : ''}`}
+            className={`chip ${roleFilter ? 'is-active' : ''}`}
             onClick={openFilterSheet}
           >
             <span>{roleFilter || 'Tất cả vai trò'}</span>
@@ -260,7 +244,7 @@ export function MobileStaffManagementView() {
 
           <button
             type="button"
-            className={`mobile-filter-chip ${statusFilter !== 'all' ? 'is-active' : ''}`}
+            className={`chip ${statusFilter !== 'all' ? 'is-active' : ''}`}
             onClick={openFilterSheet}
           >
             <span>
@@ -274,25 +258,22 @@ export function MobileStaffManagementView() {
           </button>
         </div>
 
-        {/* 3. Summary & Sort Dropdown Bar */}
-        <div className="mobile-staff-summary-sort-bar">
+        <div className="m-summary-bar">
           <MobileSortDropdown
             value={sortValue}
             options={sortOptions}
             onChange={setSortValue}
           />
 
-          <span className="mobile-summary-text">
+          <span className="m-summary-count">
             {sortedStaff.length} nhân viên · {workingCount} đang làm việc
           </span>
         </div>
-      </div>
+      </MobilePageHeader>
 
       {/* 4. Grouped Sections */}
       {isStaffLoading ? (
-        <div style={{ textAlign: 'center', padding: '36px 0', color: '#64748b' }}>
-          Đang tải danh sách nhân viên...
-        </div>
+        <LoadingState compact label="Đang tải danh sách nhân viên..." />
       ) : sortedStaff.length === 0 ? (
         <MobileEmptyState
           icon="ph ph-users"
@@ -358,7 +339,7 @@ export function MobileStaffManagementView() {
       {/* Floating Action Button (FAB) */}
       <button
         type="button"
-        className="mobile-staff-fab"
+        className="m-fab"
         onClick={() => setIsCreateOpen(true)}
         aria-label="Thêm nhân viên"
       >
@@ -372,20 +353,17 @@ export function MobileStaffManagementView() {
         subtitle={selectedStaff?.code || ''}
         onClose={() => setSelectedStaff(null)}
         footerActions={
-          <div style={{ display: 'flex', gap: 10, width: '100%' }}>
-            <button
-              type="button"
-              className="mobile-staff-action-btn primary"
-              style={{ width: '100%' }}
-              onClick={() => {
-                setSelectedStaff(null);
-                navigate('/m/staff/schedule');
-              }}
-            >
-              <i className="ph ph-calendar-dots" />
-              Xem lịch & Phân ca
-            </button>
-          </div>
+          <button
+            type="button"
+            className="btn btn-primary"
+            onClick={() => {
+              setSelectedStaff(null);
+              navigate('/m/staff/schedule');
+            }}
+          >
+            <i className="ph ph-calendar-dots" />
+            Xem lịch & Phân ca
+          </button>
         }
       >
         {selectedStaff && (
@@ -402,13 +380,13 @@ export function MobileStaffManagementView() {
                 </button>
               </div>
               <div className="mobile-detail-hero-header">
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                  <div className="mobile-staff-avatar" style={{ width: 50, height: 50, fontSize: 18 }}>
+                <div className="mobile-staff-hero-main">
+                  <div className="mobile-staff-avatar is-lg">
                     {initials(selectedStaff.name || 'NV')}
                   </div>
                   <div>
                     <div className="mobile-detail-hero-title">{selectedStaff.name}</div>
-                    <div style={{ fontSize: 13, color: '#64748b', marginTop: 2 }}>
+                    <div className="mobile-staff-hero-role">
                       {selectedStaff.role || 'Kỹ thuật viên'}
                     </div>
                   </div>
@@ -477,95 +455,56 @@ export function MobileStaffManagementView() {
         title="Thêm nhân viên mới"
         subtitle="Tạo hồ sơ và vai trò"
         onClose={() => setIsCreateOpen(false)}
-        footerActions={
-          <div style={{ display: 'flex', gap: 10, width: '100%' }}>
-            <button
-              type="button"
-              className="mobile-staff-action-btn"
-              style={{ flex: 1 }}
-              onClick={() => setIsCreateOpen(false)}
-            >
-              Hủy
-            </button>
-            <button
-              type="button"
-              className="mobile-staff-action-btn primary"
-              style={{ flex: 1 }}
-              onClick={handleCreateStaff}
-              disabled={createMutation.isPending || !newName.trim()}
-            >
-              {createMutation.isPending ? 'Đang tạo...' : 'Tạo nhân viên'}
-            </button>
-          </div>
-        }
+        footerActions={<>
+          <button type="button" className="btn btn-secondary" onClick={() => setIsCreateOpen(false)}>
+            Hủy
+          </button>
+          <button
+            type="button"
+            className="btn btn-primary"
+            onClick={handleCreateStaff}
+            disabled={createMutation.isPending || !newName.trim()}
+          >
+            {createMutation.isPending ? 'Đang tạo...' : 'Tạo nhân viên'}
+          </button>
+        </>}
       >
-        <form onSubmit={handleCreateStaff} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-          <div>
-            <label htmlFor="mobile-staff-name" style={{ display: 'block', fontSize: 13, fontWeight: 700, color: '#0f172a', marginBottom: 6 }}>
-              Họ và tên <span style={{ color: '#ef4444' }}>*</span>
+        <form onSubmit={handleCreateStaff} className="form-stack">
+          <div className="field">
+            <label className="field-label" htmlFor="mobile-staff-name">
+              Họ và tên <span className="field-required">*</span>
             </label>
             <input
               id="mobile-staff-name"
+              className="input"
               type="text"
               value={newName}
               onChange={(e) => setNewName(e.target.value)}
               placeholder="VD: Nguyễn Thị Lan"
               required
-              style={{
-                width: '100%',
-                height: 44,
-                padding: '0 12px',
-                borderRadius: 10,
-                border: '1px solid #cbd5e1',
-                fontSize: 16,
-                boxSizing: 'border-box',
-              }}
             />
           </div>
 
-          <div>
-            <label htmlFor="mobile-staff-role" style={{ display: 'block', fontSize: 13, fontWeight: 700, color: '#0f172a', marginBottom: 6 }}>
-              Vai trò / Chức vụ
-            </label>
+          <div className="field">
+            <label className="field-label" htmlFor="mobile-staff-role">Vai trò / Chức vụ</label>
             <Select
               id="mobile-staff-role"
               value={newRole}
               onChange={setNewRole}
               fullWidth
-              size="lg"
-              triggerStyle={{
-                width: '100%',
-                height: 44,
-                padding: '0 12px',
-                borderRadius: 10,
-                border: '1px solid #cbd5e1',
-                fontSize: 13,
-                background: '#ffffff',
-                boxSizing: 'border-box',
-              }}
               options={['Kỹ thuật viên', 'Kỹ thuật viên chính', 'Thu ngân', 'Lễ tân', 'Quản lý'].map((role) => ({ value: role, label: role }))}
             />
           </div>
 
-          <div>
-            <label htmlFor="mobile-staff-phone" style={{ display: 'block', fontSize: 13, fontWeight: 700, color: '#0f172a', marginBottom: 6 }}>
-              Số điện thoại
-            </label>
+          <div className="field">
+            <label className="field-label" htmlFor="mobile-staff-phone">Số điện thoại</label>
             <input
               id="mobile-staff-phone"
+              className="input"
               type="tel"
               value={newPhone}
               onChange={(e) => setNewPhone(e.target.value)}
               placeholder="VD: 0901234567"
-              style={{
-                width: '100%',
-                height: 44,
-                padding: '0 12px',
-                borderRadius: 10,
-                border: '1px solid #cbd5e1',
-                fontSize: 16,
-                boxSizing: 'border-box',
-              }}
             />
           </div>
         </form>
@@ -579,60 +518,35 @@ export function MobileStaffManagementView() {
         onApply={handleApplyFilter}
         onReset={handleResetFilter}
       >
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-          <div>
-            <label style={{ display: 'block', fontSize: 13, fontWeight: 700, color: '#0f172a', marginBottom: 8 }}>
-              Vai trò
-            </label>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-              <button
-                type="button"
-                className={`mobile-filter-chip ${draftRole === '' ? 'is-active' : ''}`}
-                onClick={() => setDraftRole('')}
-              >
+        <div className="form-stack">
+          <fieldset className="field">
+            <legend className="field-label">Vai trò</legend>
+            <div className="chip-group">
+              <button type="button" className="chip" aria-pressed={draftRole === ''} onClick={() => setDraftRole('')}>
                 Tất cả vai trò
               </button>
               {roles.map((r) => (
-                <button
-                  key={r}
-                  type="button"
-                  className={`mobile-filter-chip ${draftRole === r ? 'is-active' : ''}`}
-                  onClick={() => setDraftRole(r)}
-                >
+                <button key={r} type="button" className="chip" aria-pressed={draftRole === r} onClick={() => setDraftRole(r)}>
                   {r}
                 </button>
               ))}
             </div>
-          </div>
+          </fieldset>
 
-          <div>
-            <label style={{ display: 'block', fontSize: 13, fontWeight: 700, color: '#0f172a', marginBottom: 8 }}>
-              Trạng thái làm việc
-            </label>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-              <button
-                type="button"
-                className={`mobile-filter-chip ${draftStatus === 'all' ? 'is-active' : ''}`}
-                onClick={() => setDraftStatus('all')}
-              >
+          <fieldset className="field">
+            <legend className="field-label">Trạng thái làm việc</legend>
+            <div className="chip-group">
+              <button type="button" className="chip" aria-pressed={draftStatus === 'all'} onClick={() => setDraftStatus('all')}>
                 Tất cả
               </button>
-              <button
-                type="button"
-                className={`mobile-filter-chip ${draftStatus === 'working' ? 'is-active' : ''}`}
-                onClick={() => setDraftStatus('working')}
-              >
+              <button type="button" className="chip" aria-pressed={draftStatus === 'working'} onClick={() => setDraftStatus('working')}>
                 Đang làm việc
               </button>
-              <button
-                type="button"
-                className={`mobile-filter-chip ${draftStatus === 'off' ? 'is-active' : ''}`}
-                onClick={() => setDraftStatus('off')}
-              >
+              <button type="button" className="chip" aria-pressed={draftStatus === 'off'} onClick={() => setDraftStatus('off')}>
                 Chưa vào ca / Vắng
               </button>
             </div>
-          </div>
+          </fieldset>
         </div>
       </MobileFilterSheet>
     </div>

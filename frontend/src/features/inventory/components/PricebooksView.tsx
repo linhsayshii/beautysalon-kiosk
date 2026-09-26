@@ -14,7 +14,7 @@ import { formatMoney } from '@/lib/format';
 import { createPricebook, deletePricebook, getPricebook, getPricebooks, updatePrice, updatePricebook } from '../inventory.api';
 import type { CreatePricebookInput, Pricebook, UpdatePricebookInput } from '../inventory.api';
 import { PricebookCustomerPicker } from './PricebookCustomerPicker';
-import './pricebooks.css';
+import { Modal } from '@/components/ui/Modal/Modal';
 
 const initialFilters = { search: '', pricebookId: '', category: '' };
 
@@ -116,73 +116,69 @@ function PricebookDialog({ open, pricebook, onClose, onSuccess }: PricebookDialo
     }
   };
 
-  if (!open) return null;
-
   const isPending = createMutation.isPending || updateMutation.isPending || deleteMutation.isPending;
 
   return (
-    <div className="pricebook-dialog-overlay" onClick={onClose}>
-      <div className="pricebook-dialog-modal" role="dialog" aria-modal="true" aria-labelledby="pricebook-dialog-title" onClick={(e) => e.stopPropagation()}>
-        <div className="pricebook-dialog-header">
-          <h3 id="pricebook-dialog-title">{isEditing ? 'Sửa bảng giá' : 'Thêm bảng giá mới'}</h3>
-          <button type="button" className="pricebook-dialog-close" onClick={onClose} aria-label="Đóng">&times;</button>
-        </div>
-        <div className="pricebook-dialog-body">
-          <div className="form-grid">
-            <div className="form-field">
-              <label>Mã bảng giá <span className="required">*</span></label>
-              <input type="text" className={`form-input ${errors.code ? 'error' : ''}`} value={form.code} onChange={(e) => setForm({ ...form, code: e.target.value.toUpperCase() })} placeholder="BG-002" disabled={isEditing} />
-              {errors.code && <span className="form-error">{errors.code}</span>}
-            </div>
-            <div className="form-field">
-              <label>Tên bảng giá <span className="required">*</span></label>
-              <input type="text" className={`form-input ${errors.name ? 'error' : ''}`} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Bảng giá khuyến mãi" />
-              {errors.name && <span className="form-error">{errors.name}</span>}
-            </div>
-            {!pricebook?.isDefault && <div className="form-field">
-              <label>Ngày bắt đầu</label>
-              <DatePickerField className="form-input" value={form.effectiveFrom ?? ''} onChange={(effectiveFrom) => setForm({ ...form, effectiveFrom: effectiveFrom || null })} />
-            </div>}
-            {!pricebook?.isDefault && <div className="form-field">
-              <label>Ngày kết thúc</label>
-              <DatePickerField className={`form-input ${errors.effectiveTo ? 'error' : ''}`} value={form.effectiveTo ?? ''} onChange={(effectiveTo) => setForm({ ...form, effectiveTo: effectiveTo || null })} />
-              {errors.effectiveTo && <span className="form-error">{errors.effectiveTo}</span>}
-            </div>}
-            {!pricebook?.isDefault && <div className="form-field" style={{ gridColumn: '1 / -1' }}>
-              <label>Khách hàng áp dụng (không bắt buộc)</label>
-              <PricebookCustomerPicker value={form.customerIds ?? []} onChange={(customerIds) => setForm({ ...form, customerIds })} />
-            </div>}
-            {!isEditing && (
-              <div className="form-field">
-                <label className="checkbox-label">
-                  <input type="checkbox" checked={form.copyFromDefault} onChange={(e) => setForm({ ...form, copyFromDefault: e.target.checked })} />
-                  <span>Copy giá từ bảng giá mặc định</span>
-                </label>
-              </div>
-            )}
-            {isEditing && !pricebook?.isDefault && (
-              <div className="form-field">
-                <label className="checkbox-label">
-                  <input type="checkbox" checked={form.active} onChange={(e) => setForm({ ...form, active: e.target.checked })} />
-                  <span>Đang hoạt động</span>
-                </label>
-              </div>
-            )}
+    <Modal
+      open={open}
+      onClose={onClose}
+      title={isEditing ? 'Sửa bảng giá' : 'Thêm bảng giá mới'}
+      size="lg"
+      closeOnBackdrop={!isPending}
+    >
+      <div className="modal-body">
+        <div className="form-grid">
+          <div className="field">
+            <label className="field-label">Mã bảng giá <span className="field-required">*</span></label>
+            <input type="text" className="input" aria-invalid={Boolean(errors.code)} value={form.code} onChange={(e) => setForm({ ...form, code: e.target.value.toUpperCase() })} placeholder="BG-002" disabled={isEditing} />
+            {errors.code && <span className="field-error">{errors.code}</span>}
           </div>
-        </div>
-        <div className="pricebook-dialog-footer">
-          {isEditing && !pricebook?.isDefault && (
-            <button type="button" className="btn btn-danger" onClick={handleDelete} disabled={isPending}>Xóa</button>
+          <div className="field">
+            <label className="field-label">Tên bảng giá <span className="field-required">*</span></label>
+            <input type="text" className="input" aria-invalid={Boolean(errors.name)} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Bảng giá khuyến mãi" />
+            {errors.name && <span className="field-error">{errors.name}</span>}
+          </div>
+          {!pricebook?.isDefault && <div className="field">
+            <label className="field-label">Ngày bắt đầu</label>
+            <DatePickerField className="input" value={form.effectiveFrom ?? ''} onChange={(effectiveFrom) => setForm({ ...form, effectiveFrom: effectiveFrom || null })} />
+          </div>}
+          {!pricebook?.isDefault && <div className="field">
+            <label className="field-label">Ngày kết thúc</label>
+            <DatePickerField className="input" aria-invalid={Boolean(errors.effectiveTo)} value={form.effectiveTo ?? ''} onChange={(effectiveTo) => setForm({ ...form, effectiveTo: effectiveTo || null })} />
+            {errors.effectiveTo && <span className="field-error">{errors.effectiveTo}</span>}
+          </div>}
+          {!pricebook?.isDefault && <div className="field form-grid-full">
+            <label className="field-label">Khách hàng áp dụng (không bắt buộc)</label>
+            <PricebookCustomerPicker value={form.customerIds ?? []} onChange={(customerIds) => setForm({ ...form, customerIds })} />
+          </div>}
+          {!isEditing && (
+            <div className="field">
+              <label className="check">
+                <input type="checkbox" checked={form.copyFromDefault} onChange={(e) => setForm({ ...form, copyFromDefault: e.target.checked })} />
+                <span>Copy giá từ bảng giá mặc định</span>
+              </label>
+            </div>
           )}
-          <div className="pricebook-dialog-actions">
-            <button type="button" className="btn btn-secondary" onClick={onClose} disabled={isPending}>Hủy</button>
-            <button type="button" className="btn btn-primary" onClick={handleSubmit} disabled={isPending}>
-              {isEditing ? 'Lưu' : 'Tạo mới'}
-            </button>
-          </div>
+          {isEditing && !pricebook?.isDefault && (
+            <div className="field">
+              <label className="check">
+                <input type="checkbox" checked={form.active} onChange={(e) => setForm({ ...form, active: e.target.checked })} />
+                <span>Đang hoạt động</span>
+              </label>
+            </div>
+          )}
         </div>
       </div>
-    </div>
+      <footer className="modal-footer">
+        {isEditing && !pricebook?.isDefault && (
+          <button type="button" className="btn btn-danger-soft modal-footer-start" onClick={handleDelete} disabled={isPending}>Xóa</button>
+        )}
+        <button type="button" className="btn btn-secondary" onClick={onClose} disabled={isPending}>Hủy</button>
+        <button type="button" className="btn btn-primary" onClick={handleSubmit} disabled={isPending}>
+          {isEditing ? 'Lưu' : 'Tạo mới'}
+        </button>
+      </footer>
+    </Modal>
   );
 }
 
@@ -236,10 +232,10 @@ export function PricebooksView() {
   };
 
   return (
-    <main className="workspace">
-      <div className="workspace-shell">
+    <main className="page">
+      <div className="page-stack">
         <PageHeader title="Thiết lập giá" subtitle="Quản lý bảng giá và giá bán hàng hóa." />
-        <div className="workspace-grid">
+        <div className="page-grid">
           <FilterPanel title="Bảng giá" onApply={apply} onReset={() => { setDraft(initialFilters); setFilters(initialFilters); setPage(1); }}>
             <SelectFilter label="Bảng giá" value={draft.pricebookId} onChange={(pricebookId) => setDraft({ ...draft, pricebookId })} options={pricebookOptions} />
             <SelectFilter label="Nhóm hàng" value={draft.category} onChange={(category) => setDraft({ ...draft, category })} options={[{ value: '', label: 'Tất cả' }, ...(query.data?.meta.categories ?? []).map((category) => ({ value: category, label: category }))]} />

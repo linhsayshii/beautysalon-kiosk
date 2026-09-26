@@ -4,7 +4,6 @@ import { MoneyInput } from '@/components/forms/MoneyInput';
 import { formatMoney } from '@/lib/format';
 import { getCustomerDebt } from './debts.api';
 import { useMetadata } from '@/services/metadata';
-import './debts.css';
 
 export function PartialPaymentFields({customerId,total,amount,onAmountChange,allowDebt,onAllowDebtChange,method,disabled=false,showTransferQr=true,compact=false}: {
   customerId?: number | null; total:number; amount:number; onAmountChange:(n:number)=>void;

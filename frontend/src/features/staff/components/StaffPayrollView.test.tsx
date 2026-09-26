@@ -159,7 +159,7 @@ describe('StaffPayrollView Component', () => {
     renderWithClient(<StaffPayrollView />);
 
     // Check header
-    expect(await screen.findByRole('heading', { level: 2, name: 'Bảng lương' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { level: 1, name: 'Bảng lương' })).toBeInTheDocument();
 
     // Check Sidebar filters
     expect(screen.getByText('Kỳ hạn trả lương')).toBeInTheDocument();
@@ -248,7 +248,7 @@ describe('StaffPayrollView Component', () => {
     fireEvent.click(sheetBtn);
 
     // Should switch to Sheet View
-    expect(await screen.findByRole('heading', { level: 2, name: /Cập nhật bảng tính lương/i })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { level: 1, name: /Cập nhật bảng tính lương/i })).toBeInTheDocument();
     expect(screen.getByText(/Lương chính/i)).toBeInTheDocument();
     expect(screen.getByText(/Hoa hồng/i)).toBeInTheDocument();
     expect(screen.getByText(/Tổng thu nhập/i)).toBeInTheDocument();
@@ -258,7 +258,7 @@ describe('StaffPayrollView Component', () => {
     fireEvent.click(backBtn);
 
     // Returned to Payroll list
-    expect(await screen.findByRole('heading', { level: 2, name: 'Bảng lương' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { level: 1, name: 'Bảng lương' })).toBeInTheDocument();
   });
 
   it('expands accordion detail row on table row click', async () => {

@@ -21,7 +21,8 @@ Phạm vi giai đoạn đầu: trang Dashboard - Tổng quan.
 
 - Card lớn: bo góc `16px`.
 - Card con và item danh sách: bo góc `12px`.
-- Button và badge: dạng pill, bo góc tối đa.
+- Badge và chip: dạng pill, bo góc tối đa.
+- Button, input và select: bo góc `10px` (`--radius-control`) để nằm cạnh nhau trên toolbar có cùng hình khối.
 - Viền card: `1px` với màu xanh xám rất nhạt.
 - Shadow: mềm, nhuộm xanh, chỉ dùng để tách lớp cho nav, dropdown và card nổi.
 - Không dùng góc vuông, glow neon hoặc glassmorphism.
@@ -43,6 +44,19 @@ Phạm vi giai đoạn đầu: trang Dashboard - Tổng quan.
 | `--red` | `#C6283D` | Giảm sút hoặc lỗi |
 
 Màu xanh là accent duy nhất cho hành động. Xanh lá, cam và đỏ chỉ biểu thị trạng thái dữ liệu.
+
+Mỗi tông trạng thái (`green`, `orange`, `red`, `violet`, `sky`, `pink`, `mint`) có ba token: `--x` cho chữ và điểm màu, `--x-soft` cho nền nhạt, `--x-line` cho viền trên nền nhạt. Trạng thái lịch hẹn dùng chung bộ `--appt-*` cho lịch POS, chấm trạng thái trên desktop và mobile:
+
+| Trạng thái | Token | Màu |
+| --- | --- | --- |
+| Chờ xác nhận | `--appt-pending` | xám `--ink-300` |
+| Chưa tới / Chờ phục vụ | `--appt-confirmed` | `--mint` |
+| Đang chờ (khách đã tới) | `--appt-waiting` | `--orange` |
+| Đang làm | `--appt-in-service` | `--blue-600` |
+| Đã xong | `--appt-completed` | `--green` (khối lịch POS nhạt đi: nền `--green-soft`) |
+| Đã hủy / Không đến | `--appt-cancelled` / `--appt-no-show` | `--red` / `--ink-500` |
+
+Không viết mã màu hex ngoài `tokens.css`; test contract sẽ báo lỗi.
 
 ### 3.3 Typography
 
@@ -166,3 +180,28 @@ Ba card đầu trang:
 - Không có tràn ngang ở 390px, 768px, 1280px và 1536px.
 - Giao diện hiển thị skeleton khi JavaScript hoặc API chậm; không nhúng dữ liệu nghiệp vụ vào HTML.
 - Không có lỗi console nghiêm trọng.
+
+## 10. Template UI thống nhất
+
+Mọi màn desktop và mobile dựng từ cùng một bộ primitive trong `frontend/src/styles/ui/` và component React tương ứng. Chi tiết thiết kế ở `docs/superpowers/specs/2026-09-25-unified-ui-template-design.md`; công thức trang mobile ở `docs/mobile-ui-header-template.md`; mẫu sống ở `/ui-kit` và `/ui-kit/mobile` (chỉ bản DEV).
+
+| Nhu cầu | Dùng |
+| --- | --- |
+| Tiêu đề trang desktop | `PageHeader` (`backTo` hoặc `onBack` cho trang con) |
+| Trang danh sách desktop | `.page` → `PageHeader` → `.page-grid` gồm `.filter-panel` và `.data-panel` (`SearchToolbar`, `.data-table`, `.table-footer`) |
+| Chi tiết mở dưới một dòng bảng | `InlineDetail` + `DetailHead` + `ValueStrip` + `DetailFacts`, bảng con `.detail-table` |
+| Hộp thoại | `Modal` (sm 420 / md 560 / lg 760 / xl 960); dưới 640px tự thành bottom sheet |
+| Sheet mobile | `BottomSheet` |
+| Header mobile | `MobilePageHeader` + `MobileHeaderAction` |
+| Nút | `.btn` + `btn-primary / secondary / soft / ghost / danger / danger-soft / success / link`, cỡ `btn-sm / btn-lg / btn-block / btn-icon`; nút bật/tắt dùng `aria-pressed` |
+| Form | `.field` + `.field-label` + `.input` / `.textarea` / `Select` / `MoneyInput` (`.input-suffix`); `.field-row` cho nhãn nằm ngang; `.form-grid`; `.form-section` (thêm `is-card` hoặc `is-collapsible`); `.switch`; `.check` |
+| Trạng thái & thông báo | `LoadingState` / `EmptyState` / `ErrorState` (`compact` trên mobile); `.alert` + `alert-danger / warning / success` |
+| Nhãn | `.badge` (+ tông), `.status-badge`, `.chip` + `aria-pressed`, `.chip-group` |
+| Nhấn màu chữ | `.text-primary / success / danger / warning / violet / muted / faint / strong / right` |
+
+Quy tắc bắt buộc, được kiểm tra tự động trong `src/styles/styles.contract.test.ts`:
+
+- Chỉ `tokens.css` chứa mã màu. TSX không truyền mã hex (trừ màu giao cho thư viện vẽ ngoài CSS: mã QR, Leaflet).
+- Inline style chỉ mang giá trị tính lúc chạy (tọa độ, kích thước, phần trăm). Màu, chữ và khoảng cách đi qua class.
+- Class chuẩn chỉ được định nghĩa trong `styles/ui/`. CSS của module chỉ chứa bố cục riêng, tên có tiền tố module.
+- Mọi file CSS được nạp một lần từ `styles/index.css`; component không tự import CSS.

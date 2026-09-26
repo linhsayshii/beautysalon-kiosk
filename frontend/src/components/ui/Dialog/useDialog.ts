@@ -34,14 +34,14 @@ function deactivateOverlay() {
   }
 }
 
-interface UseMobileDialogOptions {
+export interface UseDialogOptions {
   isOpen: boolean;
   onClose: () => void;
   initialFocusRef?: RefObject<HTMLElement | null>;
 }
 
-/** Shared keyboard, focus and scroll behavior for mobile modal surfaces. */
-export function useMobileDialog({ isOpen, onClose, initialFocusRef }: UseMobileDialogOptions) {
+/** Shared keyboard, focus and scroll behavior for every modal surface (Modal, BottomSheet, drawers). */
+export function useDialog({ isOpen, onClose, initialFocusRef }: UseDialogOptions) {
   const dialogRef = useRef<HTMLElement>(null);
   const titleId = useId();
   const instanceRef = useRef(Symbol('mobile-dialog'));

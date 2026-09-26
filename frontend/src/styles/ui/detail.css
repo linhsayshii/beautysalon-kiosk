@@ -1,0 +1,455 @@
+/*
+ * Inline detail: the panel that opens under an expanded table row (orders, customers,
+ * staff, attendance, payroll). Build it with components/data-display/InlineDetail.tsx:
+ *
+ * <tr className="expandable-data-row is-expanded">…</tr>
+ * <tr className="expandable-detail-row"><td colSpan={n}>
+ *   <div className="inline-detail">
+ *     <div className="tabs inline-detail-tabs" role="tablist">…</div>
+ *     <div className="inline-detail-body">
+ *       .detail-head        avatar + title/tags + meta line, aside on the right
+ *       .value-strip        4 headline numbers (dl)
+ *       .detail-facts       label/value grid (dl, 4 columns or .detail-facts-3), .is-wide spans two
+ *       .detail-table       compact table inside .table-scroll; never stacks, so it also
+ *                           serves editable grids placed straight in a .data-panel
+ *       .detail-totals      right-aligned totals under a table
+ *       .detail-actions     buttons along the bottom edge
+ *
+ * Values take a tone: dd.is-primary | is-success | is-danger | is-warning | is-violet | is-muted.
+ */
+
+/* Rows of the host table */
+.expandable-data-row {
+  cursor: pointer;
+}
+
+.expandable-data-row.is-expanded {
+  background: var(--blue-50);
+}
+
+.expandable-data-row.is-expanded td {
+  border-bottom-color: var(--blue-200);
+}
+
+.data-table > tbody > tr.expandable-detail-row:hover {
+  background: var(--surface);
+}
+
+.expandable-detail-row > td,
+.data-table > tbody > tr.expandable-detail-row > td {
+  height: auto;
+  padding: 0;
+  background: var(--surface);
+}
+
+.expandable-detail-row .table-loading,
+.expandable-detail-row .table-error,
+.expandable-detail-row .table-empty {
+  min-height: 180px;
+}
+
+/* Panel */
+.inline-detail {
+  min-width: 0;
+  border-top: 2px solid var(--blue-600);
+  border-bottom: 1px solid var(--line-strong);
+  color: var(--ink-800);
+  background: var(--surface);
+  text-align: left;
+}
+
+.inline-detail-tabs {
+  padding: 0 20px;
+  background: var(--surface);
+}
+
+.inline-detail-body {
+  display: grid;
+  gap: var(--space-4);
+  min-width: 0;
+  padding: 16px 20px 20px;
+}
+
+.inline-detail-body > * {
+  min-width: 0;
+}
+
+/* Head */
+.detail-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+
+.detail-head-main {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+}
+
+.detail-avatar {
+  display: grid;
+  flex-shrink: 0;
+  place-items: center;
+  width: 52px;
+  height: 52px;
+  overflow: hidden;
+  border-radius: var(--radius-inner);
+  color: var(--blue-600);
+  background: var(--blue-50);
+  font-size: 26px;
+}
+
+.detail-avatar > img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.detail-avatar.tone-violet { color: var(--violet); background: var(--violet-soft); }
+.detail-avatar.tone-green { color: var(--green); background: var(--green-soft); }
+.detail-avatar.tone-orange { color: var(--orange); background: var(--orange-soft); }
+.detail-avatar.tone-pink { color: var(--pink); background: var(--pink-soft); }
+.detail-avatar.tone-mint { color: var(--mint); background: var(--mint-soft); }
+
+.detail-head-title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.detail-head-title > strong {
+  color: var(--ink-950);
+  font-size: var(--text-lg);
+  font-weight: var(--weight-bold);
+  letter-spacing: -0.01em;
+}
+
+.detail-head-meta {
+  margin-top: 3px;
+  color: var(--ink-500);
+  font-size: var(--text-sm);
+}
+
+.detail-head-meta strong,
+.detail-head-aside strong {
+  color: var(--ink-800);
+  font-weight: var(--weight-semibold);
+}
+
+.detail-head-aside {
+  color: var(--ink-500);
+  font-size: var(--text-xs);
+  line-height: 1.6;
+  text-align: right;
+}
+
+/* Headline numbers */
+.value-strip {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 8px 16px;
+  margin: 0;
+  padding: 12px 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface-muted);
+  font-size: var(--text-md);
+}
+
+.value-strip > div {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px;
+  min-width: 0;
+}
+
+.value-strip dt {
+  color: var(--ink-500);
+}
+
+.value-strip dt::after {
+  content: ":";
+}
+
+.value-strip dd {
+  margin: 0;
+  color: var(--ink-950);
+  font-weight: var(--weight-bold);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Label/value grid */
+.detail-facts {
+  display: grid;
+  grid-template-columns: repeat(var(--detail-columns, 4), minmax(0, 1fr));
+  gap: 16px 24px;
+  margin: 0;
+  font-size: var(--text-md);
+}
+
+.detail-facts-3 {
+  --detail-columns: 3;
+}
+
+.detail-facts > div {
+  min-width: 0;
+}
+
+.detail-facts > .is-wide {
+  grid-column: span 2;
+}
+
+.detail-facts > .is-full {
+  grid-column: 1 / -1;
+}
+
+.detail-facts dt {
+  margin-bottom: 2px;
+  color: var(--ink-500);
+}
+
+.detail-facts dd {
+  margin: 0;
+  color: var(--ink-800);
+  font-weight: var(--weight-semibold);
+  overflow-wrap: anywhere;
+}
+
+.detail-facts dd.is-note {
+  color: var(--ink-600);
+  font-weight: var(--weight-regular);
+}
+
+.detail-facts dd.is-placeholder {
+  color: var(--ink-400);
+  font-style: italic;
+  font-weight: var(--weight-regular);
+}
+
+.value-strip dd.is-primary,
+.detail-facts dd.is-primary { color: var(--blue-600); }
+.value-strip dd.is-success,
+.detail-facts dd.is-success { color: var(--green); }
+.value-strip dd.is-danger,
+.detail-facts dd.is-danger { color: var(--red); }
+.value-strip dd.is-warning,
+.detail-facts dd.is-warning { color: var(--orange); }
+.value-strip dd.is-violet,
+.detail-facts dd.is-violet { color: var(--violet); }
+.value-strip dd.is-muted,
+.detail-facts dd.is-muted { color: var(--ink-500); }
+
+.detail-section-title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px;
+  color: var(--ink-950);
+  font-size: var(--text-md);
+  font-weight: var(--weight-bold);
+}
+
+.detail-section-title > small {
+  color: var(--ink-500);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-regular);
+}
+
+/* Compact table inside a detail panel: stays a table on every screen width. */
+.detail-table {
+  width: 100%;
+  border-collapse: collapse;
+  color: var(--ink-800);
+  font-size: var(--text-sm);
+}
+
+.detail-table th,
+.detail-table td {
+  padding: 9px 12px;
+  border-bottom: 1px solid var(--line-soft);
+  text-align: left;
+  vertical-align: middle;
+}
+
+.detail-table th {
+  border-bottom-color: var(--line);
+  color: var(--ink-600);
+  background: var(--surface-muted);
+  font-weight: var(--weight-bold);
+  white-space: nowrap;
+}
+
+.detail-table tbody tr:hover {
+  background: var(--surface-muted);
+}
+
+.detail-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.detail-table .is-num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.detail-table .is-center {
+  text-align: center;
+}
+
+.detail-table .is-code {
+  color: var(--blue-600);
+  font-weight: var(--weight-semibold);
+  white-space: nowrap;
+}
+
+.detail-table .is-empty {
+  color: var(--ink-300);
+}
+
+/* Editable grids (e.g. payroll sheet): inputs sit inside numeric cells. */
+.detail-table .cell-input {
+  width: 100%;
+  min-width: 104px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.data-panel > .table-scroll > .detail-table th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.detail-table-scroll {
+  max-height: 380px;
+  overflow: auto;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+}
+
+.detail-table-scroll > .detail-table th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.detail-totals {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px 24px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+  color: var(--ink-600);
+  font-size: var(--text-md);
+}
+
+.detail-totals strong {
+  color: var(--ink-950);
+  font-variant-numeric: tabular-nums;
+}
+
+.detail-totals .is-grand {
+  color: var(--blue-600);
+  font-size: var(--text-lg);
+}
+
+.detail-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line-soft);
+}
+
+.detail-actions-start {
+  margin-right: auto;
+}
+
+.detail-actions-note {
+  color: var(--ink-500);
+  font-size: var(--text-xs);
+}
+
+/* A host table wider than its scroller: pin the panel to the visible width so nothing is cut off. */
+@media (min-width: 721px) {
+  .table-scroll:has(> .data-table > tbody > .expandable-detail-row) {
+    container-type: inline-size;
+  }
+
+  .table-scroll > .data-table > tbody > .expandable-detail-row > td > .inline-detail {
+    position: sticky;
+    left: 0;
+    width: 100cqi;
+  }
+}
+
+/* Tables that stack into cards on phones: the detail row becomes a flush panel under its card. */
+@media (max-width: 720px) {
+  .data-table > tbody > tr.expandable-data-row.is-expanded {
+    border-color: var(--blue-300);
+    border-radius: var(--radius-inner) var(--radius-inner) 0 0;
+  }
+
+  .data-table > tbody > tr.expandable-detail-row {
+    margin-top: -10px;
+    padding: 0;
+    overflow: hidden;
+    border-color: var(--blue-300);
+    border-radius: 0 0 var(--radius-inner) var(--radius-inner);
+    background: var(--surface);
+  }
+
+  .data-table > tbody > tr.expandable-detail-row > td {
+    display: block;
+    padding: 0;
+    text-align: left;
+  }
+
+  .data-table > tbody > tr.expandable-detail-row > td::before {
+    display: none;
+  }
+}
+
+@media (max-width: 900px) {
+  .detail-facts {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 720px) {
+  .inline-detail-tabs {
+    padding: 0 14px;
+  }
+
+  .inline-detail-body {
+    padding: 14px;
+  }
+
+  .detail-head-aside {
+    text-align: left;
+  }
+
+  .value-strip {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 520px) {
+  .detail-facts {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .detail-facts > .is-wide {
+    grid-column: auto;
+  }
+}

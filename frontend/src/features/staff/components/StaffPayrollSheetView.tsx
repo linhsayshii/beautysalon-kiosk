@@ -1,8 +1,10 @@
 import { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { LoadingState } from '@/components/data-display/DataState';
+import { ErrorState, LoadingState } from '@/components/data-display/DataState';
+import { PageHeader } from '@/components/ui/PageHeader/PageHeader';
 import { MoneyInput } from '@/components/forms/MoneyInput';
 import { useToast } from '@/components/ui/Toast/ToastProvider';
+import { useComingSoon } from '@/components/ui/Toast/useComingSoon';
 import { formatMoney } from '@/lib/format';
 import {
   getPayrollDetail,
@@ -19,6 +21,7 @@ interface StaffPayrollSheetViewProps {
 
 export function StaffPayrollSheetView({ periodId, onBack }: StaffPayrollSheetViewProps) {
   const { notify } = useToast();
+  const comingSoon = useComingSoon();
   const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState('');
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
@@ -26,7 +29,7 @@ export function StaffPayrollSheetView({ periodId, onBack }: StaffPayrollSheetVie
   // Local editing state for records
   const [editedRecords, setEditedRecords] = useState<Record<number, Partial<PayrollRecordItem>>>({});
 
-  const { data, isLoading, error } = useQuery({
+  const { data, isLoading, error, refetch } = useQuery({
     queryKey: ['staff-payroll-detail', periodId],
     queryFn: () => getPayrollDetail(periodId),
   });
@@ -148,381 +151,151 @@ export function StaffPayrollSheetView({ periodId, onBack }: StaffPayrollSheetVie
 
   if (isLoading) {
     return (
-      <div className="attendance-page">
-        <div className="attendance-container">
-          <LoadingState />
-        </div>
-      </div>
+      <main className="page">
+        <LoadingState />
+      </main>
     );
   }
 
   if (error || !detail) {
     return (
-      <div className="attendance-page">
-        <div className="attendance-container">
-          <div style={{ color: '#ef4444' }}>Không thể tải chi tiết bảng tính lương.</div>
-          <button type="button" onClick={onBack} className="btn-secondary" style={{ marginTop: 12 }}>
-            Quay lại
-          </button>
+      <main className="page">
+        <div className="page-stack">
+          <PageHeader title="Cập nhật bảng tính lương" onBack={onBack} />
+          <ErrorState error={error ?? new Error('Không thể tải chi tiết bảng tính lương.')} onRetry={() => refetch()} />
         </div>
-      </div>
+      </main>
     );
   }
 
   const isApproved = detail.period.status === 'approved';
+  const moneyCell = (record: PayrollRecordItem, field: keyof PayrollRecordItem, extraClass = '') => (
+    <td className="is-num">
+      <MoneyInput
+        className={`input input-sm cell-input ${extraClass}`}
+        aria-label={`${record.staff.name} – ${String(field)}`}
+        disabled={isApproved}
+        value={record[field] as number}
+        onChange={(val) => handleRecordChange(record.id, field, val)}
+      />
+    </td>
+  );
 
   return (
-    <div className="attendance-page">
-      <div className="attendance-container">
-        {/* Top Header Navigation Bar (Chuẩn KiotViet) */}
-        <div
-          style={{
-            background: '#ffffff',
-            borderRadius: 12,
-            border: '1px solid #e2e8f0',
-            padding: '12px 18px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            gap: 16,
-            flexWrap: 'wrap',
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <button
-              type="button"
-              onClick={onBack}
-              aria-label="Quay lại"
-              style={{
-                background: 'none',
-                border: 'none',
-                cursor: 'pointer',
-                fontSize: 18,
-                color: '#334155',
-                display: 'flex',
-                alignItems: 'center',
-                padding: 4,
-                borderRadius: 6,
-              }}
-            >
-              <i className="ph ph-arrow-left" />
-            </button>
-            <h2 style={{ fontSize: 18, fontWeight: 700, margin: 0, color: '#0f172a' }}>
-              Cập nhật bảng tính lương
-            </h2>
-            <span style={{ fontSize: 13, color: '#64748b', fontWeight: 600 }}>
-              ({detail.period.name} - <span style={{ color: '#0052cc' }}>{detail.period.code}</span>)
-            </span>
-          </div>
-
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flex: 1, justifyContent: 'flex-end' }}>
-            <div style={{ position: 'relative', minWidth: 260 }}>
-              <i
-                className="ph ph-magnifying-glass"
-                style={{ position: 'absolute', left: 10, top: 10, color: '#94a3b8' }}
-              />
-              <input
-                type="text"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="Tìm nhân viên theo mã hoặc tên"
-                style={{
-                  width: '100%',
-                  padding: '7px 12px 7px 32px',
-                  borderRadius: 8,
-                  border: '1px solid #cbd5e1',
-                  fontSize: 13,
-                  outline: 'none',
-                }}
-              />
-            </div>
-
+    <main className="page">
+      <div className="page-stack">
+        <PageHeader
+          title="Cập nhật bảng tính lương"
+          subtitle={<>{detail.period.name} – <span className="text-primary">{detail.period.code}</span></>}
+          onBack={onBack}
+          extraActions={<>
             {!isApproved && (
-              <button
-                type="button"
-                disabled={updateMutation.isPending}
-                onClick={() => updateMutation.mutate()}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 6,
-                  padding: '7px 14px',
-                  borderRadius: 8,
-                  border: '1px solid #cbd5e1',
-                  background: '#fff',
-                  color: '#334155',
-                  fontWeight: 600,
-                  fontSize: 13,
-                  cursor: 'pointer',
-                }}
-              >
+              <button type="button" className="btn btn-secondary" disabled={updateMutation.isPending} onClick={() => updateMutation.mutate()}>
                 <i className="ph ph-floppy-disk" />
                 <span>{updateMutation.isPending ? 'Đang lưu...' : 'Lưu tạm'}</span>
               </button>
             )}
-
-            <button
-              type="button"
-              onClick={() => setIsPaymentModalOpen(true)}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 6,
-                padding: '7px 14px',
-                borderRadius: 8,
-                border: '1px solid #0052cc',
-                background: '#fff',
-                color: '#0052cc',
-                fontWeight: 600,
-                fontSize: 13,
-                cursor: 'pointer',
-              }}
-            >
+            <button type="button" className="btn btn-soft" onClick={() => setIsPaymentModalOpen(true)}>
               <i className="ph ph-credit-card" />
               <span>Thanh toán</span>
             </button>
-
             {!isApproved && (
               <button
                 type="button"
+                className="btn btn-primary"
                 disabled={approveMutation.isPending}
                 onClick={() => {
                   if (window.confirm('Bạn có chắc chắn muốn chốt bảng lương này? Sau khi chốt sẽ không thể sửa lại.')) {
                     approveMutation.mutate();
                   }
                 }}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 6,
-                  padding: '7px 16px',
-                  borderRadius: 8,
-                  border: 'none',
-                  background: '#0052cc',
-                  color: '#fff',
-                  fontWeight: 600,
-                  fontSize: 13,
-                  cursor: 'pointer',
-                }}
               >
                 <i className="ph ph-check" />
                 <span>{approveMutation.isPending ? 'Đang xử lý...' : 'Chốt lương'}</span>
               </button>
             )}
-          </div>
-        </div>
+          </>}
+        />
 
-        {/* Matrix Salary Table Card (Chuẩn KiotViet) */}
-        <div
-          style={{
-            background: '#ffffff',
-            borderRadius: 12,
-            border: '1px solid #e2e8f0',
-            overflow: 'hidden',
-            width: '100%',
-          }}
-        >
-          <div className="table-scroll" style={{ width: '100%', overflowX: 'auto' }}>
-            <table className="kiotviet-payroll-table">
+        <section className="data-panel">
+          <div className="data-toolbar">
+            <label className="search-control">
+              <i className="ph ph-magnifying-glass" />
+              <input
+                type="search"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Tìm nhân viên theo mã hoặc tên"
+                aria-label="Tìm nhân viên"
+              />
+            </label>
+          </div>
+          <div className="table-scroll">
+            <table className="detail-table payroll-sheet-table">
               <thead>
-                <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569' }}>
-                  <th style={{ width: 40, padding: '10px 8px', textAlign: 'center' }}>
-                    <i className="ph ph-trash" style={{ color: '#94a3b8' }} />
-                  </th>
-                  <th style={{ width: 45, padding: '10px 8px', textAlign: 'center' }}>STT</th>
-                  <th style={{ minWidth: 160, padding: '10px 12px', textAlign: 'left' }}>Tên nhân viên</th>
-                  <th style={{ minWidth: 110, padding: '10px 8px', textAlign: 'right' }}>Lương chính</th>
-                  <th style={{ minWidth: 90, padding: '10px 8px', textAlign: 'right' }}>Làm thêm</th>
-                  <th style={{ minWidth: 110, padding: '10px 8px', textAlign: 'right' }}>Hoa hồng</th>
-                  <th style={{ minWidth: 90, padding: '10px 8px', textAlign: 'right' }}>Phụ cấp</th>
-                  <th style={{ minWidth: 90, padding: '10px 8px', textAlign: 'right' }}>Thưởng</th>
-                  <th style={{ minWidth: 110, padding: '10px 8px', textAlign: 'right' }}>Tổng thu nhập</th>
-                  <th style={{ minWidth: 90, padding: '10px 8px', textAlign: 'right' }}>Giảm trừ</th>
-                  <th style={{ minWidth: 120, padding: '10px 8px', textAlign: 'right' }}>
-                    Lương thực nhận <i className="ph ph-info" />
-                  </th>
-                  <th style={{ minWidth: 90, padding: '10px 8px', textAlign: 'right' }}>Đã trả</th>
-                  <th style={{ minWidth: 100, padding: '10px 8px', textAlign: 'right' }}>Còn cần trả</th>
+                <tr>
+                  <th className="is-center"><i className="ph ph-trash text-faint" aria-label="Xóa" /></th>
+                  <th className="is-center">STT</th>
+                  <th>Tên nhân viên</th>
+                  <th className="is-num">Lương chính</th>
+                  <th className="is-num">Làm thêm</th>
+                  <th className="is-num">Hoa hồng</th>
+                  <th className="is-num">Phụ cấp</th>
+                  <th className="is-num">Thưởng</th>
+                  <th className="is-num">Tổng thu nhập</th>
+                  <th className="is-num">Giảm trừ</th>
+                  <th className="is-num">Lương thực nhận <i className="ph ph-info" /></th>
+                  <th className="is-num">Đã trả</th>
+                  <th className="is-num">Còn cần trả</th>
                 </tr>
-                {/* Header Summary Row */}
-                <tr style={{ background: '#f1f5f9', borderBottom: '2px solid #cbd5e1', fontWeight: 700 }}>
-                  <td colSpan={3} style={{ padding: '8px 12px' }} />
-                  <td style={{ padding: '8px 8px', textAlign: 'right' }}>{formatMoney(totals.baseSalary)}</td>
-                  <td style={{ padding: '8px 8px', textAlign: 'right' }}>{formatMoney(totals.overtimeSalary)}</td>
-                  <td style={{ padding: '8px 8px', textAlign: 'right' }}>{formatMoney(totals.commission)}</td>
-                  <td style={{ padding: '8px 8px', textAlign: 'right' }}>{formatMoney(totals.allowance)}</td>
-                  <td style={{ padding: '8px 8px', textAlign: 'right' }}>{formatMoney(totals.bonus)}</td>
-                  <td style={{ padding: '8px 8px', textAlign: 'right' }}>{formatMoney(totals.totalIncome)}</td>
-                  <td style={{ padding: '8px 8px', textAlign: 'right' }}>{formatMoney(totals.deduction)}</td>
-                  <td style={{ padding: '8px 8px', textAlign: 'right', color: '#0f172a' }}>
-                    {formatMoney(totals.netSalary)}
-                  </td>
-                  <td style={{ padding: '8px 8px', textAlign: 'right', color: '#059669' }}>
-                    {formatMoney(totals.paidAmount)}
-                  </td>
-                  <td style={{ padding: '8px 8px', textAlign: 'right', color: '#e11d48' }}>
-                    {formatMoney(totals.remainingAmount)}
-                  </td>
+                <tr className="table-summary-row">
+                  <td colSpan={3} />
+                  <td className="is-num">{formatMoney(totals.baseSalary)}</td>
+                  <td className="is-num">{formatMoney(totals.overtimeSalary)}</td>
+                  <td className="is-num">{formatMoney(totals.commission)}</td>
+                  <td className="is-num">{formatMoney(totals.allowance)}</td>
+                  <td className="is-num">{formatMoney(totals.bonus)}</td>
+                  <td className="is-num">{formatMoney(totals.totalIncome)}</td>
+                  <td className="is-num">{formatMoney(totals.deduction)}</td>
+                  <td className="is-num">{formatMoney(totals.netSalary)}</td>
+                  <td className="is-num text-success">{formatMoney(totals.paidAmount)}</td>
+                  <td className="is-num text-danger">{formatMoney(totals.remainingAmount)}</td>
                 </tr>
               </thead>
               <tbody>
                 {records.map((r, idx) => (
-                  <tr key={r.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                    <td style={{ textAlign: 'center', padding: '8px' }}>
-                      <button
-                        type="button"
-                        aria-label="Xóa dòng"
-                        style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer' }}
-                      >
+                  <tr key={r.id}>
+                    <td className="is-center">
+                      <button type="button" className="btn btn-ghost btn-icon btn-sm" aria-label="Xóa dòng" onClick={comingSoon}>
                         <i className="ph ph-trash" />
                       </button>
                     </td>
-                    <td style={{ textAlign: 'center', padding: '8px', color: '#64748b' }}>{idx + 1}</td>
-                    <td style={{ padding: '8px 12px' }}>
-                      <div style={{ fontWeight: 600, color: '#0052cc' }}>{r.staff.name}</div>
-                      <div style={{ fontSize: 11, color: '#94a3b8' }}>{r.staff.code}</div>
+                    <td className="is-center text-muted">{idx + 1}</td>
+                    <td>
+                      <span className="cell-main link">{r.staff.name}</span>
+                      <span className="cell-sub">{r.staff.code}</span>
                     </td>
-
-                    {/* Lương chính */}
-                    <td style={{ padding: '6px 8px', textAlign: 'right' }}>
-                      <MoneyInput
-                        disabled={isApproved}
-                        value={r.baseSalary}
-                        onChange={(val) => handleRecordChange(r.id, 'baseSalary', val)}
-                        style={{
-                          width: '100%',
-                          textAlign: 'right',
-                          padding: '5px 8px',
-                          borderRadius: 6,
-                          border: '1px solid #cbd5e1',
-                          fontSize: 13,
-                          outline: 'none',
-                        }}
-                      />
-                    </td>
-
-                    {/* Làm thêm */}
-                    <td style={{ padding: '6px 8px', textAlign: 'right' }}>
-                      <MoneyInput
-                        disabled={isApproved}
-                        value={r.overtimeSalary}
-                        onChange={(val) => handleRecordChange(r.id, 'overtimeSalary', val)}
-                        style={{
-                          width: '100%',
-                          textAlign: 'right',
-                          padding: '5px 8px',
-                          borderRadius: 6,
-                          border: '1px solid #cbd5e1',
-                          fontSize: 13,
-                          outline: 'none',
-                        }}
-                      />
-                    </td>
-
-                    {/* Hoa hồng */}
-                    <td style={{ padding: '6px 8px', textAlign: 'right' }}>
-                      <MoneyInput
-                        disabled={isApproved}
-                        value={r.commission}
-                        onChange={(val) => handleRecordChange(r.id, 'commission', val)}
-                        style={{
-                          width: '100%',
-                          textAlign: 'right',
-                          padding: '5px 8px',
-                          borderRadius: 6,
-                          border: '1px solid #cbd5e1',
-                          fontSize: 13,
-                          outline: 'none',
-                        }}
-                      />
-                    </td>
-
-                    {/* Phụ cấp */}
-                    <td style={{ padding: '6px 8px', textAlign: 'right' }}>
-                      <MoneyInput
-                        disabled={isApproved}
-                        value={r.allowance}
-                        onChange={(val) => handleRecordChange(r.id, 'allowance', val)}
-                        style={{
-                          width: '100%',
-                          textAlign: 'right',
-                          padding: '5px 8px',
-                          borderRadius: 6,
-                          border: '1px solid #cbd5e1',
-                          fontSize: 13,
-                          outline: 'none',
-                        }}
-                      />
-                    </td>
-
-                    {/* Thưởng */}
-                    <td style={{ padding: '6px 8px', textAlign: 'right' }}>
-                      <MoneyInput
-                        disabled={isApproved}
-                        value={r.bonus}
-                        onChange={(val) => handleRecordChange(r.id, 'bonus', val)}
-                        style={{
-                          width: '100%',
-                          textAlign: 'right',
-                          padding: '5px 8px',
-                          borderRadius: 6,
-                          border: '1px solid #cbd5e1',
-                          fontSize: 13,
-                          outline: 'none',
-                        }}
-                      />
-                    </td>
-
-                    {/* Tổng thu nhập */}
-                    <td style={{ padding: '8px 8px', textAlign: 'right', fontWeight: 600, color: '#0f172a' }}>
-                      {formatMoney(r.totalIncome)}
-                    </td>
-
-                    {/* Giảm trừ */}
-                    <td style={{ padding: '6px 8px', textAlign: 'right' }}>
-                      <MoneyInput
-                        disabled={isApproved}
-                        value={r.deduction}
-                        onChange={(val) => handleRecordChange(r.id, 'deduction', val)}
-                        style={{
-                          width: '100%',
-                          textAlign: 'right',
-                          padding: '5px 8px',
-                          borderRadius: 6,
-                          border: '1px solid #cbd5e1',
-                          fontSize: 13,
-                          color: '#e11d48',
-                          outline: 'none',
-                        }}
-                      />
-                    </td>
-
-                    {/* Lương thực nhận */}
-                    <td style={{ padding: '8px 8px', textAlign: 'right', fontWeight: 700, color: '#0f172a' }}>
-                      {formatMoney(r.netSalary)}
-                    </td>
-
-                    {/* Đã trả */}
-                    <td style={{ padding: '8px 8px', textAlign: 'right', color: '#059669', fontWeight: 600 }}>
-                      {formatMoney(r.paidAmount)}
-                    </td>
-
-                    {/* Còn cần trả */}
-                    <td style={{ padding: '8px 8px', textAlign: 'right', color: '#e11d48', fontWeight: 600 }}>
-                      {formatMoney(r.remainingAmount)}
-                    </td>
+                    {moneyCell(r, 'baseSalary')}
+                    {moneyCell(r, 'overtimeSalary')}
+                    {moneyCell(r, 'commission')}
+                    {moneyCell(r, 'allowance')}
+                    {moneyCell(r, 'bonus')}
+                    <td className="is-num text-strong">{formatMoney(r.totalIncome)}</td>
+                    {moneyCell(r, 'deduction', 'text-danger')}
+                    <td className="is-num text-strong">{formatMoney(r.netSalary)}</td>
+                    <td className="is-num text-strong text-success">{formatMoney(r.paidAmount)}</td>
+                    <td className="is-num text-strong text-danger">{formatMoney(r.remainingAmount)}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
-        </div>
+        </section>
       </div>
 
-      {/* Payment Modal */}
       {isPaymentModalOpen && (
         <StaffPayrollPaymentModal periodDetail={detail} onClose={() => setIsPaymentModalOpen(false)} />
       )}
-    </div>
+    </main>
   );
 }

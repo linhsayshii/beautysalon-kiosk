@@ -1,7 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { toIsoDate } from '@/lib/date';
 import { FloatingLayer } from '@/components/ui/FloatingLayer/FloatingLayer';
-import './AttendanceTimekeeping.css';
 
 interface WeekPickerProps {
   currentMonday: string; // YYYY-MM-DD
@@ -122,7 +121,7 @@ export function WeekPicker({ currentMonday, onChange }: WeekPickerProps) {
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="week-btn-choose"
+        className="btn btn-secondary"
       >
         Chọn
       </button>

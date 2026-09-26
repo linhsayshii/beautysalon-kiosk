@@ -1,0 +1,97 @@
+/*
+ * Tabs (underline, switches content) and segmented control (switches a mode).
+ * <div className="tabs" role="tablist"><button className="tab is-active" role="tab" aria-selected="true">…</button></div>
+ * <div className="segmented"><button className="is-active">Tuần</button><button>Tháng</button></div>
+ */
+.tabs {
+  display: flex;
+  gap: 20px;
+  min-height: 44px;
+  overflow-x: auto;
+  border-bottom: 1px solid var(--line);
+  scrollbar-width: none;
+}
+
+.tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.tab {
+  position: relative;
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 6px;
+  padding: 0 1px;
+  border: 0;
+  color: var(--ink-600);
+  background: transparent;
+  font-size: var(--text-md);
+  font-weight: var(--weight-bold);
+  white-space: nowrap;
+}
+
+.tab:hover {
+  color: var(--ink-950);
+}
+
+.tab.is-active,
+.tab[aria-selected="true"] {
+  color: var(--blue-600);
+}
+
+.tab.is-active::after,
+.tab[aria-selected="true"]::after {
+  content: "";
+  position: absolute;
+  right: 0;
+  bottom: -1px;
+  left: 0;
+  height: 2px;
+  border-radius: 2px 2px 0 0;
+  background: var(--blue-600);
+}
+
+.segmented {
+  display: inline-flex;
+  width: fit-content;
+  gap: 4px;
+  padding: 3px;
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius-control);
+  background: var(--surface-hover);
+}
+
+.segmented-block {
+  display: flex;
+  width: 100%;
+}
+
+.segmented > button {
+  display: inline-flex;
+  flex: 1 1 auto;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: calc(var(--control-h) - 8px);
+  padding: 0 12px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  color: var(--ink-600);
+  background: transparent;
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+  white-space: nowrap;
+}
+
+.segmented > button:hover {
+  color: var(--ink-950);
+}
+
+.segmented > button.is-active,
+.segmented > button[aria-pressed="true"],
+.segmented > button[aria-selected="true"] {
+  color: var(--ink-950);
+  background: var(--surface);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
+}

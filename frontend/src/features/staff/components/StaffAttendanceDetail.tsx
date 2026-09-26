@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { formatDate } from '@/lib/format';
+import { DetailFacts, DetailHead, InlineDetail, ValueStrip } from '@/components/data-display/InlineDetail';
 import { addCalendarDays } from '@/lib/date';
 import type { ApiRecord } from '@/types/api';
 import { calculateAttendanceForShift, formatAttendanceTime } from '../attendance-calculation';
@@ -206,340 +207,155 @@ export function StaffAttendanceDetail({ staff, currentMonday }: StaffAttendanceD
     (staff.role?.includes('Kỹ thuật') || staff.role?.includes('Chính') ? 'Theo giờ làm việc' : 'Theo ngày công chuẩn');
 
   return (
-    <div
-      className="staff-attendance-detail"
-      style={{
-        background: '#ffffff',
-        borderTop: '2px solid #0052cc',
-        borderBottom: '1px solid #cbd5e1',
-        padding: 0,
-        width: '100%',
-      }}
-    >
-      {/* Layer 2: Inline Detail Tabs */}
-      <div className="inline-detail-tabs" role="tablist" aria-label={`Chi tiết chấm công ${staff.name}`}>
-        {tabsList.map((item) => (
-          <button
-            type="button"
-            role="tab"
-            aria-selected={tab === item.value}
-            className={tab === item.value ? 'is-active' : ''}
-            key={item.value}
-            onClick={() => setTab(item.value)}
-          >
-            {item.label}
-          </button>
-        ))}
-      </div>
+    <InlineDetail className="staff-attendance-detail" label={`Chi tiết chấm công ${staff.name}`} tabs={tabsList} tab={tab} onTabChange={setTab}>
+      <DetailHead
+        icon="ph-calendar-check"
+        title={staff.name}
+        tags={<span className="badge badge-info">{staff.role || 'Nhân viên'}</span>}
+        meta={<>Mã nhân viên: <strong>{staff.code}</strong>{staff.department && ` • ${staff.department}`}</>}
+        aside={<><div><strong>{staff.branchName || 'Chi nhánh trung tâm'}</strong></div><div>Tuần: {formatDate(startDateIso)} - {formatDate(endDateIso)}</div></>}
+      />
 
-      <div style={{ padding: '16px 20px' }}>
-        {/* Layer 3: Profile Head */}
-        <div
-          className="attendance-profile-head staff-profile-head"
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            gap: 16,
-            marginBottom: 16,
-            flexWrap: 'wrap',
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-            <span
-              className={`staff-profile-avatar ${staff.avatarTone ?? 'blue'}`}
-              style={{
-                display: 'grid',
-                placeItems: 'center',
-                width: 48,
-                height: 48,
-                borderRadius: '50%',
-                fontSize: 24,
-                flexShrink: 0,
-                background: '#e0f2fe',
-                color: '#0052cc',
-              }}
-            >
-              <i className="ph ph-calendar-check" />
-            </span>
-            <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                <strong style={{ fontSize: 16, color: '#1e293b' }}>{staff.name}</strong>
-                <span
-                  style={{
-                    fontSize: 12,
-                    padding: '2px 8px',
-                    borderRadius: 12,
-                    background: '#e0f2fe',
-                    color: '#0052cc',
-                    fontWeight: 600,
-                  }}
-                >
-                  {staff.role || 'Nhân viên'}
-                </span>
-              </div>
-              <div style={{ fontSize: 13, color: '#64748b', marginTop: 3 }}>
-                <span>Mã nhân viên: </span>
-                <strong style={{ color: '#1e293b' }}>{staff.code}</strong>
-                {staff.department && <span style={{ color: '#64748b' }}> • {staff.department}</span>}
-              </div>
-            </div>
-          </div>
+      <ValueStrip
+        items={[
+          { label: 'Ngày đi làm', value: stats.workedHoursText, tone: 'primary' },
+          { label: 'Đi muộn / Về sớm', value: stats.lateText, tone: stats.lateCount > 0 ? 'danger' : 'violet' },
+          { label: 'Tăng ca (OT)', value: stats.otText, tone: 'success' },
+          { label: 'Nghỉ làm / Vắng', value: stats.leaveText, tone: 'muted' },
+        ]}
+      />
 
-          <div style={{ textAlign: 'right', fontSize: 12, color: '#64748b', lineHeight: 1.6 }}>
-            <div>
-              <strong style={{ color: '#1e293b' }}>{staff.branchName || 'Chi nhánh trung tâm'}</strong>
-            </div>
-            <div>
-              Tuần: {formatDate(startDateIso)} - {formatDate(endDateIso)}
-            </div>
-          </div>
+      {tab === 'timekeeping' && (
+        <div className="table-scroll">
+          <table className="detail-table">
+            <thead>
+              <tr>
+                <th>Ngày / Thứ</th>
+                <th>Ca làm việc</th>
+                <th className="is-center">Giờ vào</th>
+                <th className="is-center">Giờ ra</th>
+                <th className="is-center">Đi muộn</th>
+                <th className="is-center">Về sớm</th>
+                <th className="is-center">Tăng ca</th>
+                <th className="is-center">Trạng thái</th>
+              </tr>
+            </thead>
+            <tbody>
+              {daysData.map((row) => (
+                <tr key={row.dateStr}>
+                  <td>
+                    <span className="cell-main">{row.weekday}</span>
+                    <span className="cell-sub">{formatDate(row.dateStr)}</span>
+                  </td>
+                  <td className={row.shiftName.includes('Nghỉ') ? 'text-faint' : 'text-primary'}>{row.shiftName}</td>
+                  <td className="is-center text-strong">{row.checkIn}</td>
+                  <td className="is-center text-strong">{row.checkOut}</td>
+                  <td className={row.lateMinutes > 0 ? 'is-center text-strong text-danger' : 'is-center text-faint'}>
+                    {row.lateMinutes > 0 ? formatMinutesToHoursMinutes(row.lateMinutes) : '—'}
+                  </td>
+                  <td className={row.earlyMinutes > 0 ? 'is-center text-danger' : 'is-center text-faint'}>
+                    {row.earlyMinutes > 0 ? formatMinutesToHoursMinutes(row.earlyMinutes) : '—'}
+                  </td>
+                  <td className={row.otMinutes > 0 ? 'is-center text-strong text-success' : 'is-center text-faint'}>
+                    {row.otMinutes > 0 ? formatMinutesToHoursMinutes(row.otMinutes) : '—'}
+                  </td>
+                  <td className="is-center">
+                    <span className={`status-badge ${row.status === 'ontime' ? 'active' : row.status === 'late' ? 'draft' : row.status === 'missing' ? 'cancelled' : 'completed'}`}>
+                      {row.statusText}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
+      )}
 
-        {/* Layer 4: 4-Column Value Strip */}
-        <div
-          className="attendance-value-strip staff-value-strip"
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(4, 1fr)',
-            gap: 12,
-            background: '#f8fafc',
-            padding: 12,
-            borderRadius: 8,
-            border: '1px solid #e2e8f0',
-            marginBottom: 16,
-            fontSize: 14,
-          }}
-        >
-          <div>
-            <span style={{ color: '#64748b' }}>Ngày đi làm: </span>
-            <strong style={{ color: '#0052cc' }}>{stats.workedHoursText}</strong>
-          </div>
-          <div>
-            <span style={{ color: '#64748b' }}>Đi muộn / Về sớm: </span>
-            <strong style={{ color: stats.lateCount > 0 ? '#e11d48' : '#7c3aed' }}>{stats.lateText}</strong>
-          </div>
-          <div>
-            <span style={{ color: '#64748b' }}>Tăng ca (OT): </span>
-            <strong style={{ color: '#059669' }}>{stats.otText}</strong>
-          </div>
-          <div>
-            <span style={{ color: '#64748b' }}>Nghỉ làm / Vắng: </span>
-            <strong style={{ color: '#64748b' }}>{stats.leaveText}</strong>
-          </div>
+      {tab === 'summary' && (
+        <DetailFacts
+          items={[
+            { label: 'Tổng ngày công thực tế', value: `${stats.workedDays} ngày`, tone: 'primary' },
+            { label: 'Tổng giờ làm việc', value: formatMinutesToHoursMinutesFull(stats.totalWorkedMinutes) },
+            {
+              label: 'Tổng thời gian muộn',
+              value: stats.totalLateMinutes > 0 ? formatMinutesToHoursMinutesFull(stats.totalLateMinutes) : '0 phút',
+              tone: stats.totalLateMinutes > 0 ? 'danger' : undefined,
+            },
+            {
+              label: 'Tổng thời gian về sớm',
+              value: stats.totalEarlyMinutes > 0 ? formatMinutesToHoursMinutesFull(stats.totalEarlyMinutes) : '0 phút',
+              tone: stats.totalEarlyMinutes > 0 ? 'violet' : undefined,
+            },
+            { label: 'Tổng giờ tăng ca', value: formatMinutesToHoursMinutesFull(stats.totalOtMinutes), tone: 'success' },
+            { label: 'Loại lương áp dụng', value: salaryTypeText },
+            { label: 'Kỳ tính công', value: `${formatDate(startDateIso)} - ${formatDate(endDateIso)}` },
+            { label: 'Số ca được phân', value: `${staffSchedules.length} ca` },
+            { label: 'Trạng thái tuần', value: 'Đã đồng bộ máy chấm công', tone: 'success' },
+            {
+              label: 'Ghi chú',
+              value: staff.note || 'Dữ liệu chấm công được đồng bộ tự động từ máy chấm công vân tay & nhận diện khuôn mặt.',
+              span: 'full',
+              variant: 'note',
+            },
+          ]}
+        />
+      )}
+
+      {tab === 'shifts' && (
+        <div className="table-scroll">
+          <table className="detail-table">
+            <thead>
+              <tr>
+                <th>Ngày / Thứ</th>
+                <th>Tên ca làm việc</th>
+                <th>Khung giờ</th>
+                <th>Chi nhánh</th>
+                <th className="is-center">Trạng thái ca</th>
+                <th className="is-center">Chấm công</th>
+              </tr>
+            </thead>
+            <tbody>
+              {daysData.map((row) => {
+                const att = staffAttendance.find(
+                  (a) => (a.workDate ? String(a.workDate).slice(0, 10) : '') === row.dateStr
+                );
+                const isFullyClocked = att?.checkIn && att?.checkOut;
+                const isPartiallyClocked = att?.checkIn || att?.checkOut;
+                const schedule = staffSchedules.find((s) => s.date === row.dateStr);
+                const isOff = row.shiftName.includes('Nghỉ');
+
+                return (
+                  <tr key={row.dateStr}>
+                    <td>
+                      <span className="cell-main">{row.weekday}</span>
+                      <span className="cell-sub">{formatDate(row.dateStr)}</span>
+                    </td>
+                    <td className="is-code">{row.shiftName}</td>
+                    <td className="text-muted">
+                      {schedule?.startsAt && schedule?.endsAt
+                        ? `${schedule.startsAt} - ${schedule.endsAt}`
+                        : row.shiftName.includes('09:') ? '09:00 - 20:00' : row.shiftName.includes('Full') ? '09:00 - 21:00' : '09:00 - 19:00'}
+                    </td>
+                    <td className="text-muted">{staff.branchName || 'Chi nhánh trung tâm'}</td>
+                    <td className="is-center">
+                      <span className={`status-badge ${isOff ? 'cancelled' : 'active'}`}>{isOff ? 'Nghỉ' : 'Đã xếp ca'}</span>
+                    </td>
+                    <td className="is-center">
+                      {isFullyClocked ? (
+                        <span className="text-strong text-success">Đã chấm</span>
+                      ) : isPartiallyClocked ? (
+                        <span className="text-strong text-warning">Chưa ra</span>
+                      ) : (
+                        <span className="text-faint">{schedule ? 'Chưa chấm' : '—'}</span>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
         </div>
-
-        {/* Layer 5: Tab Contents */}
-
-        {/* TAB 1: BẢNG CHẤM CÔNG TUẦN */}
-        {tab === 'timekeeping' && (
-          <div style={{ width: '100%' }}>
-            <div className="table-scroll" style={{ width: '100%', overflowX: 'auto' }}>
-              <table className="kiotviet-payroll-table" style={{ width: '100%' }}>
-                <thead>
-                  <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569' }}>
-                    <th style={{ padding: '9px 12px', textAlign: 'left' }}>Ngày / Thứ</th>
-                    <th style={{ padding: '9px 12px', textAlign: 'left' }}>Ca làm việc</th>
-                    <th style={{ padding: '9px 12px', textAlign: 'center' }}>Giờ vào</th>
-                    <th style={{ padding: '9px 12px', textAlign: 'center' }}>Giờ ra</th>
-                    <th style={{ padding: '9px 12px', textAlign: 'center' }}>Đi muộn</th>
-                    <th style={{ padding: '9px 12px', textAlign: 'center' }}>Về sớm</th>
-                    <th style={{ padding: '9px 12px', textAlign: 'center' }}>Tăng ca</th>
-                    <th style={{ padding: '9px 12px', textAlign: 'center' }}>Trạng thái</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {daysData.map((row) => (
-                    <tr key={row.dateStr} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                      <td style={{ padding: '9px 12px' }}>
-                        <div style={{ fontWeight: 600, color: '#1e293b' }}>{row.weekday}</div>
-                        <div style={{ fontSize: 12, color: '#64748b' }}>{formatDate(row.dateStr)}</div>
-                      </td>
-                      <td style={{ padding: '9px 12px' }}>
-                        <span style={{ fontWeight: 500, color: row.shiftName.includes('Nghỉ') ? '#94a3b8' : '#0052cc' }}>
-                          {row.shiftName}
-                        </span>
-                      </td>
-                      <td style={{ padding: '9px 12px', textAlign: 'center', fontWeight: 600 }}>{row.checkIn}</td>
-                      <td style={{ padding: '9px 12px', textAlign: 'center', fontWeight: 600 }}>{row.checkOut}</td>
-                      <td style={{ padding: '9px 12px', textAlign: 'center', color: row.lateMinutes > 0 ? '#e11d48' : '#94a3b8', fontWeight: row.lateMinutes > 0 ? 600 : 400 }}>
-                        {row.lateMinutes > 0 ? formatMinutesToHoursMinutes(row.lateMinutes) : '—'}
-                      </td>
-                      <td style={{ padding: '9px 12px', textAlign: 'center', color: row.earlyMinutes > 0 ? '#e11d48' : '#94a3b8' }}>
-                        {row.earlyMinutes > 0 ? formatMinutesToHoursMinutes(row.earlyMinutes) : '—'}
-                      </td>
-                      <td style={{ padding: '9px 12px', textAlign: 'center', color: row.otMinutes > 0 ? '#059669' : '#94a3b8', fontWeight: row.otMinutes > 0 ? 600 : 400 }}>
-                        {row.otMinutes > 0 ? formatMinutesToHoursMinutes(row.otMinutes) : '—'}
-                      </td>
-                      <td style={{ padding: '9px 12px', textAlign: 'center' }}>
-                        <span
-                          className={`status-badge ${row.status === 'ontime' ? 'active' : row.status === 'late' ? 'draft' : row.status === 'missing' ? 'cancelled' : 'completed'}`}
-                          style={{
-                            display: 'inline-block',
-                            padding: '2px 8px',
-                            borderRadius: 12,
-                            fontSize: 12,
-                            fontWeight: 600,
-                          }}
-                        >
-                          {row.statusText}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
-
-        {/* TAB 2: TỔNG HỢP CÔNG & TĂNG CA */}
-        {tab === 'summary' && (
-          <div style={{ width: '100%' }}>
-            <div
-              style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(4, 1fr)',
-                gap: '16px 24px',
-                fontSize: 14.5,
-                color: '#334155',
-                paddingBottom: 16,
-              }}
-            >
-              <div>
-                <div style={{ color: '#64748b', marginBottom: 2 }}>Tổng ngày công thực tế:</div>
-                <div style={{ fontWeight: 600, color: '#0052cc', fontSize: 16 }}>{stats.workedDays} ngày</div>
-              </div>
-              <div>
-                <div style={{ color: '#64748b', marginBottom: 2 }}>Tổng giờ làm việc:</div>
-                <div style={{ fontWeight: 600, color: '#1e293b', fontSize: 16 }}>
-                  {formatMinutesToHoursMinutesFull(stats.totalWorkedMinutes)}
-                </div>
-              </div>
-              <div>
-                <div style={{ color: '#64748b', marginBottom: 2 }}>Tổng thời gian muộn:</div>
-                <div style={{ fontWeight: 600, color: stats.totalLateMinutes > 0 ? '#e11d48' : '#1e293b' }}>
-                  {stats.totalLateMinutes > 0 ? formatMinutesToHoursMinutesFull(stats.totalLateMinutes) : '0 phút'}
-                </div>
-              </div>
-              <div>
-                <div style={{ color: '#64748b', marginBottom: 2 }}>Tổng thời gian về sớm:</div>
-                <div style={{ fontWeight: 600, color: stats.totalEarlyMinutes > 0 ? '#9333ea' : '#1e293b' }}>
-                  {stats.totalEarlyMinutes > 0 ? formatMinutesToHoursMinutesFull(stats.totalEarlyMinutes) : '0 phút'}
-                </div>
-              </div>
-              <div>
-                <div style={{ color: '#64748b', marginBottom: 2 }}>Tổng giờ tăng ca:</div>
-                <div style={{ fontWeight: 600, color: '#059669', fontSize: 16 }}>
-                  {formatMinutesToHoursMinutesFull(stats.totalOtMinutes)}
-                </div>
-              </div>
-
-              <div>
-                <div style={{ color: '#64748b', marginBottom: 2 }}>Loại lương áp dụng:</div>
-                <div style={{ fontWeight: 600, color: '#1e293b' }}>{salaryTypeText}</div>
-              </div>
-              <div>
-                <div style={{ color: '#64748b', marginBottom: 2 }}>Kỳ tính công:</div>
-                <div>
-                  {formatDate(startDateIso)} - {formatDate(endDateIso)}
-                </div>
-              </div>
-              <div>
-                <div style={{ color: '#64748b', marginBottom: 2 }}>Số ca được phân:</div>
-                <div style={{ fontWeight: 600 }}>{staffSchedules.length} ca</div>
-              </div>
-              <div>
-                <div style={{ color: '#64748b', marginBottom: 2 }}>Trạng thái tuần:</div>
-                <div style={{ fontWeight: 600, color: '#059669' }}>Đã đồng bộ máy chấm công</div>
-              </div>
-
-              <div style={{ gridColumn: 'span 4' }}>
-                <div style={{ color: '#64748b', marginBottom: 2 }}>Ghi chú:</div>
-                <div style={{ fontStyle: 'italic', color: '#64748b' }}>
-                  {staff.note || 'Dữ liệu chấm công được đồng bộ tự động từ máy chấm công vân tay & nhận diện khuôn mặt.'}
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* TAB 3: LỊCH CA ĐƯỢC XẾP */}
-        {tab === 'shifts' && (
-          <div style={{ width: '100%' }}>
-            <div className="table-scroll" style={{ width: '100%', overflowX: 'auto' }}>
-              <table className="kiotviet-payroll-table" style={{ width: '100%' }}>
-                <thead>
-                  <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569' }}>
-                    <th style={{ padding: '9px 12px', textAlign: 'left' }}>Ngày / Thứ</th>
-                    <th style={{ padding: '9px 12px', textAlign: 'left' }}>Tên ca làm việc</th>
-                    <th style={{ padding: '9px 12px', textAlign: 'left' }}>Khung giờ</th>
-                    <th style={{ padding: '9px 12px', textAlign: 'left' }}>Chi nhánh</th>
-                    <th style={{ padding: '9px 12px', textAlign: 'center' }}>Trạng thái ca</th>
-                    <th style={{ padding: '9px 12px', textAlign: 'center' }}>Chấm công</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {daysData.map((row) => {
-                    // Find attendance for this date
-                    const att = staffAttendance.find(
-                      (a) => (a.workDate ? String(a.workDate).slice(0, 10) : '') === row.dateStr
-                    );
-                    const isFullyClocked = att?.checkIn && att?.checkOut;
-                    const isPartiallyClocked = att?.checkIn || att?.checkOut;
-                    const schedule = staffSchedules.find((s) => s.date === row.dateStr);
-
-                    return (
-                      <tr key={row.dateStr} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                        <td style={{ padding: '9px 12px' }}>
-                          <div style={{ fontWeight: 600, color: '#1e293b' }}>{row.weekday}</div>
-                          <div style={{ fontSize: 12, color: '#64748b' }}>{formatDate(row.dateStr)}</div>
-                        </td>
-                        <td style={{ padding: '9px 12px', fontWeight: 600, color: '#0052cc' }}>
-                          {row.shiftName}
-                        </td>
-                        <td style={{ padding: '9px 12px', color: '#475569' }}>
-                          {schedule?.startsAt && schedule?.endsAt
-                            ? `${schedule.startsAt} - ${schedule.endsAt}`
-                            : row.shiftName.includes('09:') ? '09:00 - 20:00' : row.shiftName.includes('Full') ? '09:00 - 21:00' : '09:00 - 19:00'}
-                        </td>
-                        <td style={{ padding: '9px 12px', color: '#475569' }}>
-                          {staff.branchName || 'Chi nhánh trung tâm'}
-                        </td>
-                        <td style={{ padding: '9px 12px', textAlign: 'center' }}>
-                          <span
-                            className={`status-badge ${row.shiftName.includes('Nghỉ') ? 'cancelled' : 'active'}`}
-                            style={{
-                              display: 'inline-block',
-                              padding: '2px 8px',
-                              borderRadius: 12,
-                              fontSize: 12,
-                              fontWeight: 600,
-                            }}
-                          >
-                            {row.shiftName.includes('Nghỉ') ? 'Nghỉ' : 'Đã xếp ca'}
-                          </span>
-                        </td>
-                        <td style={{ padding: '9px 12px', textAlign: 'center' }}>
-                          {isFullyClocked ? (
-                            <span style={{ color: '#16a34a', fontWeight: 600 }}>Đã chấm</span>
-                          ) : isPartiallyClocked ? (
-                            <span style={{ color: '#ea580c', fontWeight: 600 }}>Chưa ra</span>
-                          ) : schedule ? (
-                            <span style={{ color: '#94a3b8' }}>Chưa chấm</span>
-                          ) : (
-                            <span style={{ color: '#94a3b8' }}>—</span>
-                          )}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
-      </div>
-    </div>
+      )}
+    </InlineDetail>
   );
 }

@@ -62,7 +62,7 @@ describe('MobileCustomerSelectSheet', () => {
     );
 
     expect(screen.getByPlaceholderText('Tìm khách hàng')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /hủy/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Đóng' })).toBeInTheDocument();
     expect(screen.getByRole('dialog', { name: /chọn khách hàng/i })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /quét mã|qr|barcode/i })).not.toBeInTheDocument();
   });
@@ -72,7 +72,7 @@ describe('MobileCustomerSelectSheet', () => {
       <MobileCustomerSelectSheet isOpen={true} onClose={vi.fn()} onSelectCustomer={vi.fn()} />
     );
 
-    const backdrop = screen.getByRole('dialog', { name: /chọn khách hàng/i }).closest('.mobile-bottom-sheet-backdrop');
+    const backdrop = screen.getByRole('dialog', { name: /chọn khách hàng/i }).closest('.sheet-backdrop');
     expect(backdrop?.parentElement).toBe(document.body);
     expect(document.body).toHaveClass('mobile-overlay-open');
 

@@ -3,14 +3,12 @@ import { PartialPaymentFields } from '@/features/debts/PartialPaymentFields';
 import { CustomerDebtPanel } from '@/features/debts/CustomerDebtPanel';
 import { usePaymentRequestKey } from '@/features/debts/debts.api';
 import { useState, useMemo } from 'react';
-import type { RefObject } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { formatMoney } from '@/lib/format';
 import { MoneyInput } from '@/components/forms/MoneyInput';
 import { Select } from '@/components/ui/Select/Select';
 import { searchPosCustomers, checkoutPosInvoice, getPosStaff, type PosReceiptData } from '@/features/pos/pos.api';
-import { useMobileDialog } from '@/features/mobile-common/useMobileDialog';
-import { MobileDialogPortal } from '@/features/mobile-common/MobileDialogPortal';
+import { BottomSheet } from '@/components/ui/Sheet/BottomSheet';
 
 interface PosLine {
   itemId: number;
@@ -76,7 +74,6 @@ export function MobileCartBottomSheet({
   const [discountValue, setDiscountValue] = useState<number>(initialDiscount);
   const [customerQuery, setCustomerQuery] = useState('');
   const [showCustomerSearch, setShowCustomerSearch] = useState(false);
-  const { dialogRef, titleId } = useMobileDialog({ isOpen: true, onClose: () => { if (!checkoutMutation.isPending) onClose(); } });
 
   // Fetch staff list
   const { data: staffResponse } = useQuery({
@@ -171,269 +168,21 @@ export function MobileCartBottomSheet({
   };
 
   return (
-    <MobileDialogPortal>
-    <div className="mobile-bottom-sheet-backdrop" onClick={(e) => { if (e.target === e.currentTarget && !checkoutMutation.isPending) onClose(); }}>
-      <div ref={dialogRef as RefObject<HTMLDivElement>} className="mobile-bottom-sheet mobile-checkout-sheet" role="dialog" aria-modal="true" aria-labelledby={titleId} tabIndex={-1}>
-        <div className="mobile-sheet-drag-handle" />
-
-        <div className="mobile-cart-sheet-header">
-          <div><h2 id={titleId} className="mobile-cart-sheet-title">Thanh toán</h2>
-            <div className="checkout-invoice-identity"><strong>{customer?.name || 'Chưa chọn khách hàng'}</strong>{invoiceId && <small>{invoiceCode || `Hóa đơn #${invoiceId}`}</small>}</div></div>
-          <button type="button" className="mobile-pos-search-clear" onClick={onClose} disabled={checkoutMutation.isPending} aria-label="Đóng">
-            <i className="ph ph-x" />
-          </button>
-        </div>
-
-        <div className="mobile-cart-sheet-content" inert={checkoutMutation.isPending}>
-          {/* Customer Selection */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink-700)' }}>Khách hàng</span>
-            {customer ? (
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                padding: '8px 12px',
-                background: '#eff6ff',
-                borderRadius: 12,
-                border: '1px solid #bfdbfe'
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <i className="ph ph-user-circle" style={{ fontSize: 20, color: '#2563eb' }} />
-                  <div>
-                    <div style={{ fontSize: 13.5, fontWeight: 700 }}>{customer.name}</div>
-                    {customer.phone && <div style={{ fontSize: 11.5, color: '#64748b' }}>{customer.phone}</div>}
-                  </div>
-                </div>
-                {!customerLocked && <button
-                  type="button"
-                  aria-label={`Bỏ chọn khách hàng ${customer.name}`}
-                  style={{ border: 'none', background: 'transparent', color: '#dc2626', cursor: 'pointer', fontSize: 13, fontWeight: 600 }}
-                  onClick={() => onSelectCustomer(null)}
-                >
-                  Bỏ chọn
-                </button>}
-                {customerLocked && <span className="checkout-customer-locked"><i className="ph ph-lock" /> Theo lịch hẹn</span>}
-              </div>
-            ) : (
-              <div>
-                {!showCustomerSearch ? (
-                  <button
-                    type="button"
-                    style={{
-                      width: '100%',
-                      padding: '8px 12px',
-                      borderRadius: 12,
-                      border: '1px dashed #cbd5e1',
-                      background: '#ffffff',
-                      color: '#475569',
-                      fontSize: 13,
-                      fontWeight: 600,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: 6,
-                      cursor: 'pointer'
-                    }}
-                    onClick={() => setShowCustomerSearch(true)}
-                  >
-                    <i className="ph ph-user-plus" /> Chọn khách hàng
-                  </button>
-                ) : (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                    <div className="mobile-pos-search-wrapper">
-                      <i className="ph ph-magnifying-glass search-icon" />
-                      <input
-                        type="text"
-                        className="mobile-pos-search-input"
-                        placeholder="Tìm tên hoặc SĐT khách hàng..."
-                        aria-label="Tìm khách hàng theo tên hoặc số điện thoại"
-                        value={customerQuery}
-                        onChange={(e) => setCustomerQuery(e.target.value)}
-                        autoFocus
-                      />
-                      <button type="button" className="mobile-pos-search-clear" onClick={() => setShowCustomerSearch(false)} aria-label="Đóng tìm khách hàng">
-                        <i className="ph ph-x" />
-                      </button>
-                    </div>
-
-                    {customerResults?.data && customerResults.data.length > 0 && (
-                      <div style={{
-                        maxHeight: 140,
-                        overflowY: 'auto',
-                        background: '#ffffff',
-                        border: '1px solid #e2e8f0',
-                        borderRadius: 12,
-                        padding: 4
-                      }}>
-                        {customerResults.data.map((c) => (
-                          <button
-                            type="button"
-                            key={c.id}
-                            style={{
-                              padding: '8px 10px',
-                              borderRadius: 8,
-                              cursor: 'pointer',
-                              display: 'flex',
-                              justifyContent: 'space-between',
-                              alignItems: 'center',
-                              fontSize: 13
-                            }}
-                            onClick={() => {
-                              onSelectCustomer({ id: c.id, name: c.name, phone: c.phone });
-                              setShowCustomerSearch(false);
-                              setCustomerQuery('');
-                            }}
-                          >
-                            <span style={{ fontWeight: 600 }}>{c.name}</span>
-                            <span style={{ color: '#64748b', fontSize: 12 }}>{c.phone}</span>
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-
-          {/* Cart Item List */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink-700)' }}>Dịch vụ, sản phẩm ({lines.length})</span>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-              {lines.map((line) => (
-                <div key={`${line.itemType}-${line.itemId}`} className="mobile-cart-item-row">
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div className="mobile-cart-item-title">{line.name}</div>
-                    <div className="mobile-cart-item-unitprice">{formatMoney(line.salePrice)} / {line.unit || 'món'}</div>
-                  </div>
-
-                  <div className="mobile-cart-qty-ctrl">
-                    <button
-                      type="button"
-                      className="mobile-cart-qty-btn"
-                      aria-label={`Giảm số lượng ${line.name}`}
-                      onClick={() => onUpdateQuantity(line.itemId, line.itemType, -1)}
-                    >
-                      <i className="ph ph-minus" />
-                    </button>
-                    <span className="mobile-cart-qty-val">{line.quantity}</span>
-                    <button
-                      type="button"
-                      className="mobile-cart-qty-btn"
-                      aria-label={`Tăng số lượng ${line.name}`}
-                      onClick={() => onUpdateQuantity(line.itemId, line.itemType, 1)}
-                    >
-                      <i className="ph ph-plus" />
-                    </button>
-                  </div>
-
-                  <div className="checkout-line-amounts">
-                    {line.itemType === 'service' && line.staffId != null && (
-                      <span className="checkout-commission" aria-label={`Hoa hồng ${line.name}: ${calculateExpectedCommission(line)}`} title="Hoa hồng nhân viên">
-                        {calculateExpectedCommission(line)}
-                      </span>
-                    )}
-                    <strong>{formatMoney(line.salePrice * line.quantity)}</strong>
-                  </div>
-                  {line.itemType === 'service' && <div className="checkout-line-staff">
-                    <span>Nhân viên</span><Select<number | string> aria-label={`Nhân viên thực hiện ${line.name}`} value={line.staffId ?? ''}
-                      onChange={value => onUpdateLineStaff(line.itemId, line.itemType, value === '' ? null : Number(value))}
-                      size="sm" options={[{ value: '', label: 'Chọn nhân viên' }, ...staffList.map(staff => ({ value: staff.id, label: staff.name }))]} />
-                  </div>}
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Staff selection - removed, using per-line assignment above */}
-
-          {/* Discount input */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink-700)' }}>Giảm giá (VNĐ)</span>
-            <MoneyInput
-              aria-label="Giảm giá"
-              disabled={checkoutMutation.isPending}
-              placeholder="0"
-              value={discountValue}
-              onChange={(val) => setDiscountValue(val)}
-              suffix="đ"
-              wrapperClassName="input-suffix mobile-money-input"
-            />
-          </div>
-
-          {/* Summary */}
-          <div className="mobile-checkout-summary">
-            <div className="mobile-summary-row">
-              <span style={{ color: '#64748b' }}>Tạm tính:</span>
-              <span style={{ fontWeight: 600 }}>{formatMoney(subtotal)}</span>
-            </div>
-            {discountValue > 0 && (
-              <div className="mobile-summary-row" style={{ color: '#dc2626' }}>
-                <span>Giảm giá:</span>
-                <span>-{formatMoney(discountValue)}</span>
-              </div>
-            )}
-            {totalCommission > 0 && <div className="mobile-summary-row checkout-commission"><span>Hoa hồng dự kiến:</span><span>{formatMoney(totalCommission)}</span></div>}
-            <div className="mobile-summary-row total-row">
-              <span>Tổng hóa đơn:</span>
-              <span style={{ color: 'var(--blue-700)' }}>{formatMoney(total)}</span>
-            </div>
-          </div>
-
-          {/* Payment Method */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink-700)' }}>Phương thức thanh toán</span>
-            <div className="mobile-payment-methods">
-              <button
-                type="button"
-                aria-pressed={paymentMethod === 'cash'}
-                className={`mobile-pay-method-btn ${paymentMethod === 'cash' ? 'is-active' : ''}`}
-                onClick={() => setPaymentMethod('cash')}
-              >
-                <i className="ph ph-money" />
-                Tiền mặt
-              </button>
-              <button
-                type="button"
-                aria-pressed={paymentMethod === 'bank_transfer'}
-                className={`mobile-pay-method-btn ${paymentMethod === 'bank_transfer' ? 'is-active' : ''}`}
-                onClick={() => setPaymentMethod('bank_transfer')}
-              >
-                <i className="ph ph-qr-code" />
-                VietQR / CK
-              </button>
-              <button
-                type="button"
-                aria-pressed={paymentMethod === 'card'}
-                className={`mobile-pay-method-btn ${paymentMethod === 'card' ? 'is-active' : ''}`}
-                onClick={() => setPaymentMethod('card')}
-              >
-                <i className="ph ph-credit-card" />
-                Quẹt thẻ
-              </button>
-              <button
-                type="button"
-                aria-pressed={paymentMethod === 'wallet'}
-                className={`mobile-pay-method-btn ${paymentMethod === 'wallet' ? 'is-active' : ''}`}
-                onClick={() => setPaymentMethod('wallet')}
-              >
-                <i className="ph ph-wallet" />
-                Thẻ TK
-              </button>
-            </div>
-          </div>
-
-          <PartialPaymentFields customerId={customer?.id} total={total} amount={amountPaid} onAmountChange={setAmountInput} allowDebt={allowDebt} onAllowDebtChange={setAllowDebt} method={paymentMethod} compact disabled={checkoutMutation.isPending} />
-          {customer && <><button className="checkout-debt-toggle" type="button" onClick={()=>setShowDebt(!showDebt)}>{showDebt ? 'Ẩn công nợ' : 'Xem chi tiết công nợ / Thu nợ cũ'}</button>{showDebt && <CustomerDebtPanel key={customer.id} customerId={customer.id} />}</>}
-        </div>
+    <BottomSheet
+      open
+      onClose={() => { if (!checkoutMutation.isPending) onClose(); }}
+      title="Thanh toán"
+      subtitle={`${customer?.name || 'Chưa chọn khách hàng'}${invoiceId ? ` · ${invoiceCode || `Hóa đơn #${invoiceId}`}` : ''}`}
+      height="full"
+      className="mobile-checkout-sheet"
+      closeOnBackdrop={!checkoutMutation.isPending}
+      footer={(
         <div className="mobile-checkout-footer">
           <div className="checkout-collect-total"><span>Thu hóa đơn lần này</span><strong>{formatMoney(Math.min(total, amountPaid))}</strong></div>
           {checkoutMutation.isError && <p role="alert">{checkoutMutation.error instanceof Error ? checkoutMutation.error.message : 'Không thể thanh toán. Vui lòng thử lại.'}</p>}
-          {/* Submit Checkout */}
           <button
             type="button"
-            className="mobile-checkout-submit-btn"
+            className="btn btn-primary btn-lg btn-block"
             disabled={checkoutMutation.isPending || lines.length === 0 || !customer || (amountPaid < total && !allowDebt) || (paymentMethod !== 'cash' && amountPaid > total)}
             onClick={handleCheckout}
           >
@@ -441,14 +190,207 @@ export function MobileCartBottomSheet({
               <span>Đang xử lý thanh toán...</span>
             ) : (
               <>
-                <i className="ph ph-check-circle" style={{ fontSize: 20 }} />
+                <i className="ph ph-check-circle" />
                 <span>Xác nhận thanh toán</span>
               </>
             )}
           </button>
         </div>
+      )}
+    >
+      <div className="mobile-cart-sheet-content" inert={checkoutMutation.isPending}>
+        <section className="m-section">
+          <span className="m-section-title">Khách hàng</span>
+          {customer ? (
+            <div className="checkout-customer-card">
+              <i className="ph ph-user-circle" />
+              <div className="checkout-customer-copy">
+                <strong>{customer.name}</strong>
+                {customer.phone && <small>{customer.phone}</small>}
+              </div>
+              {!customerLocked && (
+                <button
+                  type="button"
+                  className="btn btn-ghost btn-sm text-danger"
+                  aria-label={`Bỏ chọn khách hàng ${customer.name}`}
+                  onClick={() => onSelectCustomer(null)}
+                >
+                  Bỏ chọn
+                </button>
+              )}
+              {customerLocked && <span className="checkout-customer-locked"><i className="ph ph-lock" /> Theo lịch hẹn</span>}
+            </div>
+          ) : !showCustomerSearch ? (
+            <button type="button" className="checkout-customer-add" onClick={() => setShowCustomerSearch(true)}>
+              <i className="ph ph-user-plus" /> Chọn khách hàng
+            </button>
+          ) : (
+            <>
+              <div className="mobile-pos-search-wrapper">
+                <i className="ph ph-magnifying-glass search-icon" />
+                <input
+                  type="text"
+                  className="mobile-pos-search-input"
+                  placeholder="Tìm tên hoặc SĐT khách hàng..."
+                  aria-label="Tìm khách hàng theo tên hoặc số điện thoại"
+                  value={customerQuery}
+                  onChange={(e) => setCustomerQuery(e.target.value)}
+                  autoFocus
+                />
+                <button type="button" className="mobile-pos-search-clear" onClick={() => setShowCustomerSearch(false)} aria-label="Đóng tìm khách hàng">
+                  <i className="ph ph-x" />
+                </button>
+              </div>
+
+              {customerResults?.data && customerResults.data.length > 0 && (
+                <div className="checkout-customer-results">
+                  {customerResults.data.map((c) => (
+                    <button
+                      type="button"
+                      key={c.id}
+                      onClick={() => {
+                        onSelectCustomer({ id: c.id, name: c.name, phone: c.phone });
+                        setShowCustomerSearch(false);
+                        setCustomerQuery('');
+                      }}
+                    >
+                      <strong>{c.name}</strong>
+                      <small>{c.phone}</small>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </>
+          )}
+        </section>
+
+        {/* Cart Item List */}
+        <section className="m-section">
+          <span className="m-section-title">Dịch vụ, sản phẩm ({lines.length})</span>
+          <div className="checkout-line-list">
+            {lines.map((line) => (
+              <div key={`${line.itemType}-${line.itemId}`} className="mobile-cart-item-row">
+                <div className="mobile-cart-item-copy">
+                  <div className="mobile-cart-item-title">{line.name}</div>
+                  <div className="mobile-cart-item-unitprice">{formatMoney(line.salePrice)} / {line.unit || 'món'}</div>
+                </div>
+
+                <div className="mobile-cart-qty-ctrl">
+                  <button
+                    type="button"
+                    className="mobile-cart-qty-btn"
+                    aria-label={`Giảm số lượng ${line.name}`}
+                    onClick={() => onUpdateQuantity(line.itemId, line.itemType, -1)}
+                  >
+                    <i className="ph ph-minus" />
+                  </button>
+                  <span className="mobile-cart-qty-val">{line.quantity}</span>
+                  <button
+                    type="button"
+                    className="mobile-cart-qty-btn"
+                    aria-label={`Tăng số lượng ${line.name}`}
+                    onClick={() => onUpdateQuantity(line.itemId, line.itemType, 1)}
+                  >
+                    <i className="ph ph-plus" />
+                  </button>
+                </div>
+
+                <div className="checkout-line-amounts">
+                  {line.itemType === 'service' && line.staffId != null && (
+                    <span className="checkout-commission" aria-label={`Hoa hồng ${line.name}: ${calculateExpectedCommission(line)}`} title="Hoa hồng nhân viên">
+                      {calculateExpectedCommission(line)}
+                    </span>
+                  )}
+                  <strong>{formatMoney(line.salePrice * line.quantity)}</strong>
+                </div>
+                {line.itemType === 'service' && <div className="checkout-line-staff">
+                  <span>Nhân viên</span><Select<number | string> aria-label={`Nhân viên thực hiện ${line.name}`} value={line.staffId ?? ''}
+                    onChange={value => onUpdateLineStaff(line.itemId, line.itemType, value === '' ? null : Number(value))}
+                    size="sm" options={[{ value: '', label: 'Chọn nhân viên' }, ...staffList.map(staff => ({ value: staff.id, label: staff.name }))]} />
+                </div>}
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <section className="m-section">
+          <span className="m-section-title">Giảm giá (VNĐ)</span>
+          <MoneyInput
+            aria-label="Giảm giá"
+            disabled={checkoutMutation.isPending}
+            placeholder="0"
+            value={discountValue}
+            onChange={(val) => setDiscountValue(val)}
+            suffix="đ"
+            wrapperClassName="input-suffix mobile-money-input"
+          />
+        </section>
+
+        {/* Summary */}
+        <div className="mobile-checkout-summary">
+          <div className="mobile-summary-row">
+            <span className="text-muted">Tạm tính:</span>
+            <strong>{formatMoney(subtotal)}</strong>
+          </div>
+          {discountValue > 0 && (
+            <div className="mobile-summary-row text-danger">
+              <span>Giảm giá:</span>
+              <span>-{formatMoney(discountValue)}</span>
+            </div>
+          )}
+          {totalCommission > 0 && <div className="mobile-summary-row checkout-commission"><span>Hoa hồng dự kiến:</span><span>{formatMoney(totalCommission)}</span></div>}
+          <div className="mobile-summary-row total-row">
+            <span>Tổng hóa đơn:</span>
+            <span className="text-primary">{formatMoney(total)}</span>
+          </div>
+        </div>
+
+        {/* Payment Method */}
+        <section className="m-section">
+          <span className="m-section-title">Phương thức thanh toán</span>
+          <div className="mobile-payment-methods">
+            <button
+              type="button"
+              aria-pressed={paymentMethod === 'cash'}
+              className={`mobile-pay-method-btn ${paymentMethod === 'cash' ? 'is-active' : ''}`}
+              onClick={() => setPaymentMethod('cash')}
+            >
+              <i className="ph ph-money" />
+              Tiền mặt
+            </button>
+            <button
+              type="button"
+              aria-pressed={paymentMethod === 'bank_transfer'}
+              className={`mobile-pay-method-btn ${paymentMethod === 'bank_transfer' ? 'is-active' : ''}`}
+              onClick={() => setPaymentMethod('bank_transfer')}
+            >
+              <i className="ph ph-qr-code" />
+              VietQR / CK
+            </button>
+            <button
+              type="button"
+              aria-pressed={paymentMethod === 'card'}
+              className={`mobile-pay-method-btn ${paymentMethod === 'card' ? 'is-active' : ''}`}
+              onClick={() => setPaymentMethod('card')}
+            >
+              <i className="ph ph-credit-card" />
+              Quẹt thẻ
+            </button>
+            <button
+              type="button"
+              aria-pressed={paymentMethod === 'wallet'}
+              className={`mobile-pay-method-btn ${paymentMethod === 'wallet' ? 'is-active' : ''}`}
+              onClick={() => setPaymentMethod('wallet')}
+            >
+              <i className="ph ph-wallet" />
+              Thẻ TK
+            </button>
+          </div>
+        </section>
+
+        <PartialPaymentFields customerId={customer?.id} total={total} amount={amountPaid} onAmountChange={setAmountInput} allowDebt={allowDebt} onAllowDebtChange={setAllowDebt} method={paymentMethod} compact disabled={checkoutMutation.isPending} />
+        {customer && <><button className="checkout-debt-toggle" type="button" onClick={()=>setShowDebt(!showDebt)}>{showDebt ? 'Ẩn công nợ' : 'Xem chi tiết công nợ / Thu nợ cũ'}</button>{showDebt && <CustomerDebtPanel key={customer.id} customerId={customer.id} />}</>}
       </div>
-    </div>
-    </MobileDialogPortal>
+    </BottomSheet>
   );
 }

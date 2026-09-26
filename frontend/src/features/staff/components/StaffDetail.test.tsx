@@ -65,26 +65,26 @@ describe('StaffDetail Component', () => {
     expect(screen.getByText(/Ngày tạo:/i)).toBeInTheDocument();
 
     // Layer 4: 4-Column Value Strip
-    expect(screen.getByText(/Doanh thu tháng:/i)).toBeInTheDocument();
+    expect(screen.getByText(/^Doanh thu tháng$/i)).toBeInTheDocument();
     expect(screen.getByText('25.000.000đ')).toBeInTheDocument();
-    expect(screen.getByText(/Đơn tháng này:/i)).toBeInTheDocument();
+    expect(screen.getByText(/^Đơn tháng này$/i)).toBeInTheDocument();
     expect(screen.getByText('15')).toBeInTheDocument();
-    expect(screen.getAllByText(/Lương cơ bản:/i).length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText(/^Lương cơ bản$/i).length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText('8.000.000đ').length).toBeGreaterThanOrEqual(1);
-    expect(screen.queryByText(/Hoa hồng mặc định:/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/^Hoa hồng mặc định$/i)).not.toBeInTheDocument();
 
     // Layer 5 (Tab info): 4-column grid fields
-    expect(screen.getByText('Số điện thoại:')).toBeInTheDocument();
+    expect(screen.getByText('Số điện thoại')).toBeInTheDocument();
     expect(screen.getByText('0912345678')).toBeInTheDocument();
-    expect(screen.getByText('Phòng ban:')).toBeInTheDocument();
+    expect(screen.getByText('Phòng ban')).toBeInTheDocument();
     expect(screen.getByText('Chăm sóc da')).toBeInTheDocument();
-    expect(screen.getByText('Chức danh:')).toBeInTheDocument();
-    expect(screen.getByText('Chi nhánh làm việc:')).toBeInTheDocument();
-    expect(screen.getByText('Hình thức lương:')).toBeInTheDocument();
-    expect(screen.getByText('Trạng thái hoạt động:')).toBeInTheDocument();
+    expect(screen.getByText('Chức danh')).toBeInTheDocument();
+    expect(screen.getByText('Chi nhánh làm việc')).toBeInTheDocument();
+    expect(screen.getByText('Hình thức lương')).toBeInTheDocument();
+    expect(screen.getByText('Trạng thái hoạt động')).toBeInTheDocument();
     expect(screen.getByText('Đang hoạt động')).toBeInTheDocument();
-    expect(screen.getByText('Ngày vào làm:')).toBeInTheDocument();
-    expect(screen.getByText('Quyền thao tác:')).toBeInTheDocument();
+    expect(screen.getByText('Ngày vào làm')).toBeInTheDocument();
+    expect(screen.getByText('Quyền thao tác')).toBeInTheDocument();
     expect(screen.getByText('Bán hàng, Quản lý kho')).toBeInTheDocument();
 
     // Action button "Cập nhật" in Info tab
@@ -142,7 +142,7 @@ describe('StaffDetail Component', () => {
 
     // Switch to Salary Tab
     fireEvent.click(screen.getByRole('tab', { name: /Thiết lập lương/i }));
-    expect(screen.getByText('Lương làm thêm giờ:')).toBeInTheDocument();
+    expect(screen.getByText('Lương làm thêm giờ')).toBeInTheDocument();
     expect(screen.getByText('50.000đ / giờ')).toBeInTheDocument();
     const updateSalaryBtn = screen.getByRole('button', { name: /Cập nhật/i });
     fireEvent.click(updateSalaryBtn);
@@ -155,9 +155,9 @@ describe('StaffDetail Component', () => {
 
     // Switch to Debt Tab
     fireEvent.click(screen.getByRole('tab', { name: /Nợ và tạm ứng/i }));
-    expect(screen.getByText('Dư nợ hiện tại:')).toBeInTheDocument();
+    expect(screen.getByText('Dư nợ hiện tại')).toBeInTheDocument();
     expect(screen.getByText('500.000đ')).toBeInTheDocument();
-    expect(screen.getByText('Tạm ứng trong kỳ:')).toBeInTheDocument();
+    expect(screen.getByText('Tạm ứng trong kỳ')).toBeInTheDocument();
     expect(screen.getByText('200.000đ')).toBeInTheDocument();
     expect(screen.getByText('Đang có khoản nợ cần thu')).toBeInTheDocument();
   });

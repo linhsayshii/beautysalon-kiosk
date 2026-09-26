@@ -31,15 +31,15 @@ export function ProductsView() {
   const apply = () => { setFilters(draft); setPage(1); };
   const reset = () => { setDraft(initialFilters); setFilters(initialFilters); setPage(1); };
 
-  return <main className="workspace"><div className="workspace-shell">
-    <PageHeader title="Danh sách hàng hóa" subtitle="Sản phẩm, dịch vụ, gói dịch vụ, thẻ tài khoản và tồn kho tại chi nhánh." extraActions={<><GoodsCreateMenu /><button className="secondary-button" type="button" onClick={() => exportCsv(rows, 'products')}><i className="ph ph-export" />Xuất file</button></>} />
+  return <main className="page"><div className="page-stack">
+    <PageHeader title="Danh sách hàng hóa" subtitle="Sản phẩm, dịch vụ, gói dịch vụ, thẻ tài khoản và tồn kho tại chi nhánh." extraActions={<><button className="btn btn-secondary" type="button" onClick={() => exportCsv(rows, 'products')}><i className="ph ph-export" />Xuất file</button><GoodsCreateMenu /></>} />
     <SummaryStrip items={[
       { label: 'Tổng hàng hóa', value: formatNumber(summary?.total), note: 'Tất cả loại hàng' },
       { label: 'Sản phẩm', value: formatNumber(summary?.products), note: 'Có theo dõi tồn kho', tone: 'green' },
       { label: 'Dịch vụ, gói & thẻ', value: formatNumber(Number(summary?.services ?? 0) + Number(summary?.packages ?? 0) + Number(summary?.account_cards ?? 0)), note: 'Không theo dõi tồn', tone: 'violet' },
       { label: 'Dưới định mức', value: formatNumber(summary?.low_stock), note: 'Cần nhập thêm', tone: 'orange' },
     ]} />
-    <div className="workspace-grid"><FilterPanel title="Bộ lọc hàng hóa" onApply={apply} onReset={reset}>
+    <div className="page-grid"><FilterPanel title="Bộ lọc hàng hóa" onApply={apply} onReset={reset}>
       <SelectFilter label="Loại hàng" value={draft.type} onChange={(type) => setDraft({ ...draft, type })} options={[{ value: '', label: 'Tất cả' }, ...toOptions(metadata.data?.data.filters.products.types ?? [], statusLabels)]} />
       <SelectFilter label="Nhóm hàng" value={draft.category} onChange={(category) => setDraft({ ...draft, category })} options={[{ value: '', label: 'Tất cả' }, ...(query.data?.meta.categories ?? []).map((category) => ({ value: category, label: category }))]} />
       <SelectFilter label="Tồn kho" value={draft.stockStatus} onChange={(stockStatus) => setDraft({ ...draft, stockStatus })} options={[{ value: '', label: 'Tất cả' }, ...toOptions(metadata.data?.data.filters.products.stockStatuses ?? [], statusLabels)]} />

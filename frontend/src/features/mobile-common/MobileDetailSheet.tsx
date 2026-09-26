@@ -1,7 +1,5 @@
-import type { ReactNode, RefObject } from 'react';
-import { useMobileDialog } from './useMobileDialog';
-import { MobileDialogPortal } from './MobileDialogPortal';
-import './mobile-common.css';
+import type { ReactNode } from 'react';
+import { BottomSheet } from '@/components/ui/Sheet/BottomSheet';
 
 export interface MobileDetailSheetProps {
   isOpen: boolean;
@@ -12,6 +10,7 @@ export interface MobileDetailSheetProps {
   footerActions?: ReactNode;
 }
 
+/** Record detail sheet: white cards on the canvas colour, optional sticky actions. */
 export function MobileDetailSheet({
   isOpen,
   title,
@@ -20,54 +19,17 @@ export function MobileDetailSheet({
   children,
   footerActions,
 }: MobileDetailSheetProps) {
-  const { dialogRef, titleId } = useMobileDialog({ isOpen, onClose });
-  if (!isOpen) return null;
-
   return (
-    <MobileDialogPortal>
-    <div
-      className="mobile-detail-sheet-backdrop"
-      data-testid="mobile-detail-sheet-backdrop"
-      onClick={(e) => {
-        if (e.target === e.currentTarget) {
-          onClose();
-        }
-      }}
+    <BottomSheet
+      open={isOpen}
+      onClose={onClose}
+      title={title}
+      subtitle={subtitle}
+      tone="muted"
+      footer={footerActions}
+      testId="mobile-detail-sheet"
     >
-      <div
-        ref={dialogRef as RefObject<HTMLDivElement>}
-        className="mobile-detail-sheet-container"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby={titleId}
-        tabIndex={-1}
-      >
-        <div className="mobile-sheet-drag-handle" />
-
-        <div className="mobile-detail-sheet-header">
-          <div className="mobile-detail-sheet-title-box">
-            <h3 id={titleId} className="mobile-detail-sheet-title">{title}</h3>
-            {subtitle && (
-              <span className="mobile-detail-sheet-subtitle">{subtitle}</span>
-            )}
-          </div>
-          <button
-            type="button"
-            className="mobile-detail-sheet-close-btn"
-            aria-label="Đóng"
-            onClick={onClose}
-          >
-            <i className="ph ph-x" />
-          </button>
-        </div>
-
-        <div className="mobile-detail-sheet-body">{children}</div>
-
-        {footerActions && (
-          <div className="mobile-detail-sheet-footer">{footerActions}</div>
-        )}
-      </div>
-    </div>
-    </MobileDialogPortal>
+      {children}
+    </BottomSheet>
   );
 }

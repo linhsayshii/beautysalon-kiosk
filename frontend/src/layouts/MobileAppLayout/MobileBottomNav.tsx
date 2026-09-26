@@ -1,10 +1,8 @@
 import { useState } from 'react';
-import type { RefObject } from 'react';
 import { NavLink, Link } from 'react-router-dom';
 import { useAuth } from '@/features/auth/AuthProvider';
 import { canAccessPath } from '@/features/auth/authorization';
-import { useMobileDialog } from '@/features/mobile-common/useMobileDialog';
-import { MobileDialogPortal } from '@/features/mobile-common/MobileDialogPortal';
+import { BottomSheet } from '@/components/ui/Sheet/BottomSheet';
 
 interface QuickActionSheetProps {
   isOpen: boolean;
@@ -13,59 +11,46 @@ interface QuickActionSheetProps {
 
 export function MobileQuickActionSheet({ isOpen, onClose }: QuickActionSheetProps) {
   const { account } = useAuth();
-  const { dialogRef, titleId } = useMobileDialog({ isOpen, onClose });
-  if (!isOpen) return null;
 
   return (
-    <MobileDialogPortal>
-    <div className="mobile-bottom-sheet-backdrop" onClick={onClose}>
-      <div ref={dialogRef as RefObject<HTMLDivElement>} className="mobile-bottom-sheet mobile-quick-action-sheet" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" aria-labelledby={titleId} tabIndex={-1}>
-        <div className="mobile-sheet-drag-handle" />
-        <div className="mobile-quick-action-header">
-          <h3 id={titleId} className="mobile-quick-action-title">Tạo mới nhanh</h3>
-          <button type="button" className="mobile-quick-action-close" onClick={onClose} aria-label="Đóng">
-            <i className="ph ph-x" />
-          </button>
-        </div>
-        <div className="mobile-quick-action-list">
-          {account && canAccessPath(account.role, '/m/appointments/new') && <Link to="/m/appointments/new" className="mobile-quick-action-item" onClick={onClose}>
-            <div className="mobile-quick-action-icon action-appointment">
-              <i className="ph ph-calendar-plus" />
+    <BottomSheet open={isOpen} onClose={onClose} title="Tạo mới nhanh" className="mobile-quick-action-sheet">
+      <div className="mobile-quick-action-list">
+        {account && canAccessPath(account.role, '/m/appointments/new') && <Link to="/m/appointments/new" className="mobile-quick-action-item" onClick={onClose}>
+          <div className="mobile-quick-action-icon action-appointment">
+            <i className="ph ph-calendar-plus" />
+          </div>
+          <div className="mobile-quick-action-info">
+            <div className="mobile-quick-action-name">Tạo lịch hẹn</div>
+            <div className="mobile-quick-action-desc">Đặt lịch dịch vụ, chọn nhân viên & khung giờ</div>
+          </div>
+          <i className="ph ph-caret-right mobile-quick-action-arrow" />
+        </Link>}
+
+        {account && canAccessPath(account.role, '/m/invoices/new') && <Link to="/m/invoices/new" className="mobile-quick-action-item" onClick={onClose}>
+          <div className="mobile-quick-action-icon action-invoice">
+            <i className="ph ph-receipt" />
+          </div>
+          <div className="mobile-quick-action-info">
+            <div className="mobile-quick-action-name">Tạo hóa đơn bán hàng</div>
+            <div className="mobile-quick-action-desc">Thanh toán nhanh, xuất bill & tính hoa hồng thợ</div>
+          </div>
+          <i className="ph ph-caret-right mobile-quick-action-arrow" />
+        </Link>}
+
+        {account && canAccessPath(account.role, '/m/customers') && (
+          <Link to="/m/customers?create=1" className="mobile-quick-action-item" onClick={onClose}>
+            <div className="mobile-quick-action-icon action-customer">
+              <i className="ph ph-user-plus" />
             </div>
             <div className="mobile-quick-action-info">
-              <div className="mobile-quick-action-name">Tạo lịch hẹn</div>
-              <div className="mobile-quick-action-desc">Đặt lịch dịch vụ, chọn nhân viên & khung giờ</div>
+              <div className="mobile-quick-action-name">Thêm khách hàng</div>
+              <div className="mobile-quick-action-desc">Đăng ký hồ sơ khách mới & gói thẻ dịch vụ</div>
             </div>
             <i className="ph ph-caret-right mobile-quick-action-arrow" />
-          </Link>}
-
-          {account && canAccessPath(account.role, '/m/invoices/new') && <Link to="/m/invoices/new" className="mobile-quick-action-item" onClick={onClose}>
-            <div className="mobile-quick-action-icon action-invoice">
-              <i className="ph ph-receipt" />
-            </div>
-            <div className="mobile-quick-action-info">
-              <div className="mobile-quick-action-name">Tạo hóa đơn bán hàng</div>
-              <div className="mobile-quick-action-desc">Thanh toán nhanh, xuất bill & tính hoa hồng thợ</div>
-            </div>
-            <i className="ph ph-caret-right mobile-quick-action-arrow" />
-          </Link>}
-
-          {account && canAccessPath(account.role, '/m/customers') && (
-            <Link to="/m/customers?create=1" className="mobile-quick-action-item" onClick={onClose}>
-              <div className="mobile-quick-action-icon action-customer">
-                <i className="ph ph-user-plus" />
-              </div>
-              <div className="mobile-quick-action-info">
-                <div className="mobile-quick-action-name">Thêm khách hàng</div>
-                <div className="mobile-quick-action-desc">Đăng ký hồ sơ khách mới & gói thẻ dịch vụ</div>
-              </div>
-              <i className="ph ph-caret-right mobile-quick-action-arrow" />
-            </Link>
-          )}
-        </div>
+          </Link>
+        )}
       </div>
-    </div>
-    </MobileDialogPortal>
+    </BottomSheet>
   );
 }
 

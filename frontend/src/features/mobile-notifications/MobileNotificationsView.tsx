@@ -3,7 +3,8 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { relativeTime } from '@/lib/format';
 import { getNotifications, markAllNotificationsRead, markNotificationRead } from './notifications.api';
-import './mobile-notifications.css';
+import { MobilePageHeader } from '@/components/ui/MobilePageHeader/MobilePageHeader';
+import { EmptyState, ErrorState, LoadingState } from '@/components/data-display/DataState';
 
 export interface MobileNotificationItem {
   id: string;
@@ -68,62 +69,63 @@ export function MobileNotificationsView() {
 
   return (
     <div className="mobile-notifications-container">
-      {/* Header */}
-      <header className="mobile-notifications-header">
-        <h1 className="mobile-notifications-title">
-          Thông báo
-          {unreadCount > 0 && (
-            <span className="mobile-notifications-unread-count">{unreadCount}</span>
-          )}
-        </h1>
-        {unreadCount > 0 && (
-          <button type="button" className="mobile-notifications-readall-btn" onClick={() => readAllMutation.mutate()} disabled={readAllMutation.isPending}>
+      <MobilePageHeader
+        title={(
+          <>
+            Thông báo
+            {unreadCount > 0 && <span className="badge badge-danger badge-sm mobile-notifications-unread-count">{unreadCount}</span>}
+          </>
+        )}
+        actions={unreadCount > 0 ? (
+          <button type="button" className="btn btn-link btn-sm" onClick={() => readAllMutation.mutate()} disabled={readAllMutation.isPending}>
             Đánh dấu đã đọc
           </button>
-        )}
-      </header>
-
-      {/* Tabs */}
-      <div className="mobile-notifications-tabs">
-        <button
-          type="button"
-          className={`mobile-notifications-tab-btn ${activeTab === 'all' ? 'is-active' : ''}`}
-          onClick={() => setActiveTab('all')}
-        >
-          Tất cả
-        </button>
-        <button
-          type="button"
-          className={`mobile-notifications-tab-btn ${activeTab === 'appointment' ? 'is-active' : ''}`}
-          onClick={() => setActiveTab('appointment')}
-        >
-          Lịch hẹn
-        </button>
-        <button
-          type="button"
-          className={`mobile-notifications-tab-btn ${activeTab === 'system' ? 'is-active' : ''}`}
-          onClick={() => setActiveTab('system')}
-        >
-          Hệ thống
-        </button>
-      </div>
+        ) : undefined}
+      >
+        <div className="tabs" role="tablist">
+          <button
+            type="button"
+            role="tab"
+            aria-selected={activeTab === 'all'}
+            className={`tab${activeTab === 'all' ? ' is-active' : ''}`}
+            onClick={() => setActiveTab('all')}
+          >
+            Tất cả
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={activeTab === 'appointment'}
+            className={`tab${activeTab === 'appointment' ? ' is-active' : ''}`}
+            onClick={() => setActiveTab('appointment')}
+          >
+            Lịch hẹn
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={activeTab === 'system'}
+            className={`tab${activeTab === 'system' ? ' is-active' : ''}`}
+            onClick={() => setActiveTab('system')}
+          >
+            Hệ thống
+          </button>
+        </div>
+      </MobilePageHeader>
 
       {/* Notification List */}
-      <main className="mobile-notifications-list">
+      <section className="mobile-notifications-list" aria-label="Danh sách thông báo">
         {notificationsQuery.isPending ? (
-          <div className="mobile-notifications-empty"><p className="mobile-notifications-empty-text">Đang tải thông báo…</p></div>
+          <LoadingState compact label="Đang tải thông báo" />
         ) : notificationsQuery.error ? (
-          <div className="mobile-notifications-empty"><p className="mobile-notifications-empty-text">Không thể tải thông báo</p></div>
+          <ErrorState compact error={notificationsQuery.error} onRetry={() => notificationsQuery.refetch()} title="Không thể tải thông báo" />
         ) : filteredNotifications.length === 0 ? (
-          <div className="mobile-notifications-empty">
-            <div className="mobile-notifications-empty-icon">
-              <i className="ph ph-bell-slash" />
-            </div>
-            <p className="mobile-notifications-empty-text">Không có thông báo nào</p>
-            <p className="mobile-notifications-empty-subtext">
-              Bạn đã cập nhật tất cả thông báo mới nhất.
-            </p>
-          </div>
+          <EmptyState
+            compact
+            icon="ph ph-bell-slash"
+            title="Không có thông báo nào"
+            message="Bạn đã cập nhật tất cả thông báo mới nhất."
+          />
         ) : (
           filteredNotifications.map((item) => (
             <article
@@ -153,7 +155,7 @@ export function MobileNotificationsView() {
             </article>
           ))
         )}
-      </main>
+      </section>
     </div>
   );
 }

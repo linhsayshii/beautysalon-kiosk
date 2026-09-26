@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { TimePickerField } from '@/components/ui/DateTimePicker';
-import './AttendanceTimekeeping.css';
+import { Modal } from '@/components/ui/Modal/Modal';
 
 export interface ShiftFormValues {
   name: string;
@@ -53,109 +53,98 @@ export function AddShiftModal({ isOpen, onClose, onSubmit }: AddShiftModalProps)
   };
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div
-        className="modal-dialog"
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* Header */}
-        <div className="modal-header">
-          <h3 className="modal-title">Thêm ca làm việc</h3>
+    <Modal
+      open
+      onClose={onClose}
+      title="Thêm ca làm việc"
+      size="md"
+    >
+      {/* Body */}
+      <form onSubmit={handleSubmit}>
+        <div className="modal-body">
+          {/* Tên ca */}
+          <div className="field-row">
+            <label className="field-label">
+              Tên
+            </label>
+            <div className="field-row-control">
+              <input
+                type="text"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="VD: Ca sáng Smile"
+                required
+                className="input"
+              />
+            </div>
+          </div>
+
+          {/* Giờ làm việc */}
+          <div className="field-row">
+            <div className="field-label">
+              <span>Giờ làm việc</span>
+              <i className="ph ph-info" title="Thời gian tính công của ca" />
+            </div>
+            <div className="field-row-control">
+              <TimePickerField
+                value={startsAt}
+                onChange={setStartsAt}
+                className="input"
+              />
+              <span className="field-hint">Đến</span>
+              <TimePickerField
+                value={endsAt}
+                onChange={setEndsAt}
+                className="input"
+              />
+              {durationText && (
+                <span className="duration-tag">
+                  {durationText}
+                </span>
+              )}
+            </div>
+          </div>
+
+          {/* Giờ cho phép chấm công */}
+          <div className="field-row">
+            <div className="field-label">
+              <span>Giờ cho phép chấm công</span>
+              <i className="ph ph-info" title="Khoảng thời gian nhân viên có thể điểm danh ca này" />
+            </div>
+            <div className="field-row-control">
+              <TimePickerField
+                value={allowCheckInFrom}
+                onChange={setAllowCheckInFrom}
+                className="input"
+              />
+              <span className="field-hint">Đến</span>
+              <TimePickerField
+                value={allowCheckInTo}
+                onChange={setAllowCheckInTo}
+                className="input"
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="modal-footer">
           <button
             type="button"
             onClick={onClose}
-            className="modal-close-btn"
+            className="btn btn-secondary"
           >
-            <i className="ph ph-x" />
+            Bỏ qua
+          </button>
+          <button
+            type="submit"
+            className="btn btn-primary"
+          >
+            Lưu
           </button>
         </div>
-
-        {/* Body */}
-        <form onSubmit={handleSubmit}>
-          <div className="modal-body">
-            {/* Tên ca */}
-            <div className="form-group-row">
-              <label className="form-label-col">
-                Tên
-              </label>
-              <div className="form-control-col">
-                <input
-                  type="text"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="VD: Ca sáng Smile"
-                  required
-                  className="form-input-text"
-                />
-              </div>
-            </div>
-
-            {/* Giờ làm việc */}
-            <div className="form-group-row">
-              <div className="form-label-col">
-                <span>Giờ làm việc</span>
-                <i className="ph ph-info" title="Thời gian tính công của ca" />
-              </div>
-              <div className="form-control-col">
-                <TimePickerField
-                  value={startsAt}
-                  onChange={setStartsAt}
-                  className="form-input-time"
-                />
-                <span style={{ fontSize: 12, color: '#64748b' }}>Đến</span>
-                <TimePickerField
-                  value={endsAt}
-                  onChange={setEndsAt}
-                  className="form-input-time"
-                />
-                {durationText && (
-                  <span className="duration-tag">
-                    {durationText}
-                  </span>
-                )}
-              </div>
-            </div>
-
-            {/* Giờ cho phép chấm công */}
-            <div className="form-group-row">
-              <div className="form-label-col">
-                <span>Giờ cho phép chấm công</span>
-                <i className="ph ph-info" title="Khoảng thời gian nhân viên có thể điểm danh ca này" />
-              </div>
-              <div className="form-control-col">
-                <TimePickerField
-                  value={allowCheckInFrom}
-                  onChange={setAllowCheckInFrom}
-                  className="form-input-time"
-                />
-                <span style={{ fontSize: 12, color: '#64748b' }}>Đến</span>
-                <TimePickerField
-                  value={allowCheckInTo}
-                  onChange={setAllowCheckInTo}
-                  className="form-input-time"
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Footer */}
-          <div className="modal-footer">
-            <button
-              type="button"
-              onClick={onClose}
-              className="btn-secondary"
-            >
-              Bỏ qua
-            </button>
-            <button
-              type="submit"
-              className="btn-primary"
-            >
-              Lưu
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
+      </form>
+      
+    </Modal>
   );
 }

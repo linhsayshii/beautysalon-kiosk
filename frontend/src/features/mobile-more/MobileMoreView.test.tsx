@@ -120,14 +120,14 @@ describe('MobileMoreView', () => {
     renderComponent();
 
     // Modal initially closed
-    expect(screen.queryByTestId('branch-modal-overlay')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('branch-modal-backdrop')).not.toBeInTheDocument();
 
     // Click switch branch button
     const switchBtn = screen.getByTestId('switch-branch-btn');
     fireEvent.click(switchBtn);
 
     // Modal open
-    expect(screen.getByTestId('branch-modal-overlay')).toBeInTheDocument();
+    expect(screen.getByTestId('branch-modal-backdrop')).toBeInTheDocument();
     expect(screen.getByText('Chọn chi nhánh làm việc')).toBeInTheDocument();
 
     // Select second branch
@@ -140,7 +140,7 @@ describe('MobileMoreView', () => {
 
     // Wait for modal state update
     expect(await screen.findByTestId('switch-branch-btn')).toBeInTheDocument();
-    expect(screen.queryByTestId('branch-modal-overlay')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('branch-modal-backdrop')).not.toBeInTheDocument();
   });
 
   it('handles desktop mode toggle button', () => {

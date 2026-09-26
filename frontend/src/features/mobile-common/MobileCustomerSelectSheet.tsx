@@ -4,10 +4,8 @@ import { getCustomers } from '@/features/operations/operations.api';
 import { CustomerCreateDialog } from '@/features/operations/components/CustomerCreateDialog';
 import { formatNumber, initials } from '@/lib/format';
 import type { ApiRecord } from '@/types/api';
-import type { RefObject } from 'react';
-import { useMobileDialog } from './useMobileDialog';
-import { MobileDialogPortal } from './MobileDialogPortal';
-import './mobile-common.css';
+import { BottomSheet } from '@/components/ui/Sheet/BottomSheet';
+import { EmptyState, LoadingState } from '@/components/data-display/DataState';
 
 export interface MobileCustomer {
   id: number;
@@ -36,7 +34,6 @@ export function MobileCustomerSelectSheet({
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [isAddCustomerOpen, setIsAddCustomerOpen] = useState(false);
-  const { dialogRef, titleId } = useMobileDialog({ isOpen, onClose });
 
   useEffect(() => {
     const timer = window.setTimeout(() => setDebouncedSearch(search.trim()), 300);
@@ -54,8 +51,6 @@ export function MobileCustomerSelectSheet({
     return ((customerResponse?.data || []) as unknown as MobileCustomer[]);
   }, [customerResponse]);
 
-  if (!isOpen) return null;
-
   const handleCustomerCreated = (newCust: ApiRecord) => {
     refetch();
     onSelectCustomer({
@@ -70,119 +65,99 @@ export function MobileCustomerSelectSheet({
   };
 
   return (
-    <MobileDialogPortal>
-    <div
-      className="mobile-bottom-sheet-backdrop mobile-customer-backdrop"
-      style={{ zIndex: 90 }}
-      onClick={(e) => {
-        if (e.target === e.currentTarget) onClose();
-      }}
-    >
-      <div ref={dialogRef as RefObject<HTMLDivElement>} className="mobile-customer-sheet" style={{ width: '100%' }} role="dialog" aria-modal="true" aria-labelledby={titleId} tabIndex={-1}>
-        <h2 id={titleId} className="sr-only">Chọn khách hàng</h2>
-        {/* Header Search & Cancel */}
-        <header className="mobile-customer-sheet-header">
-          <div className="mobile-customer-search-box">
-            <i className="ph ph-magnifying-glass search-icon" />
+    <>
+    <BottomSheet
+      open={isOpen}
+      onClose={onClose}
+      title="Chọn khách hàng"
+      height="full"
+      tone="muted"
+      headerActions={(
+        <button type="button" className="btn btn-soft btn-icon" aria-label="Thêm khách hàng mới" onClick={() => setIsAddCustomerOpen(true)}>
+          <i className="ph ph-plus" />
+        </button>
+      )}
+      headerExtra={(
+        <div className="sheet-toolbar">
+          <label className="input-group">
+            <i className="ph ph-magnifying-glass" aria-hidden="true" />
             <input
-              type="text"
-              className="mobile-customer-search-input"
+              type="search"
               placeholder="Tìm khách hàng"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               aria-label="Tìm khách hàng"
               autoFocus
             />
-          </div>
-          <button
-            type="button"
-            className="mobile-customer-cancel-btn"
-            onClick={onClose}
-          >
-            Hủy
-          </button>
-        </header>
+          </label>
+        </div>
+      )}
+    >
+      {/* Customer List */}
+      <div className="mobile-customer-list">
+        {isLoading ? (
+          <LoadingState compact label="Đang tải danh sách khách hàng..." />
+        ) : customers.length === 0 ? (
+          <EmptyState compact icon="ph ph-users" title="Không tìm thấy khách hàng nào" message={null} />
+        ) : (
+          customers.map((c) => {
+            const isSelected = selectedCustomerId === c.id;
+            const remainingUnits = c.remainingPackageUnits ?? 0;
+            const debt = c.debtBalance ?? 0;
 
-        {/* Customer List */}
-        <div className="mobile-customer-list">
-          {isLoading ? (
-            <div className="mobile-customer-state">
-              <i className="ph ph-spinner spin" />
-              <span>Đang tải danh sách khách hàng...</span>
-            </div>
-          ) : customers.length === 0 ? (
-            <div className="mobile-customer-state">
-              <i className="ph ph-users" />
-              <span>Không tìm thấy khách hàng nào</span>
-            </div>
-          ) : (
-            customers.map((c) => {
-              const isSelected = selectedCustomerId === c.id;
-              const remainingUnits = c.remainingPackageUnits ?? 0;
-              const debt = c.debtBalance ?? 0;
-
-              return (
-                <button
-                  type="button"
-                  key={c.id}
-                  className={`mobile-customer-card ${isSelected ? 'is-selected' : ''}`}
-                  onClick={() => {
-                    onSelectCustomer(c);
-                    onClose();
-                  }}
-                >
-                  <div className="mobile-customer-avatar">
-                    {initials(c.name) || 'KH'}
+            return (
+              <button
+                type="button"
+                key={c.id}
+                className={`mobile-customer-card ${isSelected ? 'is-selected' : ''}`}
+                onClick={() => {
+                  onSelectCustomer(c);
+                  onClose();
+                }}
+              >
+                <div className="mobile-customer-avatar">
+                  {initials(c.name) || 'KH'}
+                </div>
+                <div className="mobile-customer-info">
+                  <div className="mobile-customer-name-row">
+                    <span className="mobile-customer-name">{c.name}</span>
+                    {c.code && (
+                      <span className="mobile-customer-code">{c.code}</span>
+                    )}
                   </div>
-                  <div className="mobile-customer-info">
-                    <div className="mobile-customer-name-row">
-                      <span className="mobile-customer-name">{c.name}</span>
-                      {c.code && (
-                        <span className="mobile-customer-code">{c.code}</span>
+                  {c.phone && (
+                    <div className="mobile-customer-phone">
+                      <i className="ph ph-phone" />
+                      <span>{c.phone}</span>
+                    </div>
+                  )}
+                  {(remainingUnits > 0 || debt > 0) && (
+                    <div className="mobile-customer-badges">
+                      {remainingUnits > 0 && (
+                        <span className="mobile-customer-pkg-badge">
+                          <i className="ph ph-ticket" />
+                          Còn: {formatNumber(remainingUnits)} Buổi DV
+                        </span>
+                      )}
+                      {debt > 0 && (
+                        <span className="mobile-customer-debt-badge">
+                          <i className="ph ph-warning-circle" />
+                          Nợ: {formatNumber(debt)}
+                        </span>
                       )}
                     </div>
-                    {c.phone && (
-                      <div className="mobile-customer-phone">
-                        <i className="ph ph-phone" />
-                        <span>{c.phone}</span>
-                      </div>
-                    )}
-                    {(remainingUnits > 0 || debt > 0) && (
-                      <div className="mobile-customer-badges">
-                        {remainingUnits > 0 && (
-                          <span className="mobile-customer-pkg-badge">
-                            <i className="ph ph-ticket" />
-                            Còn: {formatNumber(remainingUnits)} Buổi DV
-                          </span>
-                        )}
-                        {debt > 0 && (
-                          <span className="mobile-customer-debt-badge">
-                            <i className="ph ph-warning-circle" />
-                            Nợ: {formatNumber(debt)}
-                          </span>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                  <div className="mobile-customer-card-action">
-                    <i className={`ph ${isSelected ? 'ph-check-circle' : 'ph-caret-right'}`} />
-                  </div>
-                </button>
-              );
-            })
-          )}
-        </div>
-
-        {/* Floating Action Button (Create Customer) */}
-        <button
-          type="button"
-          className="mobile-customer-fab"
-          aria-label="Thêm khách hàng mới"
-          onClick={() => setIsAddCustomerOpen(true)}
-        >
-          <i className="ph ph-plus" />
-        </button>
+                  )}
+                </div>
+                <div className="mobile-customer-card-action">
+                  <i className={`ph ${isSelected ? 'ph-check-circle' : 'ph-caret-right'}`} />
+                </div>
+              </button>
+            );
+          })
+        )}
       </div>
+
+    </BottomSheet>
 
       {/* Customer Create Modal */}
       {isAddCustomerOpen && (
@@ -191,7 +166,6 @@ export function MobileCustomerSelectSheet({
           onSuccess={handleCustomerCreated}
         />
       )}
-    </div>
-    </MobileDialogPortal>
+    </>
   );
 }

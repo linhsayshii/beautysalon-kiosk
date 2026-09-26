@@ -4,7 +4,7 @@
   display: flex;
   flex-direction: column;
   min-height: 100vh;
-  background-color: #f2f4f8;
+  background-color: var(--canvas);
   padding-bottom: calc(var(--mobile-bottomnav-h, 60px) + var(--mobile-safe-bottom, 0px) + 100px);
   box-sizing: border-box;
   width: 100%;
@@ -18,179 +18,10 @@
 }
 
 /* Sticky Top Header Cluster for Inventory Views */
-.mobile-inventory-sticky-header-cluster {
-  position: sticky;
-  top: 0;
-  z-index: 30;
-  background: #ffffff;
-  margin: 0;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
-}
-
 /* 1. Header Toolbar */
-.mobile-inventory-top-nav {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 12px 16px;
-  background: #ffffff;
-  border-bottom: 1px solid #e5e9f0;
-}
-
-.mobile-inventory-nav-left {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.mobile-inventory-back-icon {
-  font-size: 22px;
-  color: #1e293b;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 44px;
-  height: 44px;
-  border-radius: 8px;
-  border: none;
-  background: transparent;
-}
-
-.mobile-inventory-nav-title {
-  margin: 0;
-  font-size: 19px;
-  font-weight: 750;
-  color: #0f172a;
-  letter-spacing: -0.01em;
-}
-
-.mobile-inventory-nav-actions {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.mobile-inventory-nav-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 44px;
-  height: 44px;
-  border-radius: 8px;
-  border: none;
-  background: transparent;
-  color: #1e293b;
-  font-size: 21px;
-  cursor: pointer;
-  transition: background 0.15s ease;
-}
-
-.mobile-inventory-nav-btn:active {
-  background: #f1f5f9;
-}
-
 /* Inline Search Input Bar when toggled */
-.mobile-inventory-search-bar-wrap {
-  background: #ffffff;
-  padding: 8px 16px 12px;
-  border-bottom: 1px solid #e5e9f0;
-}
-
 /* 2. Horizontal Filter Chips Strip */
-.mobile-inventory-filter-strip {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 16px;
-  background: #f8fafc;
-  border-bottom: 1px solid #e5e9f0;
-  overflow-x: auto;
-  scrollbar-width: none;
-  -webkit-overflow-scrolling: touch;
-}
-
-.mobile-inventory-filter-strip::-webkit-scrollbar {
-  display: none;
-}
-
-.mobile-filter-icon-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 44px;
-  height: 44px;
-  border-radius: 10px;
-  background: #ffffff;
-  border: 1px solid #e2e8f0;
-  color: #334155;
-  font-size: 18px;
-  flex-shrink: 0;
-  cursor: pointer;
-}
-
-.mobile-filter-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  padding: 0 13px;
-  min-height: 44px;
-  border-radius: 18px;
-  background: #ffffff;
-  border: 1px solid #e2e8f0;
-  color: #334155;
-  font-size: 13.5px;
-  font-weight: 600;
-  white-space: nowrap;
-  flex-shrink: 0;
-  cursor: pointer;
-  transition: all 0.15s ease;
-}
-
-.mobile-filter-chip.is-active {
-  background: #eff6ff;
-  border-color: #93c5fd;
-  color: #0062eb;
-}
-
-.mobile-filter-chip i {
-  font-size: 12px;
-  color: #64748b;
-}
-
 /* 3. Summary & Sorting Bar */
-.mobile-inventory-summary-bar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 12px 16px 8px;
-  font-size: 13.5px;
-}
-
-.mobile-inventory-sort-selector {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  font-weight: 750;
-  color: #0f172a;
-  font-size: 15px;
-  background: transparent;
-  border: none;
-  padding: 0;
-  cursor: pointer;
-}
-
-.mobile-inventory-sort-selector i {
-  font-size: 12px;
-  color: #64748b;
-}
-
-.mobile-inventory-count-summary {
-  color: #64748b;
-  font-size: 13px;
-  font-weight: 500;
-}
-
 /* 4. Native Grouped Sections */
 .mobile-inventory-section {
   margin-top: 8px;
@@ -200,15 +31,15 @@
   padding: 8px 16px 6px;
   font-size: 12px;
   font-weight: 750;
-  color: #64748b;
+  color: var(--ink-500);
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
 
 .mobile-inventory-section-card {
   background: #ffffff;
-  border-top: 1px solid #e5e9f0;
-  border-bottom: 1px solid #e5e9f0;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
 }
 
 .mobile-inventory-row-item {
@@ -216,7 +47,7 @@
   align-items: center;
   gap: 12px;
   padding: 12px 16px;
-  border-bottom: 1px solid #f1f5f9;
+  border-bottom: 1px solid var(--canvas);
   background: #ffffff;
   cursor: pointer;
   transition: background-color 0.1s ease;
@@ -227,7 +58,7 @@
 }
 
 .mobile-inventory-row-item:active {
-  background-color: #f8fafc;
+  background-color: var(--surface-muted);
 }
 
 /* Square rounded avatar */
@@ -235,8 +66,8 @@
   width: 48px;
   height: 48px;
   border-radius: 12px;
-  background: #e0f2fe;
-  color: #0284c7;
+  background: var(--sky-soft);
+  color: var(--blue-600);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -245,23 +76,23 @@
 }
 
 .mobile-row-avatar.is-product {
-  background: #e0f2fe;
-  color: #0284c7;
+  background: var(--sky-soft);
+  color: var(--blue-600);
 }
 
 .mobile-row-avatar.is-service {
-  background: #f0fdf4;
-  color: #16a34a;
+  background: var(--green-soft);
+  color: var(--green);
 }
 
 .mobile-row-avatar.is-package {
-  background: #faf5ff;
-  color: #9333ea;
+  background: var(--blue-50);
+  color: var(--violet);
 }
 
 .mobile-row-avatar.is-account_card {
-  background: #e0f2fe;
-  color: #0284c7;
+  background: var(--sky-soft);
+  color: var(--blue-600);
 }
 
 .mobile-row-info {
@@ -275,7 +106,7 @@
 .mobile-row-name {
   font-size: 15px;
   font-weight: 650;
-  color: #0f172a;
+  color: var(--ink-950);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -283,18 +114,18 @@
 
 .mobile-row-sub {
   font-size: 13px;
-  color: #64748b;
+  color: var(--ink-500);
 }
 
 .mobile-row-sub strong {
-  color: #d97706;
+  color: var(--orange);
   font-weight: 650;
 }
 
 .mobile-row-price {
   font-size: 15px;
   font-weight: 700;
-  color: #0f172a;
+  color: var(--ink-950);
   text-align: right;
   flex-shrink: 0;
 }
@@ -309,18 +140,18 @@
 .mobile-po-code-text {
   font-size: 14.5px;
   font-weight: 700;
-  color: #0062eb;
+  color: var(--blue-600);
 }
 
 .mobile-po-date-text {
   font-size: 12.5px;
-  color: #64748b;
+  color: var(--ink-500);
 }
 
 .mobile-po-supplier-line {
   font-size: 13.5px;
   font-weight: 600;
-  color: #1e293b;
+  color: var(--ink-800);
   display: flex;
   align-items: center;
   gap: 6px;
@@ -337,13 +168,13 @@
 
 .mobile-po-supplier-phone {
   font-size: 12.5px;
-  color: #64748b;
+  color: var(--ink-500);
   font-weight: 500;
 }
 
 .mobile-po-meta-line {
   font-size: 12px;
-  color: #64748b;
+  color: var(--ink-500);
 }
 
 .mobile-po-row-right {
@@ -357,7 +188,7 @@
 .mobile-po-total-due {
   font-size: 15px;
   font-weight: 750;
-  color: #0f172a;
+  color: var(--ink-950);
 }
 
 .mobile-po-status-badge-wrap {
@@ -369,7 +200,7 @@
   display: flex;
   flex-direction: column;
   padding: 12px 16px;
-  border-bottom: 1px solid #f1f5f9;
+  border-bottom: 1px solid var(--canvas);
   background: #ffffff;
   gap: 10px;
 }
@@ -387,16 +218,16 @@
 
 .mobile-pricebook-cost-line {
   font-size: 12.5px;
-  color: #64748b;
+  color: var(--ink-500);
 }
 
 .mobile-pricebook-cost-line strong {
-  color: #334155;
+  color: var(--ink-700);
   font-weight: 600;
 }
 
 .mobile-pricebook-row-chevron {
-  color: #94a3b8;
+  color: var(--ink-300);
   font-size: 16px;
   flex-shrink: 0;
 }
@@ -405,7 +236,7 @@
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(138px, 170px);
   align-items: center;
-  border-top: 1px solid #f1f5f9;
+  border-top: 1px solid var(--canvas);
   padding: 10px 0 0 60px;
   gap: 10px;
 }
@@ -413,7 +244,7 @@
 .mobile-pricebook-input-label {
   font-size: 13px;
   font-weight: 600;
-  color: #475569;
+  color: var(--ink-600);
   min-width: 0;
   line-height: 1.35;
 }
@@ -428,7 +259,7 @@
   min-height: var(--mobile-control-min, 44px);
   box-sizing: border-box;
   overflow: hidden;
-  border-color: #94a3b8;
+  border-color: var(--ink-300);
   border-radius: 12px;
   background: #ffffff;
 }
@@ -444,7 +275,7 @@
   box-shadow: none;
   background: transparent;
   text-align: right;
-  color: #0062eb;
+  color: var(--blue-600);
   font-size: 16px;
   font-weight: 700;
 }
@@ -469,21 +300,21 @@
   display: grid;
   gap: 12px;
   padding: 12px 12px calc(92px + var(--mobile-safe-bottom, 0px));
-  background: #f4f7fb;
+  background: var(--surface-hover);
 }
 
 .mobile-po-create-section {
   display: grid;
   gap: 12px;
   padding: 14px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--line);
   border-radius: 14px;
   background: #fff;
 }
 
 .mobile-po-create-title {
   margin: 0;
-  color: #0f172a;
+  color: var(--ink-950);
   font-size: 16px;
   font-weight: 750;
 }
@@ -494,7 +325,7 @@
   gap: 8px;
   min-height: 44px;
   padding: 0 12px;
-  border: 1px solid #cbd5e1;
+  border: 1px solid var(--line-strong);
   border-radius: 10px;
   background: #fff;
 }
@@ -509,7 +340,7 @@
 
 .mobile-po-search-results {
   overflow: hidden;
-  border: 1px solid #dbe4f0;
+  border: 1px solid var(--line);
   border-radius: 12px;
 }
 
@@ -522,79 +353,53 @@
   min-height: 58px;
   padding: 9px 12px;
   border: 0;
-  border-bottom: 1px solid #edf2f7;
+  border-bottom: 1px solid var(--line-soft);
   background: #fff;
-  color: #0f172a;
+  color: var(--ink-950);
   text-align: left;
 }
 
 .mobile-po-search-results button:last-child { border-bottom: 0; }
 .mobile-po-search-results button > span { display: grid; gap: 3px; }
-.mobile-po-search-results button > span:last-child { justify-items: end; color: #0062eb; }
+.mobile-po-search-results button > span:last-child { justify-items: end; color: var(--blue-600); }
 .mobile-po-search-results small,
-.mobile-po-draft-heading small { display: block; color: #64748b; font-size: 12px; font-weight: 500; }
-.mobile-po-search-results p { margin: 0; padding: 16px; color: #64748b; text-align: center; }
+.mobile-po-draft-heading small { display: block; color: var(--ink-500); font-size: 12px; font-weight: 500; }
+.mobile-po-search-results p { margin: 0; padding: 16px; color: var(--ink-500); text-align: center; }
 
 .mobile-po-draft-list { display: grid; gap: 10px; }
-.mobile-po-draft-card { display: grid; gap: 12px; padding: 12px; border: 1px solid #e2e8f0; border-radius: 12px; }
+.mobile-po-draft-card { display: grid; gap: 12px; padding: 12px; border: 1px solid var(--line); border-radius: 12px; }
 .mobile-po-draft-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
 .mobile-po-draft-heading > div { min-width: 0; }
 .mobile-po-draft-heading strong { display: block; overflow: hidden; text-overflow: ellipsis; }
-.mobile-po-draft-heading button { display: grid; place-items: center; width: 44px; height: 44px; margin: -8px -8px 0 0; border: 0; background: transparent; color: #dc2626; font-size: 19px; }
+.mobile-po-draft-heading button { display: grid; place-items: center; width: 44px; height: 44px; margin: -8px -8px 0 0; border: 0; background: transparent; color: var(--red); font-size: 19px; }
 .mobile-po-draft-fields { display: grid; grid-template-columns: minmax(0, .75fr) minmax(0, 1.25fr); gap: 10px; }
 .mobile-po-draft-fields label,
-.mobile-po-field { display: grid; gap: 6px; color: #475569; font-size: 13px; font-weight: 650; }
+.mobile-po-field { display: grid; gap: 6px; color: var(--ink-600); font-size: 13px; font-weight: 650; }
 .mobile-po-draft-fields input,
 .mobile-po-field input,
-.mobile-po-field textarea { width: 100%; min-height: 44px; box-sizing: border-box; padding: 9px 10px; border: 1px solid #cbd5e1; border-radius: 9px; background: #fff; color: #0f172a; font-size: 16px; }
+.mobile-po-field textarea { width: 100%; min-height: 44px; box-sizing: border-box; padding: 9px 10px; border: 1px solid var(--line-strong); border-radius: 9px; background: #fff; color: var(--ink-950); font-size: 16px; }
 .mobile-po-field textarea { min-height: 88px; resize: vertical; }
-.mobile-po-field em { color: #dc2626; font-style: normal; }
+.mobile-po-field em { color: var(--red); font-style: normal; }
 .mobile-po-money-input { min-height: 44px; box-sizing: border-box; overflow: hidden; }
 .mobile-po-field .mobile-po-money-input > input { min-width: 0; height: 100%; box-sizing: border-box; padding: 9px 10px; border: 0; border-radius: 0; outline: 0; box-shadow: none; background: transparent; }
 .mobile-po-field .mobile-po-money-input > input:focus { border: 0; outline: 0; box-shadow: none; }
 .mobile-po-draft-total,
-.mobile-po-create-total { display: flex; align-items: center; justify-content: space-between; gap: 12px; color: #475569; }
+.mobile-po-create-total { display: flex; align-items: center; justify-content: space-between; gap: 12px; color: var(--ink-600); }
 .mobile-po-draft-total strong,
-.mobile-po-create-total strong { color: #0f172a; }
-.mobile-po-create-total.is-due { padding: 12px; border-radius: 10px; background: #eff6ff; color: #1d4ed8; }
-.mobile-po-create-total.is-due strong { color: #0062eb; font-size: 18px; }
-.mobile-po-create-actions { position: fixed; z-index: var(--mobile-layer-sticky, 30); right: 0; bottom: var(--mobile-bottomnav-h, 60px); left: 0; display: grid; grid-template-columns: 1fr 1.25fr; gap: 10px; padding: 10px 12px calc(10px + var(--mobile-safe-bottom, 0px)); border-top: 1px solid #dbe4f0; background: rgba(255,255,255,.96); }
+.mobile-po-create-total strong { color: var(--ink-950); }
+.mobile-po-create-total.is-due { padding: 12px; border-radius: 10px; background: var(--blue-50); color: var(--blue-700); }
+.mobile-po-create-total.is-due strong { color: var(--blue-600); font-size: 18px; }
+.mobile-po-create-actions { position: fixed; z-index: var(--mobile-layer-sticky, 30); right: 0; bottom: var(--mobile-bottomnav-h, 60px); left: 0; display: grid; grid-template-columns: 1fr 1.25fr; gap: 10px; padding: 10px 12px calc(10px + var(--mobile-safe-bottom, 0px)); border-top: 1px solid var(--line); background: rgba(255,255,255,.96); }
 .mobile-po-create-actions button { min-height: 46px; }
 
 /* 5. Floating Action Button (FAB) */
-.mobile-inventory-fab-btn {
-  position: fixed;
-  right: 18px;
-  bottom: calc(var(--mobile-bottomnav-h, 60px) + var(--mobile-safe-bottom, 0px) + 16px);
-  width: 54px;
-  height: 54px;
-  border-radius: 27px;
-  background: #0062eb;
-  color: #ffffff;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 26px;
-  box-shadow: 0 4px 16px rgba(0, 98, 235, 0.4);
-  border: none;
-  cursor: pointer;
-  z-index: 75;
-  transition: transform 0.15s ease, background 0.15s ease;
-  text-decoration: none;
-}
-
-.mobile-inventory-fab-btn:active {
-  transform: scale(0.92);
-  background: #004ecc;
-}
-
 /* 6. Inset Detail View (Screenshots 1 style) */
 .mobile-detail-page-container,
 .mobile-po-detail-wrapper {
   display: flex;
   flex-direction: column;
   min-height: 100%;
-  background-color: #f2f4f8;
+  background-color: var(--canvas);
   padding: 12px 14px calc(var(--mobile-safe-bottom, 0px) + 30px);
   gap: 12px;
 }
@@ -637,7 +442,7 @@
 .mobile-po-detail-code {
   font-size: 19px;
   font-weight: 800;
-  color: #0f172a;
+  color: var(--ink-950);
   margin: 0;
 }
 
@@ -645,7 +450,7 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  background: #f8fafc;
+  background: var(--surface-muted);
   border-radius: 12px;
   padding: 10px 12px;
 }
@@ -654,8 +459,8 @@
   width: 38px;
   height: 38px;
   border-radius: 10px;
-  background: #e2e8f0;
-  color: #475569;
+  background: var(--line);
+  color: var(--ink-600);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -672,12 +477,12 @@
 .mobile-po-detail-supplier-name {
   font-size: 14.5px;
   font-weight: 700;
-  color: #0f172a;
+  color: var(--ink-950);
 }
 
 .mobile-po-detail-supplier-phone {
   font-size: 13px;
-  color: #64748b;
+  color: var(--ink-500);
 }
 
 .mobile-po-grid-2col {
@@ -695,20 +500,20 @@
 
 .mobile-po-grid-lbl {
   font-size: 12px;
-  color: #64748b;
+  color: var(--ink-500);
 }
 
 .mobile-po-grid-val {
   font-size: 14px;
   font-weight: 650;
-  color: #0f172a;
+  color: var(--ink-950);
 }
 
 .mobile-po-card-section-title,
 .mobile-pricebook-card-section-title {
   font-size: 12px;
   font-weight: 750;
-  color: #64748b;
+  color: var(--ink-500);
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
@@ -724,7 +529,7 @@
   align-items: center;
   justify-content: space-between;
   padding-bottom: 8px;
-  border-bottom: 1px solid #f1f5f9;
+  border-bottom: 1px solid var(--canvas);
 }
 
 .mobile-po-item-row:last-child {
@@ -743,18 +548,18 @@
 .mobile-po-item-name {
   font-size: 14px;
   font-weight: 650;
-  color: #0f172a;
+  color: var(--ink-950);
 }
 
 .mobile-po-item-calc {
   font-size: 12.5px;
-  color: #64748b;
+  color: var(--ink-500);
 }
 
 .mobile-po-item-total {
   font-size: 14px;
   font-weight: 700;
-  color: #0f172a;
+  color: var(--ink-950);
   text-align: right;
   flex-shrink: 0;
 }
@@ -770,19 +575,19 @@
   align-items: center;
   justify-content: space-between;
   font-size: 14px;
-  color: #334155;
+  color: var(--ink-700);
 }
 
 .mobile-po-summary-line.is-discount {
-  color: #e11d48;
+  color: var(--red);
 }
 
 .mobile-po-summary-line.is-grand-total {
   font-size: 15.5px;
   font-weight: 750;
-  color: #0f172a;
+  color: var(--ink-950);
   padding-top: 4px;
-  border-top: 1px dashed #e2e8f0;
+  border-top: 1px dashed var(--line);
 }
 
 .mobile-po-actions-row {
@@ -790,51 +595,18 @@
   align-items: center;
   gap: 10px;
 }
-
-.mobile-po-action-print-btn {
-  flex: 1;
-  min-height: 44px;
-  border-radius: 10px;
-  background: #ffffff;
-  border: 1px solid #e2e8f0;
-  color: #0f172a;
-  font-size: 14px;
-  font-weight: 650;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  cursor: pointer;
-}
-
-.mobile-po-action-edit-btn,
-.mobile-pricebook-action-edit-btn {
-  flex: 1;
-  min-height: 44px;
-  border-radius: 10px;
-  background: #0062eb;
-  border: none;
-  color: #ffffff;
-  font-size: 14px;
-  font-weight: 650;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-}
-
 /* Pricebook Detail Comparisons */
 .mobile-pricebook-detail-name {
   font-size: 18px;
   font-weight: 750;
-  color: #0f172a;
+  color: var(--ink-950);
   margin: 0;
 }
 
 .mobile-pricebook-detail-code {
   font-size: 13px;
   font-weight: 600;
-  color: #64748b;
+  color: var(--ink-500);
 }
 
 .mobile-pricebook-compare-grid {
@@ -847,21 +619,21 @@
   display: flex;
   flex-direction: column;
   gap: 3px;
-  background: #f8fafc;
+  background: var(--surface-muted);
   border-radius: 10px;
   padding: 10px 12px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--line);
   min-width: 0;
 }
 
 .mobile-pricebook-compare-cell.is-highlight {
-  background: #eff6ff;
-  border-color: #bfdbfe;
+  background: var(--blue-50);
+  border-color: var(--blue-200);
 }
 
 .mobile-pricebook-compare-lbl {
   font-size: 11.5px;
-  color: #64748b;
+  color: var(--ink-500);
   font-weight: 600;
   overflow-wrap: anywhere;
 }
@@ -869,7 +641,7 @@
 .mobile-pricebook-compare-val {
   font-size: 15px;
   font-weight: 750;
-  color: #0f172a;
+  color: var(--ink-950);
   overflow-wrap: anywhere;
 }
 
@@ -877,18 +649,18 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: #f1f5f9;
+  background: var(--canvas);
   border-radius: 10px;
   padding: 10px 14px;
   font-size: 13.5px;
   font-weight: 600;
-  color: #334155;
+  color: var(--ink-700);
 }
 
 .mobile-detail-card-title {
   font-size: 12px;
   font-weight: 750;
-  color: #64748b;
+  color: var(--ink-500);
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
@@ -896,7 +668,7 @@
 .mobile-detail-edit-link {
   font-size: 14px;
   font-weight: 650;
-  color: #0062eb;
+  color: var(--blue-600);
   background: none;
   border: none;
   cursor: pointer;
@@ -909,7 +681,7 @@
 
 .mobile-detail-edit-link:focus-visible,
 .mobile-detail-edit-link:active {
-  background: #eff6ff;
+  background: var(--blue-50);
 }
 
 .mobile-create-type-list {
@@ -926,16 +698,16 @@
   width: 100%;
   min-height: 68px;
   padding: 10px 12px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--line);
   border-radius: 14px;
   background: #ffffff;
-  color: #0f172a;
+  color: var(--ink-950);
   text-align: left;
 }
 
 .mobile-create-type-option:active {
-  border-color: #93c5fd;
-  background: #f8fbff;
+  border-color: var(--blue-300);
+  background: var(--surface-muted);
 }
 
 .mobile-create-type-icon {
@@ -944,20 +716,20 @@
   width: 48px;
   height: 48px;
   border-radius: 12px;
-  background: #e0f2fe;
-  color: #0284c7;
+  background: var(--sky-soft);
+  color: var(--blue-600);
   font-size: 23px;
 }
 
 .mobile-create-type-icon.is-service,
 .mobile-create-type-icon.is-package {
-  background: #f5f3ff;
-  color: #7c3aed;
+  background: var(--blue-50);
+  color: var(--violet);
 }
 
 .mobile-create-type-icon.is-account_card {
-  background: #ecfdf5;
-  color: #059669;
+  background: var(--green-soft);
+  color: var(--green);
 }
 
 .mobile-create-type-copy {
@@ -972,7 +744,7 @@
 
 .mobile-create-type-copy small,
 .mobile-detail-supporting-text {
-  color: #64748b;
+  color: var(--ink-500);
   font-size: 12.5px;
   line-height: 1.4;
 }
@@ -985,7 +757,7 @@
 .mobile-detail-main-name {
   font-size: 20px;
   font-weight: 800;
-  color: #0f172a;
+  color: var(--ink-950);
   margin: 0;
 }
 
@@ -1005,18 +777,18 @@
 }
 
 .mobile-detail-pill.is-gray {
-  background: #f1f5f9;
-  color: #475569;
+  background: var(--canvas);
+  color: var(--ink-600);
 }
 
 .mobile-detail-pill.is-green {
-  background: #dcfce7;
-  color: #16a34a;
+  background: var(--green-soft);
+  color: var(--green);
 }
 
 .mobile-detail-pill.is-red {
-  background: #fee2e2;
-  color: #dc2626;
+  background: var(--red-soft);
+  color: var(--red);
 }
 
 .mobile-detail-grid-2col {
@@ -1034,13 +806,13 @@
 
 .mobile-detail-grid-label {
   font-size: 12.5px;
-  color: #64748b;
+  color: var(--ink-500);
 }
 
 .mobile-detail-grid-value {
   font-size: 15px;
   font-weight: 700;
-  color: #0f172a;
+  color: var(--ink-950);
 }
 
 .mobile-detail-nav-row {
@@ -1048,20 +820,20 @@
   align-items: center;
   justify-content: space-between;
   padding: 12px 0;
-  border-top: 1px solid #f1f5f9;
+  border-top: 1px solid var(--canvas);
   font-size: 14.5px;
   font-weight: 600;
-  color: #334155;
+  color: var(--ink-700);
   cursor: pointer;
 }
 
 .mobile-detail-nav-row i {
-  color: #94a3b8;
+  color: var(--ink-300);
   font-size: 16px;
 }
 
 .mobile-detail-blue-action {
-  color: #0062eb;
+  color: var(--blue-600);
   font-size: 14.5px;
   font-weight: 650;
   min-height: 44px;
@@ -1078,10 +850,10 @@
   width: calc(100% - 32px);
   min-height: 44px;
   margin: 8px 16px 24px;
-  border: 1px solid #cbd5e1;
+  border: 1px solid var(--line-strong);
   border-radius: 10px;
   background: #fff;
-  color: #334155;
+  color: var(--ink-700);
   font: inherit;
   font-weight: 600;
 }
@@ -1092,36 +864,6 @@
 }
 
 @media (max-width: 340px) {
-  .mobile-inventory-top-nav,
-  .mobile-inventory-filter-strip,
-  .mobile-inventory-summary-bar {
-    padding-right: 10px;
-    padding-left: 10px;
-  }
-
-  .mobile-inventory-nav-left {
-    min-width: 0;
-    gap: 4px;
-  }
-
-  .mobile-inventory-nav-title {
-    overflow: hidden;
-    font-size: 17px;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-
-  .mobile-inventory-nav-actions {
-    flex: 0 0 auto;
-    gap: 0;
-  }
-
-  .mobile-inventory-summary-bar {
-    align-items: flex-start;
-    gap: 5px;
-    flex-direction: column;
-  }
-
   .mobile-pricebook-row-item {
     padding-right: 10px;
     padding-left: 10px;
@@ -1136,4 +878,8 @@
     gap: 6px;
     padding-left: 0;
   }
+}
+
+.mobile-po-actions-row > .btn {
+  flex: 1;
 }

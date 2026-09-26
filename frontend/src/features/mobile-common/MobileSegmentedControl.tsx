@@ -1,4 +1,3 @@
-import './mobile-common.css';
 
 export interface MobileSegmentedOption<T extends string> {
   value: T;

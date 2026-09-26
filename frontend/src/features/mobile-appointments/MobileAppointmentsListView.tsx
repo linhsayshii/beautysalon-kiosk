@@ -6,11 +6,13 @@ import { getStaff } from '@/features/staff/staff.api';
 import { useAuth } from '@/features/auth/AuthProvider';
 import { MobileDetailSheet, MobileSearchBar } from '@/features/mobile-common';
 import { useToast } from '@/components/ui/Toast/ToastProvider';
+import { useComingSoon } from '@/components/ui/Toast/useComingSoon';
 import { Select } from '@/components/ui/Select/Select';
 import { DatePickerField } from '@/components/ui/DateTimePicker';
 import { DEFAULT_BRANCH_TIME_ZONE, formatBranchTime, formatDayHeader, localDateTimeFromInstant } from '@/lib/date';
 import type { ApiRecord } from '@/types/api';
-import './mobile-appointments.css';
+import { MobilePageHeader } from '@/components/ui/MobilePageHeader/MobilePageHeader';
+import { LoadingState } from '@/components/data-display/DataState';
 
 interface AppointmentData {
   id: number;
@@ -59,6 +61,7 @@ export function MobileAppointmentsListView() {
   const [isSearchVisible, setIsSearchVisible] = useState(false);
   const [selectedApt, setSelectedApt] = useState<AppointmentData | null>(null);
   const { notify } = useToast();
+  const comingSoon = useComingSoon();
   const queryClient = useQueryClient();
 
   const { data: appointmentsResponse, isLoading } = useQuery({
@@ -143,37 +146,28 @@ export function MobileAppointmentsListView() {
 
   return (
     <div className="mobile-appointments-view">
-      {/* Sticky Top Cluster */}
-      <div className="mobile-appointments-sticky-header-cluster">
-        {/* 1. Header Toolbar */}
-        <div className="mobile-appointments-top-header">
-          <h1 className="mobile-appointments-main-title">Lịch dịch vụ</h1>
-          <div className="mobile-appointments-nav-actions">
-            <button
-              type="button"
-              className={`mobile-appointments-search-trigger ${isSearchVisible ? 'is-active' : ''}`}
-              onClick={() => setIsSearchVisible((prev) => !prev)}
-              aria-label="Tìm kiếm"
-            >
-              <i className="ph ph-magnifying-glass" />
-            </button>
-          </div>
-        </div>
-
-        {/* Inline Search Bar */}
+      <MobilePageHeader
+        title="Lịch dịch vụ"
+        actions={(
+          <button
+            type="button"
+            className={`btn btn-ghost btn-icon m-header-action${isSearchVisible ? ' is-active' : ''}`}
+            onClick={() => setIsSearchVisible((prev) => !prev)}
+            aria-label="Tìm kiếm"
+          >
+            <i className="ph ph-magnifying-glass" />
+          </button>
+        )}
+      >
         {isSearchVisible && (
-          <div className="mobile-appointments-search-box">
-            <MobileSearchBar
-              value={search}
-              placeholder="Tìm khách hàng, số điện thoại, thợ..."
-              onChange={setSearch}
-            />
-          </div>
+          <MobileSearchBar
+            value={search}
+            placeholder="Tìm khách hàng, số điện thoại, thợ..."
+            onChange={setSearch}
+          />
         )}
 
-        {/* 2. Filter Chips Strip */}
-        <div className="mobile-appointments-filter-strip">
-          {/* Date Selector Chip */}
+        <div className="m-chip-strip">
           <div className="mobile-appointments-chip-select-wrap">
             <DatePickerField
               className={`mobile-appointments-filter-chip ${selectedDate ? 'is-active' : ''}`}
@@ -185,10 +179,9 @@ export function MobileAppointmentsListView() {
             />
           </div>
 
-          {/* Staff Filter Dropdown Chip */}
           <div className="mobile-appointments-chip-select-wrap">
             <Select
-              triggerClassName={`mobile-appointments-filter-chip ${staffFilter !== 'all' ? 'is-active' : ''}`}
+              triggerClassName={staffFilter !== 'all' ? 'is-active' : ''}
               variant="pill"
               value={staffFilter}
               onChange={setStaffFilter}
@@ -198,13 +191,12 @@ export function MobileAppointmentsListView() {
           </div>
         </div>
 
-        {/* 3. Underline Tab Navigation */}
-        <div className="mobile-appointments-tabs-nav" role="tablist">
+        <div className="tabs" role="tablist">
           <button
             type="button"
             role="tab"
             aria-selected={activeTab === 'list'}
-            className={`mobile-appointments-tab-item ${activeTab === 'list' ? 'is-active' : ''}`}
+            className={`tab${activeTab === 'list' ? ' is-active' : ''}`}
             onClick={() => setActiveTab('list')}
           >
             Danh sách
@@ -213,7 +205,7 @@ export function MobileAppointmentsListView() {
             type="button"
             role="tab"
             aria-selected={activeTab === 'timeline'}
-            className={`mobile-appointments-tab-item ${activeTab === 'timeline' ? 'is-active' : ''}`}
+            className={`tab${activeTab === 'timeline' ? ' is-active' : ''}`}
             onClick={() => setActiveTab('timeline')}
           >
             Lưới thời gian
@@ -222,13 +214,13 @@ export function MobileAppointmentsListView() {
             type="button"
             role="tab"
             aria-selected={activeTab === 'staff_grid'}
-            className={`mobile-appointments-tab-item ${activeTab === 'staff_grid' ? 'is-active' : ''}`}
+            className={`tab${activeTab === 'staff_grid' ? ' is-active' : ''}`}
             onClick={() => setActiveTab('staff_grid')}
           >
             Lưới nhân viên
           </button>
         </div>
-      </div>
+      </MobilePageHeader>
 
       {/* 4. Grouped Cards Container */}
       <div className="mobile-appointments-content-body">
@@ -237,9 +229,7 @@ export function MobileAppointmentsListView() {
         </div>
 
         {isLoading ? (
-          <div style={{ padding: '40px 16px', textAlign: 'center', color: '#64748b' }}>
-            Đang tải dữ liệu lịch hẹn...
-          </div>
+          <LoadingState compact label="Đang tải dữ liệu lịch hẹn..." />
         ) : filteredAppointments.length === 0 ? (
           <div className="mobile-appointments-empty-box">
             <div className="mobile-appointments-empty-circle">
@@ -322,7 +312,7 @@ export function MobileAppointmentsListView() {
       {/* 5. Floating Action Button (FAB) */}
       <Link
         to="/m/appointments/new"
-        className="mobile-inventory-fab-btn"
+        className="m-fab"
         aria-label="Tạo lịch hẹn mới"
         title="Đặt lịch"
       >
@@ -364,7 +354,7 @@ export function MobileAppointmentsListView() {
               {/* Customer Avatar & Package hint */}
               <div className="mobile-apt-detail-cust-row">
                 <div className="mobile-apt-detail-avatar">
-                  <i className="ph-fill ph-user" />
+                  <i className="ph ph-user" />
                 </div>
                 <div className="mobile-apt-detail-cust-info">
                   <span className="mobile-apt-detail-cust-name">
@@ -388,8 +378,8 @@ export function MobileAppointmentsListView() {
             </div>
 
             {/* Thêm hình ảnh action card */}
-            <div className="mobile-apt-detail-card" style={{ padding: '14px 16px' }}>
-              <button type="button" className="mobile-detail-blue-action">
+            <div className="mobile-apt-detail-card is-compact">
+              <button type="button" className="mobile-detail-blue-action" onClick={comingSoon}>
                 + Thêm hình ảnh
               </button>
             </div>

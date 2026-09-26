@@ -1,7 +1,6 @@
 import { DatePickerField } from '@/components/ui/DateTimePicker';
 import { ErrorState, LoadingState } from '@/components/data-display/DataState';
 import { useState, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import {
   MobileSearchBar,
@@ -15,10 +14,9 @@ import {
 } from '@/features/staff/staff.api';
 import { monthStartIso, todayIso } from '@/lib/date';
 import { formatMoney, formatPercent, initials } from '@/lib/format';
-import './mobile-staff.css';
+import { MobilePageHeader } from '@/components/ui/MobilePageHeader/MobilePageHeader';
 
 export function MobileStaffCommissionsAdminView() {
-  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<'by_staff' | 'details'>('by_staff');
   const [dateFrom, setDateFrom] = useState(monthStartIso());
   const [dateTo, setDateTo] = useState(todayIso());
@@ -98,52 +96,35 @@ export function MobileStaffCommissionsAdminView() {
 
   return (
     <div className="mobile-staff-view">
-      {/* Sticky Top Header Cluster */}
-      <div className="mobile-staff-sticky-header-cluster">
-        {/* 1. Header Top Navigation */}
-        <div className="mobile-staff-top-nav">
-          <div className="mobile-staff-nav-left">
+      <MobilePageHeader
+        title="Bảng hoa hồng" backTo="/m/more"
+        actions={(
+          <>
             <button
               type="button"
-              className="mobile-staff-back-icon"
-              onClick={() => navigate('/m/more')}
-              aria-label="Quay lại"
-            >
-              <i className="ph ph-caret-left" />
-            </button>
-            <h1 className="mobile-staff-nav-title">Bảng hoa hồng</h1>
-          </div>
-
-          <div className="mobile-staff-nav-actions">
-            <button
-              type="button"
-              className="mobile-staff-nav-btn"
+              className="btn btn-ghost btn-icon m-header-action"
               onClick={() => setIsSearchVisible((prev) => !prev)}
               aria-label="Tìm kiếm"
             >
               <i className="ph ph-magnifying-glass" />
             </button>
-          </div>
-        </div>
-
-        {/* Inline Search Bar */}
+          </>
+        )}
+      >
         {isSearchVisible && (
-          <div className="mobile-staff-search-bar-wrap">
-            <MobileSearchBar
-              value={search}
-              onChange={setSearch}
-              placeholder="Tìm theo nhân viên, dịch vụ, hóa đơn..."
-            />
-          </div>
+          <MobileSearchBar
+            value={search}
+            onChange={setSearch}
+            placeholder="Tìm theo nhân viên, dịch vụ, hóa đơn..."
+          />
         )}
 
-        {/* Underline Tab Navigation */}
-        <div className="mobile-staff-underline-tabs">
+        <div className="tabs" role="tablist">
           <button
             type="button"
             role="tab"
             aria-selected={activeTab === 'by_staff'}
-            className={`mobile-staff-underline-tab ${activeTab === 'by_staff' ? 'is-active' : ''}`}
+            className={`tab${activeTab === 'by_staff' ? ' is-active' : ''}`}
             onClick={() => setActiveTab('by_staff')}
           >
             Theo nhân viên
@@ -152,7 +133,7 @@ export function MobileStaffCommissionsAdminView() {
             type="button"
             role="tab"
             aria-selected={activeTab === 'details'}
-            className={`mobile-staff-underline-tab ${activeTab === 'details' ? 'is-active' : ''}`}
+            className={`tab${activeTab === 'details' ? ' is-active' : ''}`}
             onClick={() => setActiveTab('details')}
           >
             Chi tiết giao dịch
@@ -164,21 +145,18 @@ export function MobileStaffCommissionsAdminView() {
           <label><span>Đến ngày</span><DatePickerField aria-label="Hoa hồng đến ngày" value={dateTo} min={dateFrom} allowClear={false} onChange={(value) => { setDateTo(value); setSelectedStaffSummary(null); setSelectedTxRecord(null); }} /></label>
         </div>
         {/* Summary Bar */}
-        <div className="mobile-staff-summary-sort-bar">
-          <span className="mobile-sort-select-chip">{dateFrom} – {dateTo}</span>
-          <span className="mobile-summary-text">
+        <div className="m-summary-bar">
+          <span className="m-summary-count">
             {activeTab === 'by_staff' ? `${filteredByStaff.length} nhân viên` : `${filteredRows.length} giao dịch`} · Tổng: <strong>{formatMoney(totalCommissions)}</strong>
           </span>
         </div>
-      </div>
+      </MobilePageHeader>
 
       {/* Tab 1: Grouped list by Role showing individual staff commission */}
       {activeTab === 'by_staff' && (
         <div className="mobile-grouped-list-container">
           {error ? <ErrorState error={error} onRetry={() => refetch()} /> : isLoading ? (
-            <div style={{ textAlign: 'center', padding: '36px 0', color: '#64748b' }}>
-              Đang tải dữ liệu hoa hồng...
-            </div>
+            <LoadingState compact label="Đang tải dữ liệu hoa hồng..." />
           ) : filteredByStaff.length === 0 ? (
             <MobileEmptyState
               icon="ph ph-chart-line-up"
@@ -217,7 +195,7 @@ export function MobileStaffCommissionsAdminView() {
                         <span className="mobile-staff-row-value emerald">
                           {formatMoney(staff.totalAmount)}
                         </span>
-                        <span style={{ fontSize: 11.5, color: '#64748b' }}>
+                        <span className="text-muted">
                           Doanh số: {formatMoney(staff.totalRevenue)}
                         </span>
                       </div>
@@ -277,7 +255,7 @@ export function MobileStaffCommissionsAdminView() {
                         <span className="mobile-staff-row-value emerald">
                           +{formatMoney(tx.amount)}
                         </span>
-                        <span style={{ fontSize: 11.5, color: '#64748b' }}>
+                        <span className="text-muted">
                           {formatPercent(tx.rate)} hoa hồng
                         </span>
                       </div>
@@ -302,14 +280,14 @@ export function MobileStaffCommissionsAdminView() {
             <div className="mobile-detail-hero">
               <div className="mobile-detail-hero-header">
                 <div>
-                  <div style={{ fontSize: 13, color: '#64748b' }}>Tổng hoa hồng nhận được</div>
-                  <div className="mobile-detail-hero-amount" style={{ color: '#16a34a' }}>
+                  <div className="text-muted">Tổng hoa hồng nhận được</div>
+                  <div className="mobile-detail-hero-amount text-success">
                     {formatMoney(selectedStaffSummary.totalAmount)}
                   </div>
                 </div>
-                <div style={{ textAlign: 'right' }}>
-                  <div style={{ fontSize: 13, color: '#64748b' }}>Doanh số phục vụ</div>
-                  <div style={{ fontSize: 16, fontWeight: 750, color: '#0f172a' }}>
+                <div className="text-right">
+                  <div className="text-muted">Doanh số phục vụ</div>
+                  <div className="text-strong">
                     {formatMoney(selectedStaffSummary.totalRevenue)}
                   </div>
                 </div>
@@ -324,7 +302,7 @@ export function MobileStaffCommissionsAdminView() {
                     <span className="mobile-detail-item-title">Hoa hồng làm dịch vụ</span>
                     <span className="mobile-detail-item-sub">Gội đầu, làm móng, chăm sóc da...</span>
                   </div>
-                  <span className="mobile-detail-item-value" style={{ color: '#16a34a' }}>
+                  <span className="mobile-detail-item-value text-success">
                     +{formatMoney(selectedStaffSummary.serviceAmount)}
                   </span>
                 </div>
@@ -334,7 +312,7 @@ export function MobileStaffCommissionsAdminView() {
                     <span className="mobile-detail-item-title">Hoa hồng tư vấn bán sản phẩm</span>
                     <span className="mobile-detail-item-sub">Bán mỹ phẩm, liệu trình spa...</span>
                   </div>
-                  <span className="mobile-detail-item-value" style={{ color: '#16a34a' }}>
+                  <span className="mobile-detail-item-value text-success">
                     +{formatMoney(selectedStaffSummary.consultingAmount)}
                   </span>
                 </div>
@@ -366,8 +344,8 @@ export function MobileStaffCommissionsAdminView() {
             <div className="mobile-detail-hero">
               <div className="mobile-detail-hero-header">
                 <div>
-                  <div style={{ fontSize: 13, color: '#64748b' }}>Hoa hồng nhận được</div>
-                  <div className="mobile-detail-hero-amount" style={{ color: '#16a34a' }}>
+                  <div className="text-muted">Hoa hồng nhận được</div>
+                  <div className="mobile-detail-hero-amount text-success">
                     +{formatMoney(selectedTxRecord.amount)}
                   </div>
                 </div>

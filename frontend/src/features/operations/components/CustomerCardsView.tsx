@@ -34,7 +34,7 @@ export function CustomerCardsView() {
   const totalUsed = query.data?.meta.summary.totalUsed ?? rows.reduce((sum, row) => sum + Number(row.usedUnits ?? 0), 0);
   const totalBalance = query.data?.meta.summary.totalBalance ?? rows.reduce((sum, row) => sum + Number(row.currentBalance ?? 0), 0);
 
-  return <main className="workspace"><div className="workspace-shell">
+  return <main className="page"><div className="page-stack">
     <PageHeader title="Gói, thẻ đã bán" subtitle="Theo dõi gói dịch vụ, thẻ tài khoản, số lượt hoặc số dư còn lại của từng khách." />
     <SummaryStrip items={[
       { label: 'Tổng gói, thẻ đã bán', value: formatNumber(query.data?.meta.pagination.total), note: 'Theo bộ lọc hiện tại' },
@@ -42,7 +42,7 @@ export function CustomerCardsView() {
       { label: 'Tổng lượt đã dùng', value: formatNumber(totalUsed), note: 'Lượt dịch vụ đã trừ', tone: 'violet' },
       { label: 'Số dư thẻ', value: formatMoney(totalBalance), note: 'Tổng số dư còn sử dụng', tone: 'orange' },
     ]} />
-    <div className="workspace-grid"><FilterPanel title="Bộ lọc gói thẻ" onApply={apply} onReset={reset}>
+    <div className="page-grid"><FilterPanel title="Bộ lọc gói thẻ" onApply={apply} onReset={reset}>
       <SelectFilter label="Loại hàng" value={draft.itemType} onChange={(itemType) => setDraft({ ...draft, itemType })} options={[{ value: '', label: 'Tất cả' }, { value: 'package', label: 'Gói dịch vụ' }, { value: 'account_card', label: 'Thẻ tài khoản' }]} />
       <SelectFilter label="Trạng thái" value={draft.status} onChange={(status) => setDraft({ ...draft, status })} options={[{ value: '', label: 'Tất cả' }, ...toOptions(metadata.data?.data.filters.customerPackages.statuses ?? [], statusLabels)]} />
     </FilterPanel><section className="data-panel"><SearchToolbar value={draft.search} placeholder="Tìm theo mã, tên gói hoặc khách hàng" onChange={(search) => setDraft({ ...draft, search })} onSearch={apply} onRefresh={() => query.refetch()} />

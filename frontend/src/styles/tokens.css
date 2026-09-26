@@ -1,39 +1,175 @@
+/*
+ * AnnaChill design tokens — the single source for every value the UI uses.
+ * Desktop and mobile share colour, radius, type and elevation; the mobile
+ * shell only changes density (control height). Feature CSS must reference
+ * these variables instead of literal colours. See DESIGN_REQUIREMENTS.md.
+ */
 :root {
-  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  /* Typography */
+  --font-sans: "SF Pro Text", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  --blue-700: #004ecc;
-  --blue-600: #0062eb;
-  --blue-500: #0d72ff;
-  --blue-400: #3b8cf8;
-  --blue-200: #bad7ff;
-  --blue-100: #e7f1ff;
-  --blue-50: #f2f7ff;
-  --ink-950: #0f172a;
+  --text-2xs: 11px;
+  --text-xs: 12px;
+  --text-sm: 13px;
+  --text-md: 14px;
+  --text-lg: 16px;
+  --text-xl: 18px;
+  --text-2xl: 22px;
+  --text-3xl: 28px;
+  --weight-regular: 400;
+  --weight-medium: 500;
+  --weight-semibold: 600;
+  --weight-bold: 700;
+  --weight-heavy: 800;
+  --leading-tight: 1.25;
+  --leading: 1.5;
+
+  /* Brand */
+  --blue-800: #053a8f;
+  --blue-700: #0647ad;
+  --blue-600: #0756cc;
+  --blue-500: #2f74dd;
+  --blue-400: #5b93e6;
+  --blue-300: #9dbef0;
+  --blue-200: #c7dbf8;
+  --blue-100: #e5efff;
+  --blue-50: #f3f7ff;
+
+  /* Neutrals */
+  --ink-950: #111827;
+  --ink-900: #172033;
   --ink-800: #1e293b;
-  --ink-600: #334155;
-  --ink-500: #475569;
-  --ink-400: #64748b;
-  --canvas: #f4f6f9;
+  --ink-700: #334155;
+  --ink-600: #526178;
+  --ink-500: #64748b;
+  --ink-400: #7c889b;
+  --ink-300: #a3aec0;
+  --ink-100: #eef2f7;
+  --ink-50: #f7f9fc;
+  --canvas: #f1f4f8;
   --surface: #ffffff;
-  --line: #cbd5e1;
-  --line-strong: #94a3b8;
-  --green: #16a34a;
-  --green-soft: #dcfce7;
-  --orange: #d97706;
+  --surface-muted: #f7f9fc;
+  --surface-hover: #f2f6fb;
+  --line: #dfe6ef;
+  --line-soft: #ebf0f5;
+  --line-strong: #c5d0de;
+
+  /* Status (data meaning only — blue stays the single action colour) */
+  /* Each tone: text/fill, -soft background, -line border on a -soft background. */
+  --green: #087a44;
+  --green-strong: #06633a;
+  --green-soft: #e3f6ec;
+  --green-line: #b4e3c9;
+  --orange: #b45309;
   --orange-soft: #fef3c7;
-  --red: #dc2626;
-  --red-soft: #fee2e2;
-  --violet: #7c3aed;
-  --violet-soft: #ede9fe;
-  --sky: #0284c7;
+  --orange-line: #fcdc8c;
+  --red: #c6283d;
+  --red-strong: #a51f33;
+  --red-soft: #fde8eb;
+  --red-line: #f6c1c9;
+  --violet: #6d28d9;
+  --violet-soft: #efe9fe;
+  --violet-line: #d9cbfb;
+  --sky: #0369a1;
   --sky-soft: #e0f2fe;
-  --radius-card: 14px;
-  --radius-inner: 10px;
+  --sky-line: #b3dcf5;
+  --pink: #be185d;
+  --pink-soft: #fce7f3;
+  --pink-line: #f5c2da;
+  --mint: #0f766e;
+  --mint-soft: #ddf5f1;
+  --mint-line: #a9e0d7;
+
+  /* Deep navy panel behind the login form. */
+  --gradient-brand: linear-gradient(148deg, #0a2862 0%, #06255a 56%, #031b46 100%);
+
+  /* Appointment status, shared by the POS board and every status dot. */
+  --appt-pending: var(--ink-300);
+  --appt-confirmed: var(--mint);
+  --appt-waiting: var(--orange);
+  --appt-in-service: var(--blue-600);
+  --appt-completed: var(--green);
+  --appt-cancelled: var(--red);
+  --appt-no-show: var(--ink-500);
+
+  /* Semantic aliases */
+  --color-primary: var(--blue-600);
+  --color-primary-hover: var(--blue-700);
+  --color-primary-soft: var(--blue-100);
+  --color-text: var(--ink-950);
+  --color-text-muted: var(--ink-600);
+  --color-text-subtle: var(--ink-500);
+  --color-border: var(--line);
+  --color-border-strong: var(--line-strong);
+  --overlay-scrim: rgba(15, 23, 42, 0.5);
+  --focus-ring: 0 0 0 3px rgba(7, 86, 204, 0.2);
+  --focus-ring-danger: 0 0 0 3px rgba(198, 40, 61, 0.14);
+
+  /* Spacing */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --page-gutter: 14px;
+
+  /* Radius */
+  --radius-xs: 6px;
+  --radius-sm: 8px;
+  --radius-control: 10px;
+  --radius-inner: 12px;
+  --radius-card: 16px;
   --radius-sheet: 20px;
   --radius-pill: 999px;
-  --shadow-card: 0 1px 3px rgba(15, 23, 42, 0.04), 0 4px 16px rgba(15, 23, 42, 0.05);
-  --shadow-float: 0 12px 36px rgba(15, 23, 42, 0.16);
-  --shadow-sheet: 0 -4px 24px rgba(15, 23, 42, 0.12);
+
+  /* Control density */
+  --control-h-sm: 32px;
+  --control-h: 38px;
+  --control-h-lg: 44px;
+  --mobile-touch-target: 44px;
+  --chip-h: 32px;
+
+  /* Elevation */
+  --shadow-card: 0 1px 2px rgba(15, 23, 42, 0.04), 0 4px 14px rgba(7, 86, 204, 0.05);
+  --shadow-float: 0 12px 32px rgba(15, 23, 42, 0.16);
+  --shadow-modal: 0 24px 64px rgba(15, 23, 42, 0.24);
+  --shadow-sheet: 0 -4px 24px rgba(15, 23, 42, 0.14);
+
+  /* Layers: popovers (Select, DateTimePicker, date range) always sit above modals. */
+  --z-sticky: 30;
+  --z-nav: 40;
+  --z-dropdown: 50;
+  --z-drawer: 90;
+  --z-overlay: 100;
+  --z-overlay-nested: 110;
+  --z-popover: 2000;
+  --z-toast: 2100;
+
+  /* Motion */
+  --duration-fast: 120ms;
+  --duration: 160ms;
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+
+  /* Layout */
   --topbar-h: 46px;
-  --mobile-touch-target: 40px;
+}
+
+@media (max-width: 1119px) {
+  :root { --page-gutter: 12px; }
+}
+
+@media (max-width: 720px) {
+  :root { --page-gutter: 10px; }
+}
+
+/* The mobile shell and every sheet use touch-sized controls. Sheets are
+ * portalled to <body>, so they need the override on their own root. */
+body:has(.mobile-app-shell),
+.sheet {
+  --control-h: var(--control-h-lg);
+  --control-h-sm: 36px;
+  --chip-h: 40px;
+  --page-gutter: 16px;
 }

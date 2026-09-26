@@ -35,7 +35,7 @@ describe('MobileDetailSheet', () => {
     expect(screen.getByText('Mã: KH001')).toBeInTheDocument();
     expect(screen.getByText('Thông tin chi tiết ở đây')).toBeInTheDocument();
     expect(screen.getByText('Lưu thay đổi')).toBeInTheDocument();
-    expect(screen.getByText('Lưu thay đổi').parentElement).toHaveClass('mobile-detail-sheet-footer');
+    expect(screen.getByText('Lưu thay đổi').parentElement).toHaveClass('sheet-footer');
 
     const closeBtn = screen.getByRole('button', { name: /đóng/i });
     fireEvent.click(closeBtn);

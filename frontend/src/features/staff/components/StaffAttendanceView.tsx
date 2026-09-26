@@ -2,6 +2,8 @@ import { useState, useMemo, Fragment } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ErrorState, LoadingState } from '@/components/data-display/DataState';
 import { useToast } from '@/components/ui/Toast/ToastProvider';
+import { useComingSoon } from '@/components/ui/Toast/useComingSoon';
+import { PageHeader } from '@/components/ui/PageHeader/PageHeader';
 import { Select } from '@/components/ui/Select/Select';
 import { errorMessage } from '@/services/api-client';
 import { todayIso, toIsoDate, weekStartIso } from '@/lib/date';
@@ -19,13 +21,13 @@ import {
   getAttendance,
   assignShift,
 } from '../staff.api';
-import './AttendanceTimekeeping.css';
 
 const weekdayLabels = ['Thứ hai', 'Thứ ba', 'Thứ tư', 'Thứ năm', 'Thứ sáu', 'Thứ bảy', 'Chủ nhật'];
 
 export function StaffAttendanceView() {
   const queryClient = useQueryClient();
   const { notify } = useToast();
+  const comingSoon = useComingSoon();
   const [currentMonday, setCurrentMonday] = useState(weekStartIso());
   const [viewMode, setViewMode] = useState<'by-shift' | 'by-staff'>('by-shift');
   const [searchTerm, setSearchTerm] = useState('');
@@ -177,81 +179,62 @@ export function StaffAttendanceView() {
   };
 
   return (
-    <main className="attendance-page">
-      <div className="attendance-container">
-        {/* Top Header & Toolbar */}
+    <main className="page">
+      <div className="page-stack">
+        <PageHeader
+          title="Bảng chấm công"
+          subtitle="Theo dõi giờ vào, giờ ra của nhân viên theo từng ca."
+          extraActions={<>
+            <button type="button" className="btn btn-secondary btn-icon" aria-label="Tuỳ chọn khác" title="Tuỳ chọn khác" onClick={comingSoon}>
+              <i className="ph ph-dots-three" />
+            </button>
+            <button type="button" className="btn btn-secondary" onClick={comingSoon}>
+              <i className="ph ph-calendar-check" />
+              <span>Duyệt chấm công</span>
+            </button>
+          </>}
+        />
+
         <div className="attendance-toolbar-card">
           <div className="attendance-toolbar-left">
-            <h1 className="attendance-title">Bảng chấm công</h1>
-
-            {/* Search Input */}
-            <div className="attendance-search-box">
+            <label className="search-control attendance-search">
               <i className="ph ph-magnifying-glass" />
               <input
-                type="text"
+                type="search"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 placeholder="Tìm kiếm nhân viên"
-                className="attendance-search-input"
+                aria-label="Tìm kiếm nhân viên"
               />
-              <i className="ph ph-caret-down" />
-            </div>
+            </label>
 
-            {/* Time Unit Selector (Theo tuần / Theo tháng) */}
-            <div className="attendance-select-wrap">
-              <Select<'week' | 'month'>
-                value={timeUnit}
-                onChange={setTimeUnit}
-                triggerClassName="attendance-select"
-                size="sm"
-                options={[{ value: 'week', label: 'Theo tuần' }, { value: 'month', label: 'Theo tháng' }]}
-              />
-            </div>
+            <Select<'week' | 'month'>
+              value={timeUnit}
+              onChange={setTimeUnit}
+              aria-label="Kỳ xem"
+              options={[{ value: 'week', label: 'Theo tuần' }, { value: 'month', label: 'Theo tháng' }]}
+            />
 
-            {/* WeekPicker Component */}
             <WeekPicker currentMonday={currentMonday} onChange={setCurrentMonday} />
           </div>
 
-          {/* Right Action Buttons */}
           <div className="attendance-toolbar-right">
-            {/* View Mode Selector (Xem theo ca / Xem theo nhân viên) */}
-            <button
-              type="button"
-              onClick={() => setViewMode(viewMode === 'by-shift' ? 'by-staff' : 'by-shift')}
-              className="attendance-action-btn"
-            >
-              <i className={viewMode === 'by-shift' ? 'ph ph-calendar-check primary-icon' : 'ph ph-user primary-icon'} />
-              <span>{viewMode === 'by-shift' ? 'Xem theo ca' : 'Xem theo nhân viên'}</span>
-              <i className="ph ph-caret-down" style={{ fontSize: 11, color: '#94a3b8' }} />
-            </button>
-
-            {/* Duyệt chấm công button */}
-            <button
-              type="button"
-              className="attendance-action-btn"
-            >
-              <i className="ph ph-calendar-plus" style={{ color: '#475569', fontSize: 16 }} />
-              <span>Duyệt chấm công</span>
-            </button>
-
-            {/* Options button */}
-            <button
-              type="button"
-              className="attendance-action-btn icon-only"
-              title="Tuỳ chọn khác"
-            >
-              <i className="ph ph-dots-three" style={{ fontSize: 18 }} />
-            </button>
+            <Select<'by-shift' | 'by-staff'>
+              value={viewMode}
+              onChange={setViewMode}
+              aria-label="Chế độ xem"
+              options={[{ value: 'by-shift', label: 'Xem theo ca' }, { value: 'by-staff', label: 'Xem theo nhân viên' }]}
+            />
           </div>
         </div>
 
         {/* Main Content Area */}
         {queryError ? (
-          <div className="attendance-table-card" style={{ padding: 48 }}>
+          <div className="attendance-table-card">
             <ErrorState error={queryError} onRetry={() => { staffQuery.refetch(); shiftsQuery.refetch(); scheduleQuery.refetch(); attendanceQuery.refetch(); }} />
           </div>
         ) : isLoading ? (
-          <div className="attendance-table-card" style={{ padding: 48 }}>
+          <div className="attendance-table-card">
             <LoadingState />
           </div>
         ) : viewMode === 'by-shift' ? (
@@ -271,7 +254,7 @@ export function StaffAttendanceView() {
                         <button
                           type="button"
                           onClick={() => setIsAddShiftOpen(true)}
-                          className="btn-add-shift-plus"
+                          className="schedule-add-shift"
                           title="Thêm ca làm việc mới"
                         >
                           <i className="ph ph-plus" />
@@ -354,7 +337,7 @@ export function StaffAttendanceView() {
                                 <button
                                   type="button"
                                   onClick={() => handleOpenAssign(shift, date, assignedIds)}
-                                  className="btn-slot-add-more"
+                                  className="schedule-slot-add"
                                 >
                                   <i className="ph ph-plus-circle" />
                                   <span>Thêm</span>
@@ -433,11 +416,11 @@ export function StaffAttendanceView() {
                           aria-controls={detailId}
                         >
                           <td>
-                            <div className="summary-staff-name" style={{ color: '#0052cc' }}>{staff.name}</div>
+                            <div className="summary-staff-name text-primary">{staff.name}</div>
                             <div className="summary-staff-code">{staff.code}</div>
                           </td>
-                          <td style={{ fontWeight: 500 }}>{salaryTypeText}</td>
-                          <td colSpan={5} style={{ color: '#94a3b8', fontStyle: 'italic' }}>
+                          <td>{salaryTypeText}</td>
+                          <td colSpan={5} className="text-faint">
                             Nhân viên chưa có dữ liệu chấm công
                           </td>
                         </tr>

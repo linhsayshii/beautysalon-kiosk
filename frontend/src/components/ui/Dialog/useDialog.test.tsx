@@ -1,7 +1,7 @@
 import type { RefObject } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, render } from '@testing-library/react';
-import { useMobileDialog } from './useMobileDialog';
+import { useDialog } from './useDialog';
 
 class MockVisualViewport extends EventTarget {
   height = 700;
@@ -11,7 +11,7 @@ const originalVisualViewport = window.visualViewport;
 let visualViewport: MockVisualViewport;
 
 function TestDialog() {
-  const { dialogRef, titleId } = useMobileDialog({ isOpen: true, onClose: vi.fn() });
+  const { dialogRef, titleId } = useDialog({ isOpen: true, onClose: vi.fn() });
 
   return (
     <div ref={dialogRef as RefObject<HTMLDivElement>} role="dialog" aria-labelledby={titleId} tabIndex={-1}>
@@ -37,7 +37,7 @@ afterEach(() => {
   });
 });
 
-describe('useMobileDialog viewport behavior', () => {
+describe('useDialog viewport behavior', () => {
   it('sizes the overlay from the visual viewport height', () => {
     render(<TestDialog />);
 

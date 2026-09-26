@@ -30,7 +30,6 @@ export interface SelectProps<T = string | number> {
   className?: string;
   triggerClassName?: string;
   style?: CSSProperties;
-  triggerStyle?: CSSProperties;
   menuClassName?: string;
   variant?: 'default' | 'filter' | 'chart' | 'bordered' | 'ghost' | 'pill';
   size?: 'sm' | 'md' | 'lg';
@@ -64,7 +63,6 @@ export function Select<T extends string | number = string>({
   className = '',
   triggerClassName = '',
   style,
-  triggerStyle,
   menuClassName = '',
   variant = 'default',
   size = 'md',
@@ -276,7 +274,6 @@ export function Select<T extends string | number = string>({
         aria-required={required}
         onClick={handleToggle}
         className={`app-select-trigger ${triggerClassName}`}
-        style={triggerStyle}
       >
         <span className="app-select-value">
           {selectedOption ? selectedOption.label : <span className="app-select-placeholder">{placeholder}</span>}

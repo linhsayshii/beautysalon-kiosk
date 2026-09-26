@@ -33,7 +33,7 @@ export function LocationMapPicker({ latitude, longitude, radiusMeters = 100, onC
       maxZoom: 19, attribution: '&copy; OpenStreetMap contributors',
     }).addTo(map);
     const marker = L.marker(initial, { draggable: true, autoPan: true, icon: pinIcon, title: 'Vị trí chi nhánh' }).addTo(map);
-    const circle = L.circle(initial, { radius: radiusMeters, color: '#176ee8', weight: 2, fillColor: '#4c8ff0', fillOpacity: .12 }).addTo(map);
+    const circle = L.circle(initial, { radius: radiusMeters, color: '#0756cc', weight: 2, fillColor: '#2f74dd', fillOpacity: .12 }).addTo(map);
     const apply = (position: L.LatLng) => {
       marker.setLatLng(position); circle.setLatLng(position);
       onChangeRef.current(Number(position.lat.toFixed(7)), Number(position.lng.toFixed(7)));

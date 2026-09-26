@@ -72,13 +72,13 @@ export function StaffListView() {
   };
 
   return <>
-    <main className="workspace"><div className="workspace-shell">
+    <main className="page"><div className="page-stack">
       <PageHeader
         title="Danh sách nhân viên"
         subtitle="Hồ sơ, vai trò và hiệu quả làm việc trong tháng."
         actionLabel="Thêm nhân viên"
         onAction={() => setIsCreating(true)}
-        extraActions={<button className="secondary-button" type="button" onClick={() => exportCsv(rows, 'staff')}><i className="ph ph-export" />Xuất file</button>}
+        extraActions={<button className="btn btn-secondary" type="button" onClick={() => exportCsv(rows, 'staff')}><i className="ph ph-export" />Xuất file</button>}
       />
       <SummaryStrip items={[
         { label: 'Tổng nhân viên', value: formatNumber(rows.filter((row) => row.active).length), note: 'Đang hoạt động' },

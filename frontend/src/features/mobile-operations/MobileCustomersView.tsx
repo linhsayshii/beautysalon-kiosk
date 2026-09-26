@@ -1,10 +1,10 @@
-import { ErrorState } from '@/components/data-display/DataState';
+import { ErrorState, LoadingState } from '@/components/data-display/DataState';
 import { Pagination } from '@/components/data-display/Pagination';
 import { useFilterPagination } from '@/hooks/useFilterPagination';
 import { CustomerDebtPanel } from '@/features/debts/CustomerDebtPanel';
 import { useState, useMemo, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
 import { formatDateTime, formatDate, formatMoney, formatNumber, initials } from '@/lib/format';
 import { getCustomers, getCustomer, getCustomerActivity } from '@/features/operations/operations.api';
 import { CustomerCreateDialog } from '@/features/operations/components/CustomerCreateDialog';
@@ -20,7 +20,7 @@ import {
   MobileSortDropdown,
 } from '@/features/mobile-common';
 import type { ApiRecord } from '@/types/api';
-import './mobile-operations.css';
+import { MobilePageHeader } from '@/components/ui/MobilePageHeader/MobilePageHeader';
 
 type CustomerTab = 'orders' | 'packages' | 'debt';
 
@@ -31,10 +31,10 @@ function CustomerActivityList({ customerId, kind }: { customerId: number; kind: 
   });
 
   if (query.isPending) {
-    return <div style={{ padding: '16px', textAlign: 'center', color: '#64748b' }}>Đang tải dữ liệu...</div>;
+    return <LoadingState compact label="Đang tải dữ liệu..." />;
   }
   if (query.error) {
-    return <div style={{ padding: '16px', textAlign: 'center', color: '#ef4444' }}>Lỗi tải dữ liệu.</div>;
+    return <ErrorState compact error={query.error} onRetry={() => query.refetch()} />;
   }
   const rows = query.data?.data ?? [];
   if (!rows.length) {
@@ -52,7 +52,7 @@ function CustomerActivityList({ customerId, kind }: { customerId: number; kind: 
             </div>
             <div className="mobile-activity-item-bottom">
               <InvoiceStatusBadge status={row.status} paymentStatus={row.paymentStatus} />
-              <strong style={{ color: '#0062eb' }}>{formatMoney(row.amount)}</strong>
+              <strong className="text-primary">{formatMoney(row.amount)}</strong>
             </div>
           </div>
         ))}
@@ -68,10 +68,10 @@ function CustomerActivityList({ customerId, kind }: { customerId: number; kind: 
             <span className="mobile-activity-item-code">{row.code}</span>
             <StatusBadge status={row.status} />
           </div>
-          <div style={{ fontWeight: 700, fontSize: '13.5px' }}>{row.name}</div>
-          <div className="mobile-activity-item-bottom" style={{ color: '#475569' }}>
+          <div className="text-strong">{row.name}</div>
+          <div className="mobile-activity-item-bottom text-muted">
             <span>Đã dùng: {formatNumber(row.usedUnits)}</span>
-            <span style={{ fontWeight: 700, color: '#0062eb' }}>
+            <span className="text-strong text-primary">
               Còn lại: {formatNumber(row.totalUnits - row.usedUnits)} lượt
             </span>
           </div>
@@ -83,7 +83,6 @@ function CustomerActivityList({ customerId, kind }: { customerId: number; kind: 
 
 export function MobileCustomersView() {
   const { account } = useAuth();
-  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const [search, setSearch] = useState('');
   const [isSearchVisible, setIsSearchVisible] = useState(false);
@@ -182,50 +181,33 @@ export function MobileCustomersView() {
 
   return (
     <div className="mobile-operations-view">
-      {/* Sticky Top Cluster */}
-      <div className="mobile-operations-sticky-header-cluster">
-        {/* 1. Header Top Navigation */}
-        <div className="mobile-operations-top-nav">
-          <div className="mobile-operations-nav-left">
+      <MobilePageHeader
+        title="Khách hàng" backTo="/m/more"
+        actions={(
+          <>
             <button
               type="button"
-              className="mobile-operations-back-icon"
-              onClick={() => navigate('/m/more')}
-              aria-label="Quay lại"
-            >
-              <i className="ph ph-caret-left" />
-            </button>
-            <h1 className="mobile-operations-nav-title">Khách hàng</h1>
-          </div>
-
-          <div className="mobile-operations-nav-actions">
-            <button
-              type="button"
-              className={`mobile-operations-nav-btn ${isSearchVisible ? 'is-active' : ''}`}
+              className={`btn btn-ghost btn-icon m-header-action${isSearchVisible ? ' is-active' : ''}`}
               onClick={() => setIsSearchVisible((prev) => !prev)}
               aria-label="Tìm kiếm"
             >
               <i className="ph ph-magnifying-glass" />
             </button>
-          </div>
-        </div>
-
-        {/* Inline Search Bar */}
+          </>
+        )}
+      >
         {isSearchVisible && (
-          <div className="mobile-operations-search-bar-wrap">
-            <MobileSearchBar
-              value={search}
-              placeholder="Tìm mã, tên, số điện thoại..."
-              onChange={setSearch}
-            />
-          </div>
+          <MobileSearchBar
+            value={search}
+            placeholder="Tìm mã, tên, số điện thoại..."
+            onChange={setSearch}
+          />
         )}
 
-        {/* 2. Horizontal Filter Chips Strip */}
-        <div className="mobile-operations-filter-strip">
+        <div className="m-chip-strip">
           <button
             type="button"
-            className="mobile-filter-icon-btn"
+            className="chip chip-icon"
             onClick={openFilterSheet}
             aria-label="Mở bộ lọc"
           >
@@ -234,7 +216,7 @@ export function MobileCustomersView() {
 
           <button
             type="button"
-            className={`mobile-filter-chip ${groupFilter ? 'is-active' : ''}`}
+            className={`chip ${groupFilter ? 'is-active' : ''}`}
             onClick={openFilterSheet}
           >
             <span>{groupFilter ? groupFilter : 'Tất cả nhóm'}</span>
@@ -243,7 +225,7 @@ export function MobileCustomersView() {
 
           <button
             type="button"
-            className={`mobile-filter-chip ${debtFilter ? 'is-active' : ''}`}
+            className={`chip ${debtFilter ? 'is-active' : ''}`}
             onClick={openFilterSheet}
           >
             <span>
@@ -257,33 +239,28 @@ export function MobileCustomersView() {
           </button>
         </div>
 
-        {/* 3. Summary & Sort Dropdown Bar */}
-        <div className="mobile-operations-summary-bar">
+        <div className="m-summary-bar">
           <MobileSortDropdown
             value={sortValue}
             options={sortOptions}
             onChange={setSortValue}
           />
 
-          <div className="mobile-operations-count-summary">
+          <div className="m-summary-count">
             {customersData?.meta?.pagination?.total ?? rawRows.length} khách hàng · Nợ: {totalDebtSum === undefined ? '—' : formatMoney(totalDebtSum) }
           </div>
         </div>
-      </div>
+      </MobilePageHeader>
 
       {/* 4. Grouped Section List */}
       <div className="mobile-operations-sections-wrapper">
         {error ? <ErrorState error={error} onRetry={() => refetch()} /> : isLoading ? (
-          <div style={{ padding: '40px 16px', textAlign: 'center', color: '#64748b' }}>
-            Đang tải dữ liệu khách hàng...
-          </div>
+          <LoadingState compact label="Đang tải dữ liệu khách hàng..." />
         ) : rawRows.length === 0 ? (
-          <div style={{ padding: '24px 16px' }}>
-            <MobileEmptyState
+          <MobileEmptyState
               title="Không tìm thấy khách hàng nào"
               description="Thử tìm kiếm với từ khóa khác hoặc thay đổi bộ lọc."
             />
-          </div>
         ) : (
           groupedSections.map(([groupTitle, items]) => (
             <div key={groupTitle} className="mobile-operations-section">
@@ -351,7 +328,7 @@ export function MobileCustomersView() {
       {/* 5. Floating Action Button (FAB) for Creating Customer */}
       <button
         type="button"
-        className="mobile-operations-fab-btn"
+        className="m-fab"
         onClick={() => setIsCreating(true)}
         aria-label="Thêm khách hàng"
         title="Thêm khách hàng mới"
@@ -401,11 +378,9 @@ export function MobileCustomersView() {
         onClose={() => setSelectedCustomerId(null)}
       >
         {detailError ? <ErrorState error={detailError} onRetry={() => refetchDetail()} /> : isDetailLoading ? (
-          <div style={{ padding: '24px', textAlign: 'center', color: '#64748b' }}>
-            Đang tải thông tin...
-          </div>
+          <LoadingState compact label="Đang tải thông tin..." />
         ) : activeCustomer ? (
-          <div className="mobile-detail-page-container" style={{ padding: '4px 0 24px' }}>
+          <div className="mobile-detail-page-container">
             {/* Header Card */}
             <div className="mobile-detail-section-card">
               <div className="mobile-detail-card-header">
@@ -435,9 +410,9 @@ export function MobileCustomersView() {
                 )}
               </div>
 
-              <div className="mobile-detail-nav-row" style={{ marginTop: 8 }}>
-                <span style={{ fontSize: '13px', color: '#64748b' }}><i className="ph ph-map-pin" /> Chi nhánh</span>
-                <strong style={{ fontSize: '14px' }}>{account?.branchName ?? 'Chi nhánh trung tâm'}</strong>
+              <div className="mobile-detail-nav-row">
+                <span className="text-muted"><i className="ph ph-map-pin" /> Chi nhánh</span>
+                <strong>{account?.branchName ?? 'Chi nhánh trung tâm'}</strong>
               </div>
 
               {/* 2x2 Grid */}
@@ -446,7 +421,7 @@ export function MobileCustomersView() {
                   <span className="mobile-detail-grid-label">Số điện thoại</span>
                   <span className="mobile-detail-grid-value">
                     {activeCustomer.phone ? (
-                      <a href={`tel:${activeCustomer.phone}`} style={{ color: '#0062eb' }}>
+                      <a href={`tel:${activeCustomer.phone}`} className="text-primary">
                         {activeCustomer.phone}
                       </a>
                     ) : (
@@ -476,7 +451,7 @@ export function MobileCustomersView() {
 
                 <div className="mobile-detail-grid-item">
                   <span className="mobile-detail-grid-label">Tổng chi tiêu</span>
-                  <span className="mobile-detail-grid-value" style={{ color: '#0062eb' }}>
+                  <span className="mobile-detail-grid-value text-primary">
                     {formatMoney(activeCustomer.totalSpent || 0)}
                   </span>
                 </div>
@@ -495,21 +470,16 @@ export function MobileCustomersView() {
               </div>
 
               <div className="mobile-detail-nav-row">
-                <span style={{ fontSize: '14px', color: '#64748b' }}>Dư nợ hiện tại:</span>
-                <strong
-                  style={{
-                    fontSize: '16px',
-                    color: activeCustomer.debtBalance > 0 ? '#e11d48' : '#10b981',
-                  }}
-                >
+                <span className="text-muted">Dư nợ hiện tại:</span>
+                <strong className={activeCustomer.debtBalance > 0 ? 'text-danger' : 'text-success'}>
                   {formatMoney(activeCustomer.debtBalance || 0)}
                 </strong>
               </div>
 
               {activeCustomer.cardBalance > 0 && (
                 <div className="mobile-detail-nav-row">
-                  <span style={{ fontSize: '14px', color: '#64748b' }}>Số dư thẻ tài khoản:</span>
-                  <strong style={{ fontSize: '15px', color: '#10b981' }}>
+                  <span className="text-muted">Số dư thẻ tài khoản:</span>
+                  <strong className="text-success">
                     {formatMoney(activeCustomer.cardBalance)}
                   </strong>
                 </div>
@@ -532,7 +502,7 @@ export function MobileCustomersView() {
                 ]}
               />
 
-              <div style={{ marginTop: '8px' }}>
+              <div className="mobile-detail-tab-panel">
                 {selectedCustomerId !== null && (detailActivityTab === 'debt' ? <CustomerDebtPanel key={selectedCustomerId} customerId={selectedCustomerId} /> :
                   <CustomerActivityList
                     customerId={selectedCustomerId}

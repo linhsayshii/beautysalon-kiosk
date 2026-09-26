@@ -7,7 +7,7 @@ import { Select } from '@/components/ui/Select/Select';
 import { formatMoney } from '@/lib/format';
 import { useWebSocket } from '@/hooks/useWebSocket';
 import { getMyPayrollHistory, type MyPayrollResponse } from '@/features/staff/staff.api';
-import './mobile-staff.css';
+import { MobilePageHeader } from '@/components/ui/MobilePageHeader/MobilePageHeader';
 
 const statusLabels: Record<string, string> = {
   draft: 'Tạm tính',
@@ -72,18 +72,12 @@ export function MobileStaffSalaryView() {
 
   return (
     <div className="mobile-staff-view mobile-salary-view">
-      <div className="mobile-staff-sticky-header-cluster mobile-salary-sticky-shell">
-        <div className="mobile-staff-top-nav mobile-salary-top-nav">
-          <div className="mobile-staff-nav-left">
-            <button type="button" className="mobile-staff-back-icon" onClick={() => navigate(-1)} aria-label="Quay lại">
-              <i className="ph ph-arrow-left" />
-            </button>
-            <h1 className="mobile-staff-nav-title">Lương của tôi</h1>
-          </div>
-        </div>
+      <MobilePageHeader
+        title="Lương của tôi" onBack={() => navigate(-1)} className="mobile-salary-sticky-shell"
+      >
         {records.length > 0 && (
-          <div className="mobile-staff-filter-strip mobile-salary-month-menu">
-            <div className="mobile-filter-chip mobile-salary-month-control">
+          <div className="m-chip-strip mobile-salary-month-menu">
+            <div className="chip mobile-salary-month-control">
               <i className="ph ph-calendar" />
               <span className="mobile-salary-month-label">Kỳ lương</span>
               <Select<number>
@@ -100,7 +94,7 @@ export function MobileStaffSalaryView() {
             </div>
           </div>
         )}
-      </div>
+      </MobilePageHeader>
 
       <div className="mobile-salary-content">
         {query.isPending ? (

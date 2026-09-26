@@ -2,6 +2,7 @@ import { CustomerDebtPanel } from '@/features/debts/CustomerDebtPanel';
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { EmptyState, ErrorState, LoadingState } from '@/components/data-display/DataState';
+import { DetailFacts, DetailHead, InlineDetail, ValueStrip } from '@/components/data-display/InlineDetail';
 import { StatusBadge, InvoiceStatusBadge } from '@/components/data-display/Badges';
 import { formatDate, formatDateTime, formatMoney, formatNumber } from '@/lib/format';
 import { statusLabels } from '@/types/api';
@@ -24,26 +25,26 @@ function ActivityTable({ customerId, kind }: { customerId: number; kind: Activit
   if (kind === 'orders') {
     return (
       <div className="table-scroll">
-        <table className="kiotviet-payroll-table">
+        <table className="detail-table">
           <thead>
             <tr>
               <th>Mã hóa đơn</th>
               <th>Thời gian</th>
               <th>Thanh toán</th>
-              <th style={{ textAlign: 'right' }}>Tổng tiền</th>
-              <th style={{ textAlign: 'center' }}>Trạng thái</th>
+              <th className="is-num">Tổng tiền</th>
+              <th className="is-center">Trạng thái</th>
             </tr>
           </thead>
           <tbody>
             {rows.map((row) => (
               <tr key={row.id}>
-                <td style={{ fontWeight: 600, color: '#0052cc' }}>{row.code}</td>
+                <td className="is-code">{row.code}</td>
                 <td>{formatDateTime(row.occurredAt)}</td>
                 <td>{statusLabels[row.paymentMethod] ?? row.paymentMethod}</td>
-                <td style={{ textAlign: 'right', fontWeight: 700, color: '#059669' }}>
+                <td className="is-num text-strong text-success">
                   {formatMoney(row.amount)}
                 </td>
-                <td style={{ textAlign: 'center' }}>
+                <td className="is-center">
                   <InvoiceStatusBadge status={row.status} paymentStatus={row.paymentStatus} />
                 </td>
               </tr>
@@ -57,24 +58,24 @@ function ActivityTable({ customerId, kind }: { customerId: number; kind: Activit
   if (kind === 'appointments') {
     return (
       <div className="table-scroll">
-        <table className="kiotviet-payroll-table">
+        <table className="detail-table">
           <thead>
             <tr>
               <th>Thời gian</th>
               <th>Mã dịch vụ</th>
               <th>Tên dịch vụ</th>
               <th>Nhân viên</th>
-              <th style={{ textAlign: 'center' }}>Trạng thái</th>
+              <th className="is-center">Trạng thái</th>
             </tr>
           </thead>
           <tbody>
             {rows.map((row) => (
               <tr key={row.id}>
                 <td>{formatDateTime(row.occurredAt)}</td>
-                <td style={{ fontWeight: 600, color: '#0052cc' }}>{row.serviceCode ?? '-'}</td>
-                <td style={{ fontWeight: 600 }}>{row.serviceName ?? '-'}</td>
+                <td className="is-code">{row.serviceCode ?? '-'}</td>
+                <td className="text-strong">{row.serviceName ?? '-'}</td>
                 <td>{row.staffName ?? '-'}</td>
-                <td style={{ textAlign: 'center' }}>
+                <td className="is-center">
                   <StatusBadge status={row.status} />
                 </td>
               </tr>
@@ -88,28 +89,28 @@ function ActivityTable({ customerId, kind }: { customerId: number; kind: Activit
   if (kind === 'packages') {
     return (
       <div className="table-scroll">
-        <table className="kiotviet-payroll-table">
+        <table className="detail-table">
           <thead>
             <tr>
               <th>Mã gói</th>
               <th>Tên gói</th>
               <th>Ngày bán</th>
-              <th style={{ textAlign: 'right' }}>Đã dùng</th>
-              <th style={{ textAlign: 'right' }}>Còn lại</th>
-              <th style={{ textAlign: 'center' }}>Trạng thái</th>
+              <th className="is-num">Đã dùng</th>
+              <th className="is-num">Còn lại</th>
+              <th className="is-center">Trạng thái</th>
             </tr>
           </thead>
           <tbody>
             {rows.map((row) => (
               <tr key={row.id}>
-                <td style={{ fontWeight: 600, color: '#0052cc' }}>{row.code}</td>
-                <td style={{ fontWeight: 600 }}>{row.name}</td>
+                <td className="is-code">{row.code}</td>
+                <td className="text-strong">{row.name}</td>
                 <td>{formatDate(row.soldAt)}</td>
-                <td style={{ textAlign: 'right' }}>{formatNumber(row.usedUnits)} lượt</td>
-                <td style={{ textAlign: 'right', fontWeight: 700, color: '#0052cc' }}>
+                <td className="is-num">{formatNumber(row.usedUnits)} lượt</td>
+                <td className="is-num text-strong text-primary">
                   {formatNumber(row.totalUnits - row.usedUnits)} lượt
                 </td>
-                <td style={{ textAlign: 'center' }}>
+                <td className="is-center">
                   <StatusBadge status={row.status} />
                 </td>
               </tr>
@@ -122,28 +123,28 @@ function ActivityTable({ customerId, kind }: { customerId: number; kind: Activit
 
   return (
     <div className="table-scroll">
-      <table className="kiotviet-payroll-table">
+      <table className="detail-table">
         <thead>
           <tr>
             <th>Mã thẻ</th>
             <th>Tên thẻ</th>
             <th>Ngày bán</th>
-            <th style={{ textAlign: 'right' }}>Số dư ban đầu</th>
-            <th style={{ textAlign: 'right' }}>Số dư hiện tại</th>
-            <th style={{ textAlign: 'center' }}>Trạng thái</th>
+            <th className="is-num">Số dư ban đầu</th>
+            <th className="is-num">Số dư hiện tại</th>
+            <th className="is-center">Trạng thái</th>
           </tr>
         </thead>
         <tbody>
           {rows.map((row) => (
             <tr key={row.id}>
-              <td style={{ fontWeight: 600, color: '#0052cc' }}>{row.code}</td>
-              <td style={{ fontWeight: 600 }}>{row.name}</td>
+              <td className="is-code">{row.code}</td>
+              <td className="text-strong">{row.name}</td>
               <td>{formatDate(row.soldAt)}</td>
-              <td style={{ textAlign: 'right' }}>{formatMoney(row.openingBalance)}</td>
-              <td style={{ textAlign: 'right', fontWeight: 700, color: '#059669' }}>
+              <td className="is-num">{formatMoney(row.openingBalance)}</td>
+              <td className="is-num text-strong text-success">
                 {formatMoney(row.currentBalance)}
               </td>
-              <td style={{ textAlign: 'center' }}>
+              <td className="is-center">
                 <StatusBadge status={row.status} />
               </td>
             </tr>
@@ -172,190 +173,45 @@ export function CustomerDetail({ id }: { id: number }) {
   ];
 
   return (
-    <div
-      className="customer-detail"
-      style={{
-        background: '#ffffff',
-        borderTop: '2px solid #0052cc',
-        borderBottom: '1px solid #cbd5e1',
-        padding: 0,
-      }}
-    >
-      {/* Layer 2: Inline Detail Tabs */}
-      <div className="inline-detail-tabs" role="tablist" aria-label={`Chi tiết khách hàng ${customer.name}`}>
-        {tabs.map((item) => (
-          <button
-            type="button"
-            role="tab"
-            aria-selected={tab === item.value}
-            className={tab === item.value ? 'is-active' : ''}
-            key={item.value}
-            onClick={() => setTab(item.value)}
-          >
-            {item.label}
-          </button>
-        ))}
-      </div>
+    <InlineDetail className="customer-detail" label={`Chi tiết khách hàng ${customer.name}`} tabs={tabs} tab={tab} onTabChange={setTab}>
+      <DetailHead
+        icon="ph-user"
+        title={customer.name}
+        tags={<>
+          <span className="badge badge-info"><i className="ph ph-identification-card" aria-hidden="true" />{customer.code}</span>
+          <span className="badge badge-neutral"><i className="ph ph-users" aria-hidden="true" />{customer.group}</span>
+        </>}
+        meta={<>Số điện thoại: <strong>{customer.phone || 'Chưa có'}</strong>{customer.email && ` • ${customer.email}`}</>}
+        aside={<><div><strong>{customer.branchName || 'Chi nhánh mặc định'}</strong></div><div>Ngày tạo: {formatDate(customer.createdAt)}</div></>}
+      />
 
-      <div style={{ padding: '16px 20px' }}>
-        {/* Layer 3: Profile Head */}
-        <div
-          className="customer-profile-head"
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            gap: 16,
-            marginBottom: 16,
-            flexWrap: 'wrap',
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-            <span
-              className="customer-profile-avatar"
-              style={{
-                display: 'grid',
-                placeItems: 'center',
-                width: 58,
-                height: 58,
-                borderRadius: 16,
-                background: '#e0f2fe',
-                color: '#0052cc',
-                fontSize: 28,
-                flexShrink: 0,
-              }}
-            >
-              <i className="ph ph-user" />
-            </span>
-            <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                <strong style={{ fontSize: 16, color: '#1e293b' }}>{customer.name}</strong>
-                <span
-                  style={{
-                    fontSize: 12,
-                    padding: '2px 8px',
-                    borderRadius: 12,
-                    background: '#e0f2fe',
-                    color: '#0052cc',
-                    fontWeight: 600,
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: 4,
-                  }}
-                >
-                  <i className="ph ph-identification-card" />
-                  {customer.code}
-                </span>
-                <span
-                  style={{
-                    fontSize: 12,
-                    padding: '2px 8px',
-                    borderRadius: 12,
-                    background: '#f1f5f9',
-                    color: '#475569',
-                    fontWeight: 600,
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: 4,
-                  }}
-                >
-                  <i className="ph ph-users" />
-                  {customer.group}
-                </span>
-              </div>
-              <div style={{ fontSize: 13, color: '#64748b', marginTop: 3 }}>
-                <span>Số điện thoại: </span>
-                <strong style={{ color: '#1e293b' }}>{customer.phone || 'Chưa có'}</strong>
-                {customer.email && <span style={{ color: '#64748b' }}> • {customer.email}</span>}
-              </div>
-            </div>
-          </div>
+      <ValueStrip
+        items={[
+          { label: 'Tổng bán', value: formatMoney(customer.totalSpent), tone: 'primary' },
+          { label: 'Ghé thăm', value: `${formatNumber(customer.visitCount)} lượt` },
+          { label: 'Số dư thẻ', value: formatMoney(customer.cardBalance), tone: 'success' },
+          { label: 'Nợ', value: formatMoney(customer.debtBalance), tone: customer.debtBalance > 0 ? 'danger' : 'success' },
+        ]}
+      />
 
-          <div style={{ textAlign: 'right', fontSize: 12, color: '#64748b', lineHeight: 1.6 }}>
-            <div>
-              <strong style={{ color: '#1e293b' }}>{customer.branchName || 'Chi nhánh mặc định'}</strong>
-            </div>
-            <div>Ngày tạo: {formatDate(customer.createdAt)}</div>
-          </div>
-        </div>
+      {tab === 'overview' && (
+        <DetailFacts
+          items={[
+            { label: 'Số điện thoại', value: customer.phone ?? 'Chưa có' },
+            { label: 'Nhóm khách hàng', value: customer.group },
+            { label: 'Lần cuối đến', value: customer.lastVisit ? formatDateTime(customer.lastVisit) : 'Chưa có' },
+            { label: 'Gói đang dùng', value: `${formatNumber(customer.activePackages)} gói` },
+            customer.address && { label: 'Địa chỉ', value: customer.address, span: 'wide' },
+            customer.notes && { label: 'Ghi chú', value: customer.notes, span: 'wide' },
+          ]}
+        />
+      )}
 
-        {/* Layer 4: 4-Column Value Strip */}
-        <div
-          className="customer-value-strip"
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(4, 1fr)',
-            gap: 12,
-            background: '#f8fafc',
-            padding: '12px 16px',
-            borderRadius: 8,
-            border: '1px solid #e2e8f0',
-            marginBottom: 16,
-            fontSize: 14,
-          }}
-        >
-          <div>
-            <span style={{ color: '#64748b' }}>Tổng bán: </span>
-            <strong style={{ color: '#0052cc' }}>{formatMoney(customer.totalSpent)}</strong>
-          </div>
-          <div>
-            <span style={{ color: '#64748b' }}>Ghé thăm: </span>
-            <strong style={{ color: '#1e293b' }}>{formatNumber(customer.visitCount)} lượt</strong>
-          </div>
-          <div>
-            <span style={{ color: '#64748b' }}>Số dư thẻ: </span>
-            <strong style={{ color: '#059669' }}>{formatMoney(customer.cardBalance)}</strong>
-          </div>
-          <div>
-            <span style={{ color: '#64748b' }}>Nợ: </span>
-            <strong style={{ color: customer.debtBalance > 0 ? '#e11d48' : '#059669' }}>
-              {formatMoney(customer.debtBalance)}
-            </strong>
-          </div>
-        </div>
+      {tab === 'debt' && <CustomerDebtPanel key={id} customerId={id} />}
 
-        {/* Layer 5: Tabs Content */}
-        {tab === 'overview' && (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px 24px', fontSize: 14.5 }}>
-            <div>
-              <span style={{ color: '#64748b', display: 'block', marginBottom: 2 }}>Số điện thoại:</span>
-              <strong style={{ color: '#1e293b' }}>{customer.phone ?? 'Chưa có'}</strong>
-            </div>
-            <div>
-              <span style={{ color: '#64748b', display: 'block', marginBottom: 2 }}>Nhóm khách hàng:</span>
-              <strong style={{ color: '#1e293b' }}>{customer.group}</strong>
-            </div>
-            <div>
-              <span style={{ color: '#64748b', display: 'block', marginBottom: 2 }}>Lần cuối đến:</span>
-              <strong style={{ color: '#1e293b' }}>
-                {customer.lastVisit ? formatDateTime(customer.lastVisit) : 'Chưa có'}
-              </strong>
-            </div>
-            <div>
-              <span style={{ color: '#64748b', display: 'block', marginBottom: 2 }}>Gói đang dùng:</span>
-              <strong style={{ color: '#1e293b' }}>{formatNumber(customer.activePackages)} gói</strong>
-            </div>
-            {customer.address && (
-              <div style={{ gridColumn: 'span 2' }}>
-                <span style={{ color: '#64748b', display: 'block', marginBottom: 2 }}>Địa chỉ:</span>
-                <strong style={{ color: '#1e293b' }}>{customer.address}</strong>
-              </div>
-            )}
-            {customer.notes && (
-              <div style={{ gridColumn: 'span 2' }}>
-                <span style={{ color: '#64748b', display: 'block', marginBottom: 2 }}>Ghi chú:</span>
-                <strong style={{ color: '#1e293b' }}>{customer.notes}</strong>
-              </div>
-            )}
-          </div>
-        )}
-
-        {tab === 'debt' && <CustomerDebtPanel key={id} customerId={id} />}
-
-        {tab !== 'overview' && tab !== 'debt' && (
-          <ActivityTable customerId={id} kind={tab} />
-        )}
-      </div>
-    </div>
+      {tab !== 'overview' && tab !== 'debt' && (
+        <ActivityTable customerId={id} kind={tab} />
+      )}
+    </InlineDetail>
   );
 }

@@ -9,4 +9,3 @@ export * from './MobileSegmentedControl';
 export * from './MobileServiceItemDetailSheet';
 export * from './MobileSortDropdown';
 export * from './MobileTimePickerSheet';
-export * from './useMobileDialog';

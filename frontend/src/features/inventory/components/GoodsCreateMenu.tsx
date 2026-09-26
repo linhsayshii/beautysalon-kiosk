@@ -33,7 +33,7 @@ export function GoodsCreateMenu() {
 
   return <>
     <div className="goods-create-menu" ref={rootRef}>
-      <button className="primary-button goods-create-trigger" type="button" aria-haspopup="menu" aria-expanded={menuOpen} onClick={() => setMenuOpen((open) => !open)}>
+      <button className="btn btn-primary goods-create-trigger" type="button" aria-haspopup="menu" aria-expanded={menuOpen} onClick={() => setMenuOpen((open) => !open)}>
         <i className="ph ph-plus" aria-hidden="true" />Hàng hóa<i className={`ph ph-caret-${menuOpen ? 'up' : 'down'}`} aria-hidden="true" />
       </button>
       {menuOpen && <FloatingLayer anchorRef={rootRef} layerRef={menuRef} align="right" className="goods-create-popover" role="menu" aria-label="Chọn loại hàng hóa">

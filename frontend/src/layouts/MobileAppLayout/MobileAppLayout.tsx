@@ -5,7 +5,6 @@ import { canAccessPath } from '@/features/auth/authorization';
 import { AuthLoading } from '@/features/auth/LoginView';
 import { MobileTopBar } from './MobileTopBar';
 import { MobileBottomNav } from './MobileBottomNav';
-import '@/styles/mobile.css';
 
 const FULL_BLEED_PREFIXES = [
   '/m/orders',

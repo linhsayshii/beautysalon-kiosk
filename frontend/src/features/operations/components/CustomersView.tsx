@@ -33,15 +33,15 @@ export function CustomersView() {
 
   return (
     <>
-      <main className="workspace">
-        <div className="workspace-shell">
+      <main className="page">
+        <div className="page-stack">
           <PageHeader
             title="Khách hàng"
             subtitle="Quản lý hồ sơ, công nợ, lịch sử mua và các gói dịch vụ đang sử dụng."
             actionLabel="Thêm khách hàng"
             onAction={() => setIsCreating(true)}
             extraActions={
-              <button className="secondary-button" type="button" onClick={() => exportCsv(rows, 'customers')}>
+              <button className="btn btn-secondary" type="button" onClick={() => exportCsv(rows, 'customers')}>
                 <i className="ph ph-export" />Xuất file
               </button>
             }
@@ -54,7 +54,7 @@ export function CustomersView() {
               { label: 'Có gói đang dùng', value: formatNumber(rows.filter((row) => row.activePackages > 0).length), note: 'Khách có combo', tone: 'violet' },
             ]}
           />
-          <div className="workspace-grid">
+          <div className="page-grid">
             <FilterPanel title="Bộ lọc khách hàng" onApply={apply} onReset={reset}>
               <SelectFilter label="Nhóm khách hàng" value={draft.group} onChange={(group) => setDraft({ ...draft, group })} options={[{ value: '', label: 'Tất cả' }, { value: 'Cá nhân', label: 'Cá nhân' }, { value: 'Công ty', label: 'Công ty' }]} />
               <SelectFilter label="Công nợ" value={draft.debtStatus} onChange={(debtStatus) => setDraft({ ...draft, debtStatus })} options={[{ value: '', label: 'Tất cả' }, ...toOptions(metadata.data?.data.filters.customers.debtStatuses ?? [], statusLabels)]} />
@@ -88,7 +88,7 @@ export function CustomersView() {
                               <td data-label="Lần cuối đến">{formatDateTime(row.lastVisit)}</td>
                               <td data-label="Gói đang dùng" className="numeric-cell">{formatNumber(row.activePackages)}</td>
                               <td data-label="Tổng chi tiêu" className="money-cell">{formatMoney(row.totalSpent)}</td>
-                              <td data-label="Công nợ" className="money-cell" style={{ color: row.debtBalance ? 'var(--red)' : 'var(--green)' }}>{formatMoney(row.debtBalance)}</td>
+                              <td data-label="Công nợ" className={`money-cell ${row.debtBalance ? 'text-danger' : 'text-success'}`}>{formatMoney(row.debtBalance)}</td>
                             </tr>
                             {expanded === row.id && (
                               <tr className="customer-detail-row expandable-detail-row">

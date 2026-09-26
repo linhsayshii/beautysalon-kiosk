@@ -147,27 +147,27 @@ describe('StaffPayrollDetailAccordion Component', () => {
     expect(screen.getAllByText(/Kỳ làm việc:/i).length).toBeGreaterThanOrEqual(1);
 
     // Layer 4: 4-Column Value Strip
-    expect(screen.getByText(/Tổng số nhân viên:/i)).toBeInTheDocument();
+    expect(screen.getByText(/^Tổng số nhân viên$/i)).toBeInTheDocument();
     expect(screen.getByText('2')).toBeInTheDocument();
-    expect(screen.getByText(/Tổng tiền lương:/i)).toBeInTheDocument();
+    expect(screen.getByText(/^Tổng tiền lương$/i)).toBeInTheDocument();
     expect(screen.getByText('18.200.000đ')).toBeInTheDocument();
-    expect(screen.getByText(/Đã chi trả:/i)).toBeInTheDocument();
+    expect(screen.getByText(/^Đã chi trả$/i)).toBeInTheDocument();
     expect(screen.getByText('12.700.000đ')).toBeInTheDocument();
-    expect(screen.getByText(/Còn cần trả:/i)).toBeInTheDocument();
+    expect(screen.getByText(/^Còn cần trả$/i)).toBeInTheDocument();
     expect(screen.getByText('5.500.000đ')).toBeInTheDocument();
 
     // Layer 5: Tab "info" 4-column grid items
-    expect(screen.getAllByText('Mã bảng lương:').length).toBeGreaterThanOrEqual(1);
-    expect(screen.getByText('Tên bảng lương:')).toBeInTheDocument();
-    expect(screen.getByText('Kỳ hạn trả:')).toBeInTheDocument();
+    expect(screen.getAllByText('Mã bảng lương').length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByText('Tên bảng lương')).toBeInTheDocument();
+    expect(screen.getByText('Kỳ hạn trả')).toBeInTheDocument();
     expect(screen.getByText('Hàng tháng')).toBeInTheDocument();
-    expect(screen.getByText('Ngày tạo:')).toBeInTheDocument();
-    expect(screen.getAllByText('Người tạo:').length).toBeGreaterThanOrEqual(1);
-    expect(screen.getByText('Người lập bảng:')).toBeInTheDocument();
-    expect(screen.getByText('Trạng thái:')).toBeInTheDocument();
-    expect(screen.getByText('Phạm vi áp dụng:')).toBeInTheDocument();
+    expect(screen.getByText('Ngày tạo')).toBeInTheDocument();
+    expect(screen.getAllByText('Người tạo').length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByText('Người lập bảng')).toBeInTheDocument();
+    expect(screen.getByText('Trạng thái')).toBeInTheDocument();
+    expect(screen.getByText('Phạm vi áp dụng')).toBeInTheDocument();
     expect(screen.getByText('Tất cả nhân viên')).toBeInTheDocument();
-    expect(screen.getByText('Người chốt lương:')).toBeInTheDocument();
+    expect(screen.getByText('Người chốt lương')).toBeInTheDocument();
     expect(screen.getByText('Nguyễn Văn B')).toBeInTheDocument();
     expect(screen.getByText('Bảng lương tạm tính kỳ tháng 8')).toBeInTheDocument();
 

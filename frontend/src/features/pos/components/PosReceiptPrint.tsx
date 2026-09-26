@@ -29,10 +29,10 @@ export function PosReceiptPrint({ receipt, onClose }: PosReceiptPrintProps) {
     <div className="receipt-modal-backdrop" role="presentation" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
       <div className="receipt-modal" role="dialog" aria-modal="true" aria-labelledby="receipt-title">
         <div className="receipt-actions no-print">
-          <button type="button" className="receipt-btn-close" onClick={onClose}>
+          <button type="button" className="btn btn-secondary" onClick={onClose}>
             <i className="ph ph-x" /> Đóng
           </button>
-          <button type="button" className="receipt-btn-print" onClick={handlePrint}>
+          <button type="button" className="btn btn-primary" onClick={handlePrint}>
             <i className="ph ph-printer" /> In hóa đơn
           </button>
         </div>

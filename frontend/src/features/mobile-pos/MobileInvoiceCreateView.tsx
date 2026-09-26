@@ -2,7 +2,7 @@ import { resynchronizeRealtimeQueries } from '@/context/RealtimeQuerySynchronize
 import { PartialPaymentFields } from '@/features/debts/PartialPaymentFields';
 import { CustomerDebtPanel } from '@/features/debts/CustomerDebtPanel';
 import { usePaymentRequestKey } from '@/features/debts/debts.api';
-import { useEffect, useState, useMemo, useRef, type RefObject } from 'react';
+import { useEffect, useState, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/components/ui/Toast/ToastProvider';
@@ -28,9 +28,9 @@ import {
   MobileServiceItemDetailSheet,
   type ConfiguredServiceItem,
 } from '@/features/mobile-common/MobileServiceItemDetailSheet';
-import { useMobileDialog } from '@/features/mobile-common/useMobileDialog';
-import '@/features/mobile-appointments/mobile-appointments.css';
-import '@/features/mobile-pos/mobile-pos.css';
+import { MobileHeaderAction, MobilePageHeader } from '@/components/ui/MobilePageHeader/MobilePageHeader';
+import { BottomSheet } from '@/components/ui/Sheet/BottomSheet';
+import { EmptyState } from '@/components/data-display/DataState';
 
 type PaymentMethod = 'cash' | 'bank_transfer' | 'card' | 'wallet';
 
@@ -61,8 +61,6 @@ export function MobileInvoiceCreateView() {
   const [packagePromptCustomerId, setPackagePromptCustomerId] = useState<number | null>(null);
   const [tempNote, setTempNote] = useState('');
   const catalogSearchRef = useRef<HTMLInputElement>(null);
-  const catalogDialog = useMobileDialog({ isOpen: isCatalogSheetOpen, onClose: () => setIsCatalogSheetOpen(false), initialFocusRef: catalogSearchRef });
-  const noteDialog = useMobileDialog({ isOpen: isNoteDialogOpen, onClose: () => setIsNoteDialogOpen(false) });
   const [receiptToPrint, setReceiptToPrint] = useState<PosReceiptData | null>(null);
 
   // Active item in detail sheet
@@ -323,48 +321,27 @@ export function MobileInvoiceCreateView() {
   };
 
   return (
-    <div className="mobile-form-view-container">
-      {/* Top Header */}
-      <header className="mobile-form-header">
-        <div className="mobile-form-header-left">
-          <button
-            type="button"
-            className="mobile-form-back-btn"
-            onClick={() => navigate(-1)}
-            aria-label="Quay lại"
-          >
-            <i className="ph ph-caret-left" />
-          </button>
-          <h1 className="mobile-form-header-title">Tạo hóa đơn</h1>
-        </div>
-
-        <div className="mobile-form-header-actions">
-          {configuredItems.length > 0 && (
-            <button
-              type="button"
-              className="mobile-form-icon-btn"
-              onClick={handleClearAll}
-              aria-label="Làm mới"
-              title="Làm mới giỏ"
-            >
-              <i className="ph ph-trash" />
-            </button>
-          )}
-
-          <button
-            type="button"
-            className={`mobile-form-icon-btn ${note ? 'has-note' : ''}`}
-            onClick={() => {
-              setTempNote(note);
-              setIsNoteDialogOpen(true);
-            }}
-            aria-label="Ghi chú hóa đơn"
-            title="Ghi chú"
-          >
-            <i className="ph ph-note" />
-          </button>
-        </div>
-      </header>
+    <div className="m-page mobile-form-view-container">
+      <MobilePageHeader
+        title="Tạo hóa đơn"
+        onBack={() => navigate(-1)}
+        actions={(
+          <>
+            {configuredItems.length > 0 && (
+              <MobileHeaderAction icon="ph ph-trash" label="Làm mới" onClick={handleClearAll} />
+            )}
+            <MobileHeaderAction
+              icon="ph ph-note"
+              label="Ghi chú hóa đơn"
+              tone={note ? 'soft' : 'ghost'}
+              onClick={() => {
+                setTempNote(note);
+                setIsNoteDialogOpen(true);
+              }}
+            />
+          </>
+        )}
+      />
 
       {/* Main Body Form Cards */}
       <div className="mobile-form-body">
@@ -474,7 +451,7 @@ export function MobileInvoiceCreateView() {
                             {item.quantity > 1 ? `${item.quantity}x ` : ''}
                             {item.name}
                           </div>
-                          <div style={{ fontSize: 12, color: '#64748b' }}>
+                          <div className="text-muted">
                             {formatMoney(item.unitPrice)} / cái, lần
                           </div>
                         </div>
@@ -548,12 +525,9 @@ export function MobileInvoiceCreateView() {
         </section>
 
         {/* Card 3: Payment Method & Discount */}
-        <section className="mobile-form-card" style={{ padding: 14 }}>
-          {/* Payment Method Pills */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 14 }}>
-            <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink-700)' }}>
-              Phương thức thanh toán
-            </span>
+        <section className="mobile-form-card invoice-payment-card">
+          <div className="m-section">
+            <span className="m-section-title">Phương thức thanh toán</span>
             <div className="mobile-payment-methods">
               <button
                 type="button"
@@ -591,46 +565,14 @@ export function MobileInvoiceCreateView() {
           </div>
 
           <PartialPaymentFields customerId={customer?.id} total={totalPayment} amount={amountPaid} onAmountChange={setAmountInput} allowDebt={allowDebt} onAllowDebtChange={setAllowDebt} method={paymentMethod} disabled={checkoutMutation.isPending} />
-          {customer && <><button type="button" onClick={()=>setShowDebt(!showDebt)}>{showDebt ? 'Ẩn công nợ' : 'Xem công nợ / Thu nợ cũ'}</button>{showDebt && <CustomerDebtPanel key={customer.id} customerId={customer.id} />}</>}
+          {customer && <><button type="button" className="btn btn-link btn-sm" onClick={()=>setShowDebt(!showDebt)}>{showDebt ? 'Ẩn công nợ' : 'Xem công nợ / Thu nợ cũ'}</button>{showDebt && <CustomerDebtPanel key={customer.id} customerId={customer.id} />}</>}
           {/* Discount Field */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 14 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink-700)' }}>
-                Chiết khấu / Giảm giá
-              </span>
-              <div style={{ display: 'flex', gap: 4 }}>
-                <button
-                  type="button"
-                  style={{
-                    padding: '2px 8px',
-                    borderRadius: 6,
-                    fontSize: 12,
-                    fontWeight: 700,
-                    border: '1px solid #cbd5e1',
-                    background: discountType === 'vnd' ? '#2563eb' : '#ffffff',
-                    color: discountType === 'vnd' ? '#ffffff' : '#475569',
-                    cursor: 'pointer',
-                  }}
-                  onClick={() => setDiscountType('vnd')}
-                >
-                  VNĐ
-                </button>
-                <button
-                  type="button"
-                  style={{
-                    padding: '2px 8px',
-                    borderRadius: 6,
-                    fontSize: 12,
-                    fontWeight: 700,
-                    border: '1px solid #cbd5e1',
-                    background: discountType === 'percent' ? '#2563eb' : '#ffffff',
-                    color: discountType === 'percent' ? '#ffffff' : '#475569',
-                    cursor: 'pointer',
-                  }}
-                  onClick={() => setDiscountType('percent')}
-                >
-                  %
-                </button>
+          <div className="m-section">
+            <div className="m-section-head">
+              <span className="m-section-title">Chiết khấu / Giảm giá</span>
+              <div className="segmented" role="group" aria-label="Đơn vị giảm giá">
+                <button type="button" aria-pressed={discountType === 'vnd'} onClick={() => setDiscountType('vnd')}>VNĐ</button>
+                <button type="button" aria-pressed={discountType === 'percent'} onClick={() => setDiscountType('percent')}>%</button>
               </div>
             </div>
 
@@ -652,17 +594,7 @@ export function MobileInvoiceCreateView() {
                 placeholder="0"
                 value={discountInput || ''}
                 onChange={(e) => setDiscountInput(Math.min(100, Math.max(0, Number(e.target.value) || 0)))}
-                style={{
-                  width: '100%',
-                  height: 40,
-                  borderRadius: 10,
-                  border: '1px solid #cbd5e1',
-                  padding: '0 12px',
-                  fontSize: 14,
-                  fontWeight: 600,
-                  background: '#ffffff',
-                  boxSizing: 'border-box',
-                }}
+                className="input"
               />
             )}
           </div>
@@ -670,34 +602,29 @@ export function MobileInvoiceCreateView() {
           {/* Summary Box */}
           <div className="mobile-checkout-summary">
             <div className="mobile-summary-row">
-              <span style={{ color: '#64748b' }}>Tổng tiền hàng:</span>
-              <span style={{ fontWeight: 600 }}>{formatMoney(subtotal)}</span>
+              <span className="text-muted">Tổng tiền hàng:</span>
+              <span className="text-strong">{formatMoney(subtotal)}</span>
             </div>
             {discountAmount > 0 && (
-              <div className="mobile-summary-row" style={{ color: '#dc2626' }}>
+              <div className="mobile-summary-row text-danger">
                 <span>Giảm giá:</span>
                 <span>-{formatMoney(discountAmount)}</span>
               </div>
             )}
             <div className="mobile-summary-row total-row">
               <span>Tổng thanh toán:</span>
-              <span style={{ color: '#1d4ed8', fontSize: 16 }}>{formatMoney(totalPayment)}</span>
+              <span className="text-primary">{formatMoney(totalPayment)}</span>
             </div>
           </div>
         </section>
       </div>
 
-      {/* Fixed Bottom Checkout Button */}
-      <footer className="mobile-form-footer">
+      <div className="m-footer">
         <button
           type="button"
-          className="mobile-form-submit-btn"
+          className="btn btn-primary btn-lg btn-block"
           onClick={handleCheckout}
           disabled={checkoutMutation.isPending || configuredItems.length === 0 || !customer || (amountPaid < totalPayment && !allowDebt) || (paymentMethod !== 'cash' && amountPaid > totalPayment)}
-          style={{
-            background: '#2563eb',
-            boxShadow: '0 4px 12px rgba(37, 99, 235, 0.3)',
-          }}
         >
           {checkoutMutation.isPending ? (
             <>
@@ -705,13 +632,13 @@ export function MobileInvoiceCreateView() {
               <span>Đang thanh toán...</span>
             </>
           ) : (
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
-              <i className="ph ph-check-circle" style={{ fontSize: 18 }} />
+            <>
+              <i className="ph ph-check-circle" />
               <span>Chốt & In hóa đơn ({formatMoney(Math.min(amountPaid,totalPayment))})</span>
-            </div>
+            </>
           )}
         </button>
-      </footer>
+      </div>
 
       {/* Customer Select Sheet */}
       <MobileCustomerSelectSheet
@@ -728,38 +655,26 @@ export function MobileInvoiceCreateView() {
         onSelect={handlePackageServiceSelect}
       />
 
-      {/* Catalog Sheet */}
-      {isCatalogSheetOpen && (
-        <div
-          className="mobile-catalog-sheet-backdrop"
-          onClick={(e) => {
-            if (e.target === e.currentTarget) setIsCatalogSheetOpen(false);
-          }}
-        >
-          <div ref={catalogDialog.dialogRef as RefObject<HTMLDivElement>} className="mobile-catalog-sheet" role="dialog" aria-modal="true" aria-labelledby={catalogDialog.titleId} tabIndex={-1}>
-            <header className="mobile-catalog-sheet-header">
-              <h3 id={catalogDialog.titleId}>Chọn dịch vụ, sản phẩm</h3>
-              <button
-                type="button"
-                className="mobile-appointment-back-btn"
-                onClick={() => setIsCatalogSheetOpen(false)}
-                aria-label="Đóng"
-              >
-                <i className="ph ph-x" />
-              </button>
-            </header>
-
-            {/* Filter Tabs in Catalog */}
-            <div
-              style={{
-                display: 'flex',
-                gap: 6,
-                padding: '8px 16px',
-                background: '#f8fafc',
-                overflowX: 'auto',
-                borderBottom: '1px solid #e2e8f0',
-              }}
-            >
+      <BottomSheet
+        open={isCatalogSheetOpen}
+        onClose={() => setIsCatalogSheetOpen(false)}
+        title="Chọn dịch vụ, sản phẩm"
+        height="full"
+        initialFocusRef={catalogSearchRef}
+        headerExtra={(
+          <div className="sheet-toolbar">
+            <label className="input-group">
+              <i className="ph ph-magnifying-glass" aria-hidden="true" />
+              <input
+                ref={catalogSearchRef}
+                type="search"
+                aria-label="Tìm dịch vụ, sản phẩm"
+                placeholder="Tìm tên dịch vụ, sản phẩm..."
+                value={catalogSearch}
+                onChange={(e) => setCatalogSearch(e.target.value)}
+              />
+            </label>
+            <div className="m-chip-strip" role="group" aria-label="Lọc loại hàng">
               {[
                 { value: '', label: 'Tất cả' },
                 { value: 'service', label: 'Dịch vụ' },
@@ -770,18 +685,7 @@ export function MobileInvoiceCreateView() {
                 <button
                   key={tab.value}
                   type="button"
-                  style={{
-                    padding: '4px 12px',
-                    borderRadius: 14,
-                    fontSize: 12.5,
-                    fontWeight: 600,
-                    border: '1px solid',
-                    borderColor: activeCatalogTab === tab.value ? '#2563eb' : '#cbd5e1',
-                    background: activeCatalogTab === tab.value ? '#eff6ff' : '#ffffff',
-                    color: activeCatalogTab === tab.value ? '#1d4ed8' : '#475569',
-                    whiteSpace: 'nowrap',
-                    cursor: 'pointer',
-                  }}
+                  className="chip"
                   onClick={() => setActiveCatalogTab(tab.value)}
                   aria-pressed={activeCatalogTab === tab.value}
                 >
@@ -789,49 +693,34 @@ export function MobileInvoiceCreateView() {
                 </button>
               ))}
             </div>
-
-            <div className="mobile-catalog-sheet-search">
-              <i className="ph ph-magnifying-glass" />
-              <input
-                ref={catalogSearchRef}
-                type="text"
-                aria-label="Tìm dịch vụ, sản phẩm"
-                placeholder="Tìm tên dịch vụ, sản phẩm..."
-                value={catalogSearch}
-                onChange={(e) => setCatalogSearch(e.target.value)}
-                autoFocus
-              />
-            </div>
-
-            <div className="mobile-catalog-items-list">
-              {catalogItems.length === 0 ? (
-                <div style={{ textAlign: 'center', padding: '30px 0', color: '#94a3b8' }}>
-                  Không tìm thấy mặt hàng nào
-                </div>
-              ) : (
-                catalogItems.map((cat) => (
-                  <button
-                    type="button"
-                    key={`${cat.itemType}-${cat.itemId}`}
-                    className="mobile-catalog-item-row"
-                    onClick={() => handleSelectCatalogItem(cat)}
-                  >
-                    <div className="mobile-catalog-item-info">
-                      <span className="mobile-catalog-item-name">{cat.name}</span>
-                      <span className="mobile-catalog-item-cat">
-                        {cat.category || 'Dịch vụ'} {cat.code ? `• ${cat.code}` : ''}
-                      </span>
-                    </div>
-                    <span className="mobile-catalog-item-price">
-                      {formatNumber(cat.salePrice)}
-                    </span>
-                  </button>
-                ))
-              )}
-            </div>
           </div>
+        )}
+      >
+        <div className="mobile-catalog-items-list">
+        {catalogItems.length === 0 ? (
+          <EmptyState compact title="Không tìm thấy mặt hàng nào" message={null} />
+        ) : (
+          catalogItems.map((cat) => (
+            <button
+              type="button"
+              key={`${cat.itemType}-${cat.itemId}`}
+              className="mobile-catalog-item-row"
+              onClick={() => handleSelectCatalogItem(cat)}
+            >
+              <div className="mobile-catalog-item-info">
+                <span className="mobile-catalog-item-name">{cat.name}</span>
+                <span className="mobile-catalog-item-cat">
+                  {cat.category || 'Dịch vụ'} {cat.code ? `• ${cat.code}` : ''}
+                </span>
+              </div>
+              <span className="mobile-catalog-item-price">
+                {formatNumber(cat.salePrice)}
+              </span>
+            </button>
+          ))
+        )}
         </div>
-      )}
+      </BottomSheet>
 
       {/* Service Item Detail Sheet */}
       <MobileServiceItemDetailSheet
@@ -846,57 +735,36 @@ export function MobileInvoiceCreateView() {
         onSaveItem={handleSaveConfiguredItem}
       />
 
-      {/* Note Dialog */}
-      {isNoteDialogOpen && (
-        <div
-          className="mobile-note-dialog-backdrop"
-          onClick={(e) => {
-            if (e.target === e.currentTarget) setIsNoteDialogOpen(false);
-          }}
-        >
-          <div ref={noteDialog.dialogRef as RefObject<HTMLDivElement>} className="mobile-note-dialog" role="dialog" aria-modal="true" aria-labelledby={noteDialog.titleId} tabIndex={-1}>
-            <div className="mobile-note-dialog-header">
-              <h3 id={noteDialog.titleId}>Ghi chú hóa đơn</h3>
-              <button
-                type="button"
-                className="mobile-appointment-back-btn"
-                onClick={() => setIsNoteDialogOpen(false)}
-                aria-label="Đóng ghi chú"
-              >
-                <i className="ph ph-x" />
-              </button>
-            </div>
-            <div className="mobile-note-dialog-body">
-              <textarea
-                aria-label="Ghi chú hóa đơn"
-                placeholder="Nhập ghi chú cho hóa đơn..."
-                value={tempNote}
-                onChange={(e) => setTempNote(e.target.value)}
-                autoFocus
-              />
-            </div>
-            <div className="mobile-note-dialog-footer">
-              <button
-                type="button"
-                className="mobile-note-cancel-btn"
-                onClick={() => setIsNoteDialogOpen(false)}
-              >
-                Hủy
-              </button>
-              <button
-                type="button"
-                className="mobile-note-save-btn"
-                onClick={() => {
-                  setNote(tempNote);
-                  setIsNoteDialogOpen(false);
-                }}
-              >
-                Lưu ghi chú
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <BottomSheet
+        open={isNoteDialogOpen}
+        onClose={() => setIsNoteDialogOpen(false)}
+        title="Ghi chú hóa đơn"
+        footer={(
+          <>
+            <button type="button" className="btn btn-secondary" onClick={() => setIsNoteDialogOpen(false)}>Hủy</button>
+            <button
+              type="button"
+              className="btn btn-primary"
+              onClick={() => {
+                setNote(tempNote);
+                setIsNoteDialogOpen(false);
+              }}
+            >
+              Lưu ghi chú
+            </button>
+          </>
+        )}
+      >
+        <textarea
+          className="textarea"
+          rows={5}
+          aria-label="Ghi chú hóa đơn"
+          placeholder="Nhập ghi chú cho hóa đơn..."
+          value={tempNote}
+          onChange={(e) => setTempNote(e.target.value)}
+          autoFocus
+        />
+      </BottomSheet>
 
       {/* Print Receipt Modal on Success */}
       {receiptToPrint && (

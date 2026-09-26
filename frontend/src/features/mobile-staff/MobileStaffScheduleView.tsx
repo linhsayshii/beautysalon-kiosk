@@ -6,7 +6,8 @@ import { weekStartIso, toIsoDate, todayIso } from '@/lib/date';
 import { useAuth } from '@/features/auth/AuthProvider';
 import type { ApiRecord } from '@/types/api';
 import { ScheduleBadge } from '@/components/ScheduleBadge';
-import './mobile-staff.css';
+import { MobileHeaderAction, MobilePageHeader } from '@/components/ui/MobilePageHeader/MobilePageHeader';
+import { EmptyState, ErrorState, LoadingState } from '@/components/data-display/DataState';
 
 const weekdayShorts = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'];
 
@@ -24,7 +25,7 @@ export function MobileStaffScheduleView() {
     return unsub;
   }, [subscribe, queryClient]);
 
-  const { data: scheduleData, isLoading, isError, refetch } = useQuery({
+  const { data: scheduleData, isLoading, isError, error, refetch } = useQuery({
     queryKey: ['mobile-staff-schedule', selectedMonday],
     queryFn: () => getMySchedule(selectedMonday),
     enabled: Boolean(account?.staffId),
@@ -62,17 +63,15 @@ export function MobileStaffScheduleView() {
 
   return (
     <div className="mobile-staff-container">
-      {/* Sticky Top Cluster for Schedule */}
-      <div className="mobile-schedule-sticky-header">
-        <div className="mobile-staff-header">
-          <h1>Lịch làm việc của tôi</h1>
-          <div className="mobile-schedule-week-actions">
-            <button type="button" onClick={() => changeWeek(-1)} aria-label="Tuần trước"><i className="ph ph-caret-left" /></button>
-            <button type="button" onClick={() => changeWeek(1)} aria-label="Tuần sau"><i className="ph ph-caret-right" /></button>
-          </div>
-        </div>
-
-        {/* Week Day Strip */}
+      <MobilePageHeader
+        title="Lịch làm việc của tôi"
+        actions={(
+          <>
+            <MobileHeaderAction icon="ph ph-caret-left" label="Tuần trước" onClick={() => changeWeek(-1)} />
+            <MobileHeaderAction icon="ph ph-caret-right" label="Tuần sau" onClick={() => changeWeek(1)} />
+          </>
+        )}
+      >
         <div className="schedule-week-strip">
           {weekDays.map((day) => (
             <div
@@ -86,53 +85,33 @@ export function MobileStaffScheduleView() {
             </div>
           ))}
         </div>
-      </div>
+      </MobilePageHeader>
 
       {/* Shifts on selected day */}
       <div className="schedule-cards-list">
-        <h2 style={{ fontSize: 14, fontWeight: 700, margin: '8px 0 4px', color: '#0f172a' }}>
+        <h2 className="m-section-title">
           Ca làm ngày {selectedDateIso}
         </h2>
 
         {isLoading ? (
-          <div style={{ textAlign: 'center', padding: '24px 0', color: '#64748b' }}>Đang tải lịch làm...</div>
+          <LoadingState compact label="Đang tải lịch làm..." />
         ) : isError ? (
-          <div style={{ textAlign: 'center', padding: '24px 0', color: '#b91c1c' }}>
-            Không thể tải lịch làm việc. <button type="button" onClick={() => refetch()}>Thử lại</button>
-          </div>
+          <ErrorState compact error={error ?? new Error('Không thể tải lịch làm việc.')} onRetry={() => refetch()} />
         ) : dayAssignments.length === 0 ? (
-          <div style={{
-            background: '#ffffff',
-            border: '1px dashed #cbd5e1',
-            borderRadius: 12,
-            padding: '24px 16px',
-            textAlign: 'center',
-            color: '#94a3b8',
-          }}>
-            Không có ca làm việc nào trong ngày này.
-          </div>
+          <EmptyState compact icon="ph ph-calendar-blank" title="Không có ca làm việc nào trong ngày này." message={null} />
         ) : (
           dayAssignments.map((assign, idx) => (
             <div key={assign.id ?? idx} className={`shift-card ${idx % 2 === 0 ? 'morning' : 'evening'}`}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <div className="shift-card-main">
                 {assign.weekGroupId && <ScheduleBadge />}
                 <div>
                   <div className="shift-time">{assign.startsAt || '08:30'} - {assign.endsAt || '17:30'}</div>
                   <div className="shift-name">{assign.shiftName || 'Ca sáng chuẩn'}</div>
                 </div>
               </div>
-              <div style={{ textAlign: 'right' }}>
-                <span style={{
-                  fontSize: 11,
-                  fontWeight: 600,
-                  color: assign.status === 'confirmed' ? '#16a34a' : '#0284c7',
-                  background: assign.status === 'confirmed' ? '#dcfce7' : '#e0f2fe',
-                  padding: '4px 8px',
-                  borderRadius: 10,
-                }}>
-                  {assign.status === 'confirmed' ? 'Đã duyệt' : 'Phân công'}
-                </span>
-              </div>
+              <span className={assign.status === 'confirmed' ? 'badge badge-success' : 'badge badge-info'}>
+                {assign.status === 'confirmed' ? 'Đã duyệt' : 'Phân công'}
+              </span>
             </div>
           ))
         )}

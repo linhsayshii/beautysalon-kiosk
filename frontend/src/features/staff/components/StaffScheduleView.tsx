@@ -3,6 +3,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useWebSocket } from '@/hooks/useWebSocket';
 import { LoadingState } from '@/components/data-display/DataState';
 import { useToast } from '@/components/ui/Toast/ToastProvider';
+import { useComingSoon } from '@/components/ui/Toast/useComingSoon';
+import { PageHeader } from '@/components/ui/PageHeader/PageHeader';
 import { Select } from '@/components/ui/Select/Select';
 import { DatePickerField } from '@/components/ui/DateTimePicker';
 import { errorMessage } from '@/services/api-client';
@@ -18,7 +20,7 @@ import { ApplyWeeksModal } from '@/components/ApplyWeeksModal';
 import { DeleteScheduleModal } from '@/components/DeleteScheduleModal';
 import { getStaff, getShifts, createShift, getSchedule, assignShift, getWorkScheduleSettings, updateWorkScheduleSettings } from '../staff.api';
 import { calculateStaffShiftSalary } from '../salary-calc';
-import './AttendanceTimekeeping.css';
+import { Modal } from '@/components/ui/Modal/Modal';
 
 const weekdayLabels = ['Thứ hai', 'Thứ ba', 'Thứ tư', 'Thứ năm', 'Thứ sáu', 'Thứ bảy', 'Chủ nhật'];
 
@@ -35,6 +37,7 @@ function getShiftThemeClass(shiftName: string): string {
 export function StaffScheduleView() {
   const queryClient = useQueryClient();
   const { notify } = useToast();
+  const comingSoon = useComingSoon();
   const { subscribe } = useWebSocket();
   const [currentMonday, setCurrentMonday] = useState(weekStartIso());
   const [searchTerm, setSearchTerm] = useState('');
@@ -357,95 +360,76 @@ export function StaffScheduleView() {
   };
 
   return (
-    <main className="attendance-page">
-      <div className="attendance-container">
-        {/* =================================================================== */}
-        {/* TOPBAR TOOLBAR                                                      */}
-        {/* =================================================================== */}
+    <main className="page">
+      <div className="page-stack">
+        <PageHeader
+          title="Lịch làm việc"
+          subtitle="Xếp ca cho nhân viên theo tuần và theo dõi lương dự kiến."
+          extraActions={<>
+            <button
+              type="button"
+              onClick={comingSoon}
+              className="btn btn-secondary"
+            >
+              <i className="ph ph-file-arrow-up" />
+              <span>Import</span>
+            </button>
+            <button
+              type="button"
+              onClick={comingSoon}
+              className="btn btn-secondary"
+            >
+              <i className="ph ph-export" />
+              <span>Xuất file</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setIsSettingDaysOpen(true)}
+              className="btn btn-secondary btn-icon"
+              aria-label="Thiết lập ngày công chuẩn trong tháng"
+              title="Thiết lập ngày công chuẩn trong tháng"
+            >
+              <i className="ph ph-gear" />
+            </button>
+            <button type="button" onClick={() => setIsAddShiftOpen(true)} className="btn btn-primary">
+              <i className="ph ph-plus" />
+              <span>Thêm ca làm</span>
+            </button>
+          </>}
+        />
+
         <div className="attendance-toolbar-card">
           <div className="attendance-toolbar-left">
-            <h1 className="attendance-title">Lịch làm việc</h1>
-
-            {/* Search Input */}
-            <div className="attendance-search-box">
+            <label className="search-control attendance-search">
               <i className="ph ph-magnifying-glass" />
               <input
-                type="text"
+                type="search"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 placeholder="Tìm kiếm nhân viên"
-                className="attendance-search-input"
+                aria-label="Tìm kiếm nhân viên"
               />
-              <i className="ph ph-caret-down" />
-            </div>
+            </label>
 
-            {/* WeekPicker Component */}
             <WeekPicker currentMonday={currentMonday} onChange={setCurrentMonday} />
 
-            {/* Quick button to jump to This Week */}
             <button
               type="button"
               onClick={() => setCurrentMonday(weekStartIso())}
-              className="week-btn-choose"
-              style={{ fontWeight: currentMonday === weekStartIso() ? 700 : 500 }}
+              className="btn btn-secondary"
+              aria-pressed={currentMonday === weekStartIso()}
             >
               Tuần này
             </button>
           </div>
 
-          {/* Right Action Buttons */}
           <div className="attendance-toolbar-right">
-            {/* View Mode Selector: Xem theo nhân viên / Xem theo ca */}
-            <div className="attendance-select-wrap">
-              <Select<'by-staff' | 'by-shift'>
-                value={viewMode}
-                onChange={setViewMode}
-                triggerClassName="attendance-select"
-                triggerStyle={{ fontWeight: 600, color: '#0284c7' }}
-                size="sm"
-                options={[{ value: 'by-staff', label: '👤 Xem theo nhân viên' }, { value: 'by-shift', label: '📅 Xem theo ca' }]}
-              />
-            </div>
-
-            {/* Thêm ca làm việc nhanh */}
-            <button
-              type="button"
-              onClick={() => setIsAddShiftOpen(true)}
-              className="attendance-action-btn"
-            >
-              <i className="ph ph-plus-circle primary-icon" />
-              <span>Thêm ca làm</span>
-            </button>
-
-            {/* Import Button */}
-            <button
-              type="button"
-              onClick={() => notify('Tính năng Import', 'Bạn có thể tải lên file excel mẫu lịch làm việc.')}
-              className="attendance-action-btn"
-            >
-              <i className="ph ph-file-arrow-up" style={{ color: '#475569', fontSize: 16 }} />
-              <span>Import</span>
-            </button>
-
-            {/* Xuất file */}
-            <button
-              type="button"
-              onClick={() => notify('Đang xuất file', 'Đang tạo bảng tính Excel lịch làm việc...')}
-              className="attendance-action-btn"
-            >
-              <i className="ph ph-export" style={{ color: '#475569', fontSize: 16 }} />
-              <span>Xuất file</span>
-            </button>
-
-            {/* Cài đặt ngày công trong tháng */}
-            <button
-              type="button"
-              onClick={() => setIsSettingDaysOpen(true)}
-              className="attendance-action-btn icon-only"
-              title="Thiết lập ngày công chuẩn trong tháng"
-            >
-              <i className="ph ph-gear" style={{ fontSize: 18 }} />
-            </button>
+            <Select<'by-staff' | 'by-shift'>
+              value={viewMode}
+              onChange={setViewMode}
+              aria-label="Chế độ xem"
+              options={[{ value: 'by-staff', label: 'Xem theo nhân viên' }, { value: 'by-shift', label: 'Xem theo ca' }]}
+            />
           </div>
         </div>
 
@@ -453,7 +437,7 @@ export function StaffScheduleView() {
         {/* MAIN CONTENT AREA                                                   */}
         {/* =================================================================== */}
         {isLoading ? (
-          <div className="attendance-table-card" style={{ padding: 48 }}>
+          <div className="attendance-table-card">
             <LoadingState />
           </div>
         ) : viewMode === 'by-staff' ? (
@@ -552,17 +536,17 @@ export function StaffScheduleView() {
                                   <div className="shift-content">
                                     <span>{shiftData.shiftName}</span>
                                     {shiftData.hasCheckIn && shiftData.hasCheckOut ? (
-                                      <i className="ph ph-check-circle" style={{ color: '#22c55e', marginLeft: 4 }} title="Đã chấm công đủ" />
+                                      <i className="ph ph-check-circle text-success" title="Đã chấm công đủ" />
                                     ) : shiftData.hasCheckIn ? (
-                                      <i className="ph ph-clock" style={{ color: '#f59e0b', marginLeft: 4 }} title="Đã chấm vào, chưa chấm ra" />
+                                      <i className="ph ph-clock text-warning" title="Đã chấm vào, chưa chấm ra" />
                                     ) : shiftData.hasAttendance ? (
-                                      <i className="ph ph-warning-circle" style={{ color: '#ef4444', marginLeft: 4 }} title="Chưa chấm vào" />
+                                      <i className="ph ph-warning-circle text-danger" title="Chưa chấm vào" />
                                     ) : null}
                                   </div>
                                 </div>
                               ) : (
                                 <div className="cell-empty-hover">
-                                  <span className="btn-add-schedule-text">+ Thêm lịch</span>
+                                  <span className="schedule-add-text">+ Thêm lịch</span>
                                 </div>
                               )}
                             </td>
@@ -582,10 +566,10 @@ export function StaffScheduleView() {
                             </div>
                           ) : salData.totalShifts > 0 ? (
                             <div className="salary-calc-box">
-                              <div className="salary-amount" style={{ color: '#94a3b8' }}>
+                              <div className="salary-amount text-faint">
                                 0đ
                               </div>
-                              <div className="salary-shifts-count" style={{ color: '#ef4444' }}>
+                              <div className="salary-shifts-count text-danger">
                                 {salData.attendedShifts}/{salData.totalShifts} ca đã chấm
                               </div>
                             </div>
@@ -610,7 +594,7 @@ export function StaffScheduleView() {
                   <span>{shift.startsAt} - {shift.endsAt}</span>
                 </div>
               ))}
-              <div className="legend-item" style={{ marginLeft: 'auto', color: '#64748b', fontSize: 12 }}>
+              <div className="legend-item legend-note">
                 <span>Ngày công chuẩn trong tháng: <strong>{workDaysPerMonth} ngày</strong></span>
               </div>
             </div>
@@ -630,7 +614,7 @@ export function StaffScheduleView() {
                         <button
                           type="button"
                           onClick={() => setIsAddShiftOpen(true)}
-                          className="btn-add-shift-plus"
+                          className="schedule-add-shift"
                           title="Thêm ca làm việc mới"
                         >
                           <i className="ph ph-plus" />
@@ -715,7 +699,7 @@ export function StaffScheduleView() {
                                       assignedStaffIds: assignedIds,
                                     });
                                   }}
-                                  className="btn-slot-add-more"
+                                  className="schedule-slot-add"
                                 >
                                   <i className="ph ph-plus-circle" />
                                   <span>Xếp thêm</span>
@@ -803,248 +787,228 @@ export function StaffScheduleView() {
 
       {/* Modal Thiết lập Ngày làm việc & Ngày lễ, tết (Chuẩn KiotViet) */}
       {isSettingDaysOpen && (
-        <div className="modal-overlay" onClick={() => setIsSettingDaysOpen(false)}>
-          <div
-            className="modal-dialog work-settings-modal-dialog"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="modal-header">
-              <div>
-                <h3 className="modal-title">Thiết lập ngày làm & ngày nghỉ</h3>
-                <p className="modal-subtitle">Cài đặt 1 lần để hệ thống tự động suy ra số ngày công chuẩn theo từng tháng</p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setIsSettingDaysOpen(false)}
-                className="modal-close-btn"
-              >
-                <i className="ph ph-x" />
-              </button>
-            </div>
-
-            <div className="work-settings-modal-body">
-              {/* Phần 1: Ngày làm việc trong tuần của chi nhánh */}
-              <div className="work-settings-section">
-                <div className="work-settings-section-header">
-                  <div>
-                    <h4 className="work-settings-section-title">Ngày làm việc</h4>
-                    <p className="work-settings-section-sub">Thiết lập các ngày salon mở cửa hoạt động trong tuần</p>
-                  </div>
-                  <span style={{ fontSize: 13, fontWeight: 600, color: '#0284c7' }}>
-                    {activeWorkDays.join(', ')} ({activeWorkDays.length} ngày/tuần)
-                  </span>
+        <Modal
+          open
+          onClose={() => setIsSettingDaysOpen(false)}
+          title="Thiết lập ngày làm & ngày nghỉ"
+          subtitle="Cài đặt 1 lần để hệ thống tự động suy ra số ngày công chuẩn theo từng tháng"
+          size="md"
+          className="work-settings-modal-dialog"
+        >
+          <div className="modal-body">
+            {/* Phần 1: Ngày làm việc trong tuần của chi nhánh */}
+            <div className="form-section">
+              <div className="form-section-head">
+                <div>
+                  <h3 className="form-section-title">Ngày làm việc</h3>
+                  <p className="form-section-text">Thiết lập các ngày salon mở cửa hoạt động trong tuần</p>
                 </div>
-                <div className="work-days-checkboxes">
-                  {['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'].map((day) => {
-                    const isChecked = activeWorkDays.includes(day);
-                    return (
-                      <label
-                        key={day}
-                        className={`weekday-check-label ${isChecked ? 'is-checked' : ''}`}
-                      >
-                        <input
-                          type="checkbox"
-                          checked={isChecked}
-                          onChange={(e) => {
-                            if (e.target.checked) {
-                              setActiveWorkDays([...activeWorkDays, day]);
-                            } else {
-                              if (activeWorkDays.length > 1) {
-                                setActiveWorkDays(activeWorkDays.filter((d) => d !== day));
-                              }
+                <strong className="text-primary">
+                  {activeWorkDays.join(', ')} ({activeWorkDays.length} ngày/tuần)
+                </strong>
+              </div>
+              <div className="work-days-checkboxes">
+                {['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'].map((day) => {
+                  const isChecked = activeWorkDays.includes(day);
+                  return (
+                    <label
+                      key={day}
+                      className={`weekday-check-label ${isChecked ? 'is-checked' : ''}`}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={isChecked}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setActiveWorkDays([...activeWorkDays, day]);
+                          } else {
+                            if (activeWorkDays.length > 1) {
+                              setActiveWorkDays(activeWorkDays.filter((d) => d !== day));
                             }
-                          }}
-                        />
-                        <span>{day === 'CN' ? 'Chủ nhật' : `Thứ ${day.slice(1)}`}</span>
-                      </label>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* Phần 2: Ngày lễ, tết */}
-              <div className="work-settings-section">
-                <div className="work-settings-section-header">
-                  <div>
-                    <h4 className="work-settings-section-title">Ngày lễ, tết</h4>
-                    <p className="work-settings-section-sub">Thiết lập các ngày lễ, tết được nghỉ hưởng nguyên lương</p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setIsAddHolidayOpen(true)}
-                    className="btn-add-holiday"
-                  >
-                    <i className="ph ph-plus" />
-                    <span>Thêm kỳ lễ tết</span>
-                  </button>
-                </div>
-
-                <div style={{ overflowX: 'auto' }}>
-                  <table className="holidays-table">
-                    <thead>
-                      <tr>
-                        <th style={{ width: 50, textAlign: 'center' }}>STT</th>
-                        <th>Tên kỳ lễ tết</th>
-                        <th>Từ ngày</th>
-                        <th>Đến hết ngày</th>
-                        <th style={{ textAlign: 'center' }}>Số ngày</th>
-                        <th style={{ width: 80, textAlign: 'center' }}>Thao tác</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {holidaysList.map((holiday, idx) => (
-                        <tr key={holiday.id}>
-                          <td style={{ textAlign: 'center', color: '#64748b' }}>{idx + 1}</td>
-                          <td style={{ fontWeight: 600 }}>{holiday.name}</td>
-                          <td>{holiday.fromDate}</td>
-                          <td>{holiday.toDate}</td>
-                          <td style={{ textAlign: 'center', fontWeight: 600 }}>{holiday.daysCount}</td>
-                          <td style={{ textAlign: 'center' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
-                              <button
-                                type="button"
-                                className="btn-icon-action danger"
-                                title="Xóa kỳ nghỉ này"
-                                onClick={() => {
-                                  setHolidaysList(holidaysList.filter((h) => h.id !== holiday.id));
-                                  notify('Đã xóa kỳ nghỉ', `Đã xóa ${holiday.name}`);
-                                }}
-                              >
-                                <i className="ph ph-trash" />
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                          }
+                        }}
+                      />
+                      <span>{day === 'CN' ? 'Chủ nhật' : `Thứ ${day.slice(1)}`}</span>
+                    </label>
+                  );
+                })}
               </div>
             </div>
 
-            <div className="modal-footer">
-              <button
-                type="button"
-                onClick={() => setIsSettingDaysOpen(false)}
-                className="btn-secondary"
-              >
-                Đóng
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  // Auto compute workDays based on active days (e.g. 7 days/week ≈ 30/31 days/mo, 6 days ≈ 26 days/mo)
-                  const estimatedDays = Math.round((activeWorkDays.length / 7) * 30);
-                  setWorkDaysPerMonth(estimatedDays);
-                  workSettingsMutation.mutate({ activeWorkDays, holidays: holidaysList });
-                }}
-                className="btn-primary"
-                disabled={workSettingsMutation.isPending}
-              >
-                {workSettingsMutation.isPending ? 'Đang lưu...' : 'Lưu cài đặt'}
-              </button>
+            {/* Phần 2: Ngày lễ, tết */}
+            <div className="form-section">
+              <div className="form-section-head">
+                <div>
+                  <h3 className="form-section-title">Ngày lễ, tết</h3>
+                  <p className="form-section-text">Thiết lập các ngày lễ, tết được nghỉ hưởng nguyên lương</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsAddHolidayOpen(true)}
+                  className="btn btn-soft btn-sm"
+                >
+                  <i className="ph ph-plus" />
+                  <span>Thêm kỳ lễ tết</span>
+                </button>
+              </div>
+
+              <div className="detail-table-scroll">
+                <table className="detail-table">
+                  <thead>
+                    <tr>
+                      <th className="is-center">STT</th>
+                      <th>Tên kỳ lễ tết</th>
+                      <th>Từ ngày</th>
+                      <th>Đến hết ngày</th>
+                      <th className="is-center">Số ngày</th>
+                      <th className="is-center">Thao tác</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {holidaysList.map((holiday, idx) => (
+                      <tr key={holiday.id}>
+                        <td className="is-center text-muted">{idx + 1}</td>
+                        <td className="text-strong">{holiday.name}</td>
+                        <td>{holiday.fromDate}</td>
+                        <td>{holiday.toDate}</td>
+                        <td className="is-center text-strong">{holiday.daysCount}</td>
+                        <td className="is-center">
+                          <button
+                            type="button"
+                            className="btn btn-ghost btn-icon btn-sm text-danger"
+                            title="Xóa kỳ nghỉ này"
+                            aria-label={`Xóa ${holiday.name}`}
+                            onClick={() => {
+                              setHolidaysList(holidaysList.filter((h) => h.id !== holiday.id));
+                              notify('Đã xóa kỳ nghỉ', `Đã xóa ${holiday.name}`);
+                            }}
+                          >
+                            <i className="ph ph-trash" />
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
-        </div>
+
+          <div className="modal-footer">
+            <button
+              type="button"
+              onClick={() => setIsSettingDaysOpen(false)}
+              className="btn btn-secondary"
+            >
+              Đóng
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                // Auto compute workDays based on active days (e.g. 7 days/week ≈ 30/31 days/mo, 6 days ≈ 26 days/mo)
+                const estimatedDays = Math.round((activeWorkDays.length / 7) * 30);
+                setWorkDaysPerMonth(estimatedDays);
+                workSettingsMutation.mutate({ activeWorkDays, holidays: holidaysList });
+              }}
+              className="btn btn-primary"
+              disabled={workSettingsMutation.isPending}
+            >
+              {workSettingsMutation.isPending ? 'Đang lưu...' : 'Lưu cài đặt'}
+            </button>
+          </div>
+          
+        </Modal>
       )}
 
       {/* Modal Thêm kỳ lễ tết con */}
       {isAddHolidayOpen && (
-        <div className="modal-overlay" style={{ zIndex: 1100 }} onClick={() => setIsAddHolidayOpen(false)}>
-          <div
-            className="modal-dialog"
-            onClick={(e) => e.stopPropagation()}
-            style={{ maxWidth: 420 }}
-          >
-            <div className="modal-header">
-              <h3 className="modal-title">Thêm kỳ lễ, tết</h3>
-              <button
-                type="button"
-                onClick={() => setIsAddHolidayOpen(false)}
-                className="modal-close-btn"
-              >
-                <i className="ph ph-x" />
-              </button>
-            </div>
-            <div className="modal-body">
-              <div className="form-group-row">
-                <label className="form-label-col" style={{ width: 100 }}>
-                  Tên kỳ lễ:
-                </label>
-                <div className="form-control-col">
-                  <input
-                    type="text"
-                    placeholder="VD: Ngày Nhà giáo VN"
-                    value={newHolidayName}
-                    onChange={(e) => setNewHolidayName(e.target.value)}
-                    className="form-input-text"
-                  />
-                </div>
-              </div>
-              <div className="form-group-row">
-                <label className="form-label-col" style={{ width: 100 }}>
-                  Từ ngày:
-                </label>
-                <div className="form-control-col">
-                  <DatePickerField
-                    value={newHolidayFrom}
-                    onChange={setNewHolidayFrom}
-                    className="form-input-text"
-                  />
-                </div>
-              </div>
-              <div className="form-group-row">
-                <label className="form-label-col" style={{ width: 100 }}>
-                  Đến ngày:
-                </label>
-                <div className="form-control-col">
-                  <DatePickerField
-                    value={newHolidayTo}
-                    onChange={setNewHolidayTo}
-                    className="form-input-text"
-                  />
-                </div>
+        <Modal
+          open
+          onClose={() => setIsAddHolidayOpen(false)}
+          title="Thêm kỳ lễ, tết"
+          size="sm"
+          nested
+        >
+        
+          <div className="modal-body">
+            <div className="field-row">
+              <label className="field-label">
+                Tên kỳ lễ:
+              </label>
+              <div className="field-row-control">
+                <input
+                  type="text"
+                  placeholder="VD: Ngày Nhà giáo VN"
+                  value={newHolidayName}
+                  onChange={(e) => setNewHolidayName(e.target.value)}
+                  className="input"
+                />
               </div>
             </div>
-            <div className="modal-footer">
-              <button
-                type="button"
-                onClick={() => setIsAddHolidayOpen(false)}
-                className="btn-secondary"
-              >
-                Hủy
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  if (!newHolidayName.trim()) {
-                    notify('Thiếu thông tin', 'Vui lòng nhập tên kỳ lễ tết');
-                    return;
-                  }
-                  const newId = Date.now();
-                  setHolidaysList([
-                    ...holidaysList,
-                    {
-                      id: newId,
-                      name: newHolidayName.trim(),
-                      fromDate: newHolidayFrom || '20/11/2026',
-                      toDate: newHolidayTo || newHolidayFrom || '20/11/2026',
-                      daysCount: 1,
-                    },
-                  ]);
-                  setNewHolidayName('');
-                  setNewHolidayFrom('');
-                  setNewHolidayTo('');
-                  setIsAddHolidayOpen(false);
-                  notify('Đã thêm kỳ lễ', 'Kỳ nghỉ lễ mới đã được thêm vào danh sách.');
-                }}
-                className="btn-primary"
-              >
-                Thêm
-              </button>
+            <div className="field-row">
+              <label className="field-label">
+                Từ ngày:
+              </label>
+              <div className="field-row-control">
+                <DatePickerField
+                  value={newHolidayFrom}
+                  onChange={setNewHolidayFrom}
+                  className="input"
+                />
+              </div>
+            </div>
+            <div className="field-row">
+              <label className="field-label">
+                Đến ngày:
+              </label>
+              <div className="field-row-control">
+                <DatePickerField
+                  value={newHolidayTo}
+                  onChange={setNewHolidayTo}
+                  className="input"
+                />
+              </div>
             </div>
           </div>
-        </div>
+          <div className="modal-footer">
+            <button
+              type="button"
+              onClick={() => setIsAddHolidayOpen(false)}
+              className="btn btn-secondary"
+            >
+              Hủy
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                if (!newHolidayName.trim()) {
+                  notify('Thiếu thông tin', 'Vui lòng nhập tên kỳ lễ tết');
+                  return;
+                }
+                const newId = Date.now();
+                setHolidaysList([
+                  ...holidaysList,
+                  {
+                    id: newId,
+                    name: newHolidayName.trim(),
+                    fromDate: newHolidayFrom || '20/11/2026',
+                    toDate: newHolidayTo || newHolidayFrom || '20/11/2026',
+                    daysCount: 1,
+                  },
+                ]);
+                setNewHolidayName('');
+                setNewHolidayFrom('');
+                setNewHolidayTo('');
+                setIsAddHolidayOpen(false);
+                notify('Đã thêm kỳ lễ', 'Kỳ nghỉ lễ mới đã được thêm vào danh sách.');
+              }}
+              className="btn btn-primary"
+            >
+              Thêm
+            </button>
+          </div>
+          
+        </Modal>
       )}
 
       {/* Recurring Schedule Modals */}

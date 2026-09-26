@@ -1,13 +1,12 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import QRCode from 'qrcode';
 import { getAttendanceChallenge, getAttendanceLocation } from '@/features/attendance/attendance.api';
 import { useToast } from '@/components/ui/Toast/ToastProvider';
-import './mobile-staff.css';
+import { MobilePageHeader } from '@/components/ui/MobilePageHeader/MobilePageHeader';
+import { LoadingState } from '@/components/data-display/DataState';
 
 export function MobileAttendanceQrAdminView() {
-  const navigate = useNavigate();
   const { notify } = useToast();
   const [qrImage, setQrImage] = useState('');
   const [now, setNow] = useState(Date.now());
@@ -41,7 +40,7 @@ export function MobileAttendanceQrAdminView() {
     QRCode.toDataURL(token, {
       width: 420,
       margin: 2,
-      color: { dark: '#0f172a', light: '#ffffff' },
+      color: { dark: 'var(--ink-950)', light: '#ffffff' },
       errorCorrectionLevel: 'M',
     }).then(setQrImage);
   }, [challenge.data?.data.token]);
@@ -61,32 +60,21 @@ export function MobileAttendanceQrAdminView() {
 
   return (
     <div className="mobile-staff-view">
-      {/* 1. Header Top Navigation */}
-      <div className="mobile-staff-top-nav">
-        <div className="mobile-staff-nav-left">
+      <MobilePageHeader
+        title="Mã QR Chấm công"
+        backTo="/m/more"
+        actions={(
           <button
             type="button"
-            className="mobile-staff-back-icon"
-            onClick={() => navigate('/m/more')}
-            aria-label="Quay lại"
-          >
-            <i className="ph ph-caret-left" />
-          </button>
-          <h1 className="mobile-staff-nav-title">Mã QR Chấm công</h1>
-        </div>
-
-        <div className="mobile-staff-nav-actions">
-          <button
-            type="button"
-            className="mobile-staff-nav-btn"
+            className="btn btn-ghost btn-icon m-header-action"
             onClick={handleShareOrDownload}
             aria-label="Chia sẻ / Tải ảnh"
             title="Tải ảnh QR"
           >
             <i className="ph ph-share-network" />
           </button>
-        </div>
-      </div>
+        )}
+      />
 
       {/* Main Inset Screen Card */}
       <div className="mobile-qr-screen-card">
@@ -100,10 +88,7 @@ export function MobileAttendanceQrAdminView() {
           {qrImage ? (
             <img src={qrImage} alt="Mã QR chấm công cửa hàng" />
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, color: '#94a3b8' }}>
-              <i className="ph ph-spinner ph-spin" style={{ fontSize: 32 }} />
-              <span style={{ fontSize: 13 }}>Đang tạo mã QR...</span>
-            </div>
+            <LoadingState compact label="Đang tạo mã QR..." />
           )}
         </div>
 
@@ -115,8 +100,7 @@ export function MobileAttendanceQrAdminView() {
         {/* Action Button */}
         <button
           type="button"
-          className="mobile-staff-action-btn primary"
-          style={{ width: '100%', maxWidth: 280 }}
+          className="btn btn-primary mobile-qr-action"
           onClick={handleShareOrDownload}
           disabled={!qrImage}
         >
@@ -127,7 +111,7 @@ export function MobileAttendanceQrAdminView() {
         {/* Location Info Box */}
         <div className="mobile-qr-location-box">
           <div className="mobile-qr-location-header">
-            <i className="ph ph-map-pin" style={{ color: '#0062eb', fontSize: 18 }} />
+            <i className="ph ph-map-pin text-primary" />
             <span>{branchData?.name || 'Chi nhánh Anna Spa'}</span>
           </div>
           <div className="mobile-qr-location-coords">

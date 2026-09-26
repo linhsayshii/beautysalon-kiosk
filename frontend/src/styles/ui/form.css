@@ -1,0 +1,484 @@
+/*
+ * Form fields.
+ * <div className="field">
+ *   <label className="field-label" htmlFor="x">Tên <span className="field-required">*</span></label>
+ *   <input className="input" id="x" />
+ *   <p className="field-hint">…</p> | <p className="field-error">…</p>
+ * </div>
+ * .field-row puts the label beside the control (short dialog forms); it stacks on phones:
+ * <div className="field-row"><label className="field-label">Ca</label><div className="field-row-control">…</div></div>
+ * .input-group wraps an icon + borderless input (search boxes).
+ * .choice is a selectable card around a radio/checkbox:
+ * <label className="choice"><input type="radio" /><span className="choice-body">
+ *   <strong className="choice-title">…</strong><small className="choice-text">…</small></span></label>
+ */
+.field {
+  display: grid;
+  align-content: start;
+  gap: 6px;
+  min-width: 0;
+}
+
+.field-row {
+  display: grid;
+  grid-template-columns: var(--field-label-w, 130px) minmax(0, 1fr);
+  align-items: center;
+  gap: 8px 14px;
+}
+
+.field-row > .field-label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.field-row > .field-label > i {
+  color: var(--ink-400);
+}
+
+.field-row-control {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+@media (max-width: 640px) {
+  .field-row {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 6px;
+  }
+}
+
+.field-label {
+  color: var(--ink-800);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-bold);
+}
+
+.field-required {
+  color: var(--red);
+}
+
+.field-hint,
+.field-help {
+  color: var(--ink-600);
+  font-size: var(--text-xs);
+  line-height: 1.45;
+}
+
+.field-error {
+  color: var(--red);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-semibold);
+}
+
+.input,
+.textarea,
+.filter-control {
+  width: 100%;
+  min-height: var(--control-h);
+  padding: 0 12px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-control);
+  color: var(--ink-950);
+  background: var(--surface);
+  font: inherit;
+  font-size: var(--text-md);
+  transition: border-color var(--duration-fast) ease, box-shadow var(--duration-fast) ease;
+}
+
+.textarea {
+  min-height: 88px;
+  padding: 10px 12px;
+  line-height: 1.5;
+  resize: vertical;
+}
+
+.input::placeholder,
+.textarea::placeholder,
+.filter-control::placeholder,
+.input-group input::placeholder {
+  color: var(--ink-400);
+}
+
+.input:focus,
+.textarea:focus,
+.filter-control:focus {
+  border-color: var(--blue-500);
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+.input[aria-invalid="true"],
+.textarea[aria-invalid="true"] {
+  border-color: var(--red);
+  box-shadow: var(--focus-ring-danger);
+}
+
+.input:disabled,
+.textarea:disabled,
+.filter-control:disabled {
+  color: var(--ink-500);
+  background: var(--surface-muted);
+  cursor: not-allowed;
+}
+
+.input-sm {
+  min-height: var(--control-h-sm);
+  padding: 0 10px;
+  border-radius: var(--radius-sm);
+  font-size: var(--text-sm);
+}
+
+.input-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-height: var(--control-h);
+  padding: 0 12px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-control);
+  color: var(--ink-950);
+  background: var(--surface);
+  transition: border-color var(--duration-fast) ease, box-shadow var(--duration-fast) ease;
+}
+
+.input-group:focus-within {
+  border-color: var(--blue-500);
+  box-shadow: var(--focus-ring);
+}
+
+.input-group > i {
+  flex: 0 0 auto;
+  color: var(--ink-500);
+  font-size: 18px;
+}
+
+.input-group > input {
+  flex: 1;
+  min-width: 0;
+  height: calc(var(--control-h) - 2px);
+  padding: 0;
+  border: 0;
+  outline: 0;
+  color: inherit;
+  background: transparent;
+  font: inherit;
+}
+
+/* Number input with a unit after it (đ, %, phút). MoneyInput renders it when given a suffix. */
+.input-suffix {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  min-height: var(--control-h);
+  overflow: hidden;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-control);
+  background: var(--surface);
+  transition: border-color var(--duration-fast) ease, box-shadow var(--duration-fast) ease;
+}
+
+.input-suffix:focus-within {
+  border-color: var(--blue-500);
+  box-shadow: var(--focus-ring);
+}
+
+.input-suffix > input {
+  width: 100%;
+  min-width: 0;
+  height: calc(var(--control-h) - 2px);
+  padding: 0 10px 0 12px;
+  border: 0;
+  outline: 0;
+  color: var(--ink-950);
+  background: transparent;
+  font: inherit;
+  font-size: var(--text-md);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.input-suffix > span {
+  padding-right: 12px;
+  color: var(--ink-600);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-semibold);
+}
+
+.field-compact {
+  max-width: 300px;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px 14px;
+}
+
+.form-grid-3 {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.form-grid-full {
+  grid-column: 1 / -1;
+}
+
+@media (max-width: 640px) {
+  .form-grid,
+  .form-grid-3 {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.form-stack {
+  display: grid;
+  gap: 14px;
+}
+
+.check {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 30px;
+  color: var(--ink-800);
+  font-size: var(--text-md);
+}
+
+.check input {
+  width: 17px;
+  height: 17px;
+  margin: 0;
+  accent-color: var(--blue-600);
+}
+
+.choice-list {
+  display: grid;
+  gap: 10px;
+}
+
+.choice {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-inner);
+  background: var(--surface);
+  cursor: pointer;
+  transition: border-color var(--duration-fast) ease, background-color var(--duration-fast) ease;
+}
+
+.choice:hover {
+  border-color: var(--line-strong);
+}
+
+.choice:has(input:checked) {
+  border-color: var(--blue-400);
+  background: var(--blue-50);
+}
+
+.choice.is-warning:has(input:checked) {
+  border-color: var(--orange);
+  background: var(--orange-soft);
+}
+
+.choice > input {
+  flex: 0 0 auto;
+  width: 17px;
+  height: 17px;
+  margin: 2px 0 0;
+  accent-color: var(--blue-600);
+}
+
+.choice-body {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.choice-title {
+  color: var(--ink-950);
+  font-size: var(--text-md);
+  font-weight: var(--weight-semibold);
+}
+
+.choice.is-warning .choice-title {
+  color: var(--orange);
+}
+
+.choice-text {
+  color: var(--ink-600);
+  font-size: var(--text-xs);
+  line-height: 1.4;
+}
+
+@media (max-width: 640px) {
+  .form-grid,
+  .form-grid-3 {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* iOS zooms into inputs below 16px; keep touch forms readable. */
+body:has(.mobile-app-shell) :is(.input, .textarea, .input-group > input),
+.sheet :is(.input, .textarea, .input-group > input) {
+  font-size: var(--text-lg);
+}
+
+/*
+ * Switch: a checkbox drawn as an on/off toggle.
+ * <label className="switch"><input type="checkbox" role="switch" /><span className="switch-track" aria-hidden="true" /></label>
+ */
+.switch {
+  position: relative;
+  display: inline-flex;
+  flex-shrink: 0;
+  width: 44px;
+  height: 26px;
+  cursor: pointer;
+}
+
+.switch > input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: inherit;
+}
+
+.switch-track {
+  position: absolute;
+  inset: 0;
+  border-radius: var(--radius-pill);
+  background: var(--line-strong);
+  transition: background-color var(--duration-fast) ease;
+  pointer-events: none;
+}
+
+.switch-track::before {
+  content: "";
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--surface);
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.25);
+  transition: transform var(--duration-fast) var(--ease-out);
+}
+
+.switch > input:checked + .switch-track {
+  background: var(--blue-600);
+}
+
+.switch > input:checked + .switch-track::before {
+  transform: translateX(18px);
+}
+
+.switch > input:focus-visible + .switch-track {
+  box-shadow: var(--focus-ring);
+}
+
+.switch > input:disabled + .switch-track {
+  opacity: 0.5;
+}
+
+/*
+ * Form section: a titled group inside a long form. Add .is-collapsible and a toggle
+ * button to fold it.
+ * <section className="form-section">
+ *   <div className="form-section-head"><div><h3 className="form-section-title">…</h3>
+ *     <p className="form-section-text">…</p></div>{control}</div>
+ *   <div className="form-section-body">…</div>
+ * </section>
+ */
+.form-section {
+  display: grid;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+.form-section + .form-section {
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--line);
+}
+
+.form-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.form-section-title {
+  color: var(--ink-950);
+  font-size: var(--text-md);
+  font-weight: var(--weight-bold);
+}
+
+.form-section-text {
+  margin-top: 2px;
+  color: var(--ink-500);
+  font-size: var(--text-xs);
+}
+
+.form-section.is-card {
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-inner);
+  background: var(--surface-muted);
+}
+
+.form-section-body {
+  display: grid;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+.form-section.is-collapsible {
+  gap: 0;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-control);
+}
+
+.form-section.is-collapsible + .form-section.is-collapsible {
+  padding-top: 0;
+  border-top: 1px solid var(--line);
+}
+
+.form-section-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  width: 100%;
+  min-height: var(--control-h-lg);
+  padding: 0 16px;
+  border: 0;
+  color: var(--ink-950);
+  background: var(--surface-muted);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-bold);
+  text-align: left;
+}
+
+.form-section-toggle > i {
+  color: var(--ink-500);
+  transition: transform var(--duration-fast) ease;
+}
+
+.form-section-toggle[aria-expanded="true"] > i {
+  transform: rotate(180deg);
+}
+
+.form-section.is-collapsible > .form-section-body {
+  padding: 16px;
+  border-top: 1px solid var(--line);
+}

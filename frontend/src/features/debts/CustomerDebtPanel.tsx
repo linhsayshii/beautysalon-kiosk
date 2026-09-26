@@ -4,7 +4,6 @@ import { MoneyInput } from '@/components/forms/MoneyInput';
 import { formatMoney, formatDateTime } from '@/lib/format';
 import { getCustomerDebt, collectCustomerDebt, usePaymentRequestKey } from './debts.api';
 import { statusLabels } from '@/types/api';
-import './debts.css';
 
 export function CustomerDebtPanel({customerId}: {customerId:number}) {
   const client = useQueryClient();
@@ -34,7 +33,7 @@ export function CustomerDebtPanel({customerId}: {customerId:number}) {
   const maximum = invoiceId ? debt.invoices.find(i=>i.id===invoiceId)?.debtAmount ?? 0 : debt.balance;
   return <section className="debt-panel" aria-label="Công nợ khách hàng">
     <div className="debt-heading"><div><span>Dư nợ hiện tại</span><strong>{formatMoney(debt.balance)}</strong></div>
-      {debt.balance > 0 && !collecting && <button type="button" className="primary-button" onClick={()=>{setCollecting(true);setAmount(debt.balance);setNotice('');mutation.reset();}}>Thu nợ</button>}
+      {debt.balance > 0 && !collecting && <button type="button" className="btn btn-primary" onClick={()=>{setCollecting(true);setAmount(debt.balance);setNotice('');mutation.reset();}}>Thu nợ</button>}
     </div>
     {notice && <p role="status">{notice}</p>}
     {collecting && <div role="group" aria-label="Thu nợ" onKeyDown={e=>{if(e.key==='Enter'){e.preventDefault();e.stopPropagation();}}}>
@@ -48,7 +47,7 @@ export function CustomerDebtPanel({customerId}: {customerId:number}) {
         <p>Dư nợ sau thu: <strong>{formatMoney(Math.max(0,debt.balance-amount))}</strong></p>
         {amount>maximum && <p role="alert">Số tiền vượt khoản nợ được chọn.</p>}
         {mutation.error && <p role="alert">{mutation.error.message}</p>}
-        <div className="debt-actions"><button type="button" onClick={()=>setCollecting(false)}>Hủy</button><button type="button" className="primary-button" disabled={amount<=0 || amount>maximum} onClick={()=>{if(!mutation.isPending && amount>0 && amount<=maximum) mutation.mutate();}}>{mutation.isPending?'Đang thu…':'Xác nhận thu nợ'}</button></div>
+        <div className="debt-actions"><button type="button" onClick={()=>setCollecting(false)}>Hủy</button><button type="button" className="btn btn-primary" disabled={amount<=0 || amount>maximum} onClick={()=>{if(!mutation.isPending && amount>0 && amount<=maximum) mutation.mutate();}}>{mutation.isPending?'Đang thu…':'Xác nhận thu nợ'}</button></div>
       </fieldset>
     </div>}
     {debt.openingDebt>0 && <p>Nợ đầu kỳ còn lại: <strong>{formatMoney(debt.openingDebt)}</strong></p>}

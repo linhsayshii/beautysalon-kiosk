@@ -46,6 +46,7 @@ export function Combobox({ value, onChange, options, id, placeholder, 'aria-labe
     <div ref={rootRef} className={`app-combobox ${isOpen ? 'is-open' : ''}`}>
       <input
         ref={inputRef}
+        className="input"
         id={inputId}
         value={value}
         placeholder={placeholder}

@@ -1,0 +1,18 @@
+/*
+ * Shared UI primitives. Loaded globally from styles/index.css right after the
+ * tokens and base styles, so feature CSS can extend them. Standard class names
+ * (.btn, .card, .badge, .chip, .field, .input, .modal, .sheet, .page, .m-*,
+ * .state, .tabs, .segmented) are defined here and nowhere else.
+ * text.css (tone utilities) is imported at the very end of styles/index.css instead,
+ * so a utility wins over any feature rule of the same specificity.
+ */
+@import './button.css';
+@import './form.css';
+@import './card.css';
+@import './badge.css';
+@import './tabs.css';
+@import './table.css';
+@import './detail.css';
+@import './state.css';
+@import './modal.css';
+@import './page.css';

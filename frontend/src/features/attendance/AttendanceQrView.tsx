@@ -48,7 +48,7 @@ export function AttendanceQrView() {
     );
   };
 
-  return <main className="workspace"><div className="workspace-shell attendance-shell">
+  return <main className="page"><div className="page-stack attendance-shell">
     <PageHeader title="QR chấm công" subtitle="Mở màn hình này tại chi nhánh để nhân viên quét khi vào và ra ca." />
     <div className="attendance-manager-grid">
       <section className="qr-panel">
@@ -63,7 +63,7 @@ export function AttendanceQrView() {
         <div className="attendance-map-block"><LocationMapPicker latitude={coordinates.latitude} longitude={coordinates.longitude} radiusMeters={radius} height={280} onChange={(latitude, longitude) => setCoordinates({ latitude, longitude })} /></div>
         <div className="location-values"><div><span>Vĩ độ</span><strong>{coordinates.latitude?.toFixed(6) ?? 'Chưa đặt'}</strong></div><div><span>Kinh độ</span><strong>{coordinates.longitude?.toFixed(6) ?? 'Chưa đặt'}</strong></div></div>
         <label className="radius-field"><span>Bán kính cho phép</span><div><input type="number" min="10" max="1000" value={radius} onChange={(event) => setRadius(Number(event.target.value))} /><strong>mét</strong></div></label>
-        <div className="location-actions"><button className="secondary-button" type="button" onClick={useCurrentLocation} disabled={update.isPending}><i className="ph ph-crosshair" />Vị trí hiện tại</button><button className="primary-button" type="button" disabled={update.isPending || coordinates.latitude === null || coordinates.longitude === null} onClick={() => update.mutate({ ...coordinates, radiusMeters: radius })}><i className="ph ph-floppy-disk" />{update.isPending ? 'Đang lưu…' : 'Lưu vị trí GPS'}</button></div>
+        <div className="location-actions"><button className="btn btn-secondary" type="button" onClick={useCurrentLocation} disabled={update.isPending}><i className="ph ph-crosshair" />Vị trí hiện tại</button><button className="btn btn-primary" type="button" disabled={update.isPending || coordinates.latitude === null || coordinates.longitude === null} onClick={() => update.mutate({ ...coordinates, radiusMeters: radius })}><i className="ph ph-floppy-disk" />{update.isPending ? 'Đang lưu…' : 'Lưu vị trí GPS'}</button></div>
         <p className="location-note"><i className="ph ph-info" /> Thao tác này cập nhật tọa độ chi nhánh. Chỉ thực hiện khi thiết bị quản lý đang ở đúng salon.</p>
       </aside>
     </div>

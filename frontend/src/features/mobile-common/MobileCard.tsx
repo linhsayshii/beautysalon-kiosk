@@ -1,5 +1,4 @@
 import type { ReactNode } from 'react';
-import './mobile-common.css';
 
 export interface MobileCardDetail {
   label: string;
@@ -50,7 +49,7 @@ export function MobileCard({
               {badge.text}
             </span>
           )}
-          {onClick && <i className="ph ph-caret-right" style={{ color: 'var(--ink-400)', fontSize: '18px' }} />}
+          {onClick && <i className="ph ph-caret-right text-faint" />}
         </div>
       </div>
 

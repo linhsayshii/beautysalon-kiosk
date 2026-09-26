@@ -2,13 +2,14 @@ import { resynchronizeRealtimeQueries } from '@/context/RealtimeQuerySynchronize
 import { PartialPaymentFields } from '@/features/debts/PartialPaymentFields';
 import { CustomerDebtPanel } from '@/features/debts/CustomerDebtPanel';
 import { usePaymentRequestKey } from '@/features/debts/debts.api';
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import type { FormEvent } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { MoneyInput } from '@/components/forms/MoneyInput';
 import { formatMoney } from '@/lib/format';
 import { useMetadata } from '@/services/metadata';
 import { checkoutPosInvoice, type PosCheckoutPayload, type PosReceiptData } from '../pos.api';
+import { Modal } from '@/components/ui/Modal/Modal';
 
 interface PosLine {
   itemId: number;
@@ -130,253 +131,236 @@ export function PosCheckoutModal({
     checkoutMutation.mutate(print);
   };
 
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && !checkoutMutation.isPending) {
-        onClose();
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [onClose, checkoutMutation.isPending]);
+  const closeUnlessPaying = () => { if (!checkoutMutation.isPending) onClose(); };
 
   return (
-    <div className="pos-checkout-backdrop" role="presentation" onMouseDown={(e) => { if (e.target === e.currentTarget && !checkoutMutation.isPending) onClose(); }}>
-      <div className="pos-checkout-modal" role="dialog" aria-modal="true" aria-labelledby="checkout-modal-title">
-        <header className="pos-checkout-header">
-          <div className="pos-checkout-header-title">
-            <span className="pos-checkout-badge">
-              <i className="ph ph-receipt" />
-            </span>
-            <div>
-              <h2 id="checkout-modal-title">Thanh toán đơn hàng</h2>
-              <p>Khách hàng: <strong>{customer ? `${customer.name} ${customer.phone ? `(${customer.phone})` : ''}` : 'Chưa chọn khách hàng'}</strong></p>
+    <Modal
+      open
+      onClose={closeUnlessPaying}
+      title="Thanh toán đơn hàng"
+      subtitle={<>Khách hàng: <strong>{customer ? `${customer.name} ${customer.phone ? `(${customer.phone})` : ''}` : 'Chưa chọn khách hàng'}</strong></>}
+      size="xl"
+      className="modal-fill pos-checkout-modal"
+      closeOnBackdrop={!checkoutMutation.isPending}
+    >
+      <form onSubmit={(e) => handleSubmit(e, false)}>
+        <div className="modal-body modal-body-block">
+        <div className="pos-checkout-grid">
+          {/* Cột trái: Chi tiết món & Giảm giá */}
+          <section className="pos-checkout-cart-summary">
+            <div className="checkout-section-header">
+              <h3>Chi tiết đơn ({lines.reduce((s, l) => s + l.quantity, 0)} món)</h3>
             </div>
-          </div>
-          <button type="button" className="pos-checkout-close" onClick={onClose} disabled={checkoutMutation.isPending} aria-label="Đóng">
-            <i className="ph ph-x" />
+
+            <div className="pos-checkout-lines-list">
+              {lines.map((line) => (
+                <div className="pos-checkout-line-item" key={`${line.itemType}-${line.itemId}`}>
+                  <div className="line-item-main">
+                    <span className="line-item-name">{line.name}</span>
+                    <small className="line-item-code">{line.code} · {formatMoney(line.salePrice)}</small>
+                  </div>
+                  <div className="line-item-qty">x{line.quantity}</div>
+                  <strong className="line-item-total">{formatMoney(line.salePrice * line.quantity)}</strong>
+                </div>
+              ))}
+            </div>
+
+            <div className="pos-checkout-calculation">
+              <div className="calc-row">
+                <span>Tổng tiền hàng</span>
+                <strong>{formatMoney(subtotal)}</strong>
+              </div>
+
+              <div className="calc-discount-box">
+                <div className="discount-label-row">
+                  <span>Chiết khấu / Giảm giá</span>
+                  <div className="discount-type-toggle">
+                    <button
+                      type="button"
+                      className={discountType === 'amount' ? 'is-active' : ''}
+                      onClick={() => { setDiscountType('amount'); setDiscountValue(0); }}
+                    >
+                      VNĐ
+                    </button>
+                    <button
+                      type="button"
+                      className={discountType === 'percent' ? 'is-active' : ''}
+                      onClick={() => { setDiscountType('percent'); setDiscountValue(0); }}
+                    >
+                      %
+                    </button>
+                  </div>
+                </div>
+                <div className="discount-input-row">
+                  {discountType === 'percent' ? (
+                    <input
+                      type="number"
+                      min={0}
+                      max={100}
+                      value={discountValue || ''}
+                      onChange={(e) => setDiscountValue(Number(e.target.value))}
+                      placeholder="Nhập % giảm giá (VD: 10)"
+                    />
+                  ) : (
+                    <MoneyInput
+                      value={discountValue || ''}
+                      onChange={setDiscountValue}
+                      placeholder="Nhập số tiền giảm"
+                    />
+                  )}
+                  {calculatedDiscount > 0 && (
+                    <span className="calculated-discount-text">
+                      -{formatMoney(calculatedDiscount)}
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              <div className="calc-total-row">
+                <span>Khách cần trả</span>
+                <strong className="total-highlight">{formatMoney(total)}</strong>
+              </div>
+            </div>
+
+            <div className="pos-checkout-note-box">
+              <label htmlFor="checkout-note">Ghi chú đơn hàng</label>
+              <textarea
+                id="checkout-note"
+                rows={2}
+                value={note}
+                onChange={(e) => setNote(e.target.value)}
+                placeholder="Ghi chú dịch vụ, sở thích của khách..."
+              />
+            </div>
+          </section>
+
+          {/* Cột phải: Phương thức thanh toán & Thu tiền */}
+          <section className="pos-checkout-payment-section">
+            <div className="checkout-section-header">
+              <h3>Phương thức & Thu tiền</h3>
+            </div>
+
+            {/* Chọn phương thức thanh toán */}
+            <div className="checkout-field-group">
+              <label className="checkout-label">Phương thức thanh toán</label>
+              <div className="payment-methods-grid">
+                <button
+                  type="button"
+                  className={`payment-method-card ${paymentMethod === 'cash' ? 'is-selected' : ''}`}
+                  onClick={() => setPaymentMethod('cash')}
+                >
+                  <i className="ph ph-money" />
+                  <span>Tiền mặt</span>
+                </button>
+                <button
+                  type="button"
+                  className={`payment-method-card ${paymentMethod === 'bank_transfer' ? 'is-selected' : ''}`}
+                  onClick={() => setPaymentMethod('bank_transfer')}
+                >
+                  <i className="ph ph-qr-code" />
+                  <span>Chuyển khoản (VietQR)</span>
+                </button>
+                <button
+                  type="button"
+                  className={`payment-method-card ${paymentMethod === 'card' ? 'is-selected' : ''}`}
+                  onClick={() => setPaymentMethod('card')}
+                >
+                  <i className="ph ph-credit-card" />
+                  <span>Quẹt thẻ POS</span>
+                </button>
+                <button
+                  type="button"
+                  className={`payment-method-card ${paymentMethod === 'wallet' ? 'is-selected' : ''}`}
+                  onClick={() => setPaymentMethod('wallet')}
+                >
+                  <i className="ph ph-wallet" />
+                  <span>Thẻ thành viên</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Tab nội dung theo phương thức thanh toán */}
+            <PartialPaymentFields showTransferQr={false} customerId={customer?.id} total={total} amount={amountPaid} onAmountChange={v=>setAmountPaidInput(String(v))} allowDebt={allowDebt} onAllowDebtChange={setAllowDebt} method={paymentMethod} disabled={checkoutMutation.isPending} />
+            {customer && <><button type="button" onClick={()=>setShowDebt(!showDebt)}>{showDebt ? 'Ẩn công nợ' : 'Xem công nợ / Thu nợ cũ'}</button>{showDebt && <CustomerDebtPanel key={customer.id} customerId={customer.id} />}</>}
+
+            {paymentMethod === 'bank_transfer' && amountPaid > 0 && vietQrUrl && (
+              <div className="payment-qr-box">
+                <div className="qr-container">
+                  <img src={vietQrUrl} alt="VietQR Thanh toán" className="vietqr-image" />
+                </div>
+                <div className="qr-info">
+                  <p>Quét mã VietQR thanh toán <strong>{formatMoney(amountPaid)}</strong></p>
+                  <small>Số tài khoản: <strong>{vietqrConfig.accountNumber} ({vietqrConfig.bankBin})</strong></small>
+                  <small>Chủ tài khoản: <strong>{vietqrConfig.accountName}</strong></small>
+                </div>
+              </div>
+            )}
+
+            {paymentMethod === 'card' && (
+              <div className="payment-info-box">
+                <i className="ph ph-credit-card info-icon" />
+                <div>
+                  <strong>Quẹt thẻ qua máy POS ngân hàng</strong>
+                  <p>Yêu cầu khách quẹt/chạm thẻ tại máy POS quầy thu ngân với số tiền <strong>{formatMoney(total)}</strong>.</p>
+                </div>
+              </div>
+            )}
+
+            {paymentMethod === 'wallet' && (
+              <div className="payment-info-box">
+                <i className="ph ph-wallet info-icon" />
+                <div>
+                  <strong>Thanh toán bằng Thẻ tài khoản</strong>
+                  <p>Khấu trừ số dư thẻ thành viên của khách <strong>{customer?.name || 'Chưa chọn khách hàng'}</strong> với số tiền <strong>{formatMoney(total)}</strong>.</p>
+                </div>
+              </div>
+            )}
+
+            {checkoutMutation.error && (
+              <div className="pos-checkout-error">
+                <i className="ph ph-warning-circle" />
+                <span>
+                  {checkoutMutation.error instanceof Error
+                    ? checkoutMutation.error.message
+                    : 'Đã xảy ra lỗi khi thanh toán hóa đơn'}
+                </span>
+              </div>
+            )}
+          </section>
+        </div>
+        </div>
+
+        <footer className="modal-footer">
+          <button
+            type="button"
+            className="btn btn-secondary modal-footer-start"
+            onClick={onClose}
+            disabled={checkoutMutation.isPending}
+          >
+            Hủy bỏ (Esc)
           </button>
-        </header>
 
-        <form onSubmit={(e) => handleSubmit(e, false)} className="pos-checkout-body">
-          <div className="pos-checkout-grid">
-            {/* Cột trái: Chi tiết món & Giảm giá */}
-            <section className="pos-checkout-cart-summary">
-              <div className="checkout-section-header">
-                <h3>Chi tiết đơn ({lines.reduce((s, l) => s + l.quantity, 0)} món)</h3>
-              </div>
-
-              <div className="pos-checkout-lines-list">
-                {lines.map((line) => (
-                  <div className="pos-checkout-line-item" key={`${line.itemType}-${line.itemId}`}>
-                    <div className="line-item-main">
-                      <span className="line-item-name">{line.name}</span>
-                      <small className="line-item-code">{line.code} · {formatMoney(line.salePrice)}</small>
-                    </div>
-                    <div className="line-item-qty">x{line.quantity}</div>
-                    <strong className="line-item-total">{formatMoney(line.salePrice * line.quantity)}</strong>
-                  </div>
-                ))}
-              </div>
-
-              <div className="pos-checkout-calculation">
-                <div className="calc-row">
-                  <span>Tổng tiền hàng</span>
-                  <strong>{formatMoney(subtotal)}</strong>
-                </div>
-
-                <div className="calc-discount-box">
-                  <div className="discount-label-row">
-                    <span>Chiết khấu / Giảm giá</span>
-                    <div className="discount-type-toggle">
-                      <button
-                        type="button"
-                        className={discountType === 'amount' ? 'is-active' : ''}
-                        onClick={() => { setDiscountType('amount'); setDiscountValue(0); }}
-                      >
-                        VNĐ
-                      </button>
-                      <button
-                        type="button"
-                        className={discountType === 'percent' ? 'is-active' : ''}
-                        onClick={() => { setDiscountType('percent'); setDiscountValue(0); }}
-                      >
-                        %
-                      </button>
-                    </div>
-                  </div>
-                  <div className="discount-input-row">
-                    {discountType === 'percent' ? (
-                      <input
-                        type="number"
-                        min={0}
-                        max={100}
-                        value={discountValue || ''}
-                        onChange={(e) => setDiscountValue(Number(e.target.value))}
-                        placeholder="Nhập % giảm giá (VD: 10)"
-                      />
-                    ) : (
-                      <MoneyInput
-                        value={discountValue || ''}
-                        onChange={setDiscountValue}
-                        placeholder="Nhập số tiền giảm"
-                      />
-                    )}
-                    {calculatedDiscount > 0 && (
-                      <span className="calculated-discount-text">
-                        -{formatMoney(calculatedDiscount)}
-                      </span>
-                    )}
-                  </div>
-                </div>
-
-                <div className="calc-total-row">
-                  <span>Khách cần trả</span>
-                  <strong className="total-highlight">{formatMoney(total)}</strong>
-                </div>
-              </div>
-
-              <div className="pos-checkout-note-box">
-                <label htmlFor="checkout-note">Ghi chú đơn hàng</label>
-                <textarea
-                  id="checkout-note"
-                  rows={2}
-                  value={note}
-                  onChange={(e) => setNote(e.target.value)}
-                  placeholder="Ghi chú dịch vụ, sở thích của khách..."
-                />
-              </div>
-            </section>
-
-            {/* Cột phải: Phương thức thanh toán & Thu tiền */}
-            <section className="pos-checkout-payment-section">
-              <div className="checkout-section-header">
-                <h3>Phương thức & Thu tiền</h3>
-              </div>
-
-              {/* Chọn phương thức thanh toán */}
-              <div className="checkout-field-group">
-                <label className="checkout-label">Phương thức thanh toán</label>
-                <div className="payment-methods-grid">
-                  <button
-                    type="button"
-                    className={`payment-method-card ${paymentMethod === 'cash' ? 'is-selected' : ''}`}
-                    onClick={() => setPaymentMethod('cash')}
-                  >
-                    <i className="ph ph-money" />
-                    <span>Tiền mặt</span>
-                  </button>
-                  <button
-                    type="button"
-                    className={`payment-method-card ${paymentMethod === 'bank_transfer' ? 'is-selected' : ''}`}
-                    onClick={() => setPaymentMethod('bank_transfer')}
-                  >
-                    <i className="ph ph-qr-code" />
-                    <span>Chuyển khoản (VietQR)</span>
-                  </button>
-                  <button
-                    type="button"
-                    className={`payment-method-card ${paymentMethod === 'card' ? 'is-selected' : ''}`}
-                    onClick={() => setPaymentMethod('card')}
-                  >
-                    <i className="ph ph-credit-card" />
-                    <span>Quẹt thẻ POS</span>
-                  </button>
-                  <button
-                    type="button"
-                    className={`payment-method-card ${paymentMethod === 'wallet' ? 'is-selected' : ''}`}
-                    onClick={() => setPaymentMethod('wallet')}
-                  >
-                    <i className="ph ph-wallet" />
-                    <span>Thẻ thành viên</span>
-                  </button>
-                </div>
-              </div>
-
-              {/* Tab nội dung theo phương thức thanh toán */}
-              <PartialPaymentFields showTransferQr={false} customerId={customer?.id} total={total} amount={amountPaid} onAmountChange={v=>setAmountPaidInput(String(v))} allowDebt={allowDebt} onAllowDebtChange={setAllowDebt} method={paymentMethod} disabled={checkoutMutation.isPending} />
-              {customer && <><button type="button" onClick={()=>setShowDebt(!showDebt)}>{showDebt ? 'Ẩn công nợ' : 'Xem công nợ / Thu nợ cũ'}</button>{showDebt && <CustomerDebtPanel key={customer.id} customerId={customer.id} />}</>}
-
-              {paymentMethod === 'bank_transfer' && amountPaid > 0 && vietQrUrl && (
-                <div className="payment-qr-box">
-                  <div className="qr-container">
-                    <img src={vietQrUrl} alt="VietQR Thanh toán" className="vietqr-image" />
-                  </div>
-                  <div className="qr-info">
-                    <p>Quét mã VietQR thanh toán <strong>{formatMoney(amountPaid)}</strong></p>
-                    <small>Số tài khoản: <strong>{vietqrConfig.accountNumber} ({vietqrConfig.bankBin})</strong></small>
-                    <small>Chủ tài khoản: <strong>{vietqrConfig.accountName}</strong></small>
-                  </div>
-                </div>
-              )}
-
-              {paymentMethod === 'card' && (
-                <div className="payment-info-box">
-                  <i className="ph ph-credit-card info-icon" />
-                  <div>
-                    <strong>Quẹt thẻ qua máy POS ngân hàng</strong>
-                    <p>Yêu cầu khách quẹt/chạm thẻ tại máy POS quầy thu ngân với số tiền <strong>{formatMoney(total)}</strong>.</p>
-                  </div>
-                </div>
-              )}
-
-              {paymentMethod === 'wallet' && (
-                <div className="payment-info-box">
-                  <i className="ph ph-wallet info-icon" />
-                  <div>
-                    <strong>Thanh toán bằng Thẻ tài khoản</strong>
-                    <p>Khấu trừ số dư thẻ thành viên của khách <strong>{customer?.name || 'Chưa chọn khách hàng'}</strong> với số tiền <strong>{formatMoney(total)}</strong>.</p>
-                  </div>
-                </div>
-              )}
-
-              {checkoutMutation.error && (
-                <div className="pos-checkout-error">
-                  <i className="ph ph-warning-circle" />
-                  <span>
-                    {checkoutMutation.error instanceof Error
-                      ? checkoutMutation.error.message
-                      : 'Đã xảy ra lỗi khi thanh toán hóa đơn'}
-                  </span>
-                </div>
-              )}
-            </section>
-          </div>
-
-          <footer className="pos-checkout-footer">
             <button
               type="button"
-              className="pos-btn-cancel"
-              onClick={onClose}
-              disabled={checkoutMutation.isPending}
+              className="btn btn-secondary"
+              disabled={checkoutMutation.isPending || lines.length === 0 || !customer || (amountPaid < total && !allowDebt) || (paymentMethod !== 'cash' && amountPaid > total)}
+              onClick={(e) => handleSubmit(e, true)}
             >
-              Hủy bỏ (Esc)
+              <i className="ph ph-printer" />
+              {checkoutMutation.isPending && shouldPrintReceipt ? 'Đang xử lý...' : 'Thanh toán & In (F9)'}
             </button>
 
-            <div className="pos-checkout-submit-group">
-              <button
-                type="button"
-                className="pos-btn-pay-print"
-                disabled={checkoutMutation.isPending || lines.length === 0 || !customer || (amountPaid < total && !allowDebt) || (paymentMethod !== 'cash' && amountPaid > total)}
-                onClick={(e) => handleSubmit(e, true)}
-              >
-                <i className="ph ph-printer" />
-                {checkoutMutation.isPending && shouldPrintReceipt ? 'Đang xử lý...' : 'Thanh toán & In (F9)'}
-              </button>
-
-              <button
-                type="submit"
-                className="pos-btn-pay-direct"
-                disabled={checkoutMutation.isPending || lines.length === 0 || !customer || (amountPaid < total && !allowDebt) || (paymentMethod !== 'cash' && amountPaid > total)}
-                onClick={(e) => handleSubmit(e, false)}
-              >
-                <i className="ph ph-check-circle" />
-                {checkoutMutation.isPending && !shouldPrintReceipt ? 'Đang xử lý...' : `Chốt hóa đơn (${formatMoney(Math.min(amountPaid,total))})`}
-              </button>
-            </div>
-          </footer>
-        </form>
-      </div>
-    </div>
+            <button
+              type="submit"
+              className="btn btn-primary"
+              disabled={checkoutMutation.isPending || lines.length === 0 || !customer || (amountPaid < total && !allowDebt) || (paymentMethod !== 'cash' && amountPaid > total)}
+              onClick={(e) => handleSubmit(e, false)}
+            >
+              <i className="ph ph-check-circle" />
+              {checkoutMutation.isPending && !shouldPrintReceipt ? 'Đang xử lý...' : `Chốt hóa đơn (${formatMoney(Math.min(amountPaid,total))})`}
+            </button>
+        </footer>
+      </form>
+    </Modal>
   );
 }

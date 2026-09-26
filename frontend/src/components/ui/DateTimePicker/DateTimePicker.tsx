@@ -1,8 +1,8 @@
 import { useEffect, useId, useMemo, useState } from 'react';
 import type { KeyboardEvent, ReactNode, RefObject } from 'react';
 import { Select } from '@/components/ui/Select/Select';
-import { MobileDialogPortal } from '@/features/mobile-common/MobileDialogPortal';
-import { useMobileDialog } from '@/features/mobile-common/useMobileDialog';
+import { DialogPortal } from '@/components/ui/Dialog/DialogPortal';
+import { useDialog } from '@/components/ui/Dialog/useDialog';
 import {
   formatDateOnly,
   formatIsoDate,
@@ -12,7 +12,6 @@ import {
   todayIso,
   type DateParts,
 } from '@/lib/date';
-import './date-time-picker.css';
 
 const MONTHS = [
   'Tháng 1', 'Tháng 2', 'Tháng 3', 'Tháng 4', 'Tháng 5', 'Tháng 6',
@@ -28,12 +27,12 @@ interface PickerDialogProps {
 }
 
 function PickerDialog({ isOpen, title, onClose, children }: PickerDialogProps) {
-  const { dialogRef, titleId } = useMobileDialog({ isOpen, onClose });
+  const { dialogRef, titleId } = useDialog({ isOpen, onClose });
 
   if (!isOpen) return null;
 
   return (
-    <MobileDialogPortal>
+    <DialogPortal>
       <div
         className="date-time-picker-backdrop"
         onMouseDown={(event) => {
@@ -50,14 +49,14 @@ function PickerDialog({ isOpen, title, onClose, children }: PickerDialogProps) {
         >
           <header className="date-time-picker-header">
             <h2 id={titleId}>{title}</h2>
-            <button type="button" className="date-time-picker-close" onClick={onClose} aria-label="Đóng bộ chọn">
+            <button type="button" className="modal-close" onClick={onClose} aria-label="Đóng bộ chọn">
               <i className="ph ph-x" aria-hidden="true" />
             </button>
           </header>
           {children}
         </section>
       </div>
-    </MobileDialogPortal>
+    </DialogPortal>
   );
 }
 
@@ -143,7 +142,7 @@ function CalendarGrid({
   return (
     <div className="date-time-picker-calendar">
       <div className="date-time-picker-calendar-nav">
-        <button type="button" className="date-time-picker-nav-button" onClick={() => onViewChange(previousMonth)} aria-label="Tháng trước">
+        <button type="button" className="btn btn-ghost btn-icon btn-sm" onClick={() => onViewChange(previousMonth)} aria-label="Tháng trước">
           <i className="ph ph-caret-left" aria-hidden="true" />
         </button>
         <div className="date-time-picker-period-controls">
@@ -164,7 +163,7 @@ function CalendarGrid({
             options={yearOptions}
           />
         </div>
-        <button type="button" className="date-time-picker-nav-button" onClick={() => onViewChange(nextMonth)} aria-label="Tháng sau">
+        <button type="button" className="btn btn-ghost btn-icon btn-sm" onClick={() => onViewChange(nextMonth)} aria-label="Tháng sau">
           <i className="ph ph-caret-right" aria-hidden="true" />
         </button>
       </div>
@@ -209,12 +208,12 @@ function PickerFooter({ onCancel, onApply, onToday, onClear, applyLabel = 'Áp d
   return (
     <footer className="date-time-picker-footer">
       <div className="date-time-picker-secondary-actions">
-        {onClear && <button type="button" className="date-time-picker-text-button is-danger" onClick={onClear}>Xóa</button>}
-        <button type="button" className="date-time-picker-text-button" onClick={onToday}>Hôm nay</button>
+        {onClear && <button type="button" className="btn btn-link btn-sm date-time-picker-clear" onClick={onClear}>Xóa</button>}
+        <button type="button" className="btn btn-link btn-sm" onClick={onToday}>Hôm nay</button>
       </div>
       <div className="date-time-picker-primary-actions">
-        <button type="button" className="date-time-picker-cancel-button" onClick={onCancel}>Hủy</button>
-        <button type="button" className="date-time-picker-apply-button" onClick={onApply}>{applyLabel}</button>
+        <button type="button" className="btn btn-secondary btn-sm" onClick={onCancel}>Hủy</button>
+        <button type="button" className="btn btn-primary btn-sm" onClick={onApply}>{applyLabel}</button>
       </div>
     </footer>
   );

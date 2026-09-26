@@ -66,12 +66,12 @@ describe('StaffAttendanceDetail Component', () => {
     expect(screen.getByText(/Tuần:/i)).toBeInTheDocument();
 
     // Layer 4: 4-Column Value Strip (empty state - no schedule/attendance data)
-    expect(screen.getByText(/Ngày đi làm:/i)).toBeInTheDocument();
+    expect(screen.getByText(/^Ngày đi làm$/i)).toBeInTheDocument();
     expect(screen.getByText(/0 ngày \/ 0 giờ/i)).toBeInTheDocument();
-    expect(screen.getByText(/Đi muộn \/ Về sớm:/i)).toBeInTheDocument();
+    expect(screen.getByText(/^Đi muộn \/ Về sớm$/i)).toBeInTheDocument();
     expect(screen.getAllByText(/0 lần/i)).toHaveLength(2); // Late and OT both show "0 lần"
-    expect(screen.getByText(/Tăng ca \(OT\):/i)).toBeInTheDocument();
-    expect(screen.getByText(/Nghỉ làm \/ Vắng:/i)).toBeInTheDocument();
+    expect(screen.getByText(/^Tăng ca \(OT\)$/i)).toBeInTheDocument();
+    expect(screen.getByText(/^Nghỉ làm \/ Vắng$/i)).toBeInTheDocument();
     expect(screen.getByText(/7 ngày/i)).toBeInTheDocument();
 
     // Layer 5: Timekeeping Table Columns
@@ -111,12 +111,12 @@ describe('StaffAttendanceDetail Component', () => {
 
     // Switch to Summary Tab
     fireEvent.click(screen.getByRole('tab', { name: /Tổng hợp công & Tăng ca/i }));
-    expect(screen.getByText('Tổng ngày công thực tế:')).toBeInTheDocument();
-    expect(screen.getByText('Tổng giờ làm việc:')).toBeInTheDocument();
-    expect(screen.getByText('Tổng thời gian muộn:')).toBeInTheDocument();
-    expect(screen.getByText('Tổng thời gian về sớm:')).toBeInTheDocument();
-    expect(screen.getByText('Tổng giờ tăng ca:')).toBeInTheDocument();
-    expect(screen.getByText('Loại lương áp dụng:')).toBeInTheDocument();
+    expect(screen.getByText('Tổng ngày công thực tế')).toBeInTheDocument();
+    expect(screen.getByText('Tổng giờ làm việc')).toBeInTheDocument();
+    expect(screen.getByText('Tổng thời gian muộn')).toBeInTheDocument();
+    expect(screen.getByText('Tổng thời gian về sớm')).toBeInTheDocument();
+    expect(screen.getByText('Tổng giờ tăng ca')).toBeInTheDocument();
+    expect(screen.getByText('Loại lương áp dụng')).toBeInTheDocument();
     expect(screen.getByText('Theo ngày công chuẩn')).toBeInTheDocument();
 
     // Switch to Shifts Tab

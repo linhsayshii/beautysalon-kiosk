@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Select } from '@/components/ui/Select/Select';
 import type { ApiRecord } from '@/types/api';
-import './AttendanceTimekeeping.css';
+import { Modal } from '@/components/ui/Modal/Modal';
 
 interface AssignShiftForStaffModalProps {
   isOpen: boolean;
@@ -44,70 +44,53 @@ export function AssignShiftForStaffModal({
   };
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-dialog" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 460 }}>
-        {/* Header */}
-        <div className="modal-header">
-          <div>
-            <h3 className="modal-title">Xếp lịch làm việc</h3>
-            <p className="modal-subtitle">
-              {staff.name} ({staff.code}) · {dayLabel}, {shiftDate}
-            </p>
+    <Modal
+      open
+      onClose={onClose}
+      title="Xếp lịch làm việc"
+      subtitle={<>{staff.name} ({staff.code}) · {dayLabel}, {shiftDate}</>}
+      size="sm"
+    >
+      <form onSubmit={handleSubmit}>
+        <div className="modal-body">
+          <div className="field-row">
+            <label className="field-label" htmlFor="assign-shift-select">
+              Chọn ca làm:
+            </label>
+            <div className="field-row-control">
+              <Select
+                id="assign-shift-select"
+                value={selectedShiftName}
+                onChange={setSelectedShiftName}
+                fullWidth
+                options={workShifts.map((shift) => ({ value: shift.name, label: `${shift.name} (${shift.startsAt} - ${shift.endsAt})` }))}
+              />
+            </div>
           </div>
-          <button type="button" onClick={onClose} className="modal-close-btn">
-            <i className="ph ph-x" />
-          </button>
+
+          {currentShiftName && (
+            <p className="alert">
+              <i className="ph ph-info" />
+              <span>Ca hiện tại: <strong>{currentShiftName}</strong></span>
+            </p>
+          )}
         </div>
 
-        <form onSubmit={handleSubmit}>
-          <div className="modal-body">
-            <div className="form-group-row">
-              <label className="form-label-col" style={{ width: 110 }}>
-                Chọn ca làm:
-              </label>
-              <div className="form-control-col">
-                <Select
-                  value={selectedShiftName}
-                  onChange={setSelectedShiftName}
-                  triggerClassName="form-input-text"
-                  fullWidth
-                  options={workShifts.map((shift) => ({ value: shift.name, label: `${shift.name} (${shift.startsAt} - ${shift.endsAt})` }))}
-                />
-              </div>
-            </div>
-
-            {currentShiftName && (
-              <div style={{ fontSize: 12, color: '#64748b', background: '#f8fafc', padding: '8px 12px', borderRadius: 8 }}>
-                Ca hiện tại: <strong>{currentShiftName}</strong>
-              </div>
-            )}
-          </div>
-
-          <div className="modal-footer" style={{ justifyContent: 'space-between' }}>
-            <div>
-              {currentShiftName && onRemove && (
-                <button
-                  type="button"
-                  onClick={onRemove}
-                  className="btn-secondary"
-                  style={{ color: '#ef4444', borderColor: '#fca5a5' }}
-                >
-                  Xóa ca này
-                </button>
-              )}
-            </div>
-
-            <div style={{ display: 'flex', gap: 10 }}>
-              <button type="button" onClick={onClose} className="btn-secondary">
-                Bỏ qua
-              </button>
-              <button type="submit" className="btn-primary" disabled={!selectedShiftName}>
-                Lưu lịch
-              </button>
-            </div>
-          </div>
-        </form>
-      </div>
-    </div>
+        <div className="modal-footer">
+          {currentShiftName && onRemove && (
+            <button type="button" onClick={onRemove} className="btn btn-danger-soft modal-footer-start">
+              Xóa ca này
+            </button>
+          )}
+          <button type="button" onClick={onClose} className="btn btn-secondary">
+            Bỏ qua
+          </button>
+          <button type="submit" className="btn btn-primary" disabled={!selectedShiftName}>
+            Lưu lịch
+          </button>
+        </div>
+      </form>
+      
+    </Modal>
   );
 }

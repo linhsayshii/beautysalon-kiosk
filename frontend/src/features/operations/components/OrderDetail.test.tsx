@@ -84,7 +84,7 @@ describe('OrderDetail Component', () => {
     expect(screen.getAllByText('50.000đ').length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText(/Tổng thanh toán:/i).length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText('450.000đ').length).toBeGreaterThanOrEqual(1);
-    expect(screen.getByText(/Đã thanh toán:/i)).toBeInTheDocument();
+    expect(screen.getByText(/^Đã thanh toán$/i)).toBeInTheDocument();
 
     // Layer 5: Tab "Hàng hóa & Dịch vụ" table items check
     expect(screen.getByText('DV01')).toBeInTheDocument();
@@ -94,19 +94,19 @@ describe('OrderDetail Component', () => {
 
     // Switch to Tab "Thông tin hóa đơn"
     fireEvent.click(screen.getByRole('tab', { name: /Thông tin hóa đơn/i }));
-    expect(screen.getByText('Nhân viên thực hiện:')).toBeInTheDocument();
+    expect(screen.getByText('Nhân viên thực hiện')).toBeInTheDocument();
     expect(screen.getByText('Trần Văn Nhân')).toBeInTheDocument();
-    expect(screen.getByText('Mã hóa đơn:')).toBeInTheDocument();
-    expect(screen.getByText('Bàn / Phòng:')).toBeInTheDocument();
+    expect(screen.getByText('Mã hóa đơn')).toBeInTheDocument();
+    expect(screen.getByText('Bàn / Phòng')).toBeInTheDocument();
 
     // Switch to Tab "Thanh toán & Công nợ"
     fireEvent.click(screen.getByRole('tab', { name: /Thanh toán & Công nợ/i }));
-    expect(screen.getByText('Hình thức thanh toán:')).toBeInTheDocument();
+    expect(screen.getByText('Hình thức thanh toán')).toBeInTheDocument();
     expect(screen.getByText('Tiền mặt')).toBeInTheDocument();
-    expect(screen.getByText('Số tiền đã thanh toán:')).toBeInTheDocument();
-    expect(screen.getByText('Công nợ ghi nhận:')).toBeInTheDocument();
+    expect(screen.getByText('Số tiền đã thanh toán')).toBeInTheDocument();
+    expect(screen.getByText('Công nợ ghi nhận')).toBeInTheDocument();
     expect(screen.getByText('0đ')).toBeInTheDocument();
-    expect(screen.getByText('Trạng thái thu tiền:')).toBeInTheDocument();
+    expect(screen.getByText('Trạng thái thu tiền')).toBeInTheDocument();
     expect(screen.getByText('Đã thanh toán đủ')).toBeInTheDocument();
   });
 });

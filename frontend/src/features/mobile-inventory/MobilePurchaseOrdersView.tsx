@@ -1,9 +1,9 @@
-import { ErrorState } from '@/components/data-display/DataState';
+import { ErrorState, LoadingState } from '@/components/data-display/DataState';
 import { Pagination } from '@/components/data-display/Pagination';
 import { useFilterPagination } from '@/hooks/useFilterPagination';
 import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { useNavigate, Link } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { StatusBadge } from '@/components/data-display/Badges';
 import { Select } from '@/components/ui/Select/Select';
 import { monthStartIso, todayIso, toIsoDate, COMMON_DATE_PRESETS } from '@/lib/date';
@@ -17,7 +17,7 @@ import {
   MobileEmptyState,
   MobileSortDropdown,
 } from '@/features/mobile-common';
-import './mobile-inventory.css';
+import { MobilePageHeader } from '@/components/ui/MobilePageHeader/MobilePageHeader';
 
 const datePresets = COMMON_DATE_PRESETS;
 
@@ -34,7 +34,6 @@ function formatMonthHeader(dateStr: string): string {
 }
 
 export function MobilePurchaseOrdersView() {
-  const navigate = useNavigate();
 
   // Search & Navigation
   const [search, setSearch] = useState('');
@@ -165,50 +164,33 @@ export function MobilePurchaseOrdersView() {
 
   return (
     <div className="mobile-inventory-view">
-      {/* Sticky Top Cluster */}
-      <div className="mobile-inventory-sticky-header-cluster">
-        {/* 1. Header Top Navigation */}
-        <div className="mobile-inventory-top-nav">
-          <div className="mobile-inventory-nav-left">
+      <MobilePageHeader
+        title="Nhập hàng" backTo="/m/more"
+        actions={(
+          <>
             <button
               type="button"
-              className="mobile-inventory-back-icon"
-              onClick={() => navigate('/m/more')}
-              aria-label="Quay lại"
-            >
-              <i className="ph ph-caret-left" />
-            </button>
-            <h1 className="mobile-inventory-nav-title">Nhập hàng</h1>
-          </div>
-
-          <div className="mobile-inventory-nav-actions">
-            <button
-              type="button"
-              className={`mobile-inventory-nav-btn ${isSearchVisible ? 'is-active' : ''}`}
+              className={`btn btn-ghost btn-icon m-header-action${isSearchVisible ? ' is-active' : ''}`}
               onClick={() => setIsSearchVisible((prev) => !prev)}
               aria-label="Tìm kiếm"
             >
               <i className="ph ph-magnifying-glass" />
             </button>
-          </div>
-        </div>
-
-        {/* Inline Search Bar */}
+          </>
+        )}
+      >
         {isSearchVisible && (
-          <div className="mobile-inventory-search-bar-wrap">
-            <MobileSearchBar
-              value={search}
-              placeholder="Tìm theo mã phiếu, nhà cung cấp..."
-              onChange={setSearch}
-            />
-          </div>
+          <MobileSearchBar
+            value={search}
+            placeholder="Tìm theo mã phiếu, nhà cung cấp..."
+            onChange={setSearch}
+          />
         )}
 
-        {/* 2. Filter Strip */}
-        <div className="mobile-inventory-filter-strip">
+        <div className="m-chip-strip">
           <button
             type="button"
-            className="mobile-filter-icon-btn"
+            className="chip chip-icon"
             onClick={openFilterSheet}
             aria-label="Mở bộ lọc"
           >
@@ -218,7 +200,7 @@ export function MobilePurchaseOrdersView() {
           {/* Date Preset Chip */}
           <button
             type="button"
-            className={`mobile-filter-chip ${datePreset !== 'this_month' ? 'is-active' : ''}`}
+            className={`chip ${datePreset !== 'this_month' ? 'is-active' : ''}`}
             onClick={openFilterSheet}
           >
             <span>Khoảng ngày: {getDatePresetLabel(datePreset)}</span>
@@ -228,7 +210,7 @@ export function MobilePurchaseOrdersView() {
           {/* Status Filter Chip */}
           <button
             type="button"
-            className={`mobile-filter-chip ${statusFilter ? 'is-active' : ''}`}
+            className={`chip ${statusFilter ? 'is-active' : ''}`}
             onClick={openFilterSheet}
           >
             <span>Trạng thái: {statusFilter === 'completed' ? 'Đã nhập hàng' : statusFilter === 'draft' ? 'Phiếu tạm' : 'Tất cả'}</span>
@@ -236,33 +218,28 @@ export function MobilePurchaseOrdersView() {
           </button>
         </div>
 
-        {/* 3. Summary & Sort Dropdown Bar */}
-        <div className="mobile-inventory-summary-bar">
+        <div className="m-summary-bar">
           <MobileSortDropdown
             value={sortValue}
             options={sortOptions}
             onChange={setSortValue}
           />
 
-          <div className="mobile-inventory-count-summary">
+          <div className="m-summary-count">
             {purchaseOrdersData?.meta?.pagination?.total ?? rawRows.length} phiếu nhập · Cần trả: {totalAmountDueSum === undefined ? '—' : formatMoney(totalAmountDueSum) }
           </div>
         </div>
-      </div>
+      </MobilePageHeader>
 
       {/* 4. Grouped Section List */}
       <div className="mobile-inventory-sections-wrapper">
         {error ? <ErrorState error={error} onRetry={() => refetch()} /> : isLoading ? (
-          <div style={{ padding: '40px 16px', textAlign: 'center', color: '#64748b' }}>
-            Đang tải danh sách phiếu nhập...
-          </div>
+          <LoadingState compact label="Đang tải danh sách phiếu nhập..." />
         ) : rawRows.length === 0 ? (
-          <div style={{ padding: '24px 16px' }}>
-            <MobileEmptyState
+          <MobileEmptyState
               title="Không tìm thấy phiếu nhập nào"
               description="Thử tìm kiếm với từ khóa khác hoặc điều chỉnh bộ lọc."
             />
-          </div>
         ) : (
           groupedSections.map(([monthKey, items]) => (
             <div key={monthKey} className="mobile-inventory-section">
@@ -334,7 +311,7 @@ export function MobilePurchaseOrdersView() {
       {/* 5. Floating Action Button (FAB) for Creating Purchase Order */}
       <Link
         to="/m/purchase-orders/new"
-        className="mobile-inventory-fab-btn"
+        className="m-fab"
         aria-label="Tạo phiếu nhập mới"
         title="Tạo phiếu nhập"
       >
@@ -383,9 +360,7 @@ export function MobilePurchaseOrdersView() {
         onClose={() => setSelectedOrderId(null)}
       >
         {detailError ? <ErrorState error={detailError} onRetry={() => refetchDetail()} /> : isDetailLoading ? (
-          <div style={{ padding: '24px', textAlign: 'center', color: '#64748b' }}>
-            Đang tải thông tin phiếu nhập...
-          </div>
+          <LoadingState compact label="Đang tải thông tin phiếu nhập..." />
         ) : activeOrder ? (
           <div className="mobile-po-detail-wrapper">
             {/* Header Card */}
@@ -410,7 +385,7 @@ export function MobilePurchaseOrdersView() {
                     {activeOrder.supplier?.phone ? (
                       <a
                         href={`tel:${activeOrder.supplier.phone}`}
-                        style={{ color: '#0062eb', textDecoration: 'none' }}
+                        className="text-primary"
                       >
                         <i className="ph ph-phone" /> {activeOrder.supplier.phone}
                       </a>
@@ -446,7 +421,7 @@ export function MobilePurchaseOrdersView() {
 
                 <div className="mobile-po-grid-cell">
                   <span className="mobile-po-grid-lbl">Trạng thái thanh toán</span>
-                  <span className="mobile-po-grid-val" style={{ color: Number(activeOrder.amountPaid || 0) >= Number(activeOrder.amountDue || 0) ? '#10b981' : '#f59e0b' }}>
+                  <span className={`mobile-po-grid-val ${Number(activeOrder.amountPaid || 0) >= Number(activeOrder.amountDue || 0) ? 'text-success' : 'text-warning'}`}>
                     {Number(activeOrder.amountPaid || 0) >= Number(activeOrder.amountDue || 0) ? 'Đã thanh toán đủ' : Number(activeOrder.amountPaid || 0) > 0 ? 'Thanh toán 1 phần' : 'Chưa thanh toán'}
                   </span>
                 </div>
@@ -460,9 +435,9 @@ export function MobilePurchaseOrdersView() {
               </div>
 
               {(!activeOrder.items || activeOrder.items.length === 0) ? (
-                <div style={{ fontSize: '13.5px', color: '#64748b', padding: '8px 0' }}>
+                <p className="m-note">
                   Không có mặt hàng nào trong phiếu nhập.
-                </div>
+                </p>
               ) : (
                 <div className="mobile-po-items-table">
                   {activeOrder.items.map((item: ApiRecord, idx: number) => {
@@ -476,7 +451,7 @@ export function MobilePurchaseOrdersView() {
                           <span className="mobile-po-item-calc">
                             {item.sku ? `${item.sku} · ` : ''}{formatNumber(item.quantity)} {item.unit || 'SP'} × {formatMoney(item.unitCost)}
                             {Number(item.discount) > 0 && (
-                              <span style={{ color: '#e11d48', marginLeft: '4px' }}>
+                              <span className="text-danger"> 
                                 (Giảm {formatMoney(item.discount)})
                               </span>
                             )}
@@ -516,12 +491,12 @@ export function MobilePurchaseOrdersView() {
 
                 <div className="mobile-po-summary-line">
                   <span>Đã trả NCC:</span>
-                  <span style={{ color: '#10b981', fontWeight: 650 }}>
+                  <span className="text-strong text-success">
                     {formatMoney(activeOrder.amountPaid || 0)}
                   </span>
                 </div>
 
-                <div className="mobile-po-summary-line" style={{ color: Number(activeOrder.amountDue || 0) - Number(activeOrder.amountPaid || 0) > 0 ? '#e11d48' : '#10b981', fontWeight: 650 }}>
+                <div className={`mobile-po-summary-line text-strong ${Number(activeOrder.amountDue || 0) - Number(activeOrder.amountPaid || 0) > 0 ? 'text-danger' : 'text-success'}`}>
                   <span>Còn nợ NCC:</span>
                   <span>
                     {formatMoney(
@@ -547,7 +522,7 @@ export function MobilePurchaseOrdersView() {
               <div className="mobile-po-actions-row">
                 <button
                   type="button"
-                  className="mobile-po-action-print-btn"
+                  className="btn btn-secondary"
                   onClick={() => window.print()}
                 >
                   <i className="ph ph-printer" /> In phiếu nhập

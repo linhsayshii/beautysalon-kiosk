@@ -2,6 +2,7 @@ import { InvoiceStatusBadge } from '@/components/data-display/Badges';
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { ErrorState, LoadingState } from '@/components/data-display/DataState';
+import { DetailFacts, DetailHead, InlineDetail, ValueStrip } from '@/components/data-display/InlineDetail';
 import { formatDateTime, formatMoney, formatNumber } from '@/lib/format';
 import { statusLabels } from '@/types/api';
 import { getOrder } from '../operations.api';
@@ -38,287 +39,115 @@ export function OrderDetail({ id }: { id: number }) {
     { value: 'payment', label: 'Thanh toán & Công nợ' },
   ];
 
+  const paidLabel = order.status === 'paid'
+    ? (order.paymentStatus === 'partial' ? 'Thanh toán một phần' : order.paymentStatus === 'unpaid' ? 'Chưa thanh toán' : 'Đã thanh toán đủ')
+    : statusLabels[order.status] ?? order.status;
+
   return (
-    <div
-      className="order-detail"
-      style={{
-        background: '#ffffff',
-        borderTop: '2px solid #0052cc',
-        borderBottom: '1px solid #cbd5e1',
-        padding: 0,
-      }}
-    >
-      {/* Layer 2: Tabs */}
-      <div className="inline-detail-tabs" role="tablist" aria-label={`Chi tiết đơn hàng ${order.code}`}>
-        {tabs.map((item) => (
-          <button
-            type="button"
-            role="tab"
-            aria-selected={tab === item.value}
-            className={tab === item.value ? 'is-active' : ''}
-            key={item.value}
-            onClick={() => setTab(item.value)}
-          >
-            {item.label}
-          </button>
-        ))}
-      </div>
+    <InlineDetail className="order-detail" label={`Chi tiết đơn hàng ${order.code}`} tabs={tabs} tab={tab} onTabChange={setTab}>
+      <DetailHead
+        icon="ph-receipt"
+        title={order.code}
+        tags={<span className="badge badge-info">{salesChannelLabels[order.salesChannel] ?? order.salesChannel}</span>}
+        meta={<>Khách hàng: <strong>{order.customer?.name || 'Khách lẻ'}</strong>{order.customer?.phone && <span> ({order.customer.phone})</span>}</>}
+        aside={<><div><strong>{order.branchName}</strong></div><div>{formatDateTime(order.issuedAt || order.createdAt)}</div></>}
+      />
 
-      <div style={{ padding: '16px 20px' }}>
-        {/* Layer 3: Profile head */}
-        <div
-          className="order-profile-head"
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            gap: 16,
-            marginBottom: 16,
-            flexWrap: 'wrap',
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-            <span
-              className="order-profile-avatar"
-              style={{
-                display: 'grid',
-                placeItems: 'center',
-                width: 48,
-                height: 48,
-                borderRadius: '50%',
-                background: '#e0f2fe',
-                color: '#0052cc',
-                fontSize: 24,
-                flexShrink: 0,
-              }}
-            >
-              <i className="ph ph-receipt" />
-            </span>
-            <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                <strong style={{ fontSize: 16, color: '#1e293b' }}>{order.code}</strong>
-                <span
-                  style={{
-                    fontSize: 12,
-                    padding: '2px 8px',
-                    borderRadius: 12,
-                    background: '#e0f2fe',
-                    color: '#0052cc',
-                    fontWeight: 600,
-                  }}
-                >
-                  {salesChannelLabels[order.salesChannel] ?? order.salesChannel}
-                </span>
-              </div>
-              <div style={{ fontSize: 13, color: '#64748b', marginTop: 3 }}>
-                <span>Khách hàng: </span>
-                <strong style={{ color: '#1e293b' }}>{order.customer?.name || 'Khách lẻ'}</strong>
-                {order.customer?.phone && (
-                  <span style={{ color: '#64748b' }}> ({order.customer.phone})</span>
-                )}
-              </div>
-            </div>
-          </div>
-          <div style={{ textAlign: 'right', fontSize: 12, color: '#64748b', lineHeight: 1.6 }}>
-            <div>
-              <strong style={{ color: '#1e293b' }}>{order.branchName}</strong>
-            </div>
-            <div>{formatDateTime(order.issuedAt || order.createdAt)}</div>
-          </div>
-        </div>
+      {Number(order.serviceProgress?.total || 0) > 0 && (
+        <p className="detail-section-title text-success">
+          <i className="ph ph-check-circle" aria-hidden="true" />
+          Tiến độ dịch vụ: {order.serviceProgress.completed}/{order.serviceProgress.total} đã xong
+        </p>
+      )}
 
-        {Number(order.serviceProgress?.total || 0) > 0 && (
-          <div style={{ marginBottom: 12, color: '#15803d', fontSize: 13, fontWeight: 700 }}>
-            Tiến độ dịch vụ: {order.serviceProgress.completed}/{order.serviceProgress.total} đã xong
-          </div>
-        )}
+      <ValueStrip
+        items={[
+          { label: 'Tổng tiền hàng', value: formatMoney(order.subtotal) },
+          { label: 'Giảm giá', value: formatMoney(order.discount), tone: 'danger' },
+          { label: 'Tổng thanh toán', value: formatMoney(order.total), tone: 'primary' },
+          { label: 'Đã thanh toán', value: formatMoney(order.amountPaid ?? order.total), tone: 'success' },
+        ]}
+      />
 
-        {/* Layer 4: 4-Column Value Strip */}
-        <div
-          className="order-value-strip"
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(4, 1fr)',
-            gap: 12,
-            background: '#f8fafc',
-            padding: 12,
-            borderRadius: 8,
-            border: '1px solid #e2e8f0',
-            marginBottom: 16,
-            fontSize: 14,
-          }}
-        >
-          <div>
-            <span style={{ color: '#64748b' }}>Tổng tiền hàng: </span>
-            <strong style={{ color: '#1e293b' }}>{formatMoney(order.subtotal)}</strong>
-          </div>
-          <div>
-            <span style={{ color: '#64748b' }}>Giảm giá: </span>
-            <strong style={{ color: '#e11d48' }}>{formatMoney(order.discount)}</strong>
-          </div>
-          <div>
-            <span style={{ color: '#64748b' }}>Tổng thanh toán: </span>
-            <strong style={{ color: '#0052cc' }}>{formatMoney(order.total)}</strong>
-          </div>
-          <div>
-            <span style={{ color: '#64748b' }}>Đã thanh toán: </span>
-            <strong style={{ color: '#059669' }}>{formatMoney(order.total)}</strong>
-          </div>
-        </div>
-
-        {/* Layer 5: Tabs Content */}
-        {tab === 'items' && (
-          <div>
-            <div className="table-scroll" style={{ marginBottom: 16 }}>
-              <table className="kiotviet-payroll-table">
-                <thead>
-                  <tr>
-                    <th>Mã hàng</th>
-                    <th>Tên hàng / Dịch vụ</th>
-                    <th>Loại</th>
-                    <th>Thực hiện</th>
-                    <th style={{ textAlign: 'right' }}>Số lượng</th>
-                    <th style={{ textAlign: 'right' }}>Đơn giá</th>
-                    <th style={{ textAlign: 'right' }}>Giảm giá</th>
-                    <th style={{ textAlign: 'right' }}>Thành tiền</th>
+      {tab === 'items' && (
+        <>
+          <div className="table-scroll">
+            <table className="detail-table">
+              <thead>
+                <tr>
+                  <th>Mã hàng</th>
+                  <th>Tên hàng / Dịch vụ</th>
+                  <th>Loại</th>
+                  <th>Thực hiện</th>
+                  <th className="is-num">Số lượng</th>
+                  <th className="is-num">Đơn giá</th>
+                  <th className="is-num">Giảm giá</th>
+                  <th className="is-num">Thành tiền</th>
+                </tr>
+              </thead>
+              <tbody>
+                {order.items?.map((item: Record<string, any>) => (
+                  <tr key={item.id}>
+                    <td className="is-code">{item.code}</td>
+                    <td>
+                      <span className="cell-main">{item.name}</span>
+                      {item.description && item.description !== item.name && <span className="cell-sub">{item.description}</span>}
+                    </td>
+                    <td>{statusLabels[item.itemType] ?? item.itemType}</td>
+                    <td>
+                      {item.appointment ? (
+                        <>
+                          <span className="cell-main">{item.appointment.staff?.name || item.staffName || 'Chưa phân công'}</span>
+                          <span className="cell-sub text-primary">{workStatusLabels[item.appointment.status] || item.appointment.status}</span>
+                        </>
+                      ) : '-'}
+                    </td>
+                    <td className="is-num">{formatNumber(item.quantity)} {item.unit}</td>
+                    <td className="is-num">{formatMoney(item.unitPrice)}</td>
+                    <td className="is-num text-danger">{formatMoney(item.discount)}</td>
+                    <td className="is-num text-strong">{formatMoney(item.lineTotal)}</td>
                   </tr>
-                </thead>
-                <tbody>
-                  {order.items?.map((item: Record<string, any>) => (
-                    <tr key={item.id}>
-                      <td style={{ fontWeight: 600, color: '#0052cc' }}>{item.code}</td>
-                      <td>
-                        <div style={{ fontWeight: 600 }}>{item.name}</div>
-                        {item.description && item.description !== item.name && (
-                          <div style={{ fontSize: 12, color: '#94a3b8' }}>{item.description}</div>
-                        )}
-                      </td>
-                      <td>{statusLabels[item.itemType] ?? item.itemType}</td>
-                      <td>
-                        {item.appointment ? (
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                            <span>{item.appointment.staff?.name || item.staffName || 'Chưa phân công'}</span>
-                            <span style={{ color: '#0062eb', fontSize: 12, fontWeight: 650 }}>
-                              {workStatusLabels[item.appointment.status] || item.appointment.status}
-                            </span>
-                          </div>
-                        ) : '-'}
-                      </td>
-                      <td style={{ textAlign: 'right' }}>
-                        {formatNumber(item.quantity)} {item.unit}
-                      </td>
-                      <td style={{ textAlign: 'right' }}>{formatMoney(item.unitPrice)}</td>
-                      <td style={{ textAlign: 'right', color: '#e11d48' }}>{formatMoney(item.discount)}</td>
-                      <td style={{ textAlign: 'right', fontWeight: 700, color: '#0f172a' }}>
-                        {formatMoney(item.lineTotal)}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'flex-end',
-                gap: 24,
-                paddingTop: 12,
-                borderTop: '1px solid #e2e8f0',
-                fontSize: 14.5,
-                flexWrap: 'wrap',
-              }}
-            >
-              <span>
-                Tổng tiền hàng: <strong style={{ color: '#1e293b' }}>{formatMoney(order.subtotal)}</strong>
-              </span>
-              <span>
-                Giảm giá: <strong style={{ color: '#e11d48' }}>{formatMoney(order.discount)}</strong>
-              </span>
-              <span>
-                Tổng thanh toán: <strong style={{ color: '#0052cc', fontSize: 16 }}>{formatMoney(order.total)}</strong>
-              </span>
-            </div>
+                ))}
+              </tbody>
+            </table>
           </div>
-        )}
 
-        {tab === 'info' && (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px 24px', fontSize: 14.5 }}>
-            <div>
-              <span style={{ color: '#64748b', display: 'block', marginBottom: 2 }}>Mã hóa đơn:</span>
-              <strong style={{ color: '#0052cc' }}>{order.code}</strong>
-            </div>
-            <div>
-              <span style={{ color: '#64748b', display: 'block', marginBottom: 2 }}>Khách hàng:</span>
-              <strong style={{ color: '#1e293b' }}>
-                {order.customer?.name || 'Khách lẻ'} {order.customer?.phone ? `(${order.customer.phone})` : ''}
-              </strong>
-            </div>
-            <div>
-              <span style={{ color: '#64748b', display: 'block', marginBottom: 2 }}>Nhân viên thực hiện:</span>
-              <strong style={{ color: '#1e293b' }}>{order.staff?.name ?? 'Chưa xác định'}</strong>
-            </div>
-            <div>
-              <span style={{ color: '#64748b', display: 'block', marginBottom: 2 }}>Chi nhánh:</span>
-              <strong style={{ color: '#1e293b' }}>{order.branchName}</strong>
-            </div>
-            <div>
-              <span style={{ color: '#64748b', display: 'block', marginBottom: 2 }}>Thời gian tạo:</span>
-              <strong style={{ color: '#1e293b' }}>{formatDateTime(order.issuedAt ?? order.createdAt)}</strong>
-            </div>
-            <div>
-              <span style={{ color: '#64748b', display: 'block', marginBottom: 2 }}>Kênh bán hàng:</span>
-              <strong style={{ color: '#1e293b' }}>{salesChannelLabels[order.salesChannel] ?? order.salesChannel}</strong>
-            </div>
-            <div>
-              <span style={{ color: '#64748b', display: 'block', marginBottom: 2 }}>Trạng thái:</span>
-              <div>
-                <InvoiceStatusBadge status={order.status} paymentStatus={order.paymentStatus} />
-              </div>
-            </div>
-            <div>
-              <span style={{ color: '#64748b', display: 'block', marginBottom: 2 }}>Bàn / Phòng:</span>
-              <strong style={{ color: '#1e293b' }}>{order.room || order.note || 'Chưa thiết lập'}</strong>
-            </div>
+          <div className="detail-totals">
+            <span>Tổng tiền hàng: <strong>{formatMoney(order.subtotal)}</strong></span>
+            <span>Giảm giá: <strong className="text-danger">{formatMoney(order.discount)}</strong></span>
+            <span>Tổng thanh toán: <strong className="is-grand">{formatMoney(order.total)}</strong></span>
           </div>
-        )}
+        </>
+      )}
 
-        {tab === 'payment' && (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px 24px', fontSize: 14.5 }}>
-            <div>
-              <span style={{ color: '#64748b', display: 'block', marginBottom: 2 }}>Hình thức thanh toán:</span>
-              <strong style={{ color: '#0052cc' }}>{statusLabels[order.paymentMethod] ?? order.paymentMethod}</strong>
-            </div>
-            <div>
-              <span style={{ color: '#64748b', display: 'block', marginBottom: 2 }}>Số tiền đã thanh toán:</span>
-              <strong style={{ color: '#059669', fontSize: 16 }}>{formatMoney(order.amountPaid ?? order.total)}</strong>
-            </div>
-            <div>
-              <span style={{ color: '#64748b', display: 'block', marginBottom: 2 }}>Công nợ ghi nhận:</span>
-              <strong style={{ color: '#1e293b' }}>{formatMoney(order.debtAmount ?? 0)}</strong>
-            </div>
-            <div>
-              <span style={{ color: '#64748b', display: 'block', marginBottom: 2 }}>Trạng thái thu tiền:</span>
-              <div>
-                <span
-                  style={{
-                    display: 'inline-block',
-                    padding: '2px 10px',
-                    borderRadius: 12,
-                    fontSize: 13,
-                    fontWeight: 600,
-                    background: order.status === 'paid' ? '#ecfdf5' : '#fffbeb',
-                    color: order.status === 'paid' ? '#059669' : '#d97706',
-                  }}
-                >
-                  {order.status === 'paid' ? (order.paymentStatus === 'partial' ? 'Thanh toán một phần' : order.paymentStatus === 'unpaid' ? 'Chưa thanh toán' : 'Đã thanh toán đủ') : statusLabels[order.status] ?? order.status}
-                </span>
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
-    </div>
+      {tab === 'info' && (
+        <DetailFacts
+          items={[
+            { label: 'Mã hóa đơn', value: order.code, tone: 'primary' },
+            { label: 'Khách hàng', value: `${order.customer?.name || 'Khách lẻ'}${order.customer?.phone ? ` (${order.customer.phone})` : ''}` },
+            { label: 'Nhân viên thực hiện', value: order.staff?.name ?? 'Chưa xác định' },
+            { label: 'Chi nhánh', value: order.branchName },
+            { label: 'Thời gian tạo', value: formatDateTime(order.issuedAt ?? order.createdAt) },
+            { label: 'Kênh bán hàng', value: salesChannelLabels[order.salesChannel] ?? order.salesChannel },
+            { label: 'Trạng thái', value: <InvoiceStatusBadge status={order.status} paymentStatus={order.paymentStatus} /> },
+            { label: 'Bàn / Phòng', value: order.room || order.note || 'Chưa thiết lập' },
+          ]}
+        />
+      )}
+
+      {tab === 'payment' && (
+        <DetailFacts
+          items={[
+            { label: 'Hình thức thanh toán', value: statusLabels[order.paymentMethod] ?? order.paymentMethod, tone: 'primary' },
+            { label: 'Số tiền đã thanh toán', value: formatMoney(order.amountPaid ?? order.total), tone: 'success' },
+            { label: 'Công nợ ghi nhận', value: formatMoney(order.debtAmount ?? 0) },
+            {
+              label: 'Trạng thái thu tiền',
+              value: <span className={order.status === 'paid' ? 'badge badge-success' : 'badge badge-warning'}>{paidLabel}</span>,
+            },
+          ]}
+        />
+      )}
+    </InlineDetail>
   );
 }

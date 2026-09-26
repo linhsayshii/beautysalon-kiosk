@@ -5,10 +5,9 @@ import { getPricebookCustomerOptions } from '../inventory.api';
 interface PricebookCustomerPickerProps {
   value: number[];
   onChange: (value: number[]) => void;
-  mobile?: boolean;
 }
 
-export function PricebookCustomerPicker({ value, onChange, mobile = false }: PricebookCustomerPickerProps) {
+export function PricebookCustomerPicker({ value, onChange }: PricebookCustomerPickerProps) {
   const [search, setSearch] = useState('');
   const deferredSearch = useDeferredValue(search.trim());
   const query = useQuery({
@@ -16,7 +15,6 @@ export function PricebookCustomerPicker({ value, onChange, mobile = false }: Pri
     queryFn: () => getPricebookCustomerOptions(deferredSearch, value),
   });
   const options = query.data?.data ?? [];
-  const inputClass = mobile ? 'mobile-form-input' : 'form-input';
 
   const toggle = (id: number) => {
     onChange(value.includes(id) ? value.filter((item) => item !== id) : [...value, id]);
@@ -26,7 +24,7 @@ export function PricebookCustomerPicker({ value, onChange, mobile = false }: Pri
     <div className="pricebook-customer-picker">
       <input
         type="search"
-        className={inputClass}
+        className="input"
         value={search}
         onChange={(event) => setSearch(event.target.value)}
         placeholder="Tìm tên, mã hoặc số điện thoại"

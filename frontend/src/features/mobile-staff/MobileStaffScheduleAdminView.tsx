@@ -1,5 +1,4 @@
 import { useState, useMemo, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useWebSocket } from '@/hooks/useWebSocket';
 import {
@@ -9,14 +8,15 @@ import {
 } from '@/features/mobile-common';
 import { useToast } from '@/components/ui/Toast/ToastProvider';
 import { getStaff, getShifts, getSchedule, assignShift, deleteStaffSchedule } from '@/features/staff/staff.api';
-import { weekStartIso, toIsoDate, todayIso } from '@/lib/date';
+import { weekStartIso, toIsoDate, todayIso, formatDateOnly } from '@/lib/date';
 import { initials } from '@/lib/format';
 import { errorMessage } from '@/services/api-client';
 import type { ApiRecord } from '@/types/api';
 import { ApplyWeeksModal } from '@/components/ApplyWeeksModal';
 import { ScheduleBadge } from '@/components/ScheduleBadge';
 import { DeleteScheduleModal } from '@/components/DeleteScheduleModal';
-import './mobile-staff.css';
+import { MobilePageHeader } from '@/components/ui/MobilePageHeader/MobilePageHeader';
+import { LoadingState } from '@/components/data-display/DataState';
 
 const weekdayShorts = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'];
 const weekdayFullLabels = ['Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7', 'Chủ nhật'];
@@ -30,7 +30,6 @@ function getShiftThemeClass(shiftName: string): string {
 }
 
 export function MobileStaffScheduleAdminView() {
-  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { notify } = useToast();
   const { subscribe } = useWebSocket();
@@ -246,26 +245,13 @@ export function MobileStaffScheduleAdminView() {
 
   return (
     <div className="mobile-staff-view">
-      {/* Sticky Top Header Cluster */}
-      <div className="mobile-staff-sticky-header-cluster">
-        {/* 1. Header Top Navigation */}
-        <div className="mobile-staff-top-nav">
-          <div className="mobile-staff-nav-left">
+      <MobilePageHeader
+        title="Lịch làm việc" backTo="/m/more"
+        actions={(
+          <>
             <button
               type="button"
-              className="mobile-staff-back-icon"
-              onClick={() => navigate('/m/more')}
-              aria-label="Quay lại"
-            >
-              <i className="ph ph-caret-left" />
-            </button>
-            <h1 className="mobile-staff-nav-title">Lịch làm việc</h1>
-          </div>
-
-          <div className="mobile-staff-nav-actions">
-            <button
-              type="button"
-              className="mobile-staff-nav-btn"
+              className="btn btn-ghost btn-icon m-header-action"
               onClick={() => setIsSearchVisible((prev) => !prev)}
               aria-label="Tìm kiếm"
             >
@@ -273,7 +259,7 @@ export function MobileStaffScheduleAdminView() {
             </button>
             <button
               type="button"
-              className="mobile-staff-nav-btn"
+              className="btn btn-ghost btn-icon m-header-action"
               onClick={() => {
                 if (staffList.length > 0) handleOpenAssign(staffList[0]);
               }}
@@ -282,36 +268,33 @@ export function MobileStaffScheduleAdminView() {
             >
               <i className="ph ph-calendar-plus" />
             </button>
-          </div>
-        </div>
-
-        {/* Inline Search Bar */}
+          </>
+        )}
+      >
         {isSearchVisible && (
-          <div className="mobile-staff-search-bar-wrap">
-            <MobileSearchBar
-              value={search}
-              onChange={setSearch}
-              placeholder="Tìm nhân viên theo tên, mã..."
-            />
-          </div>
+          <MobileSearchBar
+            value={search}
+            onChange={setSearch}
+            placeholder="Tìm nhân viên theo tên, mã..."
+          />
         )}
 
         {/* Week Navigator */}
         <div className="mobile-week-navigator">
           <button
             type="button"
-            className="mobile-week-nav-btn"
+            className="btn btn-secondary btn-icon"
             aria-label="Tuần trước"
             onClick={handlePrevWeek}
           >
             <i className="ph ph-caret-left" />
           </button>
           <span className="mobile-week-label">
-            {selectedDayInfo.fullLabel} ({selectedDayInfo.iso})
+            {selectedDayInfo.fullLabel}, {formatDateOnly(selectedDayInfo.iso)}
           </span>
           <button
             type="button"
-            className="mobile-week-nav-btn"
+            className="btn btn-secondary btn-icon"
             aria-label="Tuần sau"
             onClick={handleNextWeek}
           >
@@ -340,10 +323,10 @@ export function MobileStaffScheduleAdminView() {
         </div>
 
         {/* Filter & View Switcher Strip */}
-        <div className="mobile-staff-filter-strip">
+        <div className="m-chip-strip">
           <button
             type="button"
-            className={`mobile-filter-chip ${viewMode === 'by-staff' ? 'is-active' : ''}`}
+            className={`chip ${viewMode === 'by-staff' ? 'is-active' : ''}`}
             onClick={() => setViewMode('by-staff')}
             role="tab"
             aria-selected={viewMode === 'by-staff'}
@@ -354,7 +337,7 @@ export function MobileStaffScheduleAdminView() {
 
           <button
             type="button"
-            className={`mobile-filter-chip ${viewMode === 'by-shift' ? 'is-active' : ''}`}
+            className={`chip ${viewMode === 'by-shift' ? 'is-active' : ''}`}
             onClick={() => setViewMode('by-shift')}
             role="tab"
             aria-selected={viewMode === 'by-shift'}
@@ -365,23 +348,21 @@ export function MobileStaffScheduleAdminView() {
         </div>
 
         {/* Summary Bar */}
-        <div className="mobile-staff-summary-sort-bar">
-          <span className="mobile-sort-select-chip">
+        <div className="m-summary-bar">
+          <span className="m-summary-title">
             <span>{selectedDayInfo.fullLabel}</span>
           </span>
-          <span className="mobile-summary-text">
+          <span className="m-summary-count">
             {assignedCount}/{filteredStaff.length} xếp • {attendedCount}/{assignedCount} đã chấm
           </span>
         </div>
-      </div>
+      </MobilePageHeader>
 
       {/* Content by Staff */}
       {viewMode === 'by-staff' && (
         <div className="mobile-grouped-list-container">
           {staffQuery.isLoading ? (
-            <div style={{ textAlign: 'center', padding: '36px 0', color: '#64748b' }}>
-              Đang tải danh sách nhân viên...
-            </div>
+            <LoadingState compact label="Đang tải danh sách nhân viên..." />
           ) : filteredStaff.length === 0 ? (
             <MobileEmptyState
               icon="ph ph-users"
@@ -428,21 +409,21 @@ export function MobileStaffScheduleAdminView() {
                               >
                                 {shift.shiftName}
                               </span>
-                              <span style={{ fontSize: 11.5, color: '#64748b' }}>
+                              <span className="text-muted">
                                 {shift.startsAt} - {shift.endsAt}
                               </span>
                               {/* Attendance status icon */}
                               {shift.hasCheckIn && shift.hasCheckOut ? (
-                                <i className="ph ph-check-circle" style={{ color: '#22c55e', fontSize: 16, marginLeft: 4 }} title="Đã chấm công đủ" />
+                                <i className="ph ph-check-circle text-success shift-check-icon" title="Đã chấm công đủ" />
                               ) : shift.hasCheckIn ? (
-                                <i className="ph ph-clock" style={{ color: '#f59e0b', fontSize: 16, marginLeft: 4 }} title="Đã chấm vào, chưa chấm ra" />
+                                <i className="ph ph-clock text-warning shift-check-icon" title="Đã chấm vào, chưa chấm ra" />
                               ) : (
-                                <i className="ph ph-warning-circle" style={{ color: '#ef4444', fontSize: 16, marginLeft: 4 }} title="Chưa chấm công" />
+                                <i className="ph ph-warning-circle text-danger shift-check-icon" title="Chưa chấm công" />
                               )}
                               {/* Delete button */}
                               <button
                                 type="button"
-                                className="mobile-schedule-delete-btn"
+                                className="btn btn-ghost btn-icon btn-sm"
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   handleDeleteSchedule(shift);
@@ -456,7 +437,7 @@ export function MobileStaffScheduleAdminView() {
                           ) : (
                             <button
                               type="button"
-                              className="mobile-shift-assign-btn"
+                              className="btn btn-soft btn-sm"
                               onClick={(e) => {
                                 e.stopPropagation();
                                 handleOpenAssign(staff);
@@ -496,9 +477,7 @@ export function MobileStaffScheduleAdminView() {
                 </div>
                 <div className="mobile-section-card">
                   {assignedMembers.length === 0 ? (
-                    <div style={{ padding: '16px 14px', fontSize: 13, color: '#94a3b8' }}>
-                      Chưa có nhân viên nào trong ca này.
-                    </div>
+                    <p className="m-note mobile-section-note">Chưa có nhân viên nào trong ca này.</p>
                   ) : (
                     assignedMembers.map((staff) => (
                       <div
@@ -518,7 +497,7 @@ export function MobileStaffScheduleAdminView() {
                         <div className="mobile-staff-row-right">
                           <button
                             type="button"
-                            className="mobile-shift-assign-btn"
+                            className="btn btn-soft btn-sm"
                             onClick={(e) => {
                               e.stopPropagation();
                               handleOpenAssign(staff);
@@ -543,7 +522,7 @@ export function MobileStaffScheduleAdminView() {
         title="Xếp ca làm việc"
         subtitle={
           assigningStaff
-            ? `${assigningStaff.name} • ${selectedDayInfo.fullLabel} (${selectedDateIso})`
+            ? `${assigningStaff.name} • ${selectedDayInfo.fullLabel}, ${formatDateOnly(selectedDateIso)}`
             : ''
         }
         onClose={() => setAssigningStaff(null)}

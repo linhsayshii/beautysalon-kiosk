@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import type { FormEvent, RefObject } from 'react';
+import type { FormEvent } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { appConfig } from '@/app/config';
 import { MoneyInput } from '@/components/forms/MoneyInput';
@@ -10,8 +10,7 @@ import { formatMoney } from '@/lib/format';
 import { createInventoryItem, getInventoryItem, getProducts, updateInventoryItem } from '../inventory.api';
 import type { CreateInventoryItemInput, InventoryItemType } from '../inventory.api';
 import type { ApiRecord } from '@/types/api';
-import { useMobileDialog } from '@/features/mobile-common/useMobileDialog';
-import { MobileDialogPortal } from '@/features/mobile-common/MobileDialogPortal';
+import { Modal } from '@/components/ui/Modal/Modal';
 
 type CommissionType = 'percent' | 'fixed' | null;
 
@@ -88,7 +87,6 @@ export function GoodsCreateDialog({ type, onClose, itemId, initialData, initialT
     initialData ? buildCommissionFromItem(initialData).commissionRate : 0,
   );
   const nameRef = useRef<HTMLInputElement>(null);
-  const { dialogRef, titleId } = useMobileDialog({ isOpen: true, onClose, initialFocusRef: nameRef });
   const queryClient = useQueryClient();
   const { notify } = useToast();
   const copy = typeCopy[type];
@@ -220,43 +218,42 @@ export function GoodsCreateDialog({ type, onClose, itemId, initialData, initialT
     mutation.mutate(payload);
   };
 
-  return <MobileDialogPortal><div className="goods-dialog-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget && !mutation.isPending) onClose(); }}>
-    <section ref={dialogRef as RefObject<HTMLElement>} className="goods-dialog" role="dialog" aria-modal="true" aria-labelledby={titleId} tabIndex={-1}>
-      <header className="goods-dialog-header">
-        <h2 id={titleId}>{isEdit ? copy.editTitle : copy.title}</h2>
-        <button type="button" onClick={onClose} disabled={mutation.isPending} aria-label="Đóng"><i className="ph ph-x" /></button>
-      </header>
-      <div className="goods-dialog-tabs" role="tablist" aria-label="Nội dung hàng hóa">
-        <button id="goods-tab-information" type="button" role="tab" aria-controls="goods-panel" aria-selected={tab === 'information'} className={tab === 'information' ? 'is-active' : ''} onClick={() => setTab('information')}>Thông tin</button>
-        <button id="goods-tab-details" type="button" role="tab" aria-controls="goods-panel" aria-selected={tab === 'details'} className={tab === 'details' ? 'is-active' : ''} onClick={() => setTab('details')}>Hình ảnh, mô tả, ghi chú</button>
-      </div>
+  const closeUnlessSaving = () => { if (!mutation.isPending) onClose(); };
+  return <Modal
+    open
+    onClose={closeUnlessSaving}
+    title={isEdit ? copy.editTitle : copy.title}
+    size="xl"
+    className="modal-fill"
+    nested
+    closeOnBackdrop={!mutation.isPending}
+    initialFocusRef={nameRef}
+    headerExtra={<div className="tabs" role="tablist" aria-label="Nội dung hàng hóa">
+        <button id="goods-tab-information" type="button" role="tab" aria-controls="goods-panel" aria-selected={tab === 'information'} className={`tab${tab === 'information' ? ' is-active' : ''}`} onClick={() => setTab('information')}>Thông tin</button>
+        <button id="goods-tab-details" type="button" role="tab" aria-controls="goods-panel" aria-selected={tab === 'details'} className={`tab${tab === 'details' ? ' is-active' : ''}`} onClick={() => setTab('details')}>Hình ảnh, mô tả, ghi chú</button>
+      </div>}
+  >
       <form onSubmit={submit} noValidate>
-        <div id="goods-panel" className="goods-dialog-body" role="tabpanel" aria-labelledby={tab === 'information' ? 'goods-tab-information' : 'goods-tab-details'}>
-          {itemQuery.error && <div className="goods-form-alert" role="alert"><i className="ph ph-warning-circle" /><span><strong>Không thể tải thông tin đầy đủ</strong><small>{itemQuery.error.message}</small></span></div>}
-          {mutation.error && <div className="goods-form-alert" role="alert"><i className="ph ph-warning-circle" /><span><strong>Không thể lưu {copy.noun}</strong><small>{mutation.error.message}</small></span></div>}
+        <div id="goods-panel" className="modal-body" role="tabpanel" aria-labelledby={tab === 'information' ? 'goods-tab-information' : 'goods-tab-details'}>
+          {itemQuery.error && <div className="alert alert-danger" role="alert"><i className="ph ph-warning-circle" /><div><strong>Không thể tải thông tin đầy đủ</strong><small>{itemQuery.error.message}</small></div></div>}
+          {mutation.error && <div className="alert alert-danger" role="alert"><i className="ph ph-warning-circle" /><div><strong>Không thể lưu {copy.noun}</strong><small>{mutation.error.message}</small></div></div>}
           {tab === 'information' ? <>
-            <div className="goods-field full-field"><label htmlFor="goods-name">Tên hàng <span>*</span></label><input ref={nameRef} id="goods-name" value={form.name} onChange={(event) => update('name', event.target.value)} aria-invalid={Boolean(errors.name)} placeholder={`Nhập tên ${copy.noun}`} />{errors.name && <small className="field-error">{errors.name}</small>}</div>
-            <div className="goods-form-grid">
-              <div className="goods-field"><label htmlFor="goods-code">Mã hàng</label><input id="goods-code" value={form.code} onChange={(event) => update('code', event.target.value.toUpperCase())} placeholder="Tự động nếu để trống" /></div>
-              {type === 'product' ? <div className="goods-field"><label htmlFor="goods-barcode">Mã vạch</label><input id="goods-barcode" value={form.barcode} onChange={(event) => update('barcode', event.target.value)} placeholder="Nhập mã vạch" /></div> : type === 'service' ? <div className="goods-field"><label htmlFor="goods-duration">Thời lượng</label><div className="input-suffix"><input id="goods-duration" type="number" min="1" value={form.durationMinutes} onChange={(event) => update('durationMinutes', event.target.value)} /><span>phút</span></div>{errors.durationMinutes && <small className="field-error">{errors.durationMinutes}</small>}</div> : <div className="goods-field"><label htmlFor="goods-validity">Thời hạn sử dụng</label><div className="input-suffix"><input id="goods-validity" type="number" min="1" value={form.validityDays} onChange={(event) => update('validityDays', event.target.value)} placeholder="Không giới hạn" /><span>ngày</span></div></div>}
-              <div className="goods-field"><label htmlFor="goods-category">Nhóm hàng</label><Combobox id="goods-category" value={form.category} onChange={(value) => update('category', value)} placeholder="Nhập hoặc chọn nhóm hàng" options={catalog.data?.meta.categories ?? []} /></div>
-              <div className="goods-field"><label htmlFor="goods-brand">Thương hiệu</label><input id="goods-brand" value={form.brand} onChange={(event) => update('brand', event.target.value)} placeholder="Nhập thương hiệu" /></div>
+            <div className="field"><label className="field-label" htmlFor="goods-name">Tên hàng <span className="field-required">*</span></label><input ref={nameRef} className="input" id="goods-name" value={form.name} onChange={(event) => update('name', event.target.value)} aria-invalid={Boolean(errors.name)} placeholder={`Nhập tên ${copy.noun}`} />{errors.name && <small className="field-error">{errors.name}</small>}</div>
+            <div className="form-grid">
+              <div className="field"><label className="field-label" htmlFor="goods-code">Mã hàng</label><input className="input" id="goods-code" value={form.code} onChange={(event) => update('code', event.target.value.toUpperCase())} placeholder="Tự động nếu để trống" /></div>
+              {type === 'product' ? <div className="field"><label className="field-label" htmlFor="goods-barcode">Mã vạch</label><input className="input" id="goods-barcode" value={form.barcode} onChange={(event) => update('barcode', event.target.value)} placeholder="Nhập mã vạch" /></div> : type === 'service' ? <div className="field"><label className="field-label" htmlFor="goods-duration">Thời lượng</label><div className="input-suffix"><input id="goods-duration" type="number" min="1" value={form.durationMinutes} onChange={(event) => update('durationMinutes', event.target.value)} /><span>phút</span></div>{errors.durationMinutes && <small className="field-error">{errors.durationMinutes}</small>}</div> : <div className="field"><label className="field-label" htmlFor="goods-validity">Thời hạn sử dụng</label><div className="input-suffix"><input id="goods-validity" type="number" min="1" value={form.validityDays} onChange={(event) => update('validityDays', event.target.value)} placeholder="Không giới hạn" /><span>ngày</span></div></div>}
+              <div className="field"><label className="field-label" htmlFor="goods-category">Nhóm hàng</label><Combobox id="goods-category" value={form.category} onChange={(value) => update('category', value)} placeholder="Nhập hoặc chọn nhóm hàng" options={catalog.data?.meta.categories ?? []} /></div>
+              <div className="field"><label className="field-label" htmlFor="goods-brand">Thương hiệu</label><input className="input" id="goods-brand" value={form.brand} onChange={(event) => update('brand', event.target.value)} placeholder="Nhập thương hiệu" /></div>
             </div>
-            <label className="goods-active-check"><input type="checkbox" checked={form.active} onChange={(event) => update('active', event.target.checked)} />Cho phép bán</label>
+            <label className="check"><input type="checkbox" checked={form.active} onChange={(event) => update('active', event.target.checked)} />Cho phép bán</label>
 
-            <section className="goods-form-section"><div className="goods-section-heading"><span><strong>{type === 'account_card' ? 'Giá bán, mệnh giá' : 'Giá bán, giá vốn'}</strong><small>Giá được đồng bộ sang bảng giá chung khi lưu.</small></span><i className="ph ph-caret-up" /></div><div className="goods-form-grid">
-              <div className="goods-field"><label htmlFor="goods-sale-price">Giá bán</label><MoneyInput id="goods-sale-price" suffix="đ" value={numeric(form.salePrice)} onChange={(val) => update('salePrice', String(val))} />{errors.salePrice && <small className="field-error">{errors.salePrice}</small>}</div>
-              {type === 'account_card' ? <div className="goods-field"><label htmlFor="goods-face-value">Mệnh giá sử dụng</label><MoneyInput id="goods-face-value" suffix="đ" value={numeric(form.faceValue)} onChange={(val) => update('faceValue', String(val))} />{errors.faceValue && <small className="field-error">{errors.faceValue}</small>}</div> : <div className="goods-field"><label htmlFor="goods-cost-price">Giá vốn</label><MoneyInput id="goods-cost-price" suffix="đ" value={numeric(form.costPrice)} onChange={(val) => update('costPrice', String(val))} />{errors.costPrice && <small className="field-error">{errors.costPrice}</small>}</div>}
+            <section className="form-section is-card"><div className="form-section-head"><div><h3 className="form-section-title">{type === 'account_card' ? 'Giá bán, mệnh giá' : 'Giá bán, giá vốn'}</h3><p className="form-section-text">Giá được đồng bộ sang bảng giá chung khi lưu.</p></div></div><div className="form-grid">
+              <div className="field"><label className="field-label" htmlFor="goods-sale-price">Giá bán</label><MoneyInput id="goods-sale-price" suffix="đ" value={numeric(form.salePrice)} onChange={(val) => update('salePrice', String(val))} />{errors.salePrice && <small className="field-error">{errors.salePrice}</small>}</div>
+              {type === 'account_card' ? <div className="field"><label className="field-label" htmlFor="goods-face-value">Mệnh giá sử dụng</label><MoneyInput id="goods-face-value" suffix="đ" value={numeric(form.faceValue)} onChange={(val) => update('faceValue', String(val))} />{errors.faceValue && <small className="field-error">{errors.faceValue}</small>}</div> : <div className="field"><label className="field-label" htmlFor="goods-cost-price">Giá vốn</label><MoneyInput id="goods-cost-price" suffix="đ" value={numeric(form.costPrice)} onChange={(val) => update('costPrice', String(val))} />{errors.costPrice && <small className="field-error">{errors.costPrice}</small>}</div>}
             </div></section>
 
-            <section className="goods-form-section">
-              <div className="goods-section-heading">
-                <span>
-                  <strong>Hoa hồng</strong>
-                  <small>Thiết lập hoa hồng cho nhân viên khi bán {copy.noun}.</small>
-                </span>
-                <i className="ph ph-caret-up" />
-              </div>
+            <section className="form-section is-card">
+              <div className="form-section-head"><div><h3 className="form-section-title">Hoa hồng</h3><p className="form-section-text">Thiết lập hoa hồng cho nhân viên khi bán {copy.noun}.</p></div></div>
               <div className="commission-inline">
                 <label className="commission-toggle">
                   <input
@@ -273,17 +270,17 @@ export function GoodsCreateDialog({ type, onClose, itemId, initialData, initialT
                 {commissionType !== null && (
                   <>
                     <div className="commission-config-row">
-                      <div className="commission-segments" role="radiogroup" aria-label="Loại hoa hồng">
+                      <div className="segmented" role="group" aria-label="Loại hoa hồng">
                         <button
                           type="button"
-                          className={`commission-segment ${commissionType === 'percent' ? 'is-active' : ''}`}
+                          aria-pressed={commissionType === 'percent'}
                           onClick={() => setCommissionType('percent')}
                         >
                           % giá bán
                         </button>
                         <button
                           type="button"
-                          className={`commission-segment ${commissionType === 'fixed' ? 'is-active' : ''}`}
+                          aria-pressed={commissionType === 'fixed'}
                           onClick={() => setCommissionType('fixed')}
                         >
                           Số tiền cố định
@@ -326,19 +323,18 @@ export function GoodsCreateDialog({ type, onClose, itemId, initialData, initialT
               </div>
             </section>
 
-            {type === 'product' && <section className="goods-form-section"><div className="goods-section-heading"><span><strong>Tồn kho</strong><small>{isEdit ? 'Điều chỉnh số lượng tồn hiện tại và cảnh báo tồn.' : 'Thiết lập số lượng ban đầu và cảnh báo tồn.'}</small></span><i className="ph ph-caret-up" /></div><div className="goods-form-grid three-columns"><div className="goods-field"><label htmlFor="goods-stock">{isEdit ? 'Tồn hiện tại' : 'Tồn ban đầu'}</label><input id="goods-stock" type="number" min="0" value={form.initialStock} onChange={(event) => update('initialStock', event.target.value)} /></div><div className="goods-field"><label htmlFor="goods-min-stock">Tồn tối thiểu</label><input id="goods-min-stock" type="number" min="0" value={form.minStock} onChange={(event) => update('minStock', event.target.value)} /></div><div className="goods-field"><label htmlFor="goods-max-stock">Tồn tối đa</label><input id="goods-max-stock" type="number" min="1" value={form.maxStock} onChange={(event) => update('maxStock', event.target.value)} placeholder="Không giới hạn" aria-invalid={Boolean(errors.maxStock)} />{errors.maxStock && <small className="field-error">{errors.maxStock}</small>}</div></div><div className="goods-field compact-field"><label htmlFor="goods-unit">Đơn vị tính</label><input id="goods-unit" value={form.unit} onChange={(event) => update('unit', event.target.value)} /></div></section>}
+            {type === 'product' && <section className="form-section is-card"><div className="form-section-head"><div><h3 className="form-section-title">Tồn kho</h3><p className="form-section-text">{isEdit ? 'Điều chỉnh số lượng tồn hiện tại và cảnh báo tồn.' : 'Thiết lập số lượng ban đầu và cảnh báo tồn.'}</p></div></div><div className="form-grid form-grid-3"><div className="field"><label className="field-label" htmlFor="goods-stock">{isEdit ? 'Tồn hiện tại' : 'Tồn ban đầu'}</label><input className="input" id="goods-stock" type="number" min="0" value={form.initialStock} onChange={(event) => update('initialStock', event.target.value)} /></div><div className="field"><label className="field-label" htmlFor="goods-min-stock">Tồn tối thiểu</label><input className="input" id="goods-min-stock" type="number" min="0" value={form.minStock} onChange={(event) => update('minStock', event.target.value)} /></div><div className="field"><label className="field-label" htmlFor="goods-max-stock">Tồn tối đa</label><input className="input" id="goods-max-stock" type="number" min="1" value={form.maxStock} onChange={(event) => update('maxStock', event.target.value)} placeholder="Không giới hạn" aria-invalid={Boolean(errors.maxStock)} />{errors.maxStock && <small className="field-error">{errors.maxStock}</small>}</div></div><div className="field field-compact"><label className="field-label" htmlFor="goods-unit">Đơn vị tính</label><input className="input" id="goods-unit" value={form.unit} onChange={(event) => update('unit', event.target.value)} /></div></section>}
 
-            {type === 'package' && <section className="goods-form-section"><div className="goods-section-heading"><span><strong>Dịch vụ trong gói</strong><small>Gói được liên kết trực tiếp với các dịch vụ đã tạo.</small></span><i className="ph ph-caret-up" /></div>{catalog.isPending ? <div className="goods-inline-state">Đang tải danh sách dịch vụ...</div> : catalog.error ? <div className="goods-inline-state error">{catalog.error.message}</div> : <><div className="goods-link-picker"><Select value={serviceToAdd} onChange={setServiceToAdd} placeholder="Chọn dịch vụ" fullWidth className="goods-service-select" options={[{ value: '', label: 'Chọn dịch vụ' }, ...availableServices.filter((service) => !packageItems.some((item) => item.serviceId === String(service.itemId))).map((service) => ({ value: String(service.itemId), label: `${service.name} (${formatMoney(service.salePrice)})` }))]} /><button className="secondary-button" type="button" onClick={addService} disabled={!serviceToAdd}><i className="ph ph-plus" />Thêm dịch vụ</button></div>{selectedServices.length ? <div className="linked-items-list">{selectedServices.map((item) => <div key={item.serviceId}><span><strong>{item.service?.name ?? `Dịch vụ #${item.serviceId}`}</strong><small>{item.service?.code}</small></span><label>Số buổi<input type="number" min="1" value={item.units} onChange={(event) => setPackageItems((current) => current.map((row) => row.serviceId === item.serviceId ? { ...row, units: Math.max(1, Number(event.target.value) || 1) } : row))} /></label><button type="button" aria-label="Xóa dịch vụ khỏi gói" onClick={() => setPackageItems((current) => current.filter((row) => row.serviceId !== item.serviceId))}><i className="ph ph-trash" /></button></div>)}</div> : <div className="goods-inline-state">Chưa có dịch vụ trong gói. Hãy tạo dịch vụ trước nếu danh sách đang trống.</div>}</>}{errors.packageItems && <small className="field-error section-error">{errors.packageItems}</small>}<div className="goods-field compact-field"><label htmlFor="goods-schedule">Lịch sử dụng</label><Select id="goods-schedule" value={form.usageSchedule} onChange={(val) => update('usageSchedule', val)} fullWidth options={[{ value: 'flexible', label: 'Tự do' }, { value: 'scheduled', label: 'Theo lịch' }]} /></div></section>}
+            {type === 'package' && <section className="form-section is-card"><div className="form-section-head"><div><h3 className="form-section-title">Dịch vụ trong gói</h3><p className="form-section-text">Gói được liên kết trực tiếp với các dịch vụ đã tạo.</p></div></div>{catalog.isPending ? <div className="goods-inline-state">Đang tải danh sách dịch vụ...</div> : catalog.error ? <div className="goods-inline-state error">{catalog.error.message}</div> : <><div className="goods-link-picker"><Select value={serviceToAdd} onChange={setServiceToAdd} placeholder="Chọn dịch vụ" fullWidth className="goods-service-select" options={[{ value: '', label: 'Chọn dịch vụ' }, ...availableServices.filter((service) => !packageItems.some((item) => item.serviceId === String(service.itemId))).map((service) => ({ value: String(service.itemId), label: `${service.name} (${formatMoney(service.salePrice)})` }))]} /><button className="btn btn-secondary" type="button" onClick={addService} disabled={!serviceToAdd}><i className="ph ph-plus" />Thêm dịch vụ</button></div>{selectedServices.length ? <div className="linked-items-list">{selectedServices.map((item) => <div key={item.serviceId}><span><strong>{item.service?.name ?? `Dịch vụ #${item.serviceId}`}</strong><small>{item.service?.code}</small></span><label>Số buổi<input type="number" min="1" value={item.units} onChange={(event) => setPackageItems((current) => current.map((row) => row.serviceId === item.serviceId ? { ...row, units: Math.max(1, Number(event.target.value) || 1) } : row))} /></label><button type="button" aria-label="Xóa dịch vụ khỏi gói" onClick={() => setPackageItems((current) => current.filter((row) => row.serviceId !== item.serviceId))}><i className="ph ph-trash" /></button></div>)}</div> : <div className="goods-inline-state">Chưa có dịch vụ trong gói. Hãy tạo dịch vụ trước nếu danh sách đang trống.</div>}</>}{errors.packageItems && <small className="field-error section-error">{errors.packageItems}</small>}<div className="field field-compact"><label className="field-label" htmlFor="goods-schedule">Lịch sử dụng</label><Select id="goods-schedule" value={form.usageSchedule} onChange={(val) => update('usageSchedule', val)} fullWidth options={[{ value: 'flexible', label: 'Tự do' }, { value: 'scheduled', label: 'Theo lịch' }]} /></div></section>}
 
-            {type === 'account_card' && <section className="goods-form-section"><div className="goods-section-heading"><span><strong>Phạm vi thanh toán</strong><small>Chọn loại hàng và hàng hóa được phép thanh toán bằng thẻ.</small></span><i className="ph ph-caret-up" /></div><div className="scope-type-options">{[['product', 'Sản phẩm'], ['service', 'Dịch vụ'], ['package', 'Gói dịch vụ, liệu trình']].map(([value, label]) => <label key={value}><input type="checkbox" checked={allowedTypes.includes(value)} onChange={() => toggleAllowedType(value)} />{label}</label>)}</div>{errors.allowedTypes && <small className="field-error section-error">{errors.allowedTypes}</small>}<div className="scope-items"><strong>Giới hạn theo hàng hóa cụ thể</strong><small>Không chọn mục nào nghĩa là áp dụng cho toàn bộ loại hàng đã chọn.</small>{catalog.isPending ? <div className="goods-inline-state">Đang tải hàng hóa...</div> : availableItems.filter((item) => allowedTypes.includes(item.itemType)).length ? <div className="scope-item-grid">{availableItems.filter((item) => allowedTypes.includes(item.itemType)).map((item) => { const key = `${item.itemType}:${item.itemId}`; return <label key={key}><input type="checkbox" checked={scopeItems.includes(key)} onChange={() => setScopeItems((current) => current.includes(key) ? current.filter((value) => value !== key) : [...current, key])} /><span><strong>{item.name}</strong><small>{item.code}</small></span></label>; })}</div> : <div className="goods-inline-state">Chưa có hàng hóa để giới hạn phạm vi.</div>}</div></section>}
+            {type === 'account_card' && <section className="form-section is-card"><div className="form-section-head"><div><h3 className="form-section-title">Phạm vi thanh toán</h3><p className="form-section-text">Chọn loại hàng và hàng hóa được phép thanh toán bằng thẻ.</p></div></div><div className="scope-type-options">{[['product', 'Sản phẩm'], ['service', 'Dịch vụ'], ['package', 'Gói dịch vụ, liệu trình']].map(([value, label]) => <label key={value}><input type="checkbox" checked={allowedTypes.includes(value)} onChange={() => toggleAllowedType(value)} />{label}</label>)}</div>{errors.allowedTypes && <small className="field-error section-error">{errors.allowedTypes}</small>}<div className="scope-items"><strong>Giới hạn theo hàng hóa cụ thể</strong><small>Không chọn mục nào nghĩa là áp dụng cho toàn bộ loại hàng đã chọn.</small>{catalog.isPending ? <div className="goods-inline-state">Đang tải hàng hóa...</div> : availableItems.filter((item) => allowedTypes.includes(item.itemType)).length ? <div className="scope-item-grid">{availableItems.filter((item) => allowedTypes.includes(item.itemType)).map((item) => { const key = `${item.itemType}:${item.itemId}`; return <label key={key}><input type="checkbox" checked={scopeItems.includes(key)} onChange={() => setScopeItems((current) => current.includes(key) ? current.filter((value) => value !== key) : [...current, key])} /><span><strong>{item.name}</strong><small>{item.code}</small></span></label>; })}</div> : <div className="goods-inline-state">Chưa có hàng hóa để giới hạn phạm vi.</div>}</div></section>}
           </> : <div className="goods-details-tab">
-            <div className="goods-field"><label htmlFor="goods-image">Đường dẫn hình ảnh</label><input id="goods-image" type="url" value={form.imageUrl} onChange={(event) => update('imageUrl', event.target.value)} placeholder="https://..." /><small className="field-help">Có thể bổ sung dịch vụ lưu trữ ảnh sau. Hiện tại đường dẫn được lưu trực tiếp trong database.</small></div>
-            <div className="goods-field"><label htmlFor="goods-description">Mô tả</label><textarea id="goods-description" rows={6} value={form.description} onChange={(event) => update('description', event.target.value)} placeholder={`Mô tả ${copy.noun}`} /></div>
-            <div className="goods-field"><label htmlFor="goods-note">Ghi chú nội bộ</label><textarea id="goods-note" rows={4} value={form.note} onChange={(event) => update('note', event.target.value)} placeholder="Thông tin chỉ dùng trong nội bộ" /></div>
+            <div className="field"><label className="field-label" htmlFor="goods-image">Đường dẫn hình ảnh</label><input className="input" id="goods-image" type="url" value={form.imageUrl} onChange={(event) => update('imageUrl', event.target.value)} placeholder="https://..." /><small className="field-help">Có thể bổ sung dịch vụ lưu trữ ảnh sau. Hiện tại đường dẫn được lưu trực tiếp trong database.</small></div>
+            <div className="field"><label className="field-label" htmlFor="goods-description">Mô tả</label><textarea className="textarea" id="goods-description" rows={6} value={form.description} onChange={(event) => update('description', event.target.value)} placeholder={`Mô tả ${copy.noun}`} /></div>
+            <div className="field"><label className="field-label" htmlFor="goods-note">Ghi chú nội bộ</label><textarea className="textarea" id="goods-note" rows={4} value={form.note} onChange={(event) => update('note', event.target.value)} placeholder="Thông tin chỉ dùng trong nội bộ" /></div>
           </div>}
         </div>
-        <footer className="goods-dialog-footer"><button className="secondary-button" type="button" onClick={onClose} disabled={mutation.isPending}>Bỏ qua</button><button className="primary-button" type="submit" disabled={mutation.isPending || (isEdit && itemQuery.isPending) || Boolean(itemQuery.error)}>{mutation.isPending ? 'Đang lưu...' : isEdit && itemQuery.isPending ? 'Đang tải...' : 'Lưu'}</button></footer>
+        <footer className="modal-footer"><button className="btn btn-secondary" type="button" onClick={onClose} disabled={mutation.isPending}>Bỏ qua</button><button className="btn btn-primary" type="submit" disabled={mutation.isPending || (isEdit && itemQuery.isPending) || Boolean(itemQuery.error)}>{mutation.isPending ? 'Đang lưu...' : isEdit && itemQuery.isPending ? 'Đang tải...' : 'Lưu'}</button></footer>
       </form>
-    </section>
-  </div></MobileDialogPortal>;
+  </Modal>;
 }

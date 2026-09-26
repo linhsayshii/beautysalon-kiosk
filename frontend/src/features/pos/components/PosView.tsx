@@ -2,8 +2,9 @@ import { useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { ErrorState } from '@/components/data-display/DataState';
+import { EmptyState, ErrorState, LoadingState } from '@/components/data-display/DataState';
 import { useToast } from '@/components/ui/Toast/ToastProvider';
+import { useComingSoon } from '@/components/ui/Toast/useComingSoon';
 import { Select } from '@/components/ui/Select/Select';
 import { DateTimePickerField } from '@/components/ui/DateTimePicker';
 import { useAuth } from '@/features/auth/AuthProvider';
@@ -16,7 +17,6 @@ import { CustomerCreateDialog } from '@/features/operations/components/CustomerC
 import { PosCheckoutModal } from './PosCheckoutModal';
 import { PosReceiptPrint } from './PosReceiptPrint';
 import { UsePackageModal } from './UsePackageModal';
-import '@/features/pos/pos.css';
 
 type CatalogFilter = '' | 'service' | 'package' | 'account_card' | 'product';
 type PosMode = 'calendar' | 'invoice';
@@ -118,6 +118,7 @@ export function PosView() {
   const nextId = useRef(Math.max(...invoices.map((invoice) => invoice.id)) + 1);
   const deferredCatalogSearch = useDeferredValue(catalogSearch.trim());
   const { notify } = useToast();
+  const comingSoon = useComingSoon();
   const queryClient = useQueryClient();
 
   const activeInvoice = invoices.find((invoice) => invoice.id === activeId) ?? invoices[0];
@@ -446,7 +447,7 @@ export function PosView() {
                 {activeInvoice.lines.map((line) => <article className="pos-line" key={`${line.itemType}-${line.itemId}`}>
                   <span className={`pos-line-icon is-${line.itemType}`}><i className={`ph ${itemIcons[line.itemType]}`} /></span>
                   <div className="pos-line-copy">
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <div className="pos-line-title">
                       {line.usePackageId && <span className="kv-package-badge">Đã trừ gói</span>}
                       <strong>{line.name}</strong>
                     </div>
@@ -476,9 +477,9 @@ export function PosView() {
           </div>
 
           <footer className="pos-bill-footer">
-            <div className="pos-bill-note"><button type="button"><i className="ph ph-note-pencil" />Ghi chú</button><span>{activeInvoice.customer?.name ?? 'Chưa chọn khách hàng'}</span></div>
+            <div className="pos-bill-note"><button type="button" onClick={comingSoon}><i className="ph ph-note-pencil" />Ghi chú</button><span>{activeInvoice.customer?.name ?? 'Chưa chọn khách hàng'}</span></div>
             <div className="pos-total-row"><span>Tổng thanh toán</span><strong>{formatMoney(subtotal)}</strong></div>
-            <button className="pos-pay-button" type="button" disabled={!activeInvoice.lines.length} onClick={() => {
+            <button className="btn btn-primary btn-lg pos-pay-button" type="button" disabled={!activeInvoice.lines.length} onClick={() => {
               if (!activeInvoice.customer) {
                 notify('Cần chọn khách hàng', 'Vui lòng chọn hoặc thêm khách hàng trước khi thanh toán.');
                 return;
@@ -992,7 +993,7 @@ function AppointmentDrawer({
                 )}
               />
 
-              <button type="button" className="kv-drawer-close-btn" onClick={onClose} aria-label="Đóng">
+              <button type="button" className="modal-close" onClick={onClose} aria-label="Đóng">
                 <i className="ph ph-x" aria-hidden="true" />
               </button>
             </div>
@@ -1035,7 +1036,7 @@ function AppointmentDrawer({
                   />
                   <button
                     type="button"
-                    className="kv-customer-add-btn"
+                    className="btn btn-ghost btn-icon btn-sm"
                     aria-label="Thêm khách hàng mới"
                     onClick={() => setIsAddingCustomer(true)}
                     title="Tạo khách hàng mới"
@@ -1048,9 +1049,9 @@ function AppointmentDrawer({
               {customerOpen && deferredCustomerSearch.length >= 2 && !customer && (
                 <div className="kv-customer-dropdown">
                   {customers.isPending ? (
-                    <div style={{ padding: '12px', textAlign: 'center', color: '#94a3b8', fontSize: '12px' }}>Đang tìm kiếm...</div>
+                    <div className="kv-customer-dropdown-state">Đang tìm kiếm...</div>
                   ) : !customers.data?.data.length ? (
-                    <div style={{ padding: '12px', textAlign: 'center', color: '#94a3b8', fontSize: '12px' }}>Không tìm thấy khách hàng</div>
+                    <div className="kv-customer-dropdown-state">Không tìm thấy khách hàng</div>
                   ) : (
                     customers.data.data.map((item) => (
                       <button
@@ -1077,36 +1078,15 @@ function AppointmentDrawer({
 
             {/* Thẻ thông báo gói dịch vụ khả dụng của khách hàng */}
             {customer && availablePackages.data?.data && availablePackages.data.data.length > 0 && selectedServices.length === 0 && (
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                padding: '10px 14px',
-                borderRadius: '12px',
-                background: '#ecfdf5',
-                border: '1px solid #a7f3d0'
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <i className="ph ph-gift" style={{ color: '#059669', fontSize: '18px' }} />
-                  <div>
-                    <strong style={{ display: 'block', color: '#065f46', fontSize: '12.5px' }}>
-                      Khách có {availablePackages.data.data.length} gói dịch vụ còn lượt
-                    </strong>
-                    <small style={{ color: '#047857' }}>Có thể chọn dùng buổi trong gói</small>
-                  </div>
+              <div className="alert alert-success pos-package-notice">
+                <i className="ph ph-gift" />
+                <div>
+                  <strong>Khách có {availablePackages.data.data.length} gói dịch vụ còn lượt</strong>
+                  <small>Có thể chọn dùng buổi trong gói</small>
                 </div>
                 <button
                   type="button"
-                  style={{
-                    padding: '4px 10px',
-                    borderRadius: '8px',
-                    background: '#10b981',
-                    color: '#fff',
-                    border: 0,
-                    fontSize: '11.5px',
-                    fontWeight: 700,
-                    cursor: 'pointer'
-                  }}
+                  className="btn btn-success btn-sm"
                   onClick={() => { setReplaceServiceLineId(null); setIsServiceModalOpen(true); }}
                 >
                   Chọn gói
@@ -1124,7 +1104,7 @@ function AppointmentDrawer({
                   <span className="kv-empty-text">Chưa có dịch vụ, sản phẩm</span>
                   <button
                     type="button"
-                    className="kv-add-service-btn"
+                    className="btn btn-secondary btn-sm"
                     onClick={() => { setReplaceServiceLineId(null); setIsServiceModalOpen(true); }}
                   >
                     Thêm dịch vụ, sản phẩm
@@ -1141,12 +1121,12 @@ function AppointmentDrawer({
                     return (
                       <div key={service.lineId} className="kv-service-row">
                         <div className="kv-service-row-main">
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <div className="pos-line-title">
                             {service.fromPackageId && <span className="kv-package-badge">Trừ gói</span>}
                             <span className="kv-service-title">{service.name}</span>
                           </div>
                           {service.packageName && (
-                            <small style={{ color: '#047857', fontWeight: 600, fontSize: '11.5px' }}>
+                            <small className="kv-service-package">
                               Gói: {service.packageName} (Còn {service.remainingUnits} buổi)
                             </small>
                           )}
@@ -1158,7 +1138,7 @@ function AppointmentDrawer({
                           </div>
                           <button
                             type="button"
-                            className="kv-service-change-btn"
+                            className="btn btn-link btn-sm"
                             onClick={() => {
                               setReplaceServiceLineId(service.lineId);
                               setIsServiceModalOpen(true);
@@ -1182,7 +1162,7 @@ function AppointmentDrawer({
                         </div>
                         <button
                           type="button"
-                          className="kv-service-remove-btn"
+                          className="btn btn-ghost btn-icon btn-sm"
                           onClick={() => setSelectedServices((current) => current.filter((item) => item.lineId !== service.lineId))}
                           title="Xóa dịch vụ"
                         >
@@ -1193,8 +1173,7 @@ function AppointmentDrawer({
                   })}
                   <button
                     type="button"
-                    className="kv-add-service-btn"
-                    style={{ alignSelf: 'flex-start', fontSize: '12.5px', padding: '6px 14px' }}
+                    className="btn btn-secondary btn-sm kv-add-service"
                     onClick={() => { setReplaceServiceLineId(null); setIsServiceModalOpen(true); }}
                   >
                     Thêm dịch vụ
@@ -1207,7 +1186,7 @@ function AppointmentDrawer({
             <div className="kv-note-box">
               <button
                 type="button"
-                className="kv-note-toggle-btn"
+                className="btn btn-link btn-sm"
                 onClick={() => setIsNoteOpen((prev) => !prev)}
               >
                 <i className="ph ph-pencil-simple" aria-hidden="true" />
@@ -1226,9 +1205,9 @@ function AppointmentDrawer({
             </div>
 
             {saveMutation.error && (
-              <div style={{ padding: '10px 12px', borderRadius: '10px', background: '#fee2e2', color: '#dc2626', fontSize: '12px' }}>
-                <i className="ph ph-warning-circle" style={{ marginRight: '6px' }} />
-                {saveMutation.error?.message || 'Có lỗi xảy ra khi lưu lịch hẹn'}
+              <div className="alert alert-danger" role="alert">
+                <i className="ph ph-warning-circle" />
+                <div>{saveMutation.error?.message || 'Có lỗi xảy ra khi lưu lịch hẹn'}</div>
               </div>
             )}
           </div>
@@ -1237,7 +1216,7 @@ function AppointmentDrawer({
           <footer className="kv-drawer-footer">
             <button
               type="submit"
-              className="kv-save-btn"
+              className="btn btn-primary btn-lg btn-block"
               disabled={!customer || isPending}
             >
               {isPending ? 'Đang lưu...' : 'Lưu thay đổi'}
@@ -1250,7 +1229,7 @@ function AppointmentDrawer({
           <div className="kv-service-picker-modal">
             <header className="kv-service-picker-header">
               <h3>Chọn dịch vụ, sản phẩm</h3>
-              <button type="button" className="kv-drawer-close-btn" onClick={() => setIsServiceModalOpen(false)}>
+              <button type="button" className="modal-close" onClick={() => setIsServiceModalOpen(false)}>
                 <i className="ph ph-x" />
               </button>
             </header>
@@ -1290,8 +1269,8 @@ function AppointmentDrawer({
                     >
                       <div>
                         <span className="kv-package-badge">Gói của khách</span>
-                        <strong style={{ display: 'block', color: '#065f46', fontSize: '13.5px' }}>{pkg.service.name}</strong>
-                        <small style={{ color: '#047857' }}>
+                        <strong>{pkg.service.name}</strong>
+                        <small>
                           Gói: {pkg.packageName} · {pkg.packageCode}
                         </small>
                       </div>
@@ -1303,15 +1282,13 @@ function AppointmentDrawer({
 
               {/* Bảng giá dịch vụ thông thường */}
               {customer && availablePackages.data?.data && availablePackages.data.data.length > 0 && (
-                <div style={{ fontSize: '12px', fontWeight: 700, color: '#64748b', padding: '4px 4px 2px' }}>
-                  Bảng giá dịch vụ salon
-                </div>
+                <div className="kv-picker-group-title">Bảng giá dịch vụ salon</div>
               )}
 
               {services.isPending ? (
-                <div style={{ padding: '20px', textAlign: 'center', color: '#94a3b8' }}>Đang tải danh sách dịch vụ...</div>
+                <LoadingState compact label="Đang tải danh sách dịch vụ..." />
               ) : !catalogServices.length ? (
-                <div style={{ padding: '20px', textAlign: 'center', color: '#94a3b8' }}>Không có dịch vụ nào phù hợp</div>
+                <EmptyState compact title="Không có dịch vụ nào phù hợp" message={null} />
               ) : (
                 catalogServices.map((svc) => (
                   <button
@@ -1330,10 +1307,10 @@ function AppointmentDrawer({
                     }}
                   >
                     <div>
-                      <strong style={{ display: 'block', color: '#1e293b', fontSize: '13.5px' }}>{svc.name}</strong>
-                      <small style={{ color: '#64748b' }}>{svc.code} · {svc.category || 'Dịch vụ'}</small>
+                      <strong>{svc.name}</strong>
+                      <small>{svc.code} · {svc.category || 'Dịch vụ'}</small>
                     </div>
-                    <span style={{ color: '#059669', fontWeight: 700, fontSize: '13.5px' }}>{formatMoney(svc.salePrice)}</span>
+                    <span className="kv-picker-price">{formatMoney(svc.salePrice)}</span>
                   </button>
                 ))
               )}

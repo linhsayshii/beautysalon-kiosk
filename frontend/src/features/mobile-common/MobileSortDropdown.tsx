@@ -1,5 +1,4 @@
 import { Select } from '@/components/ui/Select/Select';
-import './mobile-common.css';
 
 export interface SortOption<T extends string = string> {
   value: T;
@@ -26,10 +25,7 @@ export function MobileSortDropdown<T extends string = string>({
       options={options}
       onChange={onChange}
       variant="pill"
-      size="sm"
-      align="right"
-      className={`mobile-sort-dropdown-container ${className}`}
-      triggerClassName="mobile-sort-trigger-btn"
+      className={className}
     />
   );
 }

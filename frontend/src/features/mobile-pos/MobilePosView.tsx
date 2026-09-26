@@ -2,13 +2,13 @@ import { useState, useMemo, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { formatMoney, formatNumber } from '@/lib/format';
-import { LoadingState, ErrorState } from '@/components/data-display/DataState';
+import { EmptyState, ErrorState, LoadingState } from '@/components/data-display/DataState';
 import { Select } from '@/components/ui/Select/Select';
 import { getPosCatalog, getPosInvoice, getPosPaymentRequests, getPosPriceQuote, getPosStaff, getPosCustomerServicePackages, type PosReceiptData, type ServicePackageOption } from '@/features/pos/pos.api';
 import { PosReceiptPrint } from '@/features/pos/components/PosReceiptPrint';
 import { UsePackageModal } from '@/features/pos/components/UsePackageModal';
 import { MobileCartBottomSheet } from './MobileCartBottomSheet';
-import '@/features/mobile-pos/mobile-pos.css';
+import { MobileSearchBar } from '@/features/mobile-common';
 
 type CatalogFilter = '' | 'service' | 'package' | 'account_card' | 'product';
 
@@ -346,39 +346,16 @@ export function MobilePosView() {
       ) : null}
       {/* Sticky Top Controls Cluster */}
       <div className="mobile-pos-sticky-top-controls">
-        {/* Top Search & Actions */}
-        <div className="mobile-pos-header">
-          <div className="mobile-pos-search-wrapper">
-            <i className="ph ph-magnifying-glass search-icon" />
-            <input
-              type="text"
-              className="mobile-pos-search-input"
-              placeholder="Tìm hàng hóa"
-              aria-label="Tìm hàng hóa"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
-            {search && (
-              <button
-                type="button"
-                className="mobile-pos-search-clear"
-                onClick={() => setSearch('')}
-                aria-label="Xóa tìm kiếm"
-              >
-                <i className="ph ph-x" />
-              </button>
-            )}
-          </div>
+        <MobileSearchBar value={search} placeholder="Tìm hàng hóa" onChange={setSearch} />
 
-        </div>
-
-        {/* Category Filter Horizontal Tabs */}
-        <div className="mobile-pos-category-tabs">
+        {/* Category filter */}
+        <div className="m-chip-strip">
           {filterTabs.map((tab) => (
             <button
               key={tab.value}
               type="button"
-              className={`mobile-pos-tab-pill ${activeTab === tab.value ? 'is-active' : ''}`}
+              className="chip"
+              aria-pressed={activeTab === tab.value}
               onClick={() => {
                 setActiveTab(tab.value);
                 setSelectedSubCategory('');
@@ -391,19 +368,17 @@ export function MobilePosView() {
 
         {/* Subcategory dropdown / pill */}
         <div className="mobile-pos-filter-row">
-          <div className="mobile-pos-subcat-select">
+          <div className="chip">
             <i className="ph ph-funnel" />
             <Select
               aria-label="Nhóm hàng"
               value={selectedSubCategory}
               onChange={setSelectedSubCategory}
               variant="ghost"
-              size="sm"
-              triggerClassName="mobile-pos-subcat-trigger"
               options={[{ value: '', label: 'Tất cả nhóm hàng' }, ...subCategories.map((category) => ({ value: category, label: category }))]}
             />
           </div>
-          <span style={{ fontSize: 12, color: 'var(--ink-500)' }}>
+          <span className="text-muted">
             {filteredItems.length} mặt hàng
           </span>
         </div>
@@ -411,24 +386,17 @@ export function MobilePosView() {
 
       {/* Grouped Items List */}
       {catalogQuery.isPending ? (
-        <div style={{ padding: '30px 16px' }}>
-          <LoadingState />
-        </div>
+        <LoadingState compact />
       ) : catalogQuery.error ? (
-        <div style={{ padding: '30px 16px' }}>
-          <ErrorState error={catalogQuery.error} onRetry={() => catalogQuery.refetch()} />
-        </div>
+        <ErrorState compact error={catalogQuery.error} onRetry={() => catalogQuery.refetch()} />
       ) : Object.keys(groupedItems).length === 0 ? (
-        <div style={{ padding: '40px 0', textAlign: 'center', color: 'var(--ink-400)' }}>
-          <i className="ph ph-magnifying-glass" style={{ fontSize: 32, marginBottom: 8, display: 'inline-block' }} />
-          <div>Không tìm thấy mặt hàng nào</div>
-        </div>
+        <EmptyState compact title="Không tìm thấy mặt hàng nào" message={null} />
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <div className="mobile-pos-groups">
           {Object.entries(groupedItems).map(([groupName, items]) => (
             <div key={groupName} className="mobile-pos-group">
               <div className="mobile-pos-group-title">{groupName}</div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <div className="mobile-pos-group-items">
                 {items.map((item) => {
                   const inCart = cartLines.find(
                     (l) => l.itemId === item.itemId && l.itemType === item.itemType
@@ -477,7 +445,7 @@ export function MobilePosView() {
           onClick={() => setIsCartExpanded(!isCartExpanded)}
         >
           <span className="cart-title">
-            <i className="ph ph-shopping-cart-simple" style={{ marginRight: 8 }} />
+            <i className="ph ph-shopping-cart-simple" />
             {invoiceId ? <span className="cart-invoice-identity"><strong>Đang thanh toán · {invoiceQuery.data?.data?.code || 'Đang tải…'}</strong><small>{customer?.name || 'Đang tải khách hàng…'} · {totalCartCount} mục</small></span> : <>Giỏ hàng ({totalCartCount})</>}
           </span>
           <span className="cart-toggle">
@@ -541,7 +509,7 @@ export function MobilePosView() {
 
         <button
           type="button"
-          className="checkout-btn"
+          className="btn btn-primary btn-lg checkout-btn"
           disabled={cartLines.length === 0 || Boolean(invoiceId && (invoiceQuery.isPending || invoiceQuery.isError || invoiceQuery.data?.data?.status !== 'draft'))}
           onClick={() => setIsCartOpen(true)}
         >

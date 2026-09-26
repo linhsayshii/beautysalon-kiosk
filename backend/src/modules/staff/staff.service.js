@@ -727,7 +727,8 @@ async function calculatePeriodPayrollInternal(client, branchId, periodId, starts
   const staffDeductionsMap = new Map();
   for (const row of staffProfilesRes.rows) {
     const data = row.data || {};
-    const deductions = data.deductions || [];
+    // The "Áp dụng giảm trừ" switch keeps the rows but turns them off.
+    const deductions = data.enableDeduction === false ? [] : data.deductions || [];
     staffDeductionsMap.set(number(row.staff_id), deductions);
   }
 

@@ -1,0 +1,557 @@
+/*
+ * Page frames.
+ *
+ * Desktop (inside AdminLayout):
+ *   <main className="page"><div className="page-stack">
+ *     <PageHeader …/>                 → .page-header / .page-title / .page-subtitle / .page-actions
+ *     <SummaryStrip …/>               → .summary-strip / .summary-tile
+ *     <div className="page-grid">     → filter sidebar + .data-panel
+ *   </div></main>
+ *
+ * Mobile (inside MobileAppLayout's scroll container):
+ *   <div className="m-page">
+ *     <MobilePageHeader …/>           → .m-header / .m-header-bar / .m-header-title / .m-header-extra
+ *     <div className="m-body">…</div>
+ *     <button className="m-fab">…</button> | <div className="m-footer">…</div>
+ *   </div>
+ */
+
+/* Desktop */
+.page {
+  max-width: 1920px;
+  min-height: calc(100dvh - 76px);
+  margin: 0 auto;
+  padding: 14px var(--page-gutter) 32px;
+}
+
+.page[hidden],
+.dashboard[hidden] {
+  display: none !important;
+}
+
+.page-stack {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+}
+
+.page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  min-height: 48px;
+}
+
+.page-header-main {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.page-header-copy {
+  min-width: 0;
+}
+
+.page-title {
+  color: var(--ink-950);
+  font-size: clamp(22px, 2vw, 28px);
+  font-weight: var(--weight-heavy);
+  line-height: 1.16;
+  letter-spacing: -0.035em;
+}
+
+.page-subtitle {
+  margin-top: 3px;
+  color: var(--ink-600);
+  font-size: var(--text-sm);
+}
+
+.page-actions,
+.table-actions,
+.filter-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.page-actions {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.summary-strip {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.summary-tile {
+  position: relative;
+  min-width: 0;
+  min-height: 88px;
+  padding: 14px 16px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  background: var(--surface);
+  box-shadow: var(--shadow-card);
+}
+
+.summary-tile::after {
+  content: "";
+  position: absolute;
+  right: -30px;
+  bottom: -48px;
+  width: 110px;
+  height: 110px;
+  border-radius: 50%;
+  background: var(--tile-soft, var(--blue-100));
+  opacity: 0.55;
+}
+
+.summary-tile > span,
+.summary-tile > strong,
+.summary-tile > small {
+  position: relative;
+  z-index: 1;
+  display: block;
+}
+
+.summary-tile > span {
+  color: var(--ink-600);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+}
+
+.summary-tile > strong {
+  margin-top: 5px;
+  overflow: hidden;
+  color: var(--ink-950);
+  font-size: 23px;
+  font-weight: var(--weight-heavy);
+  letter-spacing: -0.035em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.summary-tile > small {
+  margin-top: 3px;
+  color: var(--ink-500);
+  font-size: var(--text-xs);
+}
+
+.summary-tile.green { --tile-soft: var(--green-soft); }
+.summary-tile.orange { --tile-soft: var(--orange-soft); }
+.summary-tile.red { --tile-soft: var(--red-soft); }
+.summary-tile.violet { --tile-soft: var(--violet-soft); }
+
+.page-grid {
+  display: grid;
+  grid-template-columns: 226px minmax(0, 1fr);
+  gap: 10px;
+  align-items: start;
+}
+
+.filter-panel {
+  display: grid;
+  gap: 14px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  background: var(--surface);
+  box-shadow: var(--shadow-card);
+}
+
+.filter-panel h2 {
+  font-size: 15px;
+}
+
+.filter-group {
+  display: grid;
+  gap: 6px;
+}
+
+.filter-group label {
+  color: var(--ink-800);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-bold);
+}
+
+.radio-option,
+.check-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 30px;
+  color: var(--ink-800);
+  font-size: var(--text-md);
+}
+
+.radio-option input,
+.check-option input,
+.table-checkbox {
+  width: 17px;
+  height: 17px;
+  margin: 0;
+  accent-color: var(--blue-600);
+}
+
+@media (max-width: 1120px) {
+  .summary-strip {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .page-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .filter-panel {
+    display: flex;
+    align-items: end;
+    gap: 10px;
+    overflow-x: auto;
+  }
+
+  .filter-panel h2 {
+    display: none;
+  }
+
+  .filter-group {
+    flex: 0 0 180px;
+  }
+
+  /* Checkbox lists and date ranges run along the bar instead of stacking. */
+  fieldset.filter-group {
+    display: flex;
+    flex: 0 0 auto;
+    flex-wrap: wrap;
+    column-gap: 14px;
+  }
+
+  .filter-panel > .date-filter-group {
+    flex: 0 0 auto;
+  }
+
+  .filter-panel > .date-filter-group .date-range-inputs {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .filter-panel > .date-filter-group .filter-control {
+    width: 145px;
+  }
+
+  .filter-panel > .date-filter-group .date-range-separator {
+    display: inline;
+  }
+
+  .filter-actions {
+    flex: 0 0 auto;
+  }
+}
+
+@media (max-width: 720px) {
+  .page {
+    padding: 16px var(--page-gutter) 28px;
+  }
+
+  .page-header {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .page-subtitle {
+    max-width: 46ch;
+  }
+
+  .page-actions {
+    justify-content: flex-start;
+    overflow-x: auto;
+  }
+
+  .summary-strip {
+    display: flex;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+  }
+
+  .summary-tile {
+    flex: 0 0 190px;
+    scroll-snap-align: start;
+  }
+
+  .filter-panel {
+    padding: 12px;
+  }
+}
+
+/* Mobile */
+.m-page {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  min-height: 100%;
+  background: var(--canvas);
+}
+
+.m-header {
+  position: sticky;
+  top: 0;
+  z-index: var(--z-sticky);
+  background: var(--surface);
+  box-shadow: 0 1px 0 var(--line), 0 2px 8px rgba(15, 23, 42, 0.04);
+}
+
+.m-header-bar {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 56px;
+  padding: 6px 8px 6px 6px;
+}
+
+.m-header-back {
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-inner);
+  color: var(--ink-800);
+  background: transparent;
+  font-size: 22px;
+}
+
+.m-header-back:active,
+.m-header-back:hover {
+  background: var(--surface-hover);
+}
+
+.m-header-heading {
+  display: grid;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.m-header-heading:first-child {
+  padding-left: 10px;
+}
+
+.m-header-title {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--ink-950);
+  font-size: var(--text-xl);
+  font-weight: var(--weight-heavy);
+  letter-spacing: -0.01em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.m-header-title > .badge {
+  margin-left: 6px;
+  vertical-align: 3px;
+}
+
+.m-header-subtitle {
+  overflow: hidden;
+  color: var(--ink-500);
+  font-size: var(--text-xs);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.m-header-actions {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 2px;
+}
+
+.m-header-action {
+  position: relative;
+}
+
+.m-header-action.btn-ghost {
+  color: var(--ink-800);
+}
+
+.m-header-action > i {
+  font-size: 21px;
+}
+
+.m-header-action.has-badge::after {
+  content: "";
+  position: absolute;
+  top: 9px;
+  right: 9px;
+  width: 8px;
+  height: 8px;
+  border: 2px solid var(--surface);
+  border-radius: 50%;
+  background: var(--red);
+}
+
+.m-header-extra {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 10px;
+  padding: 0 16px 12px;
+}
+
+/* Tabs as the last header row sit flush on the header's bottom edge. */
+.m-header-extra > .tabs {
+  gap: 24px;
+  margin: 0 -16px;
+  padding: 0 16px;
+  border-bottom: 0;
+}
+
+.m-header-extra > .tabs:last-child {
+  margin-bottom: -12px;
+}
+
+.m-header-extra > .tabs:not(:last-child) {
+  border-bottom: 1px solid var(--line);
+}
+
+/* Sort control + result count under the filters. */
+.m-summary-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 28px;
+  color: var(--ink-600);
+  font-size: var(--text-sm);
+}
+
+/* Left side of the summary bar when it is a label (period, day) rather than a sort dropdown. */
+.m-summary-title {
+  flex: 1 1 0;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--ink-950);
+  font-size: var(--text-md);
+  font-weight: var(--weight-bold);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.m-summary-count strong {
+  color: var(--ink-950);
+  font-weight: var(--weight-bold);
+}
+
+.m-summary-count {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--ink-500);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  text-align: right;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Horizontal strip of filter chips, scrolls edge to edge. */
+.m-chip-strip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 -16px;
+  padding: 0 16px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.m-chip-strip::-webkit-scrollbar {
+  display: none;
+}
+
+.m-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 12px 16px 24px;
+}
+
+.m-section {
+  display: grid;
+  gap: 8px;
+}
+
+.m-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.m-note {
+  padding: 8px 0;
+  color: var(--ink-500);
+  font-size: var(--text-sm);
+}
+
+.m-section-title {
+  color: var(--ink-600);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-bold);
+}
+
+.m-fab {
+  position: fixed;
+  right: 16px;
+  bottom: calc(var(--mobile-bottomnav-h, 60px) + var(--mobile-safe-bottom, 0px) + 16px);
+  z-index: var(--z-nav);
+  display: grid;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  color: #fff;
+  background: var(--blue-600);
+  font-size: 26px;
+  box-shadow: 0 6px 18px rgba(7, 86, 204, 0.35);
+  transition: transform var(--duration-fast) ease, background-color var(--duration-fast) ease;
+}
+
+.m-fab:active {
+  background: var(--blue-700);
+  transform: scale(0.94);
+}
+
+/* Sticky action bar at the bottom of full-screen mobile forms; it rides just
+ * above the fixed bottom navigation. */
+.m-footer {
+  position: sticky;
+  bottom: calc(var(--mobile-bottomnav-h, 60px) + var(--mobile-safe-bottom, 0px));
+  z-index: var(--z-sticky);
+  display: flex;
+  gap: 10px;
+  margin-top: auto;
+  padding: 12px 16px;
+  border-top: 1px solid var(--line);
+  background: var(--surface);
+  box-shadow: 0 -4px 16px rgba(15, 23, 42, 0.06);
+}
+
+.m-page:has(.m-footer) ~ .m-fab,
+.m-page:has(.m-footer) .m-fab {
+  bottom: calc(var(--mobile-bottomnav-h, 60px) + var(--mobile-safe-bottom, 0px) + 84px);
+}
+
+.m-footer > .btn {
+  flex: 1 1 0;
+}

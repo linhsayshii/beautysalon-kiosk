@@ -36,8 +36,8 @@ export function StaffCommissionsView() {
     .reduce((sum: number, row: Record<string, any>) => sum + Number(row.amount), 0);
 
   return (
-    <main className="workspace">
-      <div className="workspace-shell">
+    <main className="page">
+      <div className="page-stack">
         <PageHeader
           title="Bảng hoa hồng"
           subtitle="Tổng hợp và chi tiết hoa hồng theo nhân viên, thực hiện dịch vụ và tư vấn bán hàng."
@@ -53,27 +53,31 @@ export function StaffCommissionsView() {
         />
 
         <section className="data-panel">
-          <div className="data-toolbar" style={{ justifyContent: 'space-between' }}>
-            <div className="commission-view-tabs goods-dialog-tabs" style={{ padding: 0, border: 0 }}>
+          <div className="data-toolbar">
+            <div className="segmented" role="tablist" aria-label="Chế độ xem hoa hồng">
               <button
                 type="button"
+                role="tab"
+                aria-selected={activeTab === 'by_staff'}
                 className={activeTab === 'by_staff' ? 'is-active' : ''}
                 onClick={() => setActiveTab('by_staff')}
               >
-                <i className="ph ph-users" style={{ marginRight: 6 }} />
+                <i className="ph ph-users" />
                 Tổng hợp theo nhân viên ({staffSummary.length})
               </button>
               <button
                 type="button"
+                role="tab"
+                aria-selected={activeTab === 'details'}
                 className={activeTab === 'details' ? 'is-active' : ''}
                 onClick={() => setActiveTab('details')}
               >
-                <i className="ph ph-receipt" style={{ marginRight: 6 }} />
+                <i className="ph ph-receipt" />
                 Chi tiết giao dịch ({rows.length})
               </button>
             </div>
 
-            <div className="table-actions" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div className="table-actions">
               <DateRangeFilter
                 label="Kỳ hoa hồng"
                 from={draft.from}
@@ -82,7 +86,7 @@ export function StaffCommissionsView() {
                 onToChange={(to) => setDraft({ ...draft, to })}
                 layout="inline"
               />
-              <button className="secondary-button" type="button" onClick={() => setRange(draft)}>
+              <button className="btn btn-secondary" type="button" onClick={() => setRange(draft)}>
                 <i className="ph ph-funnel" />
                 Lọc
               </button>
@@ -103,11 +107,11 @@ export function StaffCommissionsView() {
                     <thead>
                       <tr>
                         <th>Nhân viên</th>
-                        <th style={{ textAlign: 'right' }}>DT Dịch vụ</th>
-                        <th style={{ textAlign: 'right', color: 'var(--blue-700)' }}>HH Thực hiện DV</th>
-                        <th style={{ textAlign: 'right' }}>DT Tư vấn</th>
-                        <th style={{ textAlign: 'right', color: 'var(--violet)' }}>HH Tư vấn bán hàng</th>
-                        <th style={{ textAlign: 'right', color: 'var(--green)' }}>Tổng hoa hồng</th>
+                        <th className="is-num">DT Dịch vụ</th>
+                        <th className="is-num text-primary">HH Thực hiện DV</th>
+                        <th className="is-num">DT Tư vấn</th>
+                        <th className="is-num text-violet">HH Tư vấn bán hàng</th>
+                        <th className="is-num text-success">Tổng hoa hồng</th>
                         <th>Lượt phát sinh</th>
                         <th />
                       </tr>
@@ -122,30 +126,27 @@ export function StaffCommissionsView() {
                               tone={summary.staff.avatarTone}
                             />
                           </td>
-                          <td data-label="DT Dịch vụ" className="money-cell" style={{ textAlign: 'right' }}>
+                          <td data-label="DT Dịch vụ" className="money-cell is-num">
                             {formatMoney(summary.serviceRevenue)}
                           </td>
                           <td
                             data-label="HH Thực hiện"
-                            className="money-cell"
-                            style={{ textAlign: 'right', color: 'var(--blue-700)', fontWeight: 750 }}
+                            className="money-cell is-num text-primary"
                           >
                             {formatMoney(summary.serviceAmount)}
                           </td>
-                          <td data-label="DT Tư vấn" className="money-cell" style={{ textAlign: 'right' }}>
+                          <td data-label="DT Tư vấn" className="money-cell is-num">
                             {formatMoney(summary.consultingRevenue)}
                           </td>
                           <td
                             data-label="HH Tư vấn"
-                            className="money-cell"
-                            style={{ textAlign: 'right', color: 'var(--violet)', fontWeight: 750 }}
+                            className="money-cell is-num text-violet"
                           >
                             {formatMoney(summary.consultingAmount)}
                           </td>
                           <td
                             data-label="Tổng hoa hồng"
-                            className="money-cell"
-                            style={{ textAlign: 'right', color: 'var(--green)', fontSize: '13px', fontWeight: 800 }}
+                            className="money-cell is-num text-success"
                           >
                             {formatMoney(summary.totalAmount)}
                           </td>
@@ -215,11 +216,11 @@ export function StaffCommissionsView() {
                       <th>Loại hoa hồng</th>
                       <th>Nguồn / Hàng hóa - Dịch vụ</th>
                       <th>Sản phẩm</th>
-                      <th style={{ textAlign: 'right' }}>SL</th>
+                      <th className="is-num">SL</th>
                       <th>Hóa đơn</th>
-                      <th style={{ textAlign: 'right' }}>Doanh thu</th>
+                      <th className="is-num">Doanh thu</th>
                       <th>Tỷ lệ</th>
-                      <th style={{ textAlign: 'right' }}>Hoa hồng</th>
+                      <th className="is-num">Hoa hồng</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -234,19 +235,7 @@ export function StaffCommissionsView() {
                           />
                         </td>
                         <td data-label="Loại hoa hồng">
-                          <span
-                            style={{
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              padding: '3px 8px',
-                              borderRadius: '6px',
-                              fontSize: '11px',
-                              fontWeight: 700,
-                              background: row.commissionType === 'consulting' ? '#f0edff' : 'var(--blue-50)',
-                              color: row.commissionType === 'consulting' ? 'var(--violet)' : 'var(--blue-700)',
-                              border: `1px solid ${row.commissionType === 'consulting' ? '#dcd6fa' : 'var(--blue-200)'}`,
-                            }}
-                          >
+                          <span className={row.commissionType === 'consulting' ? 'badge badge-violet' : 'badge badge-info'}>
                             {row.commissionType === 'consulting' ? 'Tư vấn bán hàng' : 'Thực hiện dịch vụ'}
                           </span>
                         </td>
@@ -256,24 +245,19 @@ export function StaffCommissionsView() {
                         <td data-label="Sản phẩm">
                           <span className="cell-main">{row.productName || row.sourceName}</span>
                         </td>
-                        <td data-label="SL" className="numeric-cell" style={{ textAlign: 'right' }}>
+                        <td data-label="SL" className="numeric-cell is-num">
                           {formatNumber(row.itemQuantity ?? 1)}
                         </td>
                         <td data-label="Hóa đơn">
                           <span className="cell-main link">{row.invoiceCode ?? '-'}</span>
                         </td>
-                        <td data-label="Doanh thu" className="money-cell" style={{ textAlign: 'right' }}>
+                        <td data-label="Doanh thu" className="money-cell is-num">
                           {formatMoney(row.revenue)}
                         </td>
                         <td data-label="Tỷ lệ">{formatPercent(row.rate)}</td>
                         <td
                           data-label="Hoa hồng"
-                          className="money-cell"
-                          style={{
-                            textAlign: 'right',
-                            color: row.commissionType === 'consulting' ? 'var(--violet)' : 'var(--green)',
-                            fontWeight: 750,
-                          }}
+                          className={`money-cell is-num ${row.commissionType === 'consulting' ? 'text-violet' : 'text-success'}`}
                         >
                           {formatMoney(row.amount)}
                         </td>

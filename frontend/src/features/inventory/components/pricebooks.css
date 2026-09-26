@@ -1,146 +1,12 @@
 /* Keep this dialog isolated from generic modal styles used by other screens. */
-.pricebook-dialog-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 1200;
-  display: grid;
-  place-items: center;
-  padding: 24px;
-  background: rgba(15, 23, 42, 0.48);
-  backdrop-filter: blur(2px);
-  -webkit-backdrop-filter: blur(2px);
-}
-
-.pricebook-dialog-modal {
-  width: min(560px, 100%);
-  max-height: calc(100dvh - 48px);
-  overflow-y: auto;
-  isolation: isolate;
-  background: var(--surface, #ffffff);
-  border: 1px solid var(--line, #cbd5e1);
-  border-radius: var(--radius-card, 14px);
-  box-shadow: var(--shadow-float, 0 20px 60px rgba(0, 0, 0, 0.3));
-}
-
-.pricebook-dialog-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 16px 20px;
-  border-bottom: 1px solid var(--line, #cbd5e1);
-}
-
-.pricebook-dialog-header h3 {
-  margin: 0;
-  font-size: 18px;
-  font-weight: 600;
-}
-
-.pricebook-dialog-close {
-  background: none;
-  border: none;
-  font-size: 24px;
-  cursor: pointer;
-  color: var(--ink-500, #475569);
-  padding: 0;
-  line-height: 1;
-}
-
-.pricebook-dialog-close:hover {
-  color: var(--ink-950, #0f172a);
-}
-
-.pricebook-dialog-body {
-  padding: 20px;
-}
-
-.pricebook-dialog-footer {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 16px 20px;
-  border-top: 1px solid var(--line, #cbd5e1);
-}
-
-.pricebook-dialog-actions {
-  display: flex;
-  gap: 8px;
-  margin-left: auto;
-}
-
 /* Form styles */
-.form-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 16px;
-}
-
-.form-field {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.form-field label {
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--ink-600, #334155);
-}
-
-.form-field .required {
-  color: var(--red, #dc2626);
-}
-
-.form-input {
-  padding: 8px 12px;
-  border: 1px solid var(--line, #cbd5e1);
-  border-radius: 6px;
-  font-size: 14px;
-  background: var(--surface, #ffffff);
-  color: var(--ink-950, #0f172a);
-}
-
-.form-input:focus {
-  outline: none;
-  border-color: var(--blue-600, #0062eb);
-  box-shadow: 0 0 0 2px rgba(0, 98, 235, 0.14);
-}
-
-.form-input.error {
-  border-color: var(--red, #dc2626);
-}
-
-.form-input:disabled {
-  background: var(--canvas, #f4f6f9);
-  cursor: not-allowed;
-}
-
-.form-error {
-  font-size: 12px;
-  color: var(--red, #dc2626);
-}
-
-.checkbox-label {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  cursor: pointer;
-  font-size: 14px;
-}
-
-.checkbox-label input[type="checkbox"] {
-  width: 16px;
-  height: 16px;
-  cursor: pointer;
-}
-
 /* Pricebook Toolbar */
 .pricebook-toolbar {
   display: flex;
   justify-content: space-between;
   align-items: center;
   padding: 12px 16px;
-  border-bottom: 1px solid var(--line, #cbd5e1);
+  border-bottom: 1px solid var(--line);
   gap: 12px;
   flex-wrap: wrap;
 }
@@ -155,29 +21,24 @@
 
 .pricebook-chip {
   padding: 6px 12px;
-  border: 1px solid var(--line, #cbd5e1);
+  border: 1px solid var(--line);
   border-radius: 20px;
-  background: var(--surface, #ffffff);
-  color: var(--ink-600, #334155);
+  background: var(--surface);
+  color: var(--ink-600);
   font-size: 13px;
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .pricebook-chip:hover {
-  border-color: var(--blue-600, #0062eb);
+  border-color: var(--blue-600);
 }
 
 .pricebook-chip.active {
-  background: var(--blue-600, #0062eb);
-  border-color: var(--blue-600, #0062eb);
+  background: var(--blue-600);
+  border-color: var(--blue-600);
   color: white;
 }
-
-.pricebook-chip.edit-chip {
-  padding: 6px 10px;
-}
-
 .pricebook-actions {
   display: flex;
   gap: 8px;
@@ -185,88 +46,13 @@
 }
 
 .pricebook-customer-picker { display: grid; gap: 8px; }
-.pricebook-customer-options { max-height: 190px; overflow: auto; border: 1px solid var(--border-color, #dbe2ea); border-radius: 10px; padding: 6px; background: #fff; }
+.pricebook-customer-options { max-height: 190px; overflow: auto; border: 1px solid var(--line); border-radius: 10px; padding: 6px; background: #fff; }
 .pricebook-customer-option { display: flex; align-items: center; gap: 10px; padding: 8px; border-radius: 8px; cursor: pointer; }
-.pricebook-customer-option:hover { background: #f6f8fb; }
+.pricebook-customer-option:hover { background: var(--surface-muted); }
 .pricebook-customer-option > span { display: grid; gap: 2px; }
-.pricebook-customer-option small { color: #64748b; }
-
-/* Buttons */
-.btn {
-  padding: 8px 16px;
-  border-radius: 6px;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  border: none;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  transition: all 0.2s;
-}
-
-.btn-sm {
-  padding: 6px 12px;
-  font-size: 13px;
-}
-
-.btn-primary {
-  background: var(--blue-600, #0062eb);
-  color: white;
-}
-
-.btn-primary:hover {
-  background: #0651b8;
-}
-
-.btn-primary:disabled {
-  background: var(--line, #cbd5e1);
-  cursor: not-allowed;
-}
-
-.btn-secondary {
-  background: var(--canvas, #f4f6f9);
-  color: var(--ink-950, #0f172a);
-  border: 1px solid var(--line, #cbd5e1);
-}
-
-.btn-secondary:hover {
-  background: var(--line, #cbd5e1);
-}
-
-.btn-secondary:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.btn-danger {
-  background: var(--red, #dc2626);
-  color: white;
-}
-
-.btn-danger:hover {
-  background: #c81d11;
-}
-
-.btn-danger:disabled {
-  background: var(--line, #cbd5e1);
-  cursor: not-allowed;
-}
+.pricebook-customer-option small { color: var(--ink-500); }
 
 @media (max-width: 640px) {
-  .pricebook-dialog-overlay {
-    align-items: end;
-    padding: 12px;
-  }
-
-  .pricebook-dialog-modal {
-    max-height: calc(100dvh - 24px);
-  }
-
-  .form-grid {
-    grid-template-columns: 1fr;
-  }
-
   .pricebook-toolbar {
     align-items: stretch;
   }

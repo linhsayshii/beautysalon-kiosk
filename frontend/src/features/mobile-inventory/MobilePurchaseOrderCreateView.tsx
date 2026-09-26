@@ -11,7 +11,7 @@ import { formatMoney, formatNumber } from '@/lib/format';
 import { toOptions, useMetadata } from '@/services/metadata';
 import { statusLabels, type ApiRecord } from '@/types/api';
 import { createPurchaseOrder, getSuppliers } from '@/features/inventory/inventory.api';
-import './mobile-inventory.css';
+import { MobilePageHeader } from '@/components/ui/MobilePageHeader/MobilePageHeader';
 
 interface DraftItem extends ApiRecord {
   quantity: number;
@@ -78,15 +78,22 @@ export function MobilePurchaseOrderCreateView() {
     });
   };
 
-  if (suppliers.isPending) return <LoadingState />;
-  if (suppliers.error) {
-    return <ErrorState error={suppliers.error} onRetry={() => { suppliers.refetch(); }} />;
+  if (suppliers.isPending || suppliers.error) {
+    return (
+      <div className="m-page mobile-po-create-page">
+        <MobilePageHeader title="Tạo phiếu nhập" backTo="/m/purchase-orders" />
+        {suppliers.error
+          ? <ErrorState compact error={suppliers.error} onRetry={() => { suppliers.refetch(); }} />
+          : <LoadingState compact />}
+      </div>
+    );
   }
 
   return (
-    <main className="mobile-po-create-page">
+    <div className="m-page mobile-po-create-page">
+      <MobilePageHeader title="Tạo phiếu nhập" backTo="/m/purchase-orders" />
       <section className="mobile-po-create-section" aria-labelledby="mobile-po-products-title">
-        <h1 id="mobile-po-products-title" className="mobile-po-create-title">Sản phẩm nhập</h1>
+        <h2 id="mobile-po-products-title" className="mobile-po-create-title">Sản phẩm nhập</h2>
         <label className="mobile-po-create-search">
           <i className="ph ph-magnifying-glass" aria-hidden="true" />
           <span className="sr-only">Tìm sản phẩm để nhập</span>
@@ -141,9 +148,9 @@ export function MobilePurchaseOrderCreateView() {
       </section>
 
       <div className="mobile-po-create-actions">
-        <button type="button" className="secondary-button" disabled={mutation.isPending} onClick={() => save('draft')}>Lưu tạm</button>
-        <button type="button" className="primary-button" disabled={mutation.isPending} onClick={() => save('completed')}>{mutation.isPending ? 'Đang lưu…' : 'Hoàn thành'}</button>
+        <button type="button" className="btn btn-secondary" disabled={mutation.isPending} onClick={() => save('draft')}>Lưu tạm</button>
+        <button type="button" className="btn btn-primary" disabled={mutation.isPending} onClick={() => save('completed')}>{mutation.isPending ? 'Đang lưu…' : 'Hoàn thành'}</button>
       </div>
-    </main>
+    </div>
   );
 }

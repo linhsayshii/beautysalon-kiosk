@@ -44,6 +44,8 @@ export const router = createBrowserRouter([
       { path: '*', element: <NotFoundPage /> },
     ],
   },
+  // Living reference of the unified UI template; development builds only.
+  ...(import.meta.env.DEV ? [{ path: '/ui-kit/*', lazy: () => import('@/pages/ui-kit/UiKitPage') }] : []),
   {
     path: '/',
     element: <AdminLayout />,

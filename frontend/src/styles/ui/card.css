@@ -1,0 +1,101 @@
+/*
+ * Cards: the surface for every panel on desktop and mobile.
+ * <section className="card">
+ *   <header className="card-header"><div><h2 className="card-title">…</h2><p className="card-subtitle">…</p></div>…actions</header>
+ *   <div className="card-body">…</div>
+ *   <footer className="card-footer">…buttons</footer>
+ * </section>
+ */
+.card {
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  background: var(--surface);
+  box-shadow: var(--shadow-card);
+}
+
+.card-flat {
+  box-shadow: none;
+}
+
+.card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  min-height: 52px;
+  padding: 12px var(--space-4);
+  border-bottom: 1px solid var(--line-soft);
+}
+
+.card-title {
+  color: var(--ink-950);
+  font-size: var(--text-lg);
+  font-weight: var(--weight-bold);
+  line-height: var(--leading-tight);
+  letter-spacing: -0.01em;
+}
+
+.card-subtitle {
+  margin-top: 2px;
+  color: var(--ink-600);
+  font-size: var(--text-xs);
+}
+
+.card-body {
+  padding: var(--space-4);
+}
+
+.card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  padding: 12px var(--space-4);
+  border-top: 1px solid var(--line-soft);
+}
+
+/* Nested block inside a card (summary box, sub-section). */
+.card-inset {
+  padding: var(--space-3);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius-inner);
+  background: var(--surface-muted);
+}
+
+/* Label/value rows used by detail panels and sheets. */
+.detail-list {
+  display: grid;
+  gap: 0;
+}
+
+.detail-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: 9px 0;
+  border-bottom: 1px dashed var(--line);
+  font-size: var(--text-md);
+}
+
+.detail-row:last-child {
+  border-bottom: 0;
+}
+
+.detail-row > span:first-child {
+  color: var(--ink-600);
+}
+
+.detail-row > :last-child {
+  color: var(--ink-950);
+  font-weight: var(--weight-semibold);
+  text-align: right;
+}
+
+@media print {
+  .card {
+    break-inside: avoid;
+    box-shadow: none;
+  }
+}

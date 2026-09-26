@@ -64,12 +64,12 @@ describe('MobileAccountView', () => {
     expect(screen.getByRole('heading', { level: 2, name: 'Thông tin tài khoản' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Lưu thông tin' })).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Bảo mật' }));
+    fireEvent.click(screen.getByRole('tab', { name: 'Bảo mật' }));
     expect(screen.getByRole('heading', { level: 2, name: 'Đổi mật khẩu' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Đổi mật khẩu' })).toBeInTheDocument();
     // Manager tabs should NOT be visible
-    expect(screen.queryByRole('button', { name: /Quản lý chi nhánh/i })).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /Tài khoản & phân quyền/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('tab', { name: /Quản lý chi nhánh/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('tab', { name: /Tài khoản & phân quyền/i })).not.toBeInTheDocument();
   });
 
   it('lets a staff account log out from the account page', async () => {
@@ -113,9 +113,9 @@ describe('MobileAccountView', () => {
 
     renderComponent();
 
-    expect(screen.getByRole('button', { name: /Thông tin cá nhân/i })).toBeInTheDocument();
-    const branchTab = screen.getByRole('button', { name: /Quản lý chi nhánh/i });
-    const accountTab = screen.getByRole('button', { name: /Tài khoản & phân quyền/i });
+    expect(screen.getByRole('tab', { name: /Thông tin cá nhân/i })).toBeInTheDocument();
+    const branchTab = screen.getByRole('tab', { name: /Quản lý chi nhánh/i });
+    const accountTab = screen.getByRole('tab', { name: /Tài khoản & phân quyền/i });
 
     expect(branchTab).toBeInTheDocument();
     expect(accountTab).toBeInTheDocument();
