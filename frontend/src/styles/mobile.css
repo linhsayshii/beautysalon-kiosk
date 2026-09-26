@@ -70,6 +70,12 @@ body:has(.mobile-form-sheet-backdrop) .m-fab {
   padding: 0 0 calc(var(--mobile-bottomnav-h) + var(--mobile-safe-bottom) + 16px);
 }
 
+/* A page with a sticky .m-footer ends flush with the bottom navigation; the
+ * extra 16px breathing room would otherwise leave a gap under the footer. */
+.mobile-main-content:has(.m-footer) {
+  padding-bottom: calc(var(--mobile-bottomnav-h) + var(--mobile-safe-bottom));
+}
+
 /* Mobile Topbar */
 .mobile-topbar {
   position: sticky;

@@ -532,11 +532,13 @@
   transform: scale(0.94);
 }
 
-/* Sticky action bar at the bottom of full-screen mobile forms; it rides just
- * above the fixed bottom navigation. */
+/* Sticky action bar at the bottom of full-screen mobile forms. Sticky offsets
+ * are measured from the scroll container's padding edge, and
+ * .mobile-main-content already reserves the fixed bottom navigation as
+ * padding (see mobile.css), so bottom: 0 lands it right above the nav. */
 .m-footer {
   position: sticky;
-  bottom: calc(var(--mobile-bottomnav-h, 60px) + var(--mobile-safe-bottom, 0px));
+  bottom: 0;
   z-index: var(--z-sticky);
   display: flex;
   gap: 10px;
