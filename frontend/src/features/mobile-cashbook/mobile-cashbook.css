@@ -1,0 +1,103 @@
+/* Sổ quỹ (mobile): voucher list grouped by day and the voucher detail sheet. */
+
+.mobile-cashbook-group {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.mobile-cashbook-list {
+  display: grid;
+  overflow: hidden;
+  padding: 0;
+}
+
+.mobile-cashbook-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  width: 100%;
+  min-height: var(--mobile-touch-target);
+  padding: var(--space-3);
+  border: 0;
+  border-bottom: 1px solid var(--line-soft);
+  background: var(--surface);
+  color: inherit;
+  text-align: left;
+}
+
+.mobile-cashbook-row:last-child {
+  border-bottom: 0;
+}
+
+.mobile-cashbook-row:active {
+  background: var(--surface-hover);
+}
+
+.mobile-cashbook-row.is-cancelled .mobile-cashbook-main strong {
+  color: var(--ink-400);
+  text-decoration: line-through;
+}
+
+.mobile-cashbook-icon {
+  display: inline-grid;
+  flex: 0 0 auto;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-inner);
+  font-size: var(--text-lg);
+}
+
+.mobile-cashbook-icon.is-income {
+  color: var(--green);
+  background: var(--green-soft);
+}
+
+.mobile-cashbook-icon.is-expense {
+  color: var(--red);
+  background: var(--red-soft);
+}
+
+.mobile-cashbook-main {
+  display: grid;
+  flex: 1;
+  gap: 2px;
+  min-width: 0;
+}
+
+.mobile-cashbook-main small {
+  overflow: hidden;
+  color: var(--ink-500);
+  font-size: var(--text-xs);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mobile-cashbook-amount {
+  display: grid;
+  justify-items: end;
+  gap: 4px;
+  white-space: nowrap;
+}
+
+.mobile-cashbook-detail {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.mobile-cashbook-detail-amount {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.mobile-cashbook-detail-amount strong {
+  font-size: var(--text-2xl);
+  font-weight: var(--weight-heavy);
+}
+
+.mobile-quick-action-icon.action-cashbook {
+  color: var(--green);
+  background: var(--green-soft);
+}

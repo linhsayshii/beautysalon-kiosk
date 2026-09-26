@@ -28,6 +28,8 @@ const SUBPAGE_CONFIG: Record<string, { title: string; backTo?: string; hideTopBa
   '/m/invoices/new': { title: 'Tạo hóa đơn', backTo: '/m/pos', hideTopBar: true },
   '/m/appointments/new': { title: 'Đặt lịch hẹn', backTo: '/m/appointments', hideTopBar: true },
   '/m/account': { title: 'Cài đặt tài khoản', backTo: '/m/more', hideTopBar: true },
+  '/m/cashbook': { title: 'Sổ quỹ', backTo: '/m/more', hideTopBar: true },
+  '/m/reports': { title: 'Báo cáo lãi lỗ', backTo: '/m/more', hideTopBar: true },
 };
 
 // Map of top-level tab routes

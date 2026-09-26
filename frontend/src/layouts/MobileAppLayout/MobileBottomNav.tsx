@@ -37,6 +37,17 @@ export function MobileQuickActionSheet({ isOpen, onClose }: QuickActionSheetProp
           <i className="ph ph-caret-right mobile-quick-action-arrow" />
         </Link>}
 
+        {account && canAccessPath(account.role, '/m/cashbook') && <Link to="/m/cashbook?create=1" className="mobile-quick-action-item" onClick={onClose}>
+          <div className="mobile-quick-action-icon action-cashbook">
+            <i className="ph ph-wallet" />
+          </div>
+          <div className="mobile-quick-action-info">
+            <div className="mobile-quick-action-name">Lập phiếu thu chi</div>
+            <div className="mobile-quick-action-desc">Ghi thu, chi tiền mặt hoặc chuyển khoản vào sổ quỹ</div>
+          </div>
+          <i className="ph ph-caret-right mobile-quick-action-arrow" />
+        </Link>}
+
         {account && canAccessPath(account.role, '/m/customers') && (
           <Link to="/m/customers?create=1" className="mobile-quick-action-item" onClick={onClose}>
             <div className="mobile-quick-action-icon action-customer">

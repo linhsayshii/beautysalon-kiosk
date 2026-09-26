@@ -1,0 +1,141 @@
+/* Sổ quỹ (desktop): fund balance cards, cancelled rows and the voucher form. */
+
+.cashbook-funds {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-3);
+}
+
+.cashbook-fund-card {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+}
+
+.cashbook-fund-card small {
+  display: block;
+  color: var(--ink-500);
+  font-size: var(--text-xs);
+}
+
+.cashbook-fund-card strong {
+  font-size: var(--text-lg);
+  font-weight: var(--weight-bold);
+}
+
+.cashbook-fund-icon {
+  display: inline-grid;
+  flex: 0 0 auto;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border-radius: var(--radius-inner);
+  color: var(--blue-600);
+  background: var(--blue-50);
+  font-size: var(--text-lg);
+}
+
+.cashbook-fund-icon.is-cash {
+  color: var(--green);
+  background: var(--green-soft);
+}
+
+.cashbook-fund-icon.is-bank {
+  color: var(--violet);
+  background: var(--violet-soft);
+}
+
+.cashbook-row-cancelled td {
+  color: var(--ink-400);
+}
+
+.cashbook-row-cancelled .cell-main {
+  text-decoration: line-through;
+}
+
+/* Voucher amount in the expanded row header; colour comes from text-* utilities. */
+.cashbook-detail-amount {
+  font-size: var(--text-xl);
+  font-weight: var(--weight-bold);
+}
+
+/* Customer picker used by "Thu nợ khách hàng" (desktop modal and mobile sheet). */
+.cashbook-customer-picker {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.cashbook-customer-results {
+  display: grid;
+  max-height: 232px;
+  overflow-y: auto;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-control);
+}
+
+.cashbook-customer-results > .field-hint,
+.cashbook-customer-results > .field-error {
+  margin: 0;
+  padding: var(--space-3);
+}
+
+.cashbook-customer-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  border: 0;
+  border-bottom: 1px solid var(--line-soft);
+  background: var(--surface);
+  text-align: left;
+  cursor: pointer;
+}
+
+.cashbook-customer-option:last-child {
+  border-bottom: 0;
+}
+
+.cashbook-customer-option:hover,
+.cashbook-customer-option:focus-visible {
+  background: var(--surface-hover);
+}
+
+.cashbook-customer-option span,
+.cashbook-customer-selected > div:first-child {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.cashbook-customer-option small,
+.cashbook-customer-selected small {
+  color: var(--ink-500);
+  font-size: var(--text-xs);
+}
+
+.cashbook-customer-selected {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--blue-200);
+  border-radius: var(--radius-control);
+  background: var(--blue-50);
+}
+
+.cashbook-customer-selected > div:first-child {
+  flex: 1;
+}
+
+.cashbook-customer-debt {
+  display: grid;
+  justify-items: end;
+}
+
+@media (max-width: 900px) {
+  .cashbook-funds {
+    grid-template-columns: 1fr;
+  }
+}

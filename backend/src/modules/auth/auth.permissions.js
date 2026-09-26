@@ -11,13 +11,15 @@ export const permissions = Object.freeze({
   readOrders: 'orders:read',
   usePos: 'pos:use',
   manageStaff: 'staff:manage',
+  writeCashbook: 'cashbook:write',
+  readFinance: 'finance:read',
 });
 
 const managerPermissions = Object.values(permissions).filter((permission) => permission !== permissions.useOwnAttendance);
 
 export const rolePermissions = Object.freeze({
   manager: Object.freeze(managerPermissions),
-  cashier: Object.freeze([permissions.usePos]),
+  cashier: Object.freeze([permissions.usePos, permissions.writeCashbook]),
   staff: Object.freeze([permissions.useOwnAttendance]),
 });
 

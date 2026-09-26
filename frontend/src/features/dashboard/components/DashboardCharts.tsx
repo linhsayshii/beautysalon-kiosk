@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { formatMoney, formatNumber } from '@/lib/format';
 import { Select } from '@/components/ui/Select/Select';
+import { axisLabel, niceMaximum, smoothPath } from '@/components/charts/chartScale';
 import type { ApiRecord } from '@/types/api';
 
 type ChartView = 'hour' | 'day' | 'weekday';
@@ -21,38 +22,6 @@ export const dashboardPeriods: Array<{ key: DashboardPeriod; value: DashboardPer
   { key: 'this_month', value: 'this_month', label: 'Tháng này' },
   { key: 'last_month', value: 'last_month', label: 'Tháng trước' },
 ];
-
-function niceMaximum(values: number[]) {
-  const raw = Math.max(...values, 0);
-  if (!raw) return 1;
-  const magnitude = 10 ** Math.floor(Math.log10(raw));
-  const normalized = raw / magnitude;
-  const nice = normalized <= 1 ? 1 : normalized <= 2 ? 2 : normalized <= 5 ? 5 : 10;
-  return nice * magnitude;
-}
-
-function axisLabel(value: number, money = false) {
-  if (money && value >= 1_000_000) return `${Number((value / 1_000_000).toFixed(1))}tr`;
-  if (value >= 1_000) return `${Number((value / 1_000).toFixed(1))}k`;
-  return Number(value.toFixed(1)).toLocaleString('vi-VN', { maximumFractionDigits: 1 });
-}
-
-function smoothPath(points: Array<{ x: number; y: number }>) {
-  if (!points.length) return '';
-  if (points.length === 1) return `M${points[0].x},${points[0].y}`;
-  return points.slice(0, -1).reduce((path, point, index) => {
-    const previous = points[index - 1] ?? point;
-    const next = points[index + 1];
-    const afterNext = points[index + 2] ?? next;
-    const controlOneX = point.x + (next.x - previous.x) / 6;
-    const minimumY = Math.min(point.y, next.y);
-    const maximumY = Math.max(point.y, next.y);
-    const controlOneY = Math.min(maximumY, Math.max(minimumY, point.y + (next.y - previous.y) / 6));
-    const controlTwoX = next.x - (afterNext.x - point.x) / 6;
-    const controlTwoY = Math.min(maximumY, Math.max(minimumY, next.y - (afterNext.y - point.y) / 6));
-    return `${path} C${controlOneX.toFixed(1)},${controlOneY.toFixed(1)} ${controlTwoX.toFixed(1)},${controlTwoY.toFixed(1)} ${next.x.toFixed(1)},${next.y.toFixed(1)}`;
-  }, `M${points[0].x.toFixed(1)},${points[0].y.toFixed(1)}`);
-}
 
 function ChartLabels({ points }: { points: ApiRecord[] }) {
   return <div className={`chart-x-labels ${points.length <= 7 ? 'show-all' : ''}`} aria-hidden="true">{points.map((point, index) => <span className={index === 0 ? 'is-first' : index === points.length - 1 ? 'is-last' : ''} style={{ left: `${points.length > 1 ? index / (points.length - 1) * 100 : 50}%` }} key={`${point.label}-${index}`}>{point.label}</span>)}</div>;

@@ -1,6 +1,7 @@
 import { pool } from '../../db.js';
 import { HttpError } from '../../lib/http.js';
-import { broadcastToBranch } from '../../lib/ws.js';
+import { broadcastToBranch, realtimeEvents } from '../../lib/ws.js';
+import { recordCashEntry } from '../cashbook/cashbook.ledger.js';
 import { config } from '../../config.js';
 
 const number = (value) => Number(value ?? 0);
@@ -1147,8 +1148,10 @@ export async function cancelPayrollPeriod({ branchId, periodId }) {
   return { id: periodId, status: 'cancelled' };
 }
 
-export async function createPayrollPayment({ branchId, periodId, staffId, amount, paymentMethod = 'transfer', note, actorStaffId }) {
+export async function createPayrollPayment({ branchId, periodId, staffId, amount, paymentMethod = 'transfer', note, actorStaffId, actorAccountId }) {
   const client = await pool.connect();
+  let cashEntry = null;
+  let paymentId;
   try {
     await client.query('BEGIN');
     const recordRes = await client.query(
@@ -1173,7 +1176,7 @@ export async function createPayrollPayment({ branchId, periodId, staffId, amount
        RETURNING id`,
       [branchId, periodId, recId, staffId, amount, paymentMethod, note, actorStaffId],
     );
-    const paymentId = paymentRes.rows[0].id;
+    paymentId = paymentRes.rows[0].id;
 
     await client.query(
       `UPDATE payroll_records
@@ -1182,12 +1185,21 @@ export async function createPayrollPayment({ branchId, periodId, staffId, amount
       [newPaid, newRemaining, status, recId],
     );
 
-    // Also record cash transaction
-    await client.query(
-      `INSERT INTO cash_transactions (branch_id, transaction_type, category, amount, note, occurred_at)
-       VALUES ($1, 'expense', 'Chi trả lương nhân viên', $2, $3, NOW())`,
-      [branchId, amount, note || `Chi lương kỳ ${periodId}`],
-    );
+    const staffRes = await client.query('SELECT name FROM staff WHERE id = $1 AND branch_id = $2', [staffId, branchId]);
+    cashEntry = await recordCashEntry(client, {
+      branchId,
+      type: 'expense',
+      categoryKey: 'salary',
+      amount,
+      paymentMethod,
+      sourceType: 'payroll_payment',
+      sourceId: paymentId,
+      counterpartyType: 'staff',
+      counterpartyId: staffId,
+      counterpartyName: staffRes.rows[0]?.name ?? null,
+      note: note || `Chi lương kỳ ${periodId}`,
+      createdBy: actorAccountId ?? null,
+    });
 
     await client.query('COMMIT');
   } catch (err) {
@@ -1198,6 +1210,7 @@ export async function createPayrollPayment({ branchId, periodId, staffId, amount
   }
 
   broadcastToBranch(branchId, 'payroll:paid', { paymentId, staffId });
+  if (cashEntry) broadcastToBranch(branchId, realtimeEvents.cashbookUpdated, { voucherId: cashEntry.id, action: 'created' });
   return getPayrollPeriodDetail({ branchId, periodId });
 }
 

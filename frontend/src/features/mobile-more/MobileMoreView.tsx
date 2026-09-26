@@ -112,6 +112,29 @@ export function MobileMoreView() {
           </div>
         </div>
 
+        {/* Category: Tài chính */}
+        <div className="mobile-more-bento-card">
+          <div className="more-category-title">Tài chính</div>
+          <div className="more-item-list">
+            <Link to="/m/cashbook" className="more-nav-item">
+              <span className="more-item-badge green"><i className="ph ph-wallet" /></span>
+              <div className="more-item-info">
+                <span className="more-item-label">Sổ quỹ</span>
+                <span className="more-item-desc">Tồn quỹ tiền mặt, ngân hàng & phiếu thu chi</span>
+              </div>
+              <i className="ph ph-caret-right more-item-arrow" />
+            </Link>
+            <Link to="/m/reports" className="more-nav-item">
+              <span className="more-item-badge blue"><i className="ph ph-chart-bar" /></span>
+              <div className="more-item-info">
+                <span className="more-item-label">Báo cáo lãi lỗ</span>
+                <span className="more-item-desc">Doanh thu, giá vốn, chi phí & lợi nhuận</span>
+              </div>
+              <i className="ph ph-caret-right more-item-arrow" />
+            </Link>
+          </div>
+        </div>
+
         {/* Category: Hàng hóa */}
         <div className="mobile-more-bento-card">
           <div className="more-category-title">Hàng hóa & Bảng giá</div>

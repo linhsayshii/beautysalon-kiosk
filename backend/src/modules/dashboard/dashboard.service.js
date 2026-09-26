@@ -767,7 +767,9 @@ export async function getDashboard({ branchId, date, period = 'this_month' }) {
            COALESCE(SUM(amount) FILTER (WHERE transaction_type = 'income'), 0) AS income,
            COALESCE(SUM(amount) FILTER (WHERE transaction_type = 'expense'), 0) AS expense
          FROM cash_transactions c CROSS JOIN bounds
-         WHERE c.branch_id = $1 AND c.occurred_at >= bounds.day_start AND c.occurred_at < bounds.day_end`,
+         WHERE c.branch_id = $1 AND c.fund IS NOT NULL AND c.status = 'active'
+           AND c.category_key NOT IN ('fund_transfer_in', 'fund_transfer_out', 'opening_balance')
+           AND c.occurred_at >= bounds.day_start AND c.occurred_at < bounds.day_end`,
         [branchId, date],
       ),
       client.query(

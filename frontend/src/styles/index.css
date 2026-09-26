@@ -21,6 +21,8 @@
 @import '../features/pos/pos.css';
 @import '../features/pos/components/UsePackageModal.css';
 @import '../features/debts/debts.css';
+@import '../features/cashbook/cashbook.css';
+@import '../features/reports/reports.css';
 
 @import './mobile.css';
 @import '../features/mobile-common/mobile-common.css';
@@ -35,4 +37,6 @@
 @import '../features/mobile-dashboard/mobile-dashboard.css';
 @import '../features/mobile-more/mobile-more.css';
 @import '../features/mobile-account/mobile-account.css';
+@import '../features/mobile-cashbook/mobile-cashbook.css';
+@import '../features/mobile-reports/mobile-reports.css';
 @import './ui/text.css';

@@ -1,5 +1,6 @@
 import pg from 'pg';
 import { customerDebtMigration } from './migrations/customer-debt.js';
+import { cashbookMigration } from './migrations/cashbook.js';
 import { config } from './config.js';
 
 const { Pool } = pg;
@@ -22,6 +23,7 @@ pool.on('error', (error) => {
 export async function runMigrations() {
   // Refuse to serve checkout if the financial schema could not be upgraded.
   await pool.query(customerDebtMigration);
+  await pool.query(cashbookMigration);
   try {
     await pool.query(`
       -- Customer account cards predate balance updates in POS. Keep existing

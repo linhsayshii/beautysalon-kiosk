@@ -9,6 +9,10 @@ test('roles receive only their intended permissions', () => {
   assert.equal(hasPermission('cashier', permissions.readDashboard), false);
   assert.equal(hasPermission('staff', permissions.useOwnAttendance), true);
   assert.equal(hasPermission('staff', permissions.manageAttendance), false);
+  assert.equal(hasPermission('cashier', permissions.writeCashbook), true);
+  assert.equal(hasPermission('cashier', permissions.readFinance), false);
+  assert.equal(hasPermission('manager', permissions.readFinance), true);
+  assert.equal(hasPermission('staff', permissions.writeCashbook), false);
   assert.equal(hasPermission('unknown', permissions.usePos), false);
 });
 

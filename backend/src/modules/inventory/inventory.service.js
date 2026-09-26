@@ -1,6 +1,8 @@
 import { listSort } from '../../lib/list-sort.js';
 import { pool } from '../../db.js';
 import { HttpError } from '../../lib/http.js';
+import { broadcastToBranch, realtimeEvents } from '../../lib/ws.js';
+import { recordCashEntry } from '../cashbook/cashbook.ledger.js';
 
 const number = (value) => Number(value ?? 0);
 
@@ -954,11 +956,13 @@ export async function getPurchaseOrder({ branchId, id }) {
   };
 }
 
-export async function createPurchaseOrder({ branchId, supplierId, status, receivedAt, discount, otherCost, amountPaid, paymentMethod, note, items }) {
+export async function createPurchaseOrder({ branchId, supplierId, status, receivedAt, discount, otherCost, amountPaid, paymentMethod, note, items, actorAccountId = null }) {
   const client = await pool.connect();
+  let cashEntry = null;
+  let orderId;
   try {
     await client.query('BEGIN');
-    const supplier = await client.query('SELECT id FROM suppliers WHERE id = $1 AND branch_id = $2 AND active', [supplierId, branchId]);
+    const supplier = await client.query('SELECT id, name FROM suppliers WHERE id = $1 AND branch_id = $2 AND active', [supplierId, branchId]);
     if (!supplier.rows[0]) throw new HttpError(400, 'INVALID_SUPPLIER', 'Nhà cung cấp không hợp lệ');
     const productIds = items.map((item) => item.productId);
     const products = await client.query('SELECT id FROM products WHERE branch_id = $1 AND active AND id = ANY($2::bigint[])', [branchId, productIds]);
@@ -981,7 +985,7 @@ export async function createPurchaseOrder({ branchId, supplierId, status, receiv
         amount_due, amount_paid, payment_method, created_by, note
       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, NULL, $12)
       RETURNING id`, [branchId, supplierId, code, status, status === 'completed' ? (receivedAt ?? new Date()) : receivedAt, subtotal, discount, otherCost, amountDue, Math.min(amountPaid, amountDue), paymentMethod, note]);
-    const orderId = number(orderResult.rows[0].id);
+    orderId = number(orderResult.rows[0].id);
 
     for (const item of normalizedItems) {
       await client.query(`INSERT INTO purchase_order_items (purchase_order_id, product_id, quantity, unit_cost, discount, line_total)
@@ -993,12 +997,30 @@ export async function createPurchaseOrder({ branchId, supplierId, status, receiv
         await client.query('UPDATE products SET last_purchase_price = $1, cost_price = $1 WHERE id = $2 AND branch_id = $3', [item.unitCost, item.productId, branchId]);
       }
     }
+    // Only a received order has actually been paid for; drafts record intent.
+    if (status === 'completed') {
+      cashEntry = await recordCashEntry(client, {
+        branchId,
+        type: 'expense',
+        categoryKey: 'supplier_payment',
+        amount: Math.min(amountPaid, amountDue),
+        paymentMethod,
+        sourceType: 'purchase_order',
+        sourceId: orderId,
+        counterpartyType: 'supplier',
+        counterpartyId: supplierId,
+        counterpartyName: supplier.rows[0].name,
+        note: `Chi trả phiếu nhập ${code}`,
+        createdBy: actorAccountId,
+      });
+    }
     await client.query('COMMIT');
-    return getPurchaseOrder({ branchId, id: orderId });
   } catch (error) {
     await client.query('ROLLBACK');
     throw error;
   } finally {
     client.release();
   }
+  if (cashEntry) broadcastToBranch(branchId, realtimeEvents.cashbookUpdated, { voucherId: cashEntry.id, action: 'created' });
+  return getPurchaseOrder({ branchId, id: orderId });
 }

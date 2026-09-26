@@ -20,4 +20,8 @@ export const navigation: NavigationGroup[] = [
     { label: 'Bảng lương', to: '/staff/payroll', icon: 'ph-money', tone: 'orange' },
     { label: 'Bảng hoa hồng', to: '/staff/commissions', icon: 'ph-chart-line-up', tone: 'pink' },
   ] },
+  { key: 'finance', label: 'Tài chính', items: [
+    { label: 'Sổ quỹ', to: '/cashbook', icon: 'ph-wallet', tone: 'green' },
+    { label: 'Báo cáo lãi lỗ', to: '/reports/profit', icon: 'ph-chart-bar', tone: 'blue' },
+  ] },
 ];

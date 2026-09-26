@@ -336,6 +336,7 @@ router.post('/payroll/:id/pay', asyncRoute(async (request, response) => {
     paymentMethod,
     note,
     actorStaffId,
+    actorAccountId: request.account.id,
   });
   response.json({ data, message: 'Thanh toán lương thành công' });
 }));

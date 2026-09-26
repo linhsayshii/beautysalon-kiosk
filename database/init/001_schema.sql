@@ -569,10 +569,30 @@ CREATE TABLE cash_transactions (
   amount NUMERIC(14, 2) NOT NULL CHECK (amount > 0),
   note TEXT,
   occurred_at TIMESTAMPTZ NOT NULL,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  -- Cashbook ledger (mirrored by backend/src/migrations/cashbook.js).
+  -- fund NULL marks prepaid-wallet movements that never touch real money.
+  code VARCHAR(20),
+  fund VARCHAR(10) CONSTRAINT cash_transactions_fund_check CHECK (fund IS NULL OR fund IN ('cash', 'bank')),
+  payment_method VARCHAR(30),
+  category_key VARCHAR(40),
+  source_type VARCHAR(30),
+  source_id BIGINT,
+  counterparty_type VARCHAR(20),
+  counterparty_id BIGINT,
+  counterparty_name VARCHAR(200),
+  created_by BIGINT REFERENCES user_accounts(id) ON DELETE SET NULL,
+  status VARCHAR(12) NOT NULL DEFAULT 'active' CONSTRAINT cash_transactions_status_check CHECK (status IN ('active', 'cancelled')),
+  cancelled_at TIMESTAMPTZ,
+  cancelled_by BIGINT REFERENCES user_accounts(id) ON DELETE SET NULL,
+  cancel_reason TEXT,
+  transfer_group UUID
 );
 
 CREATE INDEX idx_cash_transactions_branch_occurred ON cash_transactions(branch_id, occurred_at);
+CREATE UNIQUE INDEX uniq_cash_transactions_branch_code ON cash_transactions(branch_id, code) WHERE code IS NOT NULL;
+CREATE INDEX idx_cash_transactions_fund ON cash_transactions(branch_id, fund, occurred_at) WHERE status = 'active';
+CREATE INDEX idx_cash_transactions_source ON cash_transactions(source_type, source_id);
 
 CREATE TABLE activities (
   id BIGSERIAL PRIMARY KEY,

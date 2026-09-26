@@ -6,6 +6,12 @@ const dateTimeFormatter = new Intl.DateTimeFormat('vi-VN', {
 
 export const formatNumber = (value: unknown) => numberFormatter.format(Number(value ?? 0));
 export const formatMoney = (value: unknown) => `${formatNumber(value)}đ`;
+/** Money that may be negative (losses) or needs an explicit sign (cash in/out). */
+export const formatSignedMoney = (value: unknown, alwaysSign = false) => {
+  const amount = Number(value ?? 0);
+  const sign = amount < 0 ? '-' : alwaysSign && amount > 0 ? '+' : '';
+  return `${sign}${formatMoney(Math.abs(amount))}`;
+};
 export const parseMoney = (value: unknown): number => {
   if (typeof value === 'number') return isNaN(value) ? 0 : Math.max(0, value);
   const cleaned = String(value ?? '').replace(/\D/g, '');

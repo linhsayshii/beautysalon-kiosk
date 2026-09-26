@@ -22,6 +22,8 @@ const customerValueEvents = new Set([
 
 const notificationEvents = new Set(['notification:created']);
 
+const cashbookEvents = new Set(['cashbook:updated']);
+
 const appointmentQueryKeys = [
   ['appointment-editor'],
   ['pos-appointments'],
@@ -35,7 +37,18 @@ const appointmentQueryKeys = [
   ['dashboard'],
 ] as const;
 
+// Every sale or debt collection also writes a cashbook voucher and changes
+// the profit report, so invoice events refresh these too.
+const cashbookQueryKeys = [
+  ['cashbook'],
+  ['cashbook-summary'],
+  ['mobile-cashbook'],
+  ['profit-report'],
+  ['dashboard'],
+] as const;
+
 const invoiceQueryKeys = [
+  ...cashbookQueryKeys,
   ['customer-debt'],
   ['customer-activity'],
   ['mobile-customer-activity'],
@@ -92,6 +105,10 @@ export function synchronizeRealtimeEvent(queryClient: QueryClient, event: string
   }
   if (customerValueEvents.has(event)) {
     invalidate(queryClient, customerValueQueryKeys);
+    return;
+  }
+  if (cashbookEvents.has(event)) {
+    invalidate(queryClient, cashbookQueryKeys);
     return;
   }
   if (notificationEvents.has(event)) {

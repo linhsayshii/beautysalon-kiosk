@@ -10,16 +10,18 @@ export type AppPermission =
   | 'inventory:manage'
   | 'orders:read'
   | 'pos:use'
-  | 'staff:manage';
+  | 'staff:manage'
+  | 'cashbook:write'
+  | 'finance:read';
 
 const managerPermissions: AppPermission[] = [
   'accounts:manage', 'attendance:manage', 'branches:manage', 'dashboard:read', 'customers:manage',
-  'inventory:manage', 'orders:read', 'pos:use', 'staff:manage',
+  'inventory:manage', 'orders:read', 'pos:use', 'staff:manage', 'cashbook:write', 'finance:read',
 ];
 
 export const rolePermissions: Readonly<Record<AccountRole, readonly AppPermission[]>> = Object.freeze({
   manager: Object.freeze(managerPermissions),
-  cashier: Object.freeze(['pos:use'] as AppPermission[]),
+  cashier: Object.freeze(['pos:use', 'cashbook:write'] as AppPermission[]),
   staff: Object.freeze(['attendance:self'] as AppPermission[]),
 });
 
@@ -49,6 +51,8 @@ export function permissionForPath(pathname: string): AppPermission | null {
   if (pathname === '/staff/attendance' || pathname === '/m/staff/attendance') return 'attendance:manage';
   if (pathname === '/staff' || pathname.startsWith('/staff/') || pathname === '/m/staff' || pathname.startsWith('/m/staff/')) return 'staff:manage';
   if (pathname === '/m/schedule' || pathname === '/m/salary') return 'attendance:self';
+  if (pathname === '/cashbook' || pathname === '/m/cashbook') return 'cashbook:write';
+  if (pathname === '/reports' || pathname.startsWith('/reports/') || pathname === '/m/reports') return 'finance:read';
   if (pathname === '/branches') return 'branches:manage';
   return null;
 }

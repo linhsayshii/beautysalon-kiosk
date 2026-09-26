@@ -1,0 +1,126 @@
+/* Báo cáo lãi lỗ (desktop): period toolbar, chart series colours and the income statement. */
+
+.report-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+}
+
+.report-toolbar-period {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.report-toolbar-period .filter-group {
+  margin: 0;
+}
+
+.report-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+  margin-top: var(--space-2);
+  color: var(--ink-600);
+  font-size: var(--text-xs);
+}
+
+.report-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.report-swatch {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+}
+
+.report-swatch.is-revenue,
+.report-bar-revenue {
+  fill: var(--blue-600);
+  background: var(--blue-600);
+}
+
+.report-swatch.is-cost,
+.report-bar-cost {
+  fill: var(--orange);
+  background: var(--orange);
+}
+
+.report-swatch.is-profit {
+  height: 3px;
+  background: var(--green);
+}
+
+.report-profit-line {
+  fill: none;
+  stroke: var(--green);
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+
+.report-profit-dot {
+  fill: var(--surface);
+  stroke: var(--green);
+  stroke-width: 2;
+  vector-effect: non-scaling-stroke;
+}
+
+.report-zero-line {
+  stroke: var(--ink-400);
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+
+.report-tabs {
+  padding: 0 var(--space-4);
+  border-bottom: 1px solid var(--line-soft);
+}
+
+.report-statement td:first-child {
+  white-space: nowrap;
+}
+
+.report-sign {
+  margin-right: 6px;
+  color: var(--ink-500);
+}
+
+.report-line-sub td:first-child {
+  padding-left: var(--space-6);
+}
+
+.report-line-detail td {
+  color: var(--ink-600);
+  font-size: var(--text-sm);
+}
+
+.report-line-detail td:first-child {
+  padding-left: calc(var(--space-6) * 2);
+}
+
+.report-line-total td {
+  background: var(--surface-muted);
+  font-weight: var(--weight-bold);
+}
+
+.report-line-grand td {
+  background: var(--blue-50);
+  color: var(--blue-700);
+  font-size: var(--text-md);
+  font-weight: var(--weight-heavy);
+}
+
+.report-footnote {
+  margin: 0;
+  padding: var(--space-3) var(--space-4);
+}

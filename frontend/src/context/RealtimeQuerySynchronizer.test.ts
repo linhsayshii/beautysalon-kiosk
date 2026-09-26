@@ -61,3 +61,13 @@ it('refreshes mobile commissions after payment and reconnect', () => {
   resynchronizeRealtimeQueries(client);
   expect(invalidatedKeys(spy)).toContainEqual(['admin-mobile-commissions']);
 });
+
+it('refreshes the cashbook and profit report after vouchers and sales', () => {
+  const client = new QueryClient();
+  const spy = vi.spyOn(client, 'invalidateQueries').mockResolvedValue();
+  synchronizeRealtimeEvent(client, 'cashbook:updated');
+  expect(invalidatedKeys(spy)).toEqual(expect.arrayContaining([['cashbook'], ['cashbook-summary'], ['mobile-cashbook'], ['profit-report'], ['dashboard']]));
+  spy.mockClear();
+  synchronizeRealtimeEvent(client, 'invoice:updated');
+  expect(invalidatedKeys(spy)).toEqual(expect.arrayContaining([['cashbook'], ['profit-report']]));
+});

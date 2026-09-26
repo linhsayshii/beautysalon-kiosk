@@ -34,7 +34,8 @@ export function Header() {
     }
   };
 
-  const activeSection = location.pathname.startsWith('/staff') ? 'staff'
+  const activeSection = location.pathname === '/cashbook' || location.pathname.startsWith('/reports') ? 'finance'
+    : location.pathname.startsWith('/staff') ? 'staff'
     : location.pathname.startsWith('/customer') ? 'customers'
       : location.pathname === '/orders' ? 'orders'
         : ['/products', '/pricebooks'].includes(location.pathname) || location.pathname.startsWith('/purchase-orders') ? 'products'
@@ -83,6 +84,10 @@ export function Header() {
         </button>
         {account?.role === 'manager' && <NavLink className={({ isActive }) => `action-pill attendance-qr-button ${isActive ? 'is-active' : ''}`} to="/attendance/qr" aria-label="Mở QR chấm công">
           <i className="ph ph-qr-code" aria-hidden="true" /><span>QR chấm công</span>
+        </NavLink>}
+        {account?.role === 'cashier' && <NavLink className={({ isActive }) => `action-pill ${isActive ? 'is-active' : ''}`} to="/cashbook" aria-label="Mở sổ quỹ">
+          <i className="ph ph-wallet" aria-hidden="true" />
+          <span>Sổ quỹ</span>
         </NavLink>}
         {(account?.role === 'manager' || account?.role === 'cashier') && <NavLink className={({ isActive }) => `action-pill cashier-button ${isActive ? 'is-active' : ''}`} to="/pos" aria-label="Mở trang thu ngân">
           <i className="ph ph-shopping-cart-simple" aria-hidden="true" />

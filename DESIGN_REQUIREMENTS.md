@@ -86,7 +86,7 @@ Không viết mã màu hex ngoài `tokens.css`; test contract sẽ báo lỗi.
 ### 4.1 Thanh điều hướng
 
 - Logo AnnaChill bên trái.
-- Menu chính tinh gọn: Tổng quan, Hàng hóa, Đơn hàng, Khách hàng, Nhân viên. Không hiển thị Vị trí, Sổ quỹ và Phân tích.
+- Menu chính tinh gọn: Tổng quan, Hàng hóa, Đơn hàng, Khách hàng, Nhân viên, Tài chính (Sổ quỹ, Báo cáo lãi lỗ). Không hiển thị Vị trí và Phân tích.
 - Khu vực hành động bên phải: Bán online, Thu ngân, thông báo, trợ giúp, cài đặt, tài khoản.
 - Mục đang chọn có nền trắng mờ và underline trắng.
 - Menu Hàng hóa mở bằng hover, click hoặc bàn phím; dropdown có nhóm Danh mục, Kho hàng, Nhập hàng.

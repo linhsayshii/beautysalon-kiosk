@@ -18,6 +18,8 @@ import attendanceRoutes from './modules/attendance/attendance.routes.js';
 import posRoutes from './modules/pos/pos.routes.js';
 import branchRoutes from './modules/branches/branches.routes.js';
 import notificationRoutes from './modules/notifications/notifications.routes.js';
+import cashbookRoutes from './modules/cashbook/cashbook.routes.js';
+import reportRoutes from './modules/reports/reports.routes.js';
 
 export function requestIdentity(request, response, next) {
   request.id = randomUUID();
@@ -110,6 +112,8 @@ export function createApp() {
   app.use('/api/v1/staff/me', staffSelfRoutes);
   app.use('/api/v1/staff', requirePermissions(permissions.manageStaff), staffRoutes);
   app.use('/api/v1/inventory', requirePermissions(permissions.manageInventory), inventoryRoutes);
+  app.use('/api/v1/cashbook', requirePermissions(permissions.writeCashbook), cashbookRoutes);
+  app.use('/api/v1/reports', requirePermissions(permissions.readFinance), reportRoutes);
 
   app.use((request, response, next) => {
     next(new HttpError(404, 'ROUTE_NOT_FOUND', 'Đường dẫn API không tồn tại'));

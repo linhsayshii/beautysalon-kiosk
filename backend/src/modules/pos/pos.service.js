@@ -4,6 +4,7 @@ import { HttpError } from '../../lib/http.js';
 import { broadcastToBranch, realtimeEvents } from '../../lib/ws.js';
 import { publishNotification } from '../notifications/notifications.service.js';
 import { resolveApplicablePricebook, resolvePricebookItemPrice } from '../inventory/inventory.service.js';
+import { recordCashEntry } from '../cashbook/cashbook.ledger.js';
 
 const number = (value) => Number(value ?? 0);
 
@@ -657,13 +658,8 @@ export async function checkoutPosInvoice({
         [customerId],
       );
 
-      // Record wallet transaction
-      await client.query(
-        `INSERT INTO cash_transactions (
-           branch_id, transaction_type, category, amount, note, occurred_at
-         ) VALUES ($1, 'income', 'Thu tiền qua thẻ tài khoản', $2, $3, NOW())`,
-        [branchId, payment.paid, `Thu tiền hóa đơn ${invoiceCode} qua thẻ tài khoản (Số dư trước: ${cardBalance.toLocaleString('vi-VN')}đ)`],
-      );
+      // Wallet spending moves no real money: the cash arrived when the card
+      // was sold, so it is intentionally not written to the cashbook.
     }
 
     // 8. Create per-line commission records for staff assigned to each item
@@ -694,15 +690,21 @@ export async function checkoutPosInvoice({
       }
     }
 
-    // 9. Record cash transaction (skip for wallet - recorded separately above)
-    if (payment.paid > 0 && paymentMethod !== 'wallet') {
-      await client.query(
-        `INSERT INTO cash_transactions (
-           branch_id, transaction_type, category, amount, note, occurred_at
-         ) VALUES ($1, 'income', 'Thu tiền bán hàng POS', $2, $3, NOW())`,
-        [branchId, payment.paid, `Thu tiền hóa đơn ${invoiceCode} (${paymentMethod})`],
-      );
-    }
+    // 9. Record the cashbook receipt (wallet payments are skipped by the ledger)
+    const cashEntry = await recordCashEntry(client, {
+      branchId,
+      type: 'income',
+      categoryKey: 'sales',
+      amount: payment.paid,
+      paymentMethod,
+      sourceType: 'invoice',
+      sourceId: invoiceId,
+      counterpartyType: 'customer',
+      counterpartyId: customerId,
+      counterpartyName: customerName,
+      note: `Thu tiền hóa đơn ${invoiceCode} (${paymentMethod})`,
+      createdBy: actorAccountId || null,
+    });
 
     // 10. Record activity
     await client.query(
@@ -766,6 +768,7 @@ export async function checkoutPosInvoice({
     await finishPaymentRequest(client, branchId, requestKey, receipt);
     await client.query('COMMIT');
 
+    if (cashEntry) broadcastToBranch(branchId, realtimeEvents.cashbookUpdated, { voucherId: cashEntry.id, action: 'created' });
     broadcastToBranch(branchId, realtimeEvents.invoiceUpdated, {
       invoiceId: receipt.id,
       customerId: receipt.customer.id,

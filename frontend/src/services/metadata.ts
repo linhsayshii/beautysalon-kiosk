@@ -10,6 +10,12 @@ export interface DomainMetadata {
     products: { types: string[]; stockStatuses: string[]; statuses: string[] };
     purchaseOrders: { statuses: string[]; paymentMethods: string[] };
   };
+  cashbook?: {
+    funds: Array<'cash' | 'bank'>;
+    voucherTypes: Array<'income' | 'expense'>;
+    statuses: Array<'active' | 'cancelled'>;
+    categories: Array<{ key: string; type: 'income' | 'expense'; label: string; manual: boolean; countsInProfit: boolean }>;
+  };
   system?: {
     storeName: string;
     adminName: string;

@@ -339,6 +339,7 @@ router.post('/purchase-orders', asyncRoute(async (request, response) => {
   const status = parseEnum(request.body.status, 'status', purchaseStatuses.filter((value) => value !== 'cancelled'), 'draft');
   const data = await createPurchaseOrder({
     branchId: request.account.branchId,
+    actorAccountId: request.account.id,
     supplierId: parsePositiveInteger(request.body.supplierId, 'supplierId'),
     status,
     receivedAt: request.body.receivedAt ? parseDateTime(request.body.receivedAt, 'receivedAt') : null,

@@ -18,6 +18,8 @@ const FULL_BLEED_PREFIXES = [
   '/m/staff',
   '/m/attendance/qr',
   '/m/account',
+  '/m/cashbook',
+  '/m/reports',
 ];
 
 export function MobileAppLayout() {

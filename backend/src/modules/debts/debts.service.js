@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto';
 import { pool } from '../../db.js';
 import { HttpError } from '../../lib/http.js';
 import { broadcastToBranch, realtimeEvents } from '../../lib/ws.js';
+import { recordCashEntry } from '../cashbook/cashbook.ledger.js';
 
 export function money(value, field = 'Số tiền') {
   if ((typeof value !== 'number' && typeof value !== 'string') || String(value).trim() === '') throw new HttpError(400, 'INVALID_AMOUNT', `${field} không hợp lệ`);
@@ -59,7 +60,7 @@ export async function collectCustomerDebt({branchId,customerId,actorAccountId,am
     await client.query('BEGIN');
     const replay = await beginPaymentRequest(client,branchId,requestKey,{operation:'collect',customerId,actorAccountId,amount,paymentMethod,note,invoiceId});
     if (replay) {await client.query('COMMIT');return replay;}
-    const { rows } = await client.query('SELECT debt_balance,opening_debt FROM customers WHERE id=$1 AND branch_id=$2 FOR UPDATE',[customerId,branchId]);
+    const { rows } = await client.query('SELECT name,debt_balance,opening_debt FROM customers WHERE id=$1 AND branch_id=$2 FOR UPDATE',[customerId,branchId]);
     if (!rows[0]) throw new HttpError(404,'CUSTOMER_NOT_FOUND','Không tìm thấy khách hàng');
     if (amount > Number(rows[0].debt_balance)) throw new HttpError(409,'DEBT_CHANGED','Số tiền thu vượt dư nợ hiện tại, vui lòng tải lại');
     const invoices = await client.query(`SELECT id,total,amount_paid FROM invoices WHERE branch_id=$1 AND customer_id=$2 AND status='paid' AND amount_paid<total AND ($3::bigint IS NULL OR id=$3) ORDER BY issued_at,id FOR UPDATE`,[branchId,customerId,invoiceId]);
@@ -84,11 +85,12 @@ export async function collectCustomerDebt({branchId,customerId,actorAccountId,am
     const balance = roundMoney(Number(rows[0].debt_balance)-amount);
     await client.query('UPDATE customers SET debt_balance=$2 WHERE id=$1',[customerId,balance]);
     await client.query(`INSERT INTO customer_debt_entries(branch_id,customer_id,payment_id,invoice_id,kind,amount,balance_after,actor_account_id) VALUES($1,$2,$3,$4,'collection',$5,$6,$7)`,[branchId,customerId,paymentId,invoiceId,-amount,balance,actorAccountId]);
-    await client.query(`INSERT INTO cash_transactions(branch_id,transaction_type,category,amount,note,occurred_at) VALUES($1,'income','Thu công nợ khách hàng',$2,$3,NOW())`,[branchId,amount,`Thu nợ KH #${customerId} · Phiếu #${paymentId} (${paymentMethod}) ${note}`]);
-    const response = {paymentId,amount,balance,allocations};
+    const cashEntry = await recordCashEntry(client,{branchId,type:'income',categoryKey:'debt_collection',amount,paymentMethod,sourceType:'customer_payment',sourceId:paymentId,counterpartyType:'customer',counterpartyId:customerId,counterpartyName:rows[0].name,note:note||null,createdBy:actorAccountId||null});
+    const response = {paymentId,amount,balance,allocations,voucherCode:cashEntry?.code ?? null};
     await finishPaymentRequest(client,branchId,requestKey,response);
     await client.query('COMMIT');
     broadcastToBranch(branchId,realtimeEvents.invoiceUpdated,{customerId,action:'debt-collected'});
+    broadcastToBranch(branchId,realtimeEvents.cashbookUpdated,{voucherId:cashEntry?.id ?? null,action:'created'});
     return response;
   } catch(e) {await client.query('ROLLBACK');throw e;} finally {client.release();}
 }

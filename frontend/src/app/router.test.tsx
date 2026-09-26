@@ -29,6 +29,8 @@ describe('Mobile Routes and Authorization', () => {
     expect(childrenPaths).toContain('salary');
     expect(childrenPaths).toContain('attendance');
     expect(childrenPaths).toContain('attendance/qr');
+    expect(childrenPaths).toContain('cashbook');
+    expect(childrenPaths).toContain('reports');
     expect(childrenPaths).toContain('more');
     expect(childrenPaths).toContain('notifications');
     expect(childrenPaths).toContain('account');
@@ -84,6 +86,20 @@ describe('Mobile Routes and Authorization', () => {
     expect(canAccessPath('cashier', '/m/staff')).toBe(false);
     expect(canAccessPath('cashier', '/m/products')).toBe(false);
     expect(canAccessPath('cashier', '/m/more')).toBe(false);
+  });
+
+  it('lets cashiers keep the cashbook but reserves finance reports for managers', () => {
+    expect(permissionForPath('/cashbook')).toBe('cashbook:write');
+    expect(permissionForPath('/m/cashbook')).toBe('cashbook:write');
+    expect(permissionForPath('/reports/profit')).toBe('finance:read');
+    expect(permissionForPath('/m/reports')).toBe('finance:read');
+    expect(canAccessPath('manager', '/cashbook')).toBe(true);
+    expect(canAccessPath('manager', '/reports/profit')).toBe(true);
+    expect(canAccessPath('cashier', '/cashbook')).toBe(true);
+    expect(canAccessPath('cashier', '/m/cashbook')).toBe(true);
+    expect(canAccessPath('cashier', '/reports/profit')).toBe(false);
+    expect(canAccessPath('cashier', '/m/reports')).toBe(false);
+    expect(canAccessPath('staff', '/cashbook')).toBe(false);
   });
 
   it('restricts staff to mobile attendance, schedule, salary, and notifications', () => {
