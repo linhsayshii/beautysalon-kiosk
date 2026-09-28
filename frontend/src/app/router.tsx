@@ -3,6 +3,7 @@ import { AdminLayout } from '@/layouts/AdminLayout/AdminLayout';
 import { MobileAppLayout } from '@/layouts/MobileAppLayout/MobileAppLayout';
 import { NotFoundPage } from '@/pages/not-found/NotFoundPage';
 import { RouteLoadErrorBoundary } from '@/app/RouteLoadErrorBoundary';
+import { enableRouteTransitions } from '@/lib/route-motion';
 
 const routeHydrationFallback = <div className="route-loading" role="status" aria-label="Đang tải trang" />;
 
@@ -82,3 +83,5 @@ export const router = createBrowserRouter([
     ],
   },
 ]);
+
+enableRouteTransitions(router);

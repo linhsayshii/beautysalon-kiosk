@@ -1,0 +1,60 @@
+/*
+ * Page transitions (View Transitions API). lib/route-motion.ts turns them on
+ * for page changes and sets <html data-route-motion> to fade | push | back | none.
+ * The app bars keep their own snapshot so only the page content moves.
+ */
+.topbar { view-transition-name: app-topbar; }
+.mobile-topbar { view-transition-name: mobile-topbar; }
+.mobile-bottom-nav { view-transition-name: mobile-bottom-nav; }
+
+::view-transition-group(*) {
+  animation-duration: var(--duration);
+  animation-timing-function: var(--ease-out);
+}
+
+:root[data-route-motion='fade']::view-transition-old(root) {
+  animation: route-fade-out var(--duration) ease both;
+}
+
+:root[data-route-motion='fade']::view-transition-new(root) {
+  animation: route-fade-in var(--duration) var(--ease-out) both;
+}
+
+/* Push and back share one easing so the two pages never leave a gap between them. */
+:root[data-route-motion='push']::view-transition-old(root) {
+  animation: route-slide-out-left var(--duration-page) var(--ease-out) both;
+}
+
+:root[data-route-motion='push']::view-transition-new(root) {
+  animation: route-slide-in-right var(--duration-page) var(--ease-out) both;
+}
+
+:root[data-route-motion='back']::view-transition-old(root) {
+  z-index: 1;
+  animation: route-slide-out-right var(--duration-page) var(--ease-out) both;
+}
+
+:root[data-route-motion='back']::view-transition-new(root) {
+  animation: route-slide-in-left var(--duration-page) var(--ease-out) both;
+}
+
+:root[data-route-motion='none']::view-transition-group(*),
+:root[data-route-motion='none']::view-transition-old(*),
+:root[data-route-motion='none']::view-transition-new(*) {
+  animation: none;
+}
+
+@keyframes route-fade-out { to { opacity: 0; } }
+@keyframes route-fade-in { from { opacity: 0; } }
+@keyframes route-slide-in-right { from { transform: translateX(100%); } }
+@keyframes route-slide-out-left { to { transform: translateX(-30%); opacity: 0.6; } }
+@keyframes route-slide-in-left { from { transform: translateX(-30%); opacity: 0.6; } }
+@keyframes route-slide-out-right { to { transform: translateX(100%); } }
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none !important;
+  }
+}

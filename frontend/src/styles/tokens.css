@@ -150,6 +150,7 @@
   /* Motion */
   --duration-fast: 120ms;
   --duration: 160ms;
+  --duration-page: 220ms;
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
 
   /* Layout */
