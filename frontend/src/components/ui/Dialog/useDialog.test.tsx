@@ -5,6 +5,8 @@ import { useDialog } from './useDialog';
 
 class MockVisualViewport extends EventTarget {
   height = 700;
+  offsetTop = 0;
+  scale = 1;
 }
 
 const originalVisualViewport = window.visualViewport;
@@ -30,7 +32,7 @@ beforeEach(() => {
 
 afterEach(() => {
   cleanup();
-  document.documentElement.style.removeProperty('--mobile-overlay-viewport-height');
+  document.documentElement.style.removeProperty('--app-viewport-height');
   Object.defineProperty(window, 'visualViewport', {
     configurable: true,
     value: originalVisualViewport,
@@ -41,20 +43,33 @@ describe('useDialog viewport behavior', () => {
   it('sizes the overlay from the visual viewport height', () => {
     render(<TestDialog />);
 
-    expect(document.documentElement.style.getPropertyValue('--mobile-overlay-viewport-height')).toBe('700px');
+    expect(document.documentElement.style.getPropertyValue('--app-viewport-height')).toBe('700px');
   });
 
-  it('updates height on viewport resize without tracking viewport scroll offset', () => {
+  it('tracks both keyboard resize and Safari viewport panning', () => {
     render(<TestDialog />);
 
     visualViewport.height = 420;
     visualViewport.dispatchEvent(new Event('resize'));
-    expect(document.documentElement.style.getPropertyValue('--mobile-overlay-viewport-height')).toBe('420px');
+    expect(document.documentElement.style.getPropertyValue('--app-viewport-height')).toBe('420px');
 
-    visualViewport.height = 360;
+    visualViewport.offsetTop = 110;
     visualViewport.dispatchEvent(new Event('scroll'));
-    expect(document.documentElement.style.getPropertyValue('--mobile-overlay-viewport-height')).toBe('420px');
-    expect(document.documentElement.style.getPropertyValue('--mobile-overlay-viewport-offset-top')).toBe('');
+    expect(document.documentElement.style.getPropertyValue('--app-viewport-top')).toBe('110px');
+  });
+
+  it('keeps the shared viewport and scroll lock until the last nested dialog closes', () => {
+    const outer = render(<TestDialog />);
+    const inner = render(<TestDialog />);
+    inner.unmount();
+    visualViewport.height = 350;
+    visualViewport.dispatchEvent(new Event('resize'));
+    expect(document.documentElement.style.getPropertyValue('--app-viewport-height')).toBe('350px');
+    expect(document.body.style.overflow).toBe('hidden');
+    outer.unmount();
+    expect(document.documentElement.style.getPropertyValue('--app-viewport-height')).toBe('');
+    expect(document.documentElement.style.getPropertyValue('--app-viewport-top')).toBe('');
+    expect(document.body.style.overflow).not.toBe('hidden');
   });
 
   it('does not cancel native touchmove scrolling inside the dialog', () => {

@@ -9,7 +9,7 @@ export interface BottomSheetProps {
   subtitle?: ReactNode;
   /** Sticky actions under the scrolling body. Buttons share the width equally. */
   footer?: ReactNode;
-  /** auto grows with content up to 90dvh; full is a fixed 94dvh page-like sheet. */
+  /** auto uses up to 90% of the visible viewport; full uses 94%, including with a keyboard. */
   height?: 'auto' | 'full';
   /** muted puts the body on the canvas colour so white cards stand out. */
   tone?: 'default' | 'muted';

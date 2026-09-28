@@ -1,0 +1,67 @@
+/* Loaded last: every native field, including feature-specific forms and portals,
+ * needs readable text without Safari's focus zoom. Keep pinch zoom available. */
+@media (max-width: 1024px), (pointer: coarse) {
+  input:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='color']),
+  textarea,
+  select,
+  [contenteditable='true'] {
+    font-size: max(16px, 1em) !important;
+    scroll-margin-block: 12px;
+  }
+}
+
+.software-keyboard-open .mobile-bottom-nav,
+.software-keyboard-open .m-fab,
+.software-keyboard-open .mobile-switch-floating-banner {
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.software-keyboard-open .mobile-app-shell {
+  --mobile-bottomnav-h: 0px;
+  --mobile-safe-bottom: 0px;
+}
+
+.software-keyboard-open .m-footer,
+.software-keyboard-open .mobile-po-create-actions {
+  position: static;
+}
+
+.software-keyboard-open .sheet-footer,
+.software-keyboard-open .modal-footer {
+  padding-bottom: 12px;
+}
+
+.detail-drawer,
+.drawer-backdrop,
+.appointment-drawer-backdrop,
+.date-time-picker-backdrop {
+  top: var(--app-viewport-top, 0px);
+  bottom: auto;
+  height: var(--app-viewport-height, 100dvh);
+}
+
+.date-time-picker-dialog {
+  max-height: min(720px, calc(var(--app-viewport-height, 100dvh) - 32px));
+}
+
+/* On a short/landscape viewport, pinned headers and action bars can consume
+ * the entire sheet. Let the whole form scroll so even a textarea is reachable. */
+.compact-keyboard-viewport .sheet,
+.compact-keyboard-viewport .modal,
+.compact-keyboard-viewport .appointment-drawer {
+  overflow-y: auto;
+}
+
+.compact-keyboard-viewport .sheet-body,
+.compact-keyboard-viewport .modal-body,
+.compact-keyboard-viewport .kv-drawer-body,
+.compact-keyboard-viewport .modal > form {
+  flex: 0 0 auto;
+  overflow: visible;
+}
+
+.compact-keyboard-viewport .appointment-drawer > form {
+  flex: 0 0 auto;
+  height: auto;
+}

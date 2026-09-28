@@ -1,5 +1,6 @@
 import { useEffect, useId, useRef } from 'react';
 import type { RefObject } from 'react';
+import { useVisualViewport } from './useVisualViewport';
 
 const FOCUSABLE_SELECTOR = [
   'a[href]',
@@ -13,12 +14,10 @@ const FOCUSABLE_SELECTOR = [
 const dialogStack: symbol[] = [];
 let openDialogCount = 0;
 let bodyOverflowBeforeDialogs = '';
-let viewportHeightBeforeDialogs = '';
 
 function activateOverlay() {
   if (openDialogCount === 0) {
     bodyOverflowBeforeDialogs = document.body.style.overflow;
-    viewportHeightBeforeDialogs = document.documentElement.style.getPropertyValue('--mobile-overlay-viewport-height');
     document.body.classList.add('mobile-overlay-open');
     document.body.style.overflow = 'hidden';
   }
@@ -30,7 +29,6 @@ function deactivateOverlay() {
   if (openDialogCount === 0) {
     document.body.classList.remove('mobile-overlay-open');
     document.body.style.overflow = bodyOverflowBeforeDialogs;
-    document.documentElement.style.setProperty('--mobile-overlay-viewport-height', viewportHeightBeforeDialogs);
   }
 }
 
@@ -42,6 +40,7 @@ export interface UseDialogOptions {
 
 /** Shared keyboard, focus and scroll behavior for every modal surface (Modal, BottomSheet, drawers). */
 export function useDialog({ isOpen, onClose, initialFocusRef }: UseDialogOptions) {
+  useVisualViewport(isOpen);
   const dialogRef = useRef<HTMLElement>(null);
   const titleId = useId();
   const instanceRef = useRef(Symbol('mobile-dialog'));
@@ -57,20 +56,6 @@ export function useDialog({ isOpen, onClose, initialFocusRef }: UseDialogOptions
       : null;
     dialogStack.push(instance);
     activateOverlay();
-
-    // Keep only the visual viewport height in sync with the software keyboard.
-    // Applying offsetTop to a fixed overlay makes iOS shift the whole dialog
-    // during keyboard/viewport panning and exposes the page underneath.
-    let lastViewportHeight = -1;
-    const syncVisualViewport = () => {
-      const viewport = window.visualViewport;
-      const height = Math.round(viewport?.height ?? window.innerHeight);
-      if (height === lastViewportHeight) return;
-      lastViewportHeight = height;
-      document.documentElement.style.setProperty('--mobile-overlay-viewport-height', `${height}px`);
-    };
-    syncVisualViewport();
-    window.visualViewport?.addEventListener('resize', syncVisualViewport);
 
     const focusTimer = window.setTimeout(() => {
       const dialog = dialogRef.current;
@@ -114,7 +99,6 @@ export function useDialog({ isOpen, onClose, initialFocusRef }: UseDialogOptions
     document.addEventListener('keydown', handleKeyDown);
     return () => {
       window.clearTimeout(focusTimer);
-      window.visualViewport?.removeEventListener('resize', syncVisualViewport);
       document.removeEventListener('keydown', handleKeyDown);
       const stackIndex = dialogStack.lastIndexOf(instance);
       if (stackIndex >= 0) dialogStack.splice(stackIndex, 1);

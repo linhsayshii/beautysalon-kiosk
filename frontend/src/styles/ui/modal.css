@@ -28,6 +28,9 @@
 .modal-backdrop {
   position: fixed;
   inset: 0;
+  top: var(--app-viewport-top, 0px);
+  bottom: auto;
+  height: var(--app-viewport-height, 100dvh);
   z-index: var(--z-overlay);
   display: grid;
   place-items: center;
@@ -45,7 +48,7 @@
   display: flex;
   flex-direction: column;
   width: min(560px, 100%);
-  max-height: calc(100dvh - 44px);
+  max-height: calc(var(--app-viewport-height, 100dvh) - 44px);
   min-height: 0;
   overflow: hidden;
   border: 1px solid var(--line);
@@ -183,7 +186,7 @@
   .modal-xl {
     width: 100%;
     max-width: none;
-    max-height: 92dvh;
+    max-height: calc(var(--app-viewport-height, 100dvh) * 0.92);
     border-bottom: 0;
     border-radius: var(--radius-sheet) var(--radius-sheet) 0 0;
     animation: ui-slide-up 220ms var(--ease-out);
@@ -210,8 +213,8 @@
   }
 
   .modal-fill {
-    height: 100dvh;
-    max-height: 100dvh;
+    height: var(--app-viewport-height, 100dvh);
+    max-height: var(--app-viewport-height, 100dvh);
     border: 0;
     border-radius: 0;
   }
@@ -230,14 +233,14 @@
 /* Mobile bottom sheet */
 .sheet-backdrop {
   position: fixed;
-  top: 0;
+  top: var(--app-viewport-top, 0px);
   right: 0;
   left: 0;
   z-index: var(--z-overlay);
   display: flex;
   align-items: flex-end;
   justify-content: center;
-  height: var(--mobile-overlay-viewport-height, 100dvh);
+  height: var(--app-viewport-height, 100dvh);
   background: var(--overlay-scrim);
   overscroll-behavior: none;
   animation: ui-fade-in var(--duration) ease;
@@ -252,7 +255,7 @@
   flex-direction: column;
   width: 100%;
   max-width: 640px;
-  max-height: 90dvh;
+  max-height: calc(var(--app-viewport-height, 100dvh) * 0.9);
   min-height: 0;
   overflow: hidden;
   border-radius: var(--radius-sheet) var(--radius-sheet) 0 0;
@@ -263,8 +266,8 @@
 }
 
 .sheet-full {
-  height: 94dvh;
-  max-height: 94dvh;
+  height: calc(var(--app-viewport-height, 100dvh) * 0.94);
+  max-height: calc(var(--app-viewport-height, 100dvh) * 0.94);
 }
 
 /* Detail sheets sit white cards on the canvas colour. */

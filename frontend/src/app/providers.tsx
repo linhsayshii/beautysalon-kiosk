@@ -7,6 +7,7 @@ import { RealtimeQuerySynchronizer } from '@/context/RealtimeQuerySynchronizer';
 import { AuthProvider } from '@/features/auth/AuthProvider';
 import { syncStoreNameWithDocument } from '@/pwa/register-sw';
 import { useStoreName } from '@/services/metadata';
+import { useVisualViewport } from '@/components/ui/Dialog/useVisualViewport';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -26,6 +27,7 @@ function StoreTitleSync() {
 }
 
 export function AppProviders({ children }: PropsWithChildren) {
+  useVisualViewport();
   return (
     <QueryClientProvider client={queryClient}>
       <StoreTitleSync />
