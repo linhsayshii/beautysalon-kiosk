@@ -35,19 +35,26 @@ function observeViewport() {
   const previousTop = root.style.getPropertyValue(TOP);
   let revealTimer = 0;
   let keyboardWasOpen = false;
+  let lastHeight = '';
+  let lastTop = '';
 
   const sync = (event?: Event) => {
     // Pinch zoom keeps native panning; do not reflow the UI around a magnified viewport.
     const zoomed = viewport && Math.abs(viewport.scale - 1) > 0.05;
     const height = zoomed ? window.innerHeight : (viewport?.height ?? window.innerHeight);
-    const top = zoomed ? 0 : (viewport?.offsetTop ?? 0);
-    root.style.setProperty(HEIGHT, `${Math.round(height)}px`);
-    root.style.setProperty(TOP, `${Math.round(top)}px`);
     const editing = document.activeElement?.matches(EDITABLE) ?? false;
     // Keep the layout stable through blur/click until the keyboard actually
     // closes. Reflowing on pointer focus can move a checkbox before its click.
     const keyboardOpen = !zoomed && (editing || keyboardWasOpen) && window.innerHeight - height > 100;
     keyboardWasOpen = keyboardOpen;
+    // Only the keyboard should move the shell. Without it, an offset means Safari
+    // is panning or bouncing the document; following it drags the whole app
+    // against the swipe. Every write restyles the document, so skip no-ops.
+    const top = keyboardOpen ? (viewport?.offsetTop ?? 0) : 0;
+    const nextHeight = `${Math.round(height)}px`;
+    const nextTop = `${Math.round(top)}px`;
+    if (nextHeight !== lastHeight) root.style.setProperty(HEIGHT, (lastHeight = nextHeight));
+    if (nextTop !== lastTop) root.style.setProperty(TOP, (lastTop = nextTop));
     root.classList.toggle('software-keyboard-open', keyboardOpen);
     root.classList.toggle('compact-keyboard-viewport', Boolean(keyboardOpen && height < 400));
     window.clearTimeout(revealTimer);

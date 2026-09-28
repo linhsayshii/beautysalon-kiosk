@@ -95,6 +95,36 @@ describe('keyboard viewport for all forms', () => {
     expect(outer.scrollTop).toBe(0);
   });
 
+  it('does not move or restyle the app shell while the page pans without a keyboard', () => {
+    render(<Form />);
+    const root = document.documentElement;
+    const setProperty = vi.spyOn(root.style, 'setProperty');
+    act(() => {
+      // Safari pans the visual viewport when a swipe chains to the document.
+      for (const offsetTop of [20, 69, 139, 60, 0]) {
+        viewport.offsetTop = offsetTop;
+        viewport.dispatchEvent(new Event('scroll'));
+      }
+      vi.advanceTimersByTime(50);
+    });
+    expect(root.style.getPropertyValue('--app-viewport-top')).toBe('0px');
+    expect(setProperty).not.toHaveBeenCalled();
+    setProperty.mockRestore();
+  });
+
+  it('follows the visual viewport offset only while the keyboard is open', () => {
+    const { getByRole } = render(<Form />);
+    act(() => {
+      getByRole('textbox', { name: 'Tìm kiếm' }).focus();
+      viewport.height = 400;
+      viewport.dispatchEvent(new Event('resize'));
+      viewport.offsetTop = 120;
+      viewport.dispatchEvent(new Event('scroll'));
+      vi.advanceTimersByTime(50);
+    });
+    expect(document.documentElement.style.getPropertyValue('--app-viewport-top')).toBe('120px');
+  });
+
   it('does not interpret pinch zoom as a software keyboard', () => {
     const { getByRole } = render(<Form />);
     act(() => {

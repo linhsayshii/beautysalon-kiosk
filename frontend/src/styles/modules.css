@@ -3,9 +3,10 @@
  * goods/staff dialogs, dashboard refinements…). Loaded after app.css and
  * before the feature files. New shared patterns belong in styles/ui/.
  */
+/* dvh, not vh: iOS Safari's 100vh includes the hidden-toolbar area, which
+ * would let the document scroll behind the fixed mobile shell. */
 #root {
-
-  min-height: 100vh;
+  min-height: 100dvh;
 }
 
 .route-load-error {

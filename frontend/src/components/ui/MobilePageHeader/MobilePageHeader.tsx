@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { RETURN_TO_PAGE_STATE } from '@/lib/scroll-restoration';
 
 export interface MobilePageHeaderProps {
   title: ReactNode;
@@ -25,7 +26,8 @@ export function MobilePageHeader({ title, subtitle, backTo, onBack, actions, chi
   const hasBack = Boolean(onBack || backTo);
   const handleBack = () => {
     if (onBack) onBack();
-    else if (backTo) navigate(backTo);
+    // A parent list page reopens where the user left it, not at the top.
+    else if (backTo) navigate(backTo, { state: RETURN_TO_PAGE_STATE });
   };
 
   return (

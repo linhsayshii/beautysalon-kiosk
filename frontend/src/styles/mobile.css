@@ -43,6 +43,14 @@ body:has(.mobile-form-sheet-backdrop) .m-fab {
   pointer-events: none;
 }
 
+/* The fixed shell owns all scrolling. Stop swipes on a page that fits the
+ * screen from chaining to the document, where Safari pans the whole shell and
+ * springs it back. */
+html:has(.mobile-app-shell),
+html:has(.mobile-app-shell) body {
+  overscroll-behavior: none;
+}
+
 /* Mobile Application Shell */
 .mobile-app-shell {
   display: flex;
@@ -66,6 +74,7 @@ body:has(.mobile-form-sheet-backdrop) .m-fab {
   box-sizing: border-box;
   padding: 12px 14px calc(var(--mobile-bottomnav-h) + var(--mobile-safe-bottom) + 16px);
   overflow-y: auto;
+  overscroll-behavior-y: contain;
   -webkit-overflow-scrolling: touch;
   position: relative;
 }

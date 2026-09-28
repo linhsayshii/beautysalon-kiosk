@@ -46,16 +46,22 @@ describe('useDialog viewport behavior', () => {
     expect(document.documentElement.style.getPropertyValue('--app-viewport-height')).toBe('700px');
   });
 
-  it('tracks both keyboard resize and Safari viewport panning', () => {
+  it('tracks keyboard resize and follows Safari panning only while typing', () => {
     render(<TestDialog />);
 
+    visualViewport.offsetTop = 110;
+    visualViewport.dispatchEvent(new Event('scroll'));
+    expect(document.documentElement.style.getPropertyValue('--app-viewport-top')).toBe('0px');
+
+    const field = document.body.appendChild(document.createElement('input'));
+    field.focus();
     visualViewport.height = 420;
     visualViewport.dispatchEvent(new Event('resize'));
     expect(document.documentElement.style.getPropertyValue('--app-viewport-height')).toBe('420px');
 
-    visualViewport.offsetTop = 110;
     visualViewport.dispatchEvent(new Event('scroll'));
     expect(document.documentElement.style.getPropertyValue('--app-viewport-top')).toBe('110px');
+    field.remove();
   });
 
   it('keeps the shared viewport and scroll lock until the last nested dialog closes', () => {
