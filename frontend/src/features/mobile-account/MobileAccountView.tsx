@@ -9,7 +9,7 @@ import { clientErrorMessage, errorMessage } from '@/services/api-client';
 import { changeMyPassword, updateMyProfile } from '@/features/account-settings/account-settings.api';
 import { getBranches, createBranch, updateBranch, deactivateBranch } from '@/features/branches/branches.api';
 import { getAccounts, updateAccount } from '@/features/accounts/accounts.api';
-import { AccountDialog } from '@/features/accounts/StaffAccountsView';
+import { AccountDialog, roleDescriptions, roleLabels } from '@/features/accounts/StaffAccountsView';
 import { LocationMapPicker } from '@/components/map/LocationMapPicker';
 import { MobileSearchBar, MobileEmptyState } from '@/features/mobile-common';
 import { formatDateTime } from '@/lib/format';
@@ -20,8 +20,6 @@ import { Modal } from '@/components/ui/Modal/Modal';
 type AccountTab = 'profile' | 'branches' | 'accounts';
 type ProfileSubTab = 'info' | 'security';
 
-const roleLabels: Record<string, string> = { manager: 'Quản lý', cashier: 'Thu ngân', staff: 'Nhân viên' };
-const roleDescriptions: Record<string, string> = { manager: 'Toàn bộ hệ thống', cashier: 'Chỉ trang Thu ngân', staff: 'Chỉ chấm công QR' };
 
 const emptyBranch = {
   code: '',

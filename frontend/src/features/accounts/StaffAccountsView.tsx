@@ -16,8 +16,8 @@ import { Modal } from '@/components/ui/Modal/Modal';
 import { useAuth } from '@/features/auth/AuthProvider';
 import type { ApiRecord } from '@/types/api';
 
-const roleLabels: Record<string, string> = { manager: 'Quản lý', cashier: 'Thu ngân', staff: 'Nhân viên' };
-const roleDescriptions: Record<string, string> = { manager: 'Toàn bộ hệ thống', cashier: 'Chỉ trang Thu ngân', staff: 'Chỉ chấm công QR' };
+export const roleLabels: Record<string, string> = { manager: 'Quản lý', cashier: 'Thu ngân', staff: 'Nhân viên' };
+export const roleDescriptions: Record<string, string> = { manager: 'Toàn bộ hệ thống', cashier: 'Chỉ trang Thu ngân', staff: 'Bán hàng, khách hàng, chấm công' };
 
 export function StaffAccountsView({ embedded = false, onAddAccount }: { embedded?: boolean; onAddAccount?: () => void }) {
   const client = useQueryClient();
