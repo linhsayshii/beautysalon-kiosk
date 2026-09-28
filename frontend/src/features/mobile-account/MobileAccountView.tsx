@@ -377,7 +377,7 @@ export function MobileAccountView() {
                 </span>
                 <div>
                   <h2>Đổi mật khẩu</h2>
-                  <p>Tối thiểu 12 ký tự, gồm chữ hoa, chữ thường và số</p>
+                  <p>Tối thiểu 8 ký tự</p>
                 </div>
               </header>
               <form onSubmit={savePassword} className="mobile-settings-form">
@@ -405,7 +405,7 @@ export function MobileAccountView() {
                       autoComplete="new-password"
                       value={passwords.newPassword}
                       onChange={(event) => setPasswords({ ...passwords, newPassword: event.target.value })}
-                      placeholder="Ít nhất 12 ký tự, gồm hoa, thường và số"
+                      placeholder="Ít nhất 8 ký tự"
                     />
                   </label>
                 </div>

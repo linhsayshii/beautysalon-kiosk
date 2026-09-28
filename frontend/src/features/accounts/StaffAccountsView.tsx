@@ -114,7 +114,7 @@ export function AccountDialog({ account, nested = false, onClose }: { account?: 
           {isSelf ? (
             <div className="field"><span className="field-label">Mật khẩu</span><span className="field-hint">Đổi mật khẩu của bạn ở mục Bảo mật.</span></div>
           ) : (
-            <label><span>{editing ? 'Đặt lại mật khẩu' : 'Mật khẩu ban đầu *'}</span><input required={!editing} minLength={12} maxLength={128} type="password" autoComplete="new-password" value={form.password} onChange={(event) => setForm({ ...form, password: event.target.value })} placeholder={editing ? 'Để trống nếu giữ nguyên' : 'Ít nhất 12 ký tự, gồm hoa, thường và số'} /></label>
+            <label><span>{editing ? 'Đặt lại mật khẩu' : 'Mật khẩu ban đầu *'}</span><input required={!editing} minLength={8} maxLength={128} type="password" autoComplete="new-password" value={form.password} onChange={(event) => setForm({ ...form, password: event.target.value })} placeholder={editing ? 'Để trống nếu giữ nguyên' : 'Ít nhất 8 ký tự'} /></label>
           )}
           <div className="field">
             <span className="field-label">Loại tài khoản</span>

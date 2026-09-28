@@ -33,13 +33,17 @@ for (const name of Object.keys(seeds)) {
       await db.exec(seeds[name]);
       const initial = await snapshot(db);
       assert.equal(initial.branches.length, 1);
-      assert.equal(initial.user_accounts.length, name === 'minji' ? 1 : 7);
+      assert.equal(initial.user_accounts.length, name === 'minji' ? 4 : 7);
       if (name === 'minji') {
         assert.equal(initial.branches[0].name, 'Minji - Mipec Rubik');
         assert.equal(initial.branches[0].address, 'Mipec Rubik 360, 122 Xuân Thủy, Hà Nội');
         assert.equal(initial.branches[0].latitude, null);
+        assert.equal(initial.staff.length, 3);
+        for (const username of ['minji_my', 'minji_lan', 'minji_giang']) {
+          assert.equal((await login(username, '12345678')).account.role, 'staff');
+        }
         for (const [table, rows] of Object.entries(initial)) {
-          if (!['branches', 'user_accounts'].includes(table)) assert.equal(rows.length, 0, table);
+          if (!['branches', 'user_accounts', 'staff', 'staff_settings'].includes(table)) assert.equal(rows.length, 0, table);
         }
       } else {
         assert.ok(initial.products.length > 0);
