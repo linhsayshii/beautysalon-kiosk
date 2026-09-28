@@ -42,7 +42,10 @@ export function MobileAttendanceQrAdminView() {
     QRCode.toDataURL(token, {
       width: 420,
       margin: 2,
-      color: { dark: 'var(--ink-950)', light: '#ffffff' },
+      // qrcode renders to a canvas and only accepts literal hex colors. CSS
+      // variables are not resolved here, which previously left this view in
+      // its loading state after the promise rejected.
+      color: { dark: '#111827', light: '#ffffff' },
       errorCorrectionLevel: 'M',
     }).then(setQrImage);
   }, [challenge.data?.data.token]);

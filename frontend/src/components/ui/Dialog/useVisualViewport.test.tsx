@@ -52,7 +52,7 @@ describe('keyboard viewport for all forms', () => {
     expect(document.documentElement).not.toHaveClass('software-keyboard-open');
   });
 
-  it('keeps a visible textarea stable and reveals it again after viewport panning', () => {
+  it('does not change a container scroll position while the visual viewport pans', () => {
     const { getByRole, getByTestId } = render(<Form />);
     const note = getByRole('textbox', { name: 'Ghi chú' });
     const scroll = getByTestId('scroll');
@@ -72,7 +72,27 @@ describe('keyboard viewport for all forms', () => {
       viewport.dispatchEvent(new Event('scroll'));
       vi.advanceTimersByTime(150);
     });
-    expect(scroll.scrollTop).toBe(128);
+    expect(scroll.scrollTop).toBe(200);
+  });
+
+  it('reveals a covered field through only its nearest scrollable ancestor', () => {
+    const { getByRole, getByTestId } = render(<div data-testid="outer" style={{ overflowY: 'auto' }}><Form /></div>);
+    const field = getByRole('textbox', { name: 'Tìm kiếm' });
+    const inner = getByTestId('scroll');
+    const outer = getByTestId('outer');
+    Object.defineProperties(inner, { clientHeight: { value: 220 }, scrollHeight: { value: 900 } });
+    Object.defineProperties(outer, { clientHeight: { value: 300 }, scrollHeight: { value: 1000 } });
+    inner.getBoundingClientRect = () => ({ top: 100 } as DOMRect);
+    outer.getBoundingClientRect = () => ({ top: 0 } as DOMRect);
+    field.getBoundingClientRect = () => ({ top: 500, bottom: 544 } as DOMRect);
+    act(() => {
+      field.focus();
+      viewport.height = 400;
+      viewport.dispatchEvent(new Event('resize'));
+      vi.advanceTimersByTime(150);
+    });
+    expect(inner.scrollTop).toBe(236);
+    expect(outer.scrollTop).toBe(0);
   });
 
   it('does not interpret pinch zoom as a software keyboard', () => {

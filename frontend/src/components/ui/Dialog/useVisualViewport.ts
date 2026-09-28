@@ -6,7 +6,7 @@ const TOP = '--app-viewport-top';
 let subscribers = 0;
 let stop: (() => void) | undefined;
 
-/** Scroll the field's container, never the document behind a dialog. */
+/** Scroll only the nearest field container, never the document behind a dialog. */
 function revealFocusedField(top: number, height: number) {
   const field = document.activeElement;
   if (!(field instanceof HTMLElement) || !field.matches(EDITABLE)) return;
@@ -22,6 +22,9 @@ function revealFocusedField(top: number, height: number) {
       ? rect.top - visibleTop
       : Math.max(0, Math.min(rect.bottom - visibleBottom, rect.top - visibleTop));
     if (delta) parent.scrollTop += delta;
+    // Nested sheets and pages may both scroll. Moving every ancestor makes the
+    // page fight a user's gesture, so the nearest scroll owner is authoritative.
+    return;
   }
 }
 
@@ -33,7 +36,7 @@ function observeViewport() {
   let revealTimer = 0;
   let keyboardWasOpen = false;
 
-  const sync = () => {
+  const sync = (event?: Event) => {
     // Pinch zoom keeps native panning; do not reflow the UI around a magnified viewport.
     const zoomed = viewport && Math.abs(viewport.scale - 1) > 0.05;
     const height = zoomed ? window.innerHeight : (viewport?.height ?? window.innerHeight);
@@ -48,8 +51,12 @@ function observeViewport() {
     root.classList.toggle('software-keyboard-open', keyboardOpen);
     root.classList.toggle('compact-keyboard-viewport', Boolean(keyboardOpen && height < 400));
     window.clearTimeout(revealTimer);
-    // Safari animates both resize and pan. Wait for them to settle before scrolling.
-    if (keyboardOpen) revealTimer = window.setTimeout(() => revealFocusedField(top, height), 120);
+    // Safari emits visualViewport scroll events while the user pans. Updating
+    // scrollTop in response reverses or fights that gesture. Reveal the focused
+    // field only after focus or a viewport resize caused by the keyboard.
+    if (keyboardOpen && event?.type !== 'scroll' && event?.type !== 'focusout') {
+      revealTimer = window.setTimeout(() => revealFocusedField(top, height), 120);
+    }
   };
 
   sync();

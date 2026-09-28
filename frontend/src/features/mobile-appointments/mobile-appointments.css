@@ -68,9 +68,9 @@
 .mobile-appointments-view {
   display: flex;
   flex-direction: column;
-  min-height: 100vh;
+  min-height: 100%;
   background-color: var(--canvas);
-  padding-bottom: calc(var(--mobile-safe-bottom, 0px) + 90px);
+  padding-bottom: 24px;
   box-sizing: border-box;
   font-family: inherit;
   color: var(--ink-950);

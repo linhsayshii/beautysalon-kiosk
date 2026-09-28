@@ -18,7 +18,7 @@ $$;
 
 -- 1. BRANCH
 INSERT INTO branches (code, name, address, phone, email, timezone, latitude, longitude, attendance_radius_m, active)
-VALUES ('CN-TT', 'Chi nhánh Trung tâm', 'Mipec Rubik 360, 122 Xuân Thủy, Phường Dịch Vọng Hậu, Quận Cầu Giấy, Hà Nội', '0989080866', 'contact@annachillbeauty.vn', 'Asia/Ho_Chi_Minh', 21.0375000, 105.7825000, 100, TRUE)
+VALUES ('CN-TT', 'Anna - Mipec Rubik', 'Mipec Rubik 360, 122 Xuân Thủy, Phường Dịch Vọng Hậu, Quận Cầu Giấy, Hà Nội', '0989080866', 'contact@annachillbeauty.vn', 'Asia/Ho_Chi_Minh', 21.0375000, 105.7825000, 100, TRUE)
 ON CONFLICT (code) DO UPDATE SET
   name = EXCLUDED.name,
   address = EXCLUDED.address,
