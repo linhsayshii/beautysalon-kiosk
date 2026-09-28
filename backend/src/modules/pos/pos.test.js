@@ -6,7 +6,7 @@ import { hasPermission, permissions } from '../auth/auth.permissions.js';
 test('POS permissions are assigned properly to roles', () => {
   assert.equal(hasPermission('manager', permissions.usePos), true);
   assert.equal(hasPermission('cashier', permissions.usePos), true);
-  assert.equal(hasPermission('staff', permissions.usePos), false);
+  assert.equal(hasPermission('staff', permissions.usePos), true);
 });
 
 test('listCustomers includes remaining package units and checkout keeps staff on each line', () => {

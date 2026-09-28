@@ -116,6 +116,15 @@ export function MobileCustomersView() {
       nextParams.delete('create');
       setSearchParams(nextParams, { replace: true });
     }
+    // Quick action "Thu nợ" opens the list filtered to customers who still owe money.
+    if (searchParams.get('debt') === '1') {
+      setDebtFilter('with_debt');
+      setDraftDebt('with_debt');
+      setSortValue('debt_desc');
+      const nextParams = new URLSearchParams(searchParams);
+      nextParams.delete('debt');
+      setSearchParams(nextParams, { replace: true });
+    }
   }, [searchParams, setSearchParams]);
 
   const [page, setPage] = useFilterPagination([search, groupFilter, debtFilter, sortValue]);

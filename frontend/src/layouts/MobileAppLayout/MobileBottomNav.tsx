@@ -48,6 +48,19 @@ export function MobileQuickActionSheet({ isOpen, onClose }: QuickActionSheetProp
           <i className="ph ph-caret-right mobile-quick-action-arrow" />
         </Link>}
 
+        {account && canAccessPath(account.role, '/m/customers') && !canAccessPath(account.role, '/m/cashbook') && (
+          <Link to="/m/customers?debt=1" className="mobile-quick-action-item" onClick={onClose}>
+            <div className="mobile-quick-action-icon action-cashbook">
+              <i className="ph ph-hand-coins" />
+            </div>
+            <div className="mobile-quick-action-info">
+              <div className="mobile-quick-action-name">Thu nợ khách hàng</div>
+              <div className="mobile-quick-action-desc">Chọn khách đang nợ & ghi nhận khoản thu</div>
+            </div>
+            <i className="ph ph-caret-right mobile-quick-action-arrow" />
+          </Link>
+        )}
+
         {account && canAccessPath(account.role, '/m/customers') && (
           <Link to="/m/customers?create=1" className="mobile-quick-action-item" onClick={onClose}>
             <div className="mobile-quick-action-icon action-customer">
@@ -92,6 +105,7 @@ export function MobileBottomNav() {
             <NavLink to="/m/my-schedule" className={({ isActive }) => `mobile-nav-item ${isActive ? 'is-active' : ''}`}>
               <i className="ph ph-calendar-check" /><span>Lịch của tôi</span>
             </NavLink>
+            {renderCenterButton()}
             <NavLink to="/m/salary" className={({ isActive }) => `mobile-nav-item ${isActive ? 'is-active' : ''}`}>
               <i className="ph ph-wallet" /><span>Lương</span>
             </NavLink>

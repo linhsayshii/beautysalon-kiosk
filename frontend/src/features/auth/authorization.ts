@@ -22,7 +22,7 @@ const managerPermissions: AppPermission[] = [
 export const rolePermissions: Readonly<Record<AccountRole, readonly AppPermission[]>> = Object.freeze({
   manager: Object.freeze(managerPermissions),
   cashier: Object.freeze(['pos:use', 'cashbook:write'] as AppPermission[]),
-  staff: Object.freeze(['attendance:self'] as AppPermission[]),
+  staff: Object.freeze(['attendance:self', 'pos:use', 'customers:manage'] as AppPermission[]),
 });
 
 export const homeForRole = (role: AccountRole, isMobile = false) => {

@@ -102,16 +102,20 @@ describe('Mobile Routes and Authorization', () => {
     expect(canAccessPath('staff', '/cashbook')).toBe(false);
   });
 
-  it('restricts staff to mobile attendance, schedule, salary, and notifications', () => {
+  it('lets staff use attendance, schedule, salary, notifications, sales, appointments and customers', () => {
     expect(canAccessPath('staff', '/m/attendance')).toBe(true);
     expect(canAccessPath('staff', '/m/schedule')).toBe(true);
     expect(canAccessPath('staff', '/m/salary')).toBe(true);
     expect(canAccessPath('staff', '/m/notifications')).toBe(true);
+    expect(canAccessPath('staff', '/m/pos')).toBe(true);
+    expect(canAccessPath('staff', '/m/invoices/new')).toBe(true);
+    expect(canAccessPath('staff', '/m/appointments')).toBe(true);
+    expect(canAccessPath('staff', '/m/appointments/new')).toBe(true);
+    expect(canAccessPath('staff', '/m/customers')).toBe(true);
     expect(canAccessPath('staff', '/m/dashboard')).toBe(false);
-    expect(canAccessPath('staff', '/m/pos')).toBe(false);
-    expect(canAccessPath('staff', '/m/invoices/new')).toBe(false);
-    expect(canAccessPath('staff', '/m/appointments')).toBe(false);
-    expect(canAccessPath('staff', '/m/appointments/new')).toBe(false);
+    expect(canAccessPath('staff', '/m/cashbook')).toBe(false);
+    expect(canAccessPath('staff', '/m/reports')).toBe(false);
+    expect(canAccessPath('staff', '/m/products')).toBe(false);
     expect(canAccessPath('staff', '/m/more')).toBe(false);
     expect(canAccessPath('staff', '/m/staff')).toBe(false);
   });

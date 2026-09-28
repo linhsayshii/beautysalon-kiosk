@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { navigation } from './navigation.config';
 import { homeForRole, useAuth } from '@/features/auth/AuthProvider';
+import { hasPermission } from '@/features/auth/authorization';
 import { useStoreName } from '@/services/metadata';
 import { setPreferredUiMode } from '@/pwa/device-detect';
 import { useWebSocket } from '@/hooks/useWebSocket';
@@ -88,7 +89,7 @@ export function Header() {
           <i className="ph ph-wallet" aria-hidden="true" />
           <span>Sổ quỹ</span>
         </NavLink>}
-        {(account?.role === 'manager' || account?.role === 'cashier') && <NavLink className={({ isActive }) => `action-pill cashier-button ${isActive ? 'is-active' : ''}`} to="/pos" aria-label="Mở trang thu ngân">
+        {account && hasPermission(account.role, 'pos:use') && <NavLink className={({ isActive }) => `action-pill cashier-button ${isActive ? 'is-active' : ''}`} to="/pos" aria-label="Mở trang thu ngân">
           <i className="ph ph-shopping-cart-simple" aria-hidden="true" />
           <span>Thu ngân</span>
         </NavLink>}

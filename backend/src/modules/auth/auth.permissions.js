@@ -20,7 +20,7 @@ const managerPermissions = Object.values(permissions).filter((permission) => per
 export const rolePermissions = Object.freeze({
   manager: Object.freeze(managerPermissions),
   cashier: Object.freeze([permissions.usePos, permissions.writeCashbook]),
-  staff: Object.freeze([permissions.useOwnAttendance]),
+  staff: Object.freeze([permissions.useOwnAttendance, permissions.usePos, permissions.manageCustomers]),
 });
 
 export function hasPermission(role, permission) {

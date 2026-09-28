@@ -55,7 +55,13 @@ describe('MobileBottomNav Component', () => {
     expect(screen.getByText('Lương')).toBeInTheDocument();
     expect(screen.getByText('Thông báo')).toBeInTheDocument();
     expect(screen.getByText('Tài khoản')).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /tạo mới|action|quick action/i })).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: /tạo mới/i }));
+    expect(screen.getByText('Tạo lịch hẹn').closest('a')).toHaveAttribute('href', '/m/appointments/new');
+    expect(screen.getByText('Tạo hóa đơn bán hàng').closest('a')).toHaveAttribute('href', '/m/invoices/new');
+    expect(screen.getByText('Thu nợ khách hàng').closest('a')).toHaveAttribute('href', '/m/customers?debt=1');
+    expect(screen.getByText('Thêm khách hàng').closest('a')).toHaveAttribute('href', '/m/customers?create=1');
+    expect(screen.queryByText('Lập phiếu thu chi')).not.toBeInTheDocument();
   });
 
   it('opens quick action sheet when clicking center action button and displays action items', () => {
