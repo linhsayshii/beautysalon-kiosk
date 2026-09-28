@@ -5,6 +5,7 @@ import { broadcastToBranch, realtimeEvents } from '../../lib/ws.js';
 import { publishNotification } from '../notifications/notifications.service.js';
 import { resolveApplicablePricebook, resolvePricebookItemPrice } from '../inventory/inventory.service.js';
 import { recordCashEntry } from '../cashbook/cashbook.ledger.js';
+import { config } from '../../config.js';
 
 const number = (value) => Number(value ?? 0);
 
@@ -742,7 +743,7 @@ export async function checkoutPosInvoice({
       note: note || '',
       pricebook: appliedPricebook,
       branch: {
-        name: branchInfo.name || 'Anna Chill Beauty Salon',
+        name: branchInfo.name || config.store.name,
         address: branchInfo.address || '',
         phone: branchInfo.phone || '',
       },

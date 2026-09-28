@@ -192,6 +192,7 @@
   height: calc(var(--control-h) - 2px);
   padding: 0 10px 0 12px;
   border: 0;
+  border-radius: 0;
   outline: 0;
   color: var(--ink-950);
   background: transparent;
@@ -199,6 +200,12 @@
   font-size: var(--text-md);
   text-align: right;
   font-variant-numeric: tabular-nums;
+}
+
+/* The wrapper owns the focus ring, including the currency suffix. */
+.input-suffix > input:focus {
+  outline: 0;
+  box-shadow: none;
 }
 
 .input-suffix > span {

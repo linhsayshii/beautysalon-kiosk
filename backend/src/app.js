@@ -81,6 +81,33 @@ export function createApp() {
     });
   }));
 
+  // The sign-in screen and the web-app manifest load before a session exists.
+  // Keep this deliberately narrow: payment and other system configuration stay
+  // behind the authenticated metadata endpoint below.
+  app.get('/api/v1/store-meta', (request, response) => {
+    response.setHeader('Cache-Control', 'no-store');
+    response.json({ data: { storeName: config.store.name } });
+  });
+
+  app.get('/api/v1/manifest.webmanifest', (request, response) => {
+    const storeName = config.store.name;
+    response.setHeader('Cache-Control', 'no-store');
+    response.type('application/manifest+json').json({
+      name: storeName,
+      short_name: storeName.slice(0, 12),
+      description: `Quản trị Salon & Spa ${storeName}`,
+      start_url: '/m/dashboard',
+      display: 'standalone',
+      background_color: '#f4f6f9',
+      theme_color: '#0062eb',
+      orientation: 'portrait-primary',
+      icons: [
+        { src: '/icons/icon-192.svg', sizes: '192x192', type: 'image/svg+xml', purpose: 'any' },
+        { src: '/icons/icon-512.svg', sizes: '512x512', type: 'image/svg+xml', purpose: 'any maskable' },
+      ],
+    });
+  });
+
   app.use('/api/v1/auth', authRoutes);
   app.use('/api/v1', requireAuth);
 

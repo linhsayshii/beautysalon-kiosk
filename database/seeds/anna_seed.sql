@@ -1,9 +1,20 @@
 -- ============================================================================
--- ANNACHILL BEAUTY - STANDARD PRODUCTION DATASET
+-- ANNACHILL BEAUTY - FULL LOCAL/TEST DATASET
 -- Initialized from KiotViet export (DanhSachSanPham) and Verified Staff Data
 -- ============================================================================
 
 BEGIN;
+
+-- Initial dataset only: never overwrite an existing salon or another seed.
+-- Serialize initializers so two simultaneous seed commands cannot both pass.
+LOCK TABLE branches, user_accounts IN ACCESS EXCLUSIVE MODE;
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM branches) OR EXISTS (SELECT 1 FROM user_accounts) THEN
+    RAISE EXCEPTION 'anna_seed.sql requires an empty database; existing data was not changed';
+  END IF;
+END;
+$$;
 
 -- 1. BRANCH
 INSERT INTO branches (code, name, address, phone, email, timezone, latitude, longitude, attendance_radius_m, active)

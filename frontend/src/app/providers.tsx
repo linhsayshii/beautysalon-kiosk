@@ -5,8 +5,8 @@ import { ToastProvider } from '@/components/ui/Toast/ToastProvider';
 import { WebSocketProvider } from '@/context/WebSocketContext';
 import { RealtimeQuerySynchronizer } from '@/context/RealtimeQuerySynchronizer';
 import { AuthProvider } from '@/features/auth/AuthProvider';
-import { syncStoreNameWithTitleAndManifest } from '@/pwa/register-sw';
-import { useMetadata } from '@/services/metadata';
+import { syncStoreNameWithDocument } from '@/pwa/register-sw';
+import { useStoreName } from '@/services/metadata';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -16,13 +16,10 @@ const queryClient = new QueryClient({
 });
 
 function StoreTitleSync() {
-  const { data: metadata } = useMetadata();
-  const storeName = metadata?.data?.system?.storeName;
+  const storeName = useStoreName();
 
   useEffect(() => {
-    if (storeName) {
-      syncStoreNameWithTitleAndManifest(storeName);
-    }
+    syncStoreNameWithDocument(storeName);
   }, [storeName]);
 
   return null;

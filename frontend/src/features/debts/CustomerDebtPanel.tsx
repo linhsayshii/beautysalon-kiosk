@@ -1,11 +1,13 @@
-import { useState } from 'react';
+import { useId, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { MoneyInput } from '@/components/forms/MoneyInput';
+import { Select } from '@/components/ui/Select/Select';
 import { formatMoney, formatDateTime } from '@/lib/format';
 import { getCustomerDebt, collectCustomerDebt, usePaymentRequestKey } from './debts.api';
 import { statusLabels } from '@/types/api';
 
 export function CustomerDebtPanel({customerId}: {customerId:number}) {
+  const fieldId = useId();
   const client = useQueryClient();
   const query = useQuery({queryKey:['customer-debt',customerId],queryFn:()=>getCustomerDebt(customerId)});
   const [collecting,setCollecting] = useState(false);
@@ -38,11 +40,36 @@ export function CustomerDebtPanel({customerId}: {customerId:number}) {
     {notice && <p role="status">{notice}</p>}
     {collecting && <div role="group" aria-label="Thu nợ" onKeyDown={e=>{if(e.key==='Enter'){e.preventDefault();e.stopPropagation();}}}>
       <fieldset disabled={mutation.isPending} className="debt-form">
-        <label>Khoản cần thu<select value={invoiceId ?? ''} onChange={e=>{const id=e.target.value ? Number(e.target.value):null;setInvoiceId(id);setAmount(id ? debt.invoices.find(i=>i.id===id)!.debtAmount : debt.balance);}}>
-          <option value="">Tự động trả khoản cũ nhất</option>{debt.invoices.map(i=><option key={i.id} value={i.id}>{i.code} · {formatMoney(i.debtAmount)}</option>)}
-        </select></label>
+        <div className="debt-field">
+          <label htmlFor={`${fieldId}-invoice`}>Khoản cần thu</label>
+          <Select<string | number>
+            id={`${fieldId}-invoice`}
+            value={invoiceId ?? ''}
+            onChange={value=>{const id=value === '' ? null : Number(value);setInvoiceId(id);setAmount(id ? debt.invoices.find(i=>i.id===id)!.debtAmount : debt.balance);}}
+            options={[
+              {value:'',label:'Tự động trả khoản cũ nhất'},
+              ...debt.invoices.map(i=>({value:i.id,label:`${i.code} · ${formatMoney(i.debtAmount)}`})),
+            ]}
+            disabled={mutation.isPending}
+            fullWidth
+          />
+        </div>
         <label>Số tiền thu (VNĐ)<MoneyInput value={amount} onChange={setAmount} allowEmpty={false} /></label>
-        <label>Phương thức<select value={method} onChange={e=>setMethod(e.target.value)}><option value="cash">Tiền mặt</option><option value="bank_transfer">Chuyển khoản</option><option value="card">Thẻ ngân hàng</option></select></label>
+        <div className="debt-field">
+          <label htmlFor={`${fieldId}-method`}>Phương thức</label>
+          <Select
+            id={`${fieldId}-method`}
+            value={method}
+            onChange={setMethod}
+            options={[
+              {value:'cash',label:'Tiền mặt'},
+              {value:'bank_transfer',label:'Chuyển khoản'},
+              {value:'card',label:'Thẻ ngân hàng'},
+            ]}
+            disabled={mutation.isPending}
+            fullWidth
+          />
+        </div>
         <label>Ghi chú<input value={note} maxLength={300} onChange={e=>setNote(e.target.value)} /></label>
         <p>Dư nợ sau thu: <strong>{formatMoney(Math.max(0,debt.balance-amount))}</strong></p>
         {amount>maximum && <p role="alert">Số tiền vượt khoản nợ được chọn.</p>}

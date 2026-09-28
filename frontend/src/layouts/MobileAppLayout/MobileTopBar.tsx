@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/features/auth/AuthProvider';
-import { useMetadata } from '@/services/metadata';
+import { useStoreName } from '@/services/metadata';
 import { useWebSocket } from '@/hooks/useWebSocket';
 import { getBranches } from '@/features/branches/branches.api';
 import type { ApiRecord } from '@/types/api';
@@ -52,12 +52,11 @@ export function MobileTopBar() {
   const location = useLocation();
   const navigate = useNavigate();
   const { account, switchBranch } = useAuth();
-  const { data: meta } = useMetadata();
+  const storeName = useStoreName();
   const { isConnected } = useWebSocket();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const dropdownMenuRef = useRef<HTMLDivElement>(null);
-  const storeName = meta?.data?.system?.storeName || 'AnnaChill';
 
   const pathname = location.pathname.replace(/\/$/, '') || '/m';
   const isSubPage = !ROOT_TAB_ROUTES.has(pathname);
@@ -196,5 +195,4 @@ export function MobileTopBar() {
     </header>
   );
 }
-
 

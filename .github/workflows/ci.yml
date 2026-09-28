@@ -109,43 +109,15 @@ jobs:
       # ---------------------------------------------------------------------------
       # Start services
       # ---------------------------------------------------------------------------
-      - name: Start services
-        env:
-          DB_NAME: ${{ env.DB_NAME }}
-          DB_USER: ${{ env.DB_USER }}
-          DB_PASSWORD: ${{ env.DB_PASSWORD }}
+      - name: Initialize database and seed Anna explicitly
         run: |
-          docker compose -f compose.yaml -f compose.ci.yaml up -d
+          docker compose -f compose.yaml -f compose.ci.yaml up -d --wait --wait-timeout 90 database
+          docker compose -f compose.yaml -f compose.ci.yaml exec -T database sh -c \
+            'exec psql -X -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB"' \
+            < database/seeds/anna_seed.sql
 
-          # Wait for database
-          echo "Waiting for database..."
-          for i in {1..30}; do
-            if docker compose -f compose.yaml -f compose.ci.yaml exec -T database pg_isready -U $DB_USER -d $DB_NAME 2>/dev/null; then
-              echo "Database ready!"
-              break
-            fi
-            sleep 2
-          done
-
-          # Wait for API health (from inside the api container)
-          echo "Waiting for API..."
-          for i in {1..30}; do
-            if docker compose -f compose.yaml -f compose.ci.yaml exec -T api node -e "fetch('http://localhost:3000/api/v1/ready').then(r=>r.ok?process.exit(0):process.exit(1)).catch(()=>process.exit(1))" 2>/dev/null; then
-              echo "API ready!"
-              break
-            fi
-            sleep 2
-          done
-
-          # Wait for frontend (from inside the frontend container)
-          echo "Waiting for frontend..."
-          for i in {1..30}; do
-            if docker compose -f compose.yaml -f compose.ci.yaml exec -T frontend sh -c "wget -q -O - http://localhost" > /dev/null 2>&1; then
-              echo "Frontend ready!"
-              break
-            fi
-            sleep 2
-          done
+      - name: Start API and frontend
+        run: docker compose -f compose.yaml -f compose.ci.yaml up -d --wait --wait-timeout 120 api frontend
 
       # ---------------------------------------------------------------------------
       # API Integration Tests
@@ -406,22 +378,15 @@ jobs:
       - name: Build Docker images
         run: docker compose -f compose.yaml -f compose.ci.yaml build api
 
-      - name: Run API
-        env:
-          DB_NAME: annachill_test
-          DB_USER: annachill
-          DB_PASSWORD: annachill_dev
-        run: docker compose -f compose.yaml -f compose.ci.yaml up -d api
-
-      - name: Wait for API
+      - name: Initialize database and seed Minji explicitly
         run: |
-          for i in {1..30}; do
-            if docker compose -f compose.yaml -f compose.ci.yaml exec -T api node -e "fetch('http://localhost:3000/api/v1/ready').then(r=>r.ok?process.exit(0):process.exit(1)).catch(()=>process.exit(1))" 2>/dev/null; then
-              echo "API ready!"
-              break
-            fi
-            sleep 2
-          done
+          docker compose -f compose.yaml -f compose.ci.yaml up -d --wait --wait-timeout 90 database
+          docker compose -f compose.yaml -f compose.ci.yaml exec -T database sh -c \
+            'exec psql -X -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB"' \
+            < database/seeds/minji_seed.sql
+
+      - name: Run API
+        run: docker compose -f compose.yaml -f compose.ci.yaml up -d --wait --wait-timeout 120 api
 
       - name: Security headers check
         run: |

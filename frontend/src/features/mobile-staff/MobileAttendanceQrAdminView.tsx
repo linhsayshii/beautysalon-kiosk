@@ -5,9 +5,11 @@ import { getAttendanceChallenge, getAttendanceLocation } from '@/features/attend
 import { useToast } from '@/components/ui/Toast/ToastProvider';
 import { MobilePageHeader } from '@/components/ui/MobilePageHeader/MobilePageHeader';
 import { LoadingState } from '@/components/data-display/DataState';
+import { useStoreName } from '@/services/metadata';
 
 export function MobileAttendanceQrAdminView() {
   const { notify } = useToast();
+  const storeName = useStoreName();
   const [qrImage, setQrImage] = useState('');
   const [now, setNow] = useState(Date.now());
 
@@ -112,7 +114,7 @@ export function MobileAttendanceQrAdminView() {
         <div className="mobile-qr-location-box">
           <div className="mobile-qr-location-header">
             <i className="ph ph-map-pin text-primary" />
-            <span>{branchData?.name || 'Chi nhánh Anna Spa'}</span>
+            <span>{branchData?.name || storeName}</span>
           </div>
           <div className="mobile-qr-location-coords">
             Tọa độ: {branchData?.latitude?.toFixed(5) || '10.7768'}, {branchData?.longitude?.toFixed(5) || '106.7009'} • Bán kính GPS: {branchData?.radiusMeters || 100}m

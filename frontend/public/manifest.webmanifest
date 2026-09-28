@@ -1,7 +1,7 @@
 {
-  "name": "AnnaChill Beauty",
-  "short_name": "AnnaChill",
-  "description": "Quản trị Salon & Spa AnnaChill Beauty",
+  "name": "Salon & Spa",
+  "short_name": "Salon",
+  "description": "Quản trị Salon & Spa",
   "start_url": "/m/dashboard",
   "display": "standalone",
   "background_color": "#f4f6f9",

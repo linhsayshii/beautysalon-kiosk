@@ -4,6 +4,7 @@ import jsQR from 'jsqr';
 import { formatDate, formatTime } from '@/lib/format';
 import { clientErrorMessage, errorMessage } from '@/services/api-client';
 import { useAuth } from '@/features/auth/AuthProvider';
+import { useStoreName } from '@/services/metadata';
 import { getMyAttendance, scanAttendance } from './attendance.api';
 
 function currentPosition() {
@@ -18,6 +19,7 @@ function isGeolocationError(cause: unknown): cause is GeolocationPositionError {
 
 export function AttendanceScanView() {
   const { account } = useAuth();
+  const storeName = useStoreName();
   const client = useQueryClient();
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -98,7 +100,7 @@ export function AttendanceScanView() {
   const attendance = status.data?.data;
   const completed = Boolean(attendance?.checkOut);
   return <main className="employee-attendance-page">
-    <header className="employee-heading"><span className="employee-logo"><span className="brand-mark"><span /><span /></span>{account?.branchName || 'Beauty Salon'}</span><span>{account?.displayName}</span></header>
+    <header className="employee-heading"><span className="employee-logo"><span className="brand-mark"><span /><span /></span>{account?.branchName || storeName}</span><span>{account?.displayName}</span></header>
     <div className="employee-attendance-shell">
       <section className="employee-welcome"><span>{new Date().toLocaleDateString('vi-VN', { weekday: 'long', day: '2-digit', month: 'long' })}</span><h1>Xin chào, {account?.displayName}</h1><p>{completed ? 'Bạn đã hoàn tất ca làm hôm nay.' : attendance ? 'Quét mã tại quầy để chấm công ra ca.' : 'Quét mã trên tài khoản quản lý để bắt đầu ca làm.'}</p></section>
       <section className="scan-card">

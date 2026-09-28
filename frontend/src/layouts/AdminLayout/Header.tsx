@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { navigation } from './navigation.config';
 import { homeForRole, useAuth } from '@/features/auth/AuthProvider';
-import { useMetadata } from '@/services/metadata';
+import { useStoreName } from '@/services/metadata';
 import { setPreferredUiMode } from '@/pwa/device-detect';
 import { useWebSocket } from '@/hooks/useWebSocket';
 
@@ -14,8 +14,7 @@ export function Header() {
   const location = useLocation();
   const navigate = useNavigate();
   const { account, logout } = useAuth();
-  const { data: metadata } = useMetadata();
-  const storeName = metadata?.data?.system?.storeName || 'AnnaChill Beauty';
+  const storeName = useStoreName();
   const { isConnected } = useWebSocket();
 
   useEffect(() => { setMobileOpen(false); setOpenMenu(null); setAccountOpen(false); }, [location.pathname]);

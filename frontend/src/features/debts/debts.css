@@ -1,14 +1,14 @@
 .debt-panel { display: grid; gap: 12px; min-width: 0; padding: 12px 0; font-size: 14px; }
 .debt-panel h4,.debt-panel p { margin: 0; }
-.debt-panel label { display: grid; gap: 6px; }
+.debt-panel label,.debt-field { display: grid; gap: 6px; }
 .debt-panel input:not([type=checkbox]),.debt-panel select { width: 100%; min-height: 44px; padding: 10px; border: 1px solid var(--line-strong); border-radius: 6px; background: white; color: var(--ink-800); font: inherit; box-sizing: border-box; }
 .debt-heading,.debt-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
 .debt-heading > div,.debt-row > div { display: grid; gap: 5px; min-width: 0; overflow-wrap: anywhere; }
 .debt-heading strong { font-size: 20px; }
 .debt-panel small { color: var(--ink-500); }
-.debt-panel button { min-height: 44px; padding: 8px 14px; border: 1px solid var(--line-strong); border-radius: 6px; cursor: pointer; }
+.debt-panel button:not(.app-select-trigger) { min-height: 44px; padding: 8px 14px; border: 1px solid var(--line-strong); border-radius: 6px; cursor: pointer; }
 .debt-panel button.btn-primary { background: var(--blue-600); color: white; border-color: var(--blue-600); }
-.debt-panel button:disabled { opacity: .5; cursor: wait; }
+.debt-panel button:disabled:not(.app-select-trigger) { opacity: .5; cursor: wait; }
 .debt-form { border: 0; padding: 0; margin: 0; display: grid; gap: 12px; min-width: 0; }
 .debt-actions { display: flex; justify-content: flex-end; gap: 8px; }
 .debt-row { padding: 12px 0; border-bottom: 1px solid var(--line); align-items: start; }

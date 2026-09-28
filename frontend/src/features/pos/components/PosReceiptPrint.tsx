@@ -1,6 +1,6 @@
 import { useRef } from 'react';
 import { formatDateTime, formatMoney, formatNumber } from '@/lib/format';
-import { useMetadata } from '@/services/metadata';
+import { useStoreName } from '@/services/metadata';
 import type { PosReceiptData } from '../pos.api';
 
 interface PosReceiptPrintProps {
@@ -10,8 +10,7 @@ interface PosReceiptPrintProps {
 
 export function PosReceiptPrint({ receipt, onClose }: PosReceiptPrintProps) {
   const printRef = useRef<HTMLDivElement>(null);
-  const { data: metadata } = useMetadata();
-  const storeName = metadata?.data?.system?.storeName || 'ANNA CHILL BEAUTY';
+  const storeName = useStoreName();
 
   const handlePrint = () => {
     window.print();

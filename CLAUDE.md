@@ -11,9 +11,12 @@ AnnaChill Beauty Salon — a KiotViet-style POS and salon management system. Mod
 ### Full stack (Docker Compose)
 ```bash
 cp .env.example .env          # first time only
-docker compose up --build     # web :8080, API :3000, Postgres :5432 (localhost only)
-docker compose down           # stop, keep database
-docker compose down -v && docker compose up --build   # reset DB and re-run database/init/*.sql
+docker compose up -d --wait database
+# Fresh database only: choose minji_seed.sql OR anna_seed.sql, never both.
+docker compose exec -T database sh -c 'exec psql -X -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB"' < database/seeds/minji_seed.sql
+# Continue only after successful seeding; skip seeding for an existing database.
+docker compose up -d --build --wait   # web :8080, API :3000, Postgres :5432
+docker compose down                  # stop, keep database; down -v does not delete ./data
 docker compose logs -f
 ```
 
@@ -56,7 +59,7 @@ Node 24 in the Dockerfiles and `backend/package.json` engines. CI (`.github/work
 - **Realtime**: `lib/ws.js` authenticates the WS upgrade with the session cookie and exposes `broadcastToBranch(branchId, event, data)`. Events (`realtimeEvents`) are published only **after** the transaction commits. They are invalidation signals, and clients refetch rather than trusting the payload.
 
 ### Database schema changes
-`database/init/*.sql` (`001_schema.sql`, `002_seed.sql`) runs only when the Postgres volume (`./data`) is first created. Existing deployments are upgraded by the **idempotent SQL in `runMigrations()` in `backend/src/db.js`** (plus `migrations/customer-debt.js`), which runs on every API start. For a schema change, update `001_schema.sql` **and** add an idempotent `ADD COLUMN IF NOT EXISTS` / `CREATE ... IF NOT EXISTS` step to the migrations. Migrations must never reset live data. In `NODE_ENV=production`, `assertProductionDatabaseSafety()` refuses to start while demo password hashes remain.
+`database/init/001_schema.sql` is the only file mounted into `/docker-entrypoint-initdb.d` and runs when the Postgres data directory (`./data`) is empty. Seeds live in `database/seeds/`, are never auto-run, and must be explicitly piped into `psql` with `ON_ERROR_STOP=1`. Both seeds refuse nonempty branch/account tables and run inside a transaction; do not use them to reset or upgrade live data. Existing deployments are upgraded by the **idempotent SQL in `runMigrations()` in `backend/src/db.js`** (plus `migrations/customer-debt.js`), which runs on every API start. For a schema change, update `001_schema.sql` **and** add an idempotent `ADD COLUMN IF NOT EXISTS` / `CREATE ... IF NOT EXISTS` step to the migrations. Migrations must never reset live data. In `NODE_ENV=production`, `assertProductionDatabaseSafety()` refuses to start while demo password hashes remain.
 
 ### Frontend (`frontend/src/`)
 - `app/router.tsx`: React Router data router with lazy-loaded pages. The desktop admin uses `layouts/AdminLayout`. A separate mobile/PWA shell lives under `/m/*` (`layouts/MobileAppLayout`, `pages/**/Mobile*Page.tsx`, `features/mobile-*`).
@@ -65,8 +68,8 @@ Node 24 in the Dockerfiles and `backend/package.json` engines. CI (`.github/work
 - There is no mock or fallback data. Pages render API responses and show skeleton, error and retry states.
 - Forms never pre-fill sample business values (salary, allowances, prices); edit forms load what the API saved. A control whose feature is not built yet calls `useComingSoon()` (`components/ui/Toast/useComingSoon.ts`) to show the shared "Tính năng đang triển khai" toast.
 
-## Seed Accounts (fresh volume only)
-All seeded accounts use the password `12345678`. `admin` and `manager` are managers with full access. `cashier` can only use `/pos`. `staff`, `trangvu`, `hau` and `emhue` are staff accounts limited to `/attendance`. README.md says `Anna@123`, which is stale.
+## Seed Accounts (manual initialization only)
+Choose one seed on an empty schema. `database/seeds/minji_seed.sql` creates only the `admin` manager and the Minji - Mipec Rubik branch at 122 Xuân Thủy, Hà Nội, with GPS unset. `database/seeds/anna_seed.sql` preserves the full Anna dataset: `admin` and `manager` are managers; `cashier` is a cashier; `staff`, `trangvu`, `hau` and `emhue` are staff. All initial passwords are `12345678` and must be changed before production. CI explicitly loads Anna for full-stack integration and Minji for security checks. `node --test backend/src/database-seeds.test.js` checks both seeds against isolated PGlite databases.
 
 ## Environment Variables
 Must be changed in production: `DB_PASSWORD` (≥16 chars), `ATTENDANCE_QR_SECRET` (≥32 chars), and `AUTH_COOKIE_SECURE=true` behind TLS. `AUTH_TRUSTED_ORIGINS` must list the web origin, or mutating requests are rejected. QR attendance uses GPS, and camera/GPS need HTTPS outside localhost. Containers run in `Asia/Ho_Chi_Minh`.

@@ -7,12 +7,33 @@ Dashboard quản trị salon theo kiến trúc client-server, gồm frontend Ngi
 - Docker Desktop hoặc Docker Engine có Compose v2.
 - Các cổng mặc định còn trống: `8080`, `3000`, `5432`.
 
-## Khởi chạy
+## Khởi chạy lần đầu
+
+PostgreSQL chỉ tự chạy `database/init/001_schema.sql` khi thư mục dữ liệu `./data` còn trống. Dữ liệu khởi tạo phải được nạp **thủ công**, chọn một trong hai file:
+
+| File seed | Dữ liệu được tạo | Tài khoản ban đầu |
+| --- | --- | --- |
+| `database/seeds/minji_seed.sql` | Một chi nhánh **Minji - Mipec Rubik**, Mipec Rubik 360, 122 Xuân Thủy, Hà Nội; không có dữ liệu nghiệp vụ mẫu | `admin` / `12345678`, quyền quản lý |
+| `database/seeds/anna_seed.sql` | Bộ dữ liệu Anna trước đây: chi nhánh, nhân viên, tài khoản, hàng hóa, dịch vụ, tồn kho và nghiệp vụ mẫu | Các tài khoản mẫu bên dưới |
+
+Hai seed là **hai lựa chọn thay thế nhau**, không chạy nối tiếp. Chúng yêu cầu schema đã được tạo và chưa có chi nhánh/tài khoản. Chạy lại hoặc nạp seed khác vào database đã có dữ liệu sẽ báo lỗi trước khi ghi dữ liệu, không ghi đè mật khẩu hay dữ liệu đang dùng.
+
+Chạy từ thư mục gốc repository. Ví dụ khởi tạo Minji:
 
 ```bash
-cp .env.example .env
-docker compose up --build
+# Chỉ tạo .env nếu chưa có
+test -f .env || cp .env.example .env
+
+# Đợi PostgreSQL và schema sẵn sàng, nạp seed, rồi mới chạy ứng dụng.
+# Chuỗi && dừng nếu một bước thất bại.
+docker compose up -d --wait database &&
+docker compose exec -T database sh -c \
+  'exec psql -X -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB"' \
+  < database/seeds/minji_seed.sql &&
+docker compose up -d --build --wait api frontend
 ```
+
+Để dùng bộ dữ liệu Anna, thay `minji_seed.sql` bằng `anna_seed.sql` trong lệnh trên. Bỏ qua bước seed nếu database đã có dữ liệu; dùng `docker compose up -d --build --wait` để khởi động lại.
 
 Mở:
 
@@ -20,22 +41,19 @@ Mở:
 - API health: [http://localhost:3000/api/v1/health](http://localhost:3000/api/v1/health)
 - API readiness: [http://localhost:3000/api/v1/ready](http://localhost:3000/api/v1/ready)
 
-### Tài khoản mẫu
+### Tài khoản ban đầu
 
-Sau khi khởi tạo database mới từ seed hiện tại, các tài khoản demo dùng mật khẩu chung `Anna@123`:
+`minji_seed.sql` chỉ tạo `admin` với mật khẩu `12345678`, vai trò `manager` (quản lý toàn hệ thống). Không tạo nhân viên, khách hàng, danh mục hoặc giao dịch mẫu. GPS chi nhánh để trống; mở `/attendance/qr` tại salon và chọn **Dùng vị trí hiện tại** trước khi sử dụng chấm công.
 
-- `admin` — Quản lý, truy cập toàn bộ các phân hệ và màn hình QR chấm công.
-- `cashier` — Thu ngân, chỉ truy cập `/pos`.
-- `staff` — Nhân viên, chỉ truy cập `/attendance` để quét QR chấm công.
-- `trangvu`, `hau`, `emhue` — Các tài khoản nhân viên mẫu bổ sung.
+`anna_seed.sql` tạo các tài khoản mẫu cùng mật khẩu `12345678`:
 
-Thông tin trên chỉ đúng với volume được khởi tạo mới. Mật khẩu trong volume đang chạy có thể đã được đổi; hãy quản lý tài khoản tại `/staff/accounts` thay vì giả định seed được chạy lại.
+- `admin`, `manager` — Quản lý.
+- `cashier` — Thu ngân.
+- `staff`, `trangvu`, `hau`, `emhue` — Nhân viên.
 
-Quản lý có thể tạo hoặc khóa tài khoản tại `/staff/accounts`. Trước khi sử dụng chấm công, mở `/attendance/qr` tại salon và chọn **Dùng vị trí hiện tại** để lưu GPS chi nhánh. Camera và GPS cần HTTPS khi chạy ngoài `localhost`.
+Đổi mật khẩu tại `/account/settings` sau lần đăng nhập đầu. Quản lý tạo hoặc khóa tài khoản tại `/staff/accounts`. Mật khẩu trong database đang chạy có thể đã được đổi; seed không được dùng để reset mật khẩu. API ở `NODE_ENV=production` từ chối khởi động nếu còn hash mật khẩu mặc định của **bất kỳ** tài khoản nào; cần thay mật khẩu trước khi chuyển sang production. Camera và GPS cần HTTPS khi chạy ngoài `localhost`.
 
-Database được tạo schema và dữ liệu khởi tạo tự động trong lần đầu tạo volume. Frontend chỉ hiển thị dữ liệu do API trả về và không có mock/fallback data.
-
-Môi trường local có sẵn dữ liệu mẫu trong `database/init/006_demo_data.sql`. Nếu volume database đã tồn tại từ trước, chạy `docker compose down -v && docker compose up --build` để PostgreSQL chạy lại toàn bộ seed.
+Frontend chỉ hiển thị dữ liệu do API trả về và không có mock/fallback data.
 
 Các trang đã có:
 
@@ -59,14 +77,57 @@ Các trang đã có:
 - `/attendance/qr` - Mã QR chấm công dành cho quản lý, tự đổi mỗi 15 giây.
 - `/attendance` - Quét QR và xác minh GPS dành cho nhân viên.
 
+## Nạp seed bằng docker exec
+
+Sau khi `docker compose up -d --wait database` hoàn tất, có thể dùng lệnh sau thay cho bước `docker compose exec` ở trên (chỉ chọn một cách nạp):
+
+```bash
+docker exec -i "$(docker compose ps -q database)" sh -c \
+  'exec psql -X -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB"' \
+  < database/seeds/minji_seed.sql
+```
+
+Thay đường dẫn sau `<` bằng `database/seeds/anna_seed.sql` nếu cần bộ dữ liệu Anna. File nằm trên máy host nên không cần copy hoặc mount seed vào container. `-i` giữ stdin cho `docker exec`; với Compose dùng `exec -T` để tắt TTY. Biến `POSTGRES_USER`/`POSTGRES_DB` được đọc trong container, tương ứng cấu hình `DB_USER`/`DB_NAME`.
+
+`ON_ERROR_STOP=1` dừng và trả mã lỗi khác 0 khi SQL lỗi. Mỗi seed có transaction `BEGIN`/`COMMIT` và khóa bảng trong lúc kiểm tra database trống, nên lỗi sẽ rollback dữ liệu và hai lệnh seed đồng thời không thể cùng khởi tạo. Không tiếp tục bước khởi động ứng dụng khi seed thất bại.
+
+## Database đang có dữ liệu
+
+Không cần nạp lại dữ liệu khi chuyển sang seed thủ công. Giữ nguyên `./data`, cập nhật mã nguồn/cấu hình rồi chạy `docker compose up -d --build --wait`. Restart và rebuild không tự nạp seed. API vẫn chạy `runMigrations()` để nâng cấp database hiện có; migration không tạo tài khoản mẫu. API với schema trống vẫn có thể sẵn sàng nhưng chưa đăng nhập được khi chưa nạp seed.
+
+Local dùng bind mount `./data:/var/lib/postgresql/data`: `docker compose down -v` **không xóa `./data`**, không reset database và không làm init script chạy lại. Không chạy lại `001_schema.sql` hay seed để nâng cấp. Nếu muốn thử seed khác, dùng database thử nghiệm riêng có thư mục dữ liệu/volume trống.
+
+Trước khi triển khai lên database đang dùng, tạo bản sao lưu và kiểm tra phục hồi trên database riêng:
+
+```bash
+docker compose exec -T database sh -c \
+  'exec pg_dump -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Fc' \
+  > "annachill-before-update-$(date +%Y%m%d-%H%M%S).dump"
+```
+
+## Seed trong CI
+
+CI dùng volume riêng qua `compose.ci.yaml`. Job kiểm thử toàn hệ thống nạp `anna_seed.sql`; job kiểm tra bảo mật nạp `minji_seed.sql`. Cả hai đều đợi database sẵn sàng, nạp đúng file với `ON_ERROR_STOP=1`, rồi mới khởi động API. Các bước dùng cùng cấu hình `DB_*` và `-f compose.yaml -f compose.ci.yaml`.
+
+Kiểm thử seed chạy với PostgreSQL nhúng (PGlite), không đụng tới database local:
+
+```bash
+node --test backend/src/database-seeds.test.js
+```
+
+Kiểm thử bao gồm schema trống, nội dung hai seed, đăng nhập admin, tương thích migration, chặn mật khẩu mặc định trong production, từ chối nạp lại/nạp chéo và rollback khi SQL lỗi.
+
 ## Các lệnh thường dùng
 
 ```bash
 # Chạy frontend React ở chế độ development
 npm --prefix frontend run dev
 
-# Typecheck, test và build toàn bộ frontend/backend
-npm run check
+# Kiểm tra backend, frontend và build
+npm --prefix backend run check
+npm --prefix frontend run typecheck
+npm --prefix frontend test
+npm --prefix frontend run build
 
 # Xem log
 docker compose logs -f
@@ -74,12 +135,8 @@ docker compose logs -f
 # Dừng service, giữ database
 docker compose down
 
-# Xóa cả database và khởi tạo schema trống từ đầu
-docker compose down -v
-docker compose up --build
-
-# Kiểm tra cú pháp JavaScript
-npm run check
+# Khởi động lại với dữ liệu hiện có
+docker compose up -d --build
 ```
 
 ## Quy ước lỗi API
@@ -112,11 +169,12 @@ Frontend hiển thị theo dạng `Dữ liệu không hợp lệ (400 · INVALID
 │   │   ├── db.js
 │   │   └── server.js
 │   └── Dockerfile
-├── database/init/
-│   ├── 001_schema.sql
-│   ├── 002_seed.sql          # Chỉ tạo chi nhánh bootstrap
-│   ├── 003_operations.sql
-│   └── 004_inventory_purchasing.sql
+├── database/
+│   ├── init/
+│   │   └── 001_schema.sql   # Tự tạo schema trên database mới
+│   └── seeds/
+│       ├── anna_seed.sql    # Bộ dữ liệu Anna đầy đủ, nạp thủ công
+│       └── minji_seed.sql   # Admin và chi nhánh Minji, nạp thủ công
 ├── frontend/
 │   ├── src/
 │   │   ├── app/              # Router và providers
@@ -138,13 +196,6 @@ Frontend hiển thị theo dạng `Dữ liệu không hợp lệ (400 · INVALID
 
 Chi tiết quyết định kỹ thuật nằm trong [docs/architecture/ARCHITECTURE.md](docs/architecture/ARCHITECTURE.md). Nghiên cứu và tiến độ phân hệ kho nằm trong [docs/inventory-purchasing/](docs/inventory-purchasing/).
 
-Nếu volume database đã được tạo trước khi có các trang vận hành mới, chạy lệnh sau để tạo lại schema trống:
-
-```bash
-docker compose down -v
-docker compose up --build
-```
-
 ## Lưu ý production
 
 - Đổi toàn bộ credentials mặc định và mật khẩu các tài khoản demo; API sẽ từ chối khởi động ở `NODE_ENV=production` nếu còn hash mật khẩu demo.
@@ -153,4 +204,4 @@ docker compose up --build
 - Kết thúc TLS tại reverse proxy, đặt `AUTH_COOKIE_SECURE=true`, khai báo chính xác `AUTH_TRUSTED_ORIGINS` và dùng secret manager.
 - Đặt `ATTENDANCE_QR_SECRET` ngẫu nhiên tối thiểu 32 ký tự và `DB_PASSWORD` tối thiểu 16 ký tự.
 - API áp dụng RBAC ở server; dữ liệu nghiệp vụ luôn bị khóa theo chi nhánh trong phiên, không tin `branchId` từ client.
-- Chuyển từ init script sang migration versioned trước khi có dữ liệu thật.
+- Schema mới được tạo bằng init script; database hiện có được nâng cấp bởi migration của API. Seed thủ công không thay thế migration. Chuẩn hóa migration có version và kiểm tra phục hồi backup trước khi triển khai thay đổi schema lên production.

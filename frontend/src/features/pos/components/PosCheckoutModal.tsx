@@ -91,7 +91,7 @@ export function PosCheckoutModal({
     const bankCode = vietqrConfig.bankBin;
     const accNum = vietqrConfig.accountNumber;
     if (!bankCode || !accNum) return '';
-    const accName = encodeURIComponent(vietqrConfig.accountName || 'ANNA CHILL BEAUTY');
+    const accName = encodeURIComponent(vietqrConfig.accountName);
     const memo = encodeURIComponent(`THANH TOAN ${customer?.name ? customer.name.slice(0, 15) : 'SPA'}`);
     return `https://img.vietqr.io/image/${bankCode}-${accNum}-qr_only.png?amount=${amountPaid}&addInfo=${memo}&accountName=${accName}`;
   }, [paymentMethod, amountPaid, customer, vietqrConfig]);

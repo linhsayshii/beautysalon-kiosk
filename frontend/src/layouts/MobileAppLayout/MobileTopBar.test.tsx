@@ -14,6 +14,10 @@ vi.mock('@/services/websocket', () => ({
   })),
 }));
 
+vi.mock('@/services/metadata', () => ({
+  useStoreName: () => 'Salon thử nghiệm',
+}));
+
 describe('MobileTopBar Component', () => {
   let queryClient: QueryClient;
 
@@ -45,7 +49,7 @@ describe('MobileTopBar Component', () => {
       </QueryClientProvider>
     );
 
-    expect(screen.getByText('AnnaChill')).toBeInTheDocument();
+    expect(screen.getByText('Salon thử nghiệm')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /chi nhánh/i })).toBeInTheDocument();
     expect(screen.queryByTestId('mobile-topbar-back-btn')).not.toBeInTheDocument();
   });
@@ -129,5 +133,4 @@ describe('MobileTopBar Component', () => {
     }
   });
 });
-
 

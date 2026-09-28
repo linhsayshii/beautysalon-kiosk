@@ -27,10 +27,20 @@ export interface DomainMetadata {
   };
 }
 
+interface StoreMetadata {
+  storeName: string;
+}
+
 const getMetadata = () => apiRequest<ApiEnvelope<DomainMetadata>>('/meta');
+const getStoreMetadata = () => apiRequest<ApiEnvelope<StoreMetadata>>('/store-meta');
 
 export function useMetadata() {
   return useQuery({ queryKey: ['domain-metadata'], queryFn: getMetadata, staleTime: Infinity });
+}
+
+export function useStoreName() {
+  const metadata = useQuery({ queryKey: ['store-metadata'], queryFn: getStoreMetadata, staleTime: Infinity });
+  return metadata.data?.data.storeName || 'Cửa hàng';
 }
 
 export const toOptions = (values: string[], labels: Record<string, string>) => values.map((value) => ({ value, label: labels[value] ?? value }));

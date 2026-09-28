@@ -8,7 +8,10 @@ export function registerServiceWorker() {
   }
 }
 
-export function syncStoreNameWithTitleAndManifest(storeName?: string) {
+export function syncStoreNameWithDocument(storeName?: string) {
   if (!storeName || typeof document === 'undefined') return;
   document.title = `${storeName} - Salon & Spa`;
+  document.documentElement.dataset.storeName = storeName;
+  document.querySelector('meta[name="description"]')?.setAttribute('content', `Dashboard quản trị ${storeName}`);
+  document.querySelector('meta[name="apple-mobile-web-app-title"]')?.setAttribute('content', storeName);
 }

@@ -13,7 +13,9 @@ export function exportCsv(rows: ApiRecord[], name: string) {
   const href = URL.createObjectURL(new Blob([`\ufeff${csv}`], { type: 'text/csv;charset=utf-8' }));
   const link = document.createElement('a');
   link.href = href;
-  link.download = `annachill-${name}.csv`;
+  const storeName = document.documentElement.dataset.storeName?.trim() || 'cua-hang';
+  const filePrefix = storeName.replace(/[\\/?%*:|"<>]/g, '').replace(/\s+/g, '-');
+  link.download = `${filePrefix}-${name}.csv`;
   link.click();
   URL.revokeObjectURL(href);
   return true;

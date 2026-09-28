@@ -2,12 +2,12 @@ import { useState } from 'react';
 import type { FormEvent } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { errorMessage } from '@/services/api-client';
-import { useMetadata } from '@/services/metadata';
+import { useStoreName } from '@/services/metadata';
 import { homeForRole, useAuth } from './AuthProvider';
 
 export function LoginView() {
   const { account, loading, login } = useAuth();
-  const { data: metadata } = useMetadata();
+  const storeName = useStoreName();
   const navigate = useNavigate();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -17,8 +17,6 @@ export function LoginView() {
 
   if (loading) return <AuthLoading />;
   if (account) return <Navigate to={homeForRole(account.role)} replace />;
-
-  const storeName = metadata?.data?.system?.storeName || 'Anna Chill Beauty';
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();

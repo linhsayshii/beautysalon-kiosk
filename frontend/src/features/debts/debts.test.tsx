@@ -1,5 +1,5 @@
 import { PartialPaymentFields } from './PartialPaymentFields';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { act, render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { CustomerDebtPanel } from './CustomerDebtPanel';
@@ -30,7 +30,8 @@ describe('customer debt interactions',()=>{
     const collect=vi.spyOn(debts,'collectCustomerDebt').mockResolvedValue({data:{paymentId:7,amount:300,balance:600},meta:{}});
     wrap(<CustomerDebtPanel customerId={1} />);
     fireEvent.click(await screen.findByRole('button',{name:'Thu nợ'}));
-    fireEvent.change(screen.getByLabelText('Khoản cần thu'),{target:{value:'4'}});
+    fireEvent.click(screen.getByRole('button',{name:'Khoản cần thu'}));
+    fireEvent.click(screen.getByRole('option',{name:'HD4 · 700đ'}));
     fireEvent.change(screen.getByLabelText('Số tiền thu (VNĐ)'),{target:{value:'800'}});
     expect(screen.getByRole('button',{name:'Xác nhận thu nợ'})).toBeDisabled();
     fireEvent.change(screen.getByLabelText('Số tiền thu (VNĐ)'),{target:{value:'300'}});
@@ -38,6 +39,116 @@ describe('customer debt interactions',()=>{
     await waitFor(()=>expect(collect).toHaveBeenCalledWith(1,expect.objectContaining({amount:300,invoiceId:4,paymentMethod:'cash',requestKey:expect.any(String)})));
     expect(await screen.findByRole('status')).toHaveTextContent('Phiếu #7');
   });
+  it('updates the amount and limit for each invoice and restores automatic allocation', async () => {
+    vi.mocked(debts.getCustomerDebt).mockResolvedValue({ data: {
+      ...customerDebt, balance: 1200,
+      invoices: [...customerDebt.invoices, { id: 5, code: 'HD5', total: 300, amountPaid: 0, debtAmount: 300, issuedAt: '2026-09-15T00:00:00Z' }],
+    }, meta: {} });
+    const collect = vi.spyOn(debts, 'collectCustomerDebt').mockResolvedValue({ data: { paymentId: 10, amount: 1200, balance: 0 }, meta: {} });
+    wrap(<CustomerDebtPanel customerId={1} />);
+    fireEvent.click(await screen.findByRole('button', { name: 'Thu nợ' }));
+    const amount = screen.getByLabelText('Số tiền thu (VNĐ)');
+    const confirm = screen.getByRole('button', { name: 'Xác nhận thu nợ' });
+    expect(amount).toHaveValue('1.200');
+    for (const [option, maximum] of [['HD4 · 700đ', 700], ['HD5 · 300đ', 300], ['Tự động trả khoản cũ nhất', 1200]] as const) {
+      fireEvent.click(screen.getByRole('button', { name: 'Khoản cần thu' }));
+      fireEvent.click(screen.getByRole('option', { name: option }));
+      expect(amount).toHaveValue(maximum.toLocaleString('vi-VN'));
+      expect(confirm).toBeEnabled();
+      fireEvent.change(amount, { target: { value: String(maximum + 1) } });
+      expect(screen.getByRole('alert')).toHaveTextContent('Số tiền vượt khoản nợ được chọn.');
+      expect(confirm).toBeDisabled();
+      fireEvent.click(confirm);
+      expect(collect).not.toHaveBeenCalled();
+      fireEvent.change(amount, { target: { value: '0' } });
+      expect(confirm).toBeDisabled();
+    }
+    fireEvent.change(amount, { target: { value: '1200' } });
+    fireEvent.click(confirm);
+    await waitFor(() => expect(collect).toHaveBeenCalledWith(1, expect.objectContaining({ amount: 1200, invoiceId: null })));
+  });
+
+  it.each([['Tiền mặt', 'cash'], ['Chuyển khoản', 'bank_transfer'], ['Thẻ ngân hàng', 'card']])(
+    'sends the correct payment method for %s', async (label, paymentMethod) => {
+      const collect = vi.spyOn(debts, 'collectCustomerDebt').mockResolvedValue({ data: { paymentId: 11, amount: 900, balance: 0 }, meta: {} });
+      wrap(<CustomerDebtPanel customerId={1} />);
+      fireEvent.click(await screen.findByRole('button', { name: 'Thu nợ' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Phương thức' }));
+      fireEvent.click(screen.getByRole('option', { name: label }));
+      expect(screen.getByRole('button', { name: 'Phương thức' })).toHaveTextContent(label);
+      fireEvent.click(screen.getByRole('button', { name: 'Xác nhận thu nợ' }));
+      await waitFor(() => expect(collect).toHaveBeenCalledWith(1, expect.objectContaining({ paymentMethod, invoiceId: null, amount: 900 })));
+    },
+  );
+
+  it('supports keyboard selection and dismissal without submitting or closing the parent', async () => {
+    const submit = vi.fn((event: React.FormEvent) => event.preventDefault());
+    const parentKeyDown = vi.fn();
+    const collect = vi.spyOn(debts, 'collectCustomerDebt');
+    wrap(<form onSubmit={submit} onKeyDown={parentKeyDown}><CustomerDebtPanel customerId={1} /></form>);
+    fireEvent.click(await screen.findByRole('button', { name: 'Thu nợ' }));
+    const invoice = screen.getByRole('button', { name: 'Khoản cần thu' });
+    invoice.focus();
+    fireEvent.keyDown(invoice, { key: 'Enter' });
+    expect(invoice).toHaveAttribute('aria-expanded', 'true');
+    fireEvent.keyDown(invoice, { key: 'ArrowDown' });
+    fireEvent.keyDown(invoice, { key: 'Enter' });
+    expect(invoice).toHaveTextContent('HD4 · 700đ');
+    expect(invoice).toHaveFocus();
+    expect(screen.getByLabelText('Số tiền thu (VNĐ)')).toHaveValue('700');
+    const method = screen.getByRole('button', { name: 'Phương thức' });
+    method.focus();
+    fireEvent.keyDown(method, { key: ' ' });
+    fireEvent.keyDown(method, { key: 'ArrowDown' });
+    fireEvent.keyDown(method, { key: ' ' });
+    expect(method).toHaveTextContent('Chuyển khoản');
+    expect(method).toHaveFocus();
+    fireEvent.keyDown(method, { key: 'ArrowUp' });
+    fireEvent.keyDown(method, { key: 'ArrowUp' });
+    fireEvent.keyDown(method, { key: 'Enter' });
+    expect(method).toHaveTextContent('Tiền mặt');
+    fireEvent.keyDown(method, { key: 'Enter' });
+    fireEvent.keyDown(method, { key: 'ArrowDown' });
+    fireEvent.keyDown(method, { key: 'Escape' });
+    expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
+    expect(method).toHaveTextContent('Tiền mặt');
+    expect(method).toHaveFocus();
+    fireEvent.keyDown(method, { key: 'Enter' });
+    fireEvent.keyDown(method, { key: 'Tab' });
+    expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
+    expect(submit).not.toHaveBeenCalled();
+    expect(collect).not.toHaveBeenCalled();
+    expect(parentKeyDown.mock.calls.some(([event]) => ['Enter', 'Escape'].includes(event.key))).toBe(false);
+  });
+
+  it.each([
+    ['Khoản cần thu', 'HD4 · 700đ', 'Tự động trả khoản cũ nhất'],
+    ['Phương thức', 'Chuyển khoản', 'Tiền mặt'],
+  ])('locks %s including an already-open portal while collecting', async (label, option, current) => {
+    let reject!: (reason: Error) => void;
+    const collect = vi.spyOn(debts, 'collectCustomerDebt').mockImplementation(() => new Promise((_resolve, rejectPromise) => { reject = rejectPromise; }));
+    wrap(<CustomerDebtPanel customerId={1} />);
+    fireEvent.click(await screen.findByRole('button', { name: 'Thu nợ' }));
+    const trigger = screen.getByRole('button', { name: label });
+    fireEvent.click(trigger);
+    const portalOption = screen.getByRole('option', { name: option });
+    expect(screen.getByRole('listbox').closest('.app-select-popover')?.parentElement).toBe(document.body);
+    const confirm = screen.getByRole('button', { name: 'Xác nhận thu nợ' });
+    fireEvent.click(confirm);
+    await waitFor(() => expect(confirm).toBeDisabled());
+    expect(screen.getByRole('button', { name: 'Khoản cần thu' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Phương thức' })).toBeDisabled();
+    fireEvent.click(portalOption);
+    fireEvent.keyDown(trigger, { key: 'ArrowDown' });
+    fireEvent.keyDown(trigger, { key: 'Enter' });
+    expect(trigger).toHaveTextContent(current);
+    fireEvent.click(confirm);
+    expect(collect).toHaveBeenCalledTimes(1);
+    await act(async () => { reject(new Error('Thử lại')); });
+    await screen.findByText('Thử lại');
+    expect(trigger).toBeEnabled();
+  });
+
   it('reuses a request key after a failed response, but gives the next collection a new key',async()=>{
     const collect=vi.spyOn(debts,'collectCustomerDebt').mockRejectedValueOnce(new Error('Mất kết nối')).mockResolvedValue({data:{paymentId:8,amount:100,balance:800},meta:{}});
     wrap(<CustomerDebtPanel customerId={1} />);

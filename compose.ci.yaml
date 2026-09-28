@@ -3,10 +3,14 @@
 
 services:
   database:
+    environment:
+      POSTGRES_DB: ${DB_NAME:-annachill_ci}
+      POSTGRES_USER: ${DB_USER:-annachill_ci}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-ci_password}
     # Use ephemeral volume for CI to avoid persistence conflicts
     volumes:
       - ci-db-data:/var/lib/postgresql/data
-      - ./database/init:/docker-entrypoint-initdb.d:ro
+      - ./database/init/001_schema.sql:/docker-entrypoint-initdb.d/001_schema.sql:ro
     # Remove port binding in CI (service container connects directly)
     ports: []
 
