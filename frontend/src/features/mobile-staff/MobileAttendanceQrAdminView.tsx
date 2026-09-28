@@ -6,6 +6,7 @@ import { useToast } from '@/components/ui/Toast/ToastProvider';
 import { MobilePageHeader } from '@/components/ui/MobilePageHeader/MobilePageHeader';
 import { LoadingState } from '@/components/data-display/DataState';
 import { useStoreName } from '@/services/metadata';
+import { resolveHexToken } from '@/lib/color-token';
 
 export function MobileAttendanceQrAdminView() {
   const { notify } = useToast();
@@ -45,7 +46,7 @@ export function MobileAttendanceQrAdminView() {
       // qrcode renders to a canvas and only accepts literal hex colors. CSS
       // variables are not resolved here, which previously left this view in
       // its loading state after the promise rejected.
-      color: { dark: '#111827', light: '#ffffff' },
+      color: { dark: resolveHexToken('--ink-950', '#000000'), light: '#ffffff' },
       errorCorrectionLevel: 'M',
     }).then(setQrImage);
   }, [challenge.data?.data.token]);

@@ -7,6 +7,7 @@ import { useToast } from '@/components/ui/Toast/ToastProvider';
 import { getAttendanceChallenge, getAttendanceLocation, updateAttendanceLocation } from './attendance.api';
 import { LocationMapPicker } from '@/components/map/LocationMapPicker';
 import { clientErrorMessage, errorMessage } from '@/services/api-client';
+import { resolveHexToken } from '@/lib/color-token';
 
 export function AttendanceQrView() {
   const queryClient = useQueryClient();
@@ -24,7 +25,7 @@ export function AttendanceQrView() {
   useEffect(() => {
     const token = challenge.data?.data.token;
     if (!token) return;
-    QRCode.toDataURL(token, { width: 420, margin: 2, color: { dark: '#111827', light: '#ffffff' }, errorCorrectionLevel: 'M' }).then(setQrImage);
+    QRCode.toDataURL(token, { width: 420, margin: 2, color: { dark: resolveHexToken('--ink-950', '#000000'), light: '#ffffff' }, errorCorrectionLevel: 'M' }).then(setQrImage);
   }, [challenge.data?.data.token]);
 
   const update = useMutation({

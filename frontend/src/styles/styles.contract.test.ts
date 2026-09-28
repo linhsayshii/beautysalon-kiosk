@@ -72,8 +72,8 @@ describe('stylesheet contract', () => {
   });
 
   it('uses colour tokens in component styles', () => {
-    // These hand colours to libraries that draw outside CSS (QR bitmap, Leaflet SVG attributes).
-    const libraryColours = new Set(['features/attendance/AttendanceQrView.tsx', 'components/map/LocationMapPicker.tsx']);
+    // This hands colours to Leaflet, which draws them as SVG attributes outside CSS.
+    const libraryColours = new Set(['components/map/LocationMapPicker.tsx']);
     const offenders = sourceFiles
       .filter((file) => !libraryColours.has(rel(file)))
       .flatMap((file) => [...readFileSync(file, 'utf8').matchAll(/['"`][^'"`\n]*#(?:[0-9a-fA-F]{6}|[0-9a-fA-F]{3})(?![0-9a-fA-F])[^'"`\n]*['"`]/g)]
