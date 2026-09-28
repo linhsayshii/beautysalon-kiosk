@@ -8,10 +8,9 @@ import { useWebSocket } from '@/hooks/useWebSocket';
 import { clientErrorMessage, errorMessage } from '@/services/api-client';
 import { changeMyPassword, updateMyProfile } from '@/features/account-settings/account-settings.api';
 import { getBranches, createBranch, updateBranch, deactivateBranch } from '@/features/branches/branches.api';
-import { getAccounts, createAccount, updateAccount } from '@/features/accounts/accounts.api';
-import { getStaff } from '@/features/staff/staff.api';
+import { getAccounts, updateAccount } from '@/features/accounts/accounts.api';
+import { AccountDialog } from '@/features/accounts/StaffAccountsView';
 import { LocationMapPicker } from '@/components/map/LocationMapPicker';
-import { Select } from '@/components/ui/Select/Select';
 import { MobileSearchBar, MobileEmptyState } from '@/features/mobile-common';
 import { formatDateTime } from '@/lib/format';
 import type { ApiRecord } from '@/types/api';
@@ -63,6 +62,7 @@ export function MobileAccountView() {
   const [isSearchVisible, setIsSearchVisible] = useState(false);
   const [editingBranch, setEditingBranch] = useState<ApiRecord | 'new' | null>(null);
   const [creatingAccount, setCreatingAccount] = useState(false);
+  const [editingAccount, setEditingAccount] = useState<ApiRecord | null>(null);
 
   // Profile Form state
   const [profile, setProfile] = useState({
@@ -656,6 +656,15 @@ export function MobileAccountView() {
                       <div className="mobile-acc-card-actions">
                         <button
                           type="button"
+                          className="btn btn-secondary btn-sm"
+                          aria-label={`Sửa tài khoản ${acc.displayName}`}
+                          onClick={() => setEditingAccount(acc)}
+                        >
+                          <i className="ph ph-pencil-simple" />
+                          Sửa
+                        </button>
+                        <button
+                          type="button"
                           className={`mobile-acc-toggle-btn ${acc.active ? 'is-active' : ''}`}
                           disabled={toggleAccountMutation.isPending || Number(acc.id) === Number(account?.id)}
                           onClick={() => toggleAccountMutation.mutate({ id: Number(acc.id), active: !acc.active })}
@@ -708,15 +717,8 @@ export function MobileAccountView() {
         />
       )}
 
-      {creatingAccount && (
-        <MobileAccountDialog
-          onClose={() => setCreatingAccount(false)}
-          onSaved={() => {
-            setCreatingAccount(false);
-            refreshAccounts();
-          }}
-        />
-      )}
+      {creatingAccount && <AccountDialog nested onClose={() => setCreatingAccount(false)} />}
+      {editingAccount && <AccountDialog nested account={editingAccount} onClose={() => setEditingAccount(null)} />}
     </div>
   );
 }
@@ -891,138 +893,6 @@ function MobileBranchDialog({
           </button>
           <button className="btn btn-primary" type="submit" disabled={mutation.isPending}>
             {mutation.isPending ? 'Đang lưu…' : 'Lưu chi nhánh'}
-          </button>
-        </footer>
-      </form>
-    </Modal>
-  );
-}
-
-/* Subcomponent: Account Dialog for Mobile */
-function MobileAccountDialog({
-  onClose,
-  onSaved,
-}: {
-  onClose: () => void;
-  onSaved: () => void;
-}) {
-  const { notify } = useToast();
-  const staff = useQuery({ queryKey: ['staff-for-account'], queryFn: () => getStaff({ active: 'true' }) });
-  const [form, setForm] = useState({ displayName: '', username: '', password: '', role: 'staff', staffId: '' });
-  const [error, setError] = useState('');
-
-  const mutation = useMutation({
-    mutationFn: createAccount,
-    onSuccess: () => {
-      notify('Đã tạo tài khoản', `${form.displayName} có thể đăng nhập ngay.`);
-      onSaved();
-    },
-    onError: (cause) => setError(errorMessage(cause, 'Không thể tạo tài khoản')),
-  });
-
-  const submit = (event: FormEvent) => {
-    event.preventDefault();
-    setError('');
-    mutation.mutate({ ...form, staffId: form.staffId ? Number(form.staffId) : null });
-  };
-
-  return (
-    <Modal
-      open
-      onClose={onClose}
-      title="Thêm tài khoản"
-      subtitle="Tạo đăng nhập và phân quyền cho nhân viên"
-      size="md"
-      className="modal-fill account-dialog"
-      nested
-    >
-      <form onSubmit={submit}>
-        <div className="modal-body">
-        <div className="account-form-grid">
-          <label>
-            <span>Tên hiển thị *</span>
-            <input
-              required
-              value={form.displayName}
-              onChange={(event) => setForm({ ...form, displayName: event.target.value })}
-              placeholder="Nguyễn Minh Anh"
-            />
-          </label>
-          <label>
-            <span>Tên đăng nhập *</span>
-            <input
-              required
-              minLength={3}
-              pattern="[a-zA-Z0-9._-]+"
-              value={form.username}
-              onChange={(event) => setForm({ ...form, username: event.target.value })}
-              placeholder="minhanh"
-            />
-          </label>
-          <label>
-            <span>Mật khẩu ban đầu *</span>
-            <input
-              required
-              minLength={12}
-              maxLength={128}
-              type="password"
-              autoComplete="new-password"
-              value={form.password}
-              onChange={(event) => setForm({ ...form, password: event.target.value })}
-              placeholder="Ít nhất 12 ký tự, gồm hoa, thường và số"
-            />
-          </label>
-          <div className="field">
-            <span className="field-label">Loại tài khoản</span>
-            <Select
-              aria-label="Loại tài khoản"
-              value={form.role}
-              onChange={(role) => setForm({ ...form, role })}
-              fullWidth
-              options={Object.entries(roleLabels).map(([value, label]) => ({
-                value,
-                label: `${label} · ${roleDescriptions[value]}`,
-              }))}
-            />
-          </div>
-          <div className="field account-staff-field">
-            <span className="field-label">Liên kết nhân viên {form.role === 'staff' && '*'}</span>
-            <Select
-              aria-label="Liên kết nhân viên"
-              value={form.staffId}
-              onChange={(val) => {
-                const selected = staff.data?.data.find((row) => String(row.id) === val);
-                setForm({
-                  ...form,
-                  staffId: val,
-                  displayName: form.displayName || selected?.name || '',
-                });
-              }}
-              fullWidth
-              placeholder="Không liên kết"
-              options={[
-                { value: '', label: 'Không liên kết' },
-                ...(staff.data?.data.map((row) => ({
-                  value: String(row.id),
-                  label: `${row.code} · ${row.name}`,
-                })) ?? []),
-              ]}
-            />
-          </div>
-        </div>
-        {error && (
-          <div className="auth-error">
-            <i className="ph ph-warning-circle" />
-            {error}
-          </div>
-        )}
-        </div>
-        <footer className="modal-footer">
-          <button className="btn btn-secondary" type="button" onClick={onClose}>
-            Hủy
-          </button>
-          <button className="btn btn-primary" type="submit" disabled={mutation.isPending}>
-            {mutation.isPending ? 'Đang tạo…' : 'Tạo tài khoản'}
           </button>
         </footer>
       </form>

@@ -156,8 +156,9 @@ export async function createAccount({ branchId, staffId, username, password, dis
   }
 }
 
-export async function updateAccount({ id, branchId, active, role, password }) {
+export async function updateAccount({ id, branchId, active = null, role = null, password = '', displayName = null, username = null, staffId }) {
   const passwordHash = password ? await hashPassword(password) : null;
+  const changesStaff = staffId !== undefined;
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
@@ -167,31 +168,44 @@ export async function updateAccount({ id, branchId, active, role, password }) {
     );
     const current = accounts.rows.find((account) => Number(account.id) === id);
     if (!current) throw new HttpError(404, 'ACCOUNT_NOT_FOUND', 'Không tìm thấy tài khoản');
-    if (role === 'staff' && current.staff_id === null) {
+    if (changesStaff && staffId !== null && staffId !== Number(current.staff_id)) {
+      const staff = await client.query('SELECT id FROM staff WHERE id = $1 AND branch_id = $2 AND active', [staffId, branchId]);
+      if (!staff.rows[0]) throw new HttpError(400, 'INVALID_STAFF', 'Nhân viên không tồn tại trong chi nhánh hiện tại');
+    }
+    const nextRole = role ?? current.role;
+    const nextStaffId = changesStaff ? staffId : current.staff_id;
+    if ((role !== null || changesStaff) && nextRole === 'staff' && nextStaffId === null) {
       throw new HttpError(400, 'STAFF_REQUIRED', 'Tài khoản nhân viên phải liên kết với hồ sơ nhân viên');
     }
     const removesManager = current.role === 'manager' && current.active
-      && (active === false || (role !== null && role !== 'manager'));
+      && (active === false || nextRole !== 'manager');
     const activeManagerCount = accounts.rows.filter((account) => account.role === 'manager' && account.active).length;
     if (removesManager && activeManagerCount <= 1) {
       throw new HttpError(409, 'LAST_MANAGER_REQUIRED', 'Chi nhánh cần ít nhất một tài khoản quản lý đang hoạt động');
     }
     const result = await client.query(
       `UPDATE user_accounts
-       SET active = COALESCE($3, active), role = COALESCE($4, role),
-           password_hash = COALESCE($5, password_hash), updated_at = NOW()
+       SET active = COALESCE($3, active), role = $4,
+           password_hash = COALESCE($5, password_hash),
+           display_name = COALESCE($6, display_name), username = COALESCE($7, username),
+           staff_id = $8, updated_at = NOW()
        WHERE id = $1 AND branch_id = $2
        RETURNING id, username, display_name, role, active, staff_id`,
-      [id, branchId, active, role, passwordHash],
+      [id, branchId, active, nextRole, passwordHash, displayName, username, nextStaffId],
     );
-    if (active === false || password || role !== null) {
+    const sessionsRevoked = active === false || Boolean(password) || nextRole !== current.role;
+    if (sessionsRevoked) {
       await client.query('DELETE FROM auth_sessions WHERE account_id = $1', [id]);
     }
     await client.query('COMMIT');
     const row = result.rows[0];
-    return { ...row, id: Number(row.id), staffId: row.staff_id ? Number(row.staff_id) : null };
+    return {
+      id: Number(row.id), username: row.username, displayName: row.display_name, role: row.role, active: row.active,
+      staffId: row.staff_id ? Number(row.staff_id) : null, sessionsRevoked,
+    };
   } catch (error) {
     await client.query('ROLLBACK');
+    if (error.code === '23505') throw new HttpError(409, 'ACCOUNT_EXISTS', 'Tên đăng nhập hoặc nhân viên đã có tài khoản');
     throw error;
   } finally {
     client.release();

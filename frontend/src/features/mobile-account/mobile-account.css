@@ -609,7 +609,8 @@
 .mobile-acc-card-actions {
   display: flex;
   align-items: center;
-  justify-content: flex-end;
+  justify-content: space-between;
+  gap: 8px;
   border-top: 1px solid var(--canvas);
   padding-top: 10px;
 }

@@ -11,6 +11,8 @@ import { closeWebSocketsForAccount } from '../../lib/ws.js';
 const router = Router();
 const roles = ['manager', 'cashier', 'staff'];
 const clean = (value, max = 160) => String(value ?? '').trim().slice(0, max);
+const usernamePattern = /^[a-zA-Z0-9._-]{3,80}$/;
+const invalidUsernameMessage = 'Tên đăng nhập cần từ 3 ký tự, chỉ gồm chữ, số, dấu chấm, gạch ngang hoặc gạch dưới';
 const loginLimiter = createRateLimiter({
   windowMs: 15 * 60_000,
   max: config.http.loginRateLimit,
@@ -50,7 +52,7 @@ router.patch('/me', requireAuth, asyncRoute(async (request, response) => {
   const displayName = clean(request.body.displayName);
   const phone = clean(request.body.phone, 30);
   const email = clean(request.body.email, 160);
-  if (!/^[a-zA-Z0-9._-]{3,80}$/.test(username)) throw new HttpError(400, 'INVALID_USERNAME', 'Tên đăng nhập cần từ 3 ký tự, chỉ gồm chữ, số, dấu chấm, gạch ngang hoặc gạch dưới');
+  if (!usernamePattern.test(username)) throw new HttpError(400, 'INVALID_USERNAME', invalidUsernameMessage);
   if (!displayName) throw new HttpError(400, 'DISPLAY_NAME_REQUIRED', 'Tên hiển thị là bắt buộc');
   if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new HttpError(400, 'INVALID_EMAIL', 'Email không hợp lệ');
   await updateOwnProfile({ accountId: request.account.id, username, displayName, phone, email });
@@ -84,7 +86,7 @@ router.post('/accounts', requireAuth, requirePermissions(permissions.manageAccou
   const password = String(request.body.password ?? '');
   const displayName = clean(request.body.displayName);
   const role = parseEnum(request.body.role, 'role', roles);
-  if (!/^[a-zA-Z0-9._-]{3,80}$/.test(username)) throw new HttpError(400, 'INVALID_USERNAME', 'Tên đăng nhập cần từ 3 ký tự, chỉ gồm chữ, số, dấu chấm, gạch ngang hoặc gạch dưới');
+  if (!usernamePattern.test(username)) throw new HttpError(400, 'INVALID_USERNAME', invalidUsernameMessage);
   validatePassword(password);
   if (!displayName || !role) throw new HttpError(400, 'INVALID_ACCOUNT', 'Tên hiển thị và loại tài khoản là bắt buộc');
   const staffId = request.body.staffId ? parsePositiveInteger(request.body.staffId, 'staffId') : null;
@@ -95,18 +97,27 @@ router.post('/accounts', requireAuth, requirePermissions(permissions.manageAccou
 
 router.patch('/accounts/:id', requireAuth, requirePermissions(permissions.manageAccounts), asyncRoute(async (request, response) => {
   const id = parsePositiveInteger(request.params.id, 'id');
-  if (id === request.account.id && (request.body.active === false || (request.body.role && request.body.role !== 'manager'))) {
+  const body = request.body;
+  if (id === request.account.id && (body.active === false || (body.role && body.role !== 'manager'))) {
     throw new HttpError(400, 'CANNOT_RESTRICT_SELF', 'Không thể tự khóa hoặc hạ quyền tài khoản đang đăng nhập');
   }
-  const password = request.body.password === undefined ? '' : String(request.body.password);
+  const password = body.password === undefined ? '' : String(body.password);
   if (id === request.account.id && password) {
     throw new HttpError(400, 'USE_PASSWORD_CHANGE', 'Hãy dùng chức năng đổi mật khẩu và nhập mật khẩu hiện tại');
   }
   if (password) validatePassword(password);
-  const role = request.body.role === undefined ? null : parseEnum(request.body.role, 'role', roles);
-  const active = typeof request.body.active === 'boolean' ? request.body.active : null;
-  const data = await updateAccount({ id, branchId: request.account.branchId, active, role, password });
-  if (active === false || password || role !== null) closeWebSocketsForAccount(id);
+  const role = body.role === undefined ? null : parseEnum(body.role, 'role', roles);
+  const active = typeof body.active === 'boolean' ? body.active : null;
+  const username = body.username === undefined ? null : clean(body.username, 80);
+  if (username !== null && !usernamePattern.test(username)) throw new HttpError(400, 'INVALID_USERNAME', invalidUsernameMessage);
+  const displayName = body.displayName === undefined ? null : clean(body.displayName);
+  if (displayName === '') throw new HttpError(400, 'DISPLAY_NAME_REQUIRED', 'Tên hiển thị là bắt buộc');
+  const staffId = body.staffId === undefined ? undefined
+    : body.staffId === null || body.staffId === '' ? null : parsePositiveInteger(body.staffId, 'staffId');
+  const { sessionsRevoked, ...data } = await updateAccount({
+    id, branchId: request.account.branchId, active, role, password, username, displayName, staffId,
+  });
+  if (sessionsRevoked) closeWebSocketsForAccount(id);
   response.json({ data });
 }));
 
