@@ -345,6 +345,22 @@ describe('MobileInvoiceCreateView Component', () => {
     expect(screen.queryByText(/cái, lần/)).not.toBeInTheDocument();
   });
 
+  it('adds a product by scanning its barcode from the catalog sheet', async () => {
+    vi.spyOn(posApi, 'findPosItemsByBarcode').mockResolvedValue([{
+      itemId: 5, itemType: 'product', code: 'SP000005', barcode: '8930000000011', name: 'Serum Dưỡng Ẩm HA',
+      category: 'Mỹ phẩm', unit: 'Chai', salePrice: 250000, stockQuantity: 3,
+    }]);
+    renderComponent();
+    fireEvent.click(screen.getByRole('button', { name: 'Thêm dịch vụ, sản phẩm' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Quét mã vạch' }));
+    fireEvent.change(screen.getByLabelText('Hoặc nhập mã vạch'), { target: { value: '8930000000011' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Xác nhận' }));
+
+    expect(await screen.findByText('Chi tiết hàng hóa')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Xong' }));
+    expect(await screen.findByText('250.000đ / Chai')).toBeInTheDocument();
+  });
+
   it('calculates total with discount and submits checkout with line-level staffId', async () => {
     renderComponent();
 

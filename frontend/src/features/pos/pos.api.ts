@@ -25,6 +25,18 @@ export const getPosCatalog = async (search: string, type: string, customerId?: n
   };
 };
 
+/**
+ * Finds the sellable items whose barcode or code equals a scanned value.
+ * Imported data can reuse one code on several items, so every exact match is
+ * returned. The API lists exact matches first, so the first page is enough.
+ */
+export const findPosItemsByBarcode = async (code: string, customerId?: number | null) => {
+  const needle = code.trim().toLowerCase();
+  if (!needle) return [];
+  const response = await getPosCatalogPage(code.trim(), '', customerId, 1);
+  return response.data.filter((item) => String(item.barcode ?? '').toLowerCase() === needle || String(item.code ?? '').toLowerCase() === needle);
+};
+
 export const getPosPriceQuote = (customerId: number | null | undefined, items: Array<{ itemType: string; itemId: number }>) =>
   apiRequest<ApiEnvelope<Array<{ itemType: string; itemId: number; salePrice: number }>, { pricebook?: ApiRecord | null }>>('/pos/price-quote', {
     method: 'POST',

@@ -6,6 +6,7 @@ import { MobilePosView } from './MobilePosView';
 import * as posApi from '@/features/pos/pos.api';
 import * as auth from '@/features/auth/AuthProvider';
 import { WebSocketProvider } from '@/context/WebSocketContext';
+import { ToastProvider } from '@/components/ui/Toast/ToastProvider';
 
 vi.mock('@/services/websocket', () => ({
   createPosSocketConnection: vi.fn(() => ({
@@ -15,7 +16,7 @@ vi.mock('@/services/websocket', () => ({
 }));
 
 const wrapper = ({ children }: { children: React.ReactNode }) => (
-  <WebSocketProvider>{children}</WebSocketProvider>
+  <WebSocketProvider><ToastProvider>{children}</ToastProvider></WebSocketProvider>
 );
 
 describe('MobilePosView Component', () => {
@@ -41,15 +42,15 @@ describe('MobilePosView Component', () => {
   it('renders search bar, category tabs, and grouped item cards correctly', async () => {
     render(
       <QueryClientProvider client={queryClient}>
-        <WebSocketProvider>
+        <WebSocketProvider><ToastProvider>
           <MemoryRouter>
             <MobilePosView />
           </MemoryRouter>
-        </WebSocketProvider>
+        </ToastProvider></WebSocketProvider>
       </QueryClientProvider>
     );
 
-    expect(screen.getByPlaceholderText('Tìm hàng hóa')).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('Tìm tên, mã, mã vạch')).toBeInTheDocument();
     expect(screen.getByText('Tất cả')).toBeInTheDocument();
     expect(screen.getByText('Dịch vụ')).toBeInTheDocument();
     expect(screen.getByText('Gói DV')).toBeInTheDocument();
@@ -67,11 +68,11 @@ describe('MobilePosView Component', () => {
   it('adds item to cart and opens bottom sheet checkout on cart bar click', async () => {
     render(
       <QueryClientProvider client={queryClient}>
-        <WebSocketProvider>
+        <WebSocketProvider><ToastProvider>
           <MemoryRouter>
             <MobilePosView />
           </MemoryRouter>
-        </WebSocketProvider>
+        </ToastProvider></WebSocketProvider>
       </QueryClientProvider>
     );
 
@@ -83,6 +84,54 @@ describe('MobilePosView Component', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /^Thanh toán ·/i }));
     expect(screen.getByRole('dialog', { name: 'Thanh toán' })).toBeInTheDocument();
+  });
+
+  it('adds a scanned product to the cart', async () => {
+    vi.spyOn(posApi, 'findPosItemsByBarcode').mockResolvedValue([{
+      itemId: 9, itemType: 'product', code: 'SP000009', barcode: '8931234567890', name: 'Toner hoa hồng',
+      category: 'Mỹ phẩm', unit: 'chai', salePrice: 150000, stockQuantity: 4,
+    }]);
+    render(
+      <QueryClientProvider client={queryClient}>
+        <WebSocketProvider><ToastProvider>
+          <MemoryRouter>
+            <MobilePosView />
+          </MemoryRouter>
+        </ToastProvider></WebSocketProvider>
+      </QueryClientProvider>
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Quét mã vạch' }));
+    fireEvent.change(screen.getByLabelText('Hoặc nhập mã vạch'), { target: { value: '8931234567890' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Xác nhận' }));
+
+    await waitFor(() => expect(screen.getByText(/Giỏ hàng \(1\)/i)).toBeInTheDocument());
+    expect(posApi.findPosItemsByBarcode).toHaveBeenCalledWith('8931234567890', undefined);
+    expect(screen.getByText('Đã thêm vào giỏ hàng')).toBeInTheDocument();
+  });
+
+  it('lists the matches instead of guessing when several items share a scanned code', async () => {
+    vi.spyOn(posApi, 'findPosItemsByBarcode').mockResolvedValue([
+      { itemId: 9, itemType: 'product', code: 'SP000009', barcode: '6947991205424', name: 'Mặt nạ Chando' },
+      { itemId: 10, itemType: 'product', code: '6947991205424', barcode: '', name: 'Mặt nạ Chando' },
+    ]);
+    render(
+      <QueryClientProvider client={queryClient}>
+        <WebSocketProvider><ToastProvider>
+          <MemoryRouter>
+            <MobilePosView />
+          </MemoryRouter>
+        </ToastProvider></WebSocketProvider>
+      </QueryClientProvider>
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Quét mã vạch' }));
+    fireEvent.change(screen.getByLabelText('Hoặc nhập mã vạch'), { target: { value: '6947991205424' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Xác nhận' }));
+
+    expect(await screen.findByText('Nhiều hàng hóa cùng mã')).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('Tìm tên, mã, mã vạch')).toHaveValue('6947991205424');
+    expect(screen.queryByText(/Giỏ hàng \(1\)/i)).not.toBeInTheDocument();
   });
 
   it('shows an actionable payment request for cashier or manager', async () => {
@@ -98,11 +147,11 @@ describe('MobilePosView Component', () => {
 
     render(
       <QueryClientProvider client={queryClient}>
-        <WebSocketProvider>
+        <WebSocketProvider><ToastProvider>
           <MemoryRouter>
             <MobilePosView />
           </MemoryRouter>
-        </WebSocketProvider>
+        </ToastProvider></WebSocketProvider>
       </QueryClientProvider>
     );
 

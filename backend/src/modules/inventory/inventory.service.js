@@ -12,26 +12,26 @@ const goodsCte = `
       p.branch_id, 'product'::text AS item_type, p.id AS item_id, p.sku AS code, p.name,
       p.category, p.brand, p.unit, p.sale_price, p.cost_price,
       p.last_purchase_price, COALESCE(ib.quantity, 0) AS stock_quantity,
-      p.min_stock, p.max_stock, p.active, p.commission_type, p.commission_rate
+      p.min_stock, p.max_stock, p.active, p.commission_type, p.commission_rate, p.barcode
     FROM products p
     LEFT JOIN inventory_balances ib ON ib.product_id = p.id AND ib.branch_id = p.branch_id
     UNION ALL
     SELECT
       s.branch_id, 'service'::text, s.id, s.code, s.name,
       s.category, s.brand, 'lần'::varchar, s.price, s.cost_price,
-      0::numeric, NULL::numeric, 0::numeric, NULL::numeric, s.active, s.commission_type, s.commission_rate
+      0::numeric, NULL::numeric, 0::numeric, NULL::numeric, s.active, s.commission_type, s.commission_rate, NULL::varchar
     FROM services s
     UNION ALL
     SELECT
       sp.branch_id, 'package'::text, sp.id, sp.code, sp.name,
       sp.category, sp.brand, 'gói'::varchar, sp.list_price, sp.cost_price,
-      0::numeric, NULL::numeric, 0::numeric, NULL::numeric, sp.active, sp.commission_type, sp.commission_rate
+      0::numeric, NULL::numeric, 0::numeric, NULL::numeric, sp.active, sp.commission_type, sp.commission_rate, NULL::varchar
     FROM service_packages sp
     UNION ALL
     SELECT
       ac.branch_id, 'account_card'::text, ac.id, ac.code, ac.name,
       ac.category, ac.brand, 'thẻ'::varchar, ac.sale_price, 0::numeric,
-      0::numeric, NULL::numeric, 0::numeric, NULL::numeric, ac.active, ac.commission_type, ac.commission_rate
+      0::numeric, NULL::numeric, 0::numeric, NULL::numeric, ac.active, ac.commission_type, ac.commission_rate, NULL::varchar
     FROM account_cards ac
   )
 `;
@@ -42,6 +42,7 @@ function mapProduct(row) {
     itemId: number(row.item_id),
     itemType: row.item_type,
     code: row.code,
+    barcode: row.barcode || '',
     name: row.name,
     category: row.category,
     brand: row.brand,
@@ -534,7 +535,7 @@ export async function listProducts({ branchId, search, type, category, stockStat
   const parameters = [branchId, search, type, category, stockStatus, status];
   const filters = `
     branch_id = $1
-    AND ($2 = '' OR code ILIKE '%' || $2 || '%' OR name ILIKE '%' || $2 || '%' OR COALESCE(brand, '') ILIKE '%' || $2 || '%')
+    AND ($2 = '' OR code ILIKE '%' || $2 || '%' OR COALESCE(barcode, '') ILIKE '%' || $2 || '%' OR name ILIKE '%' || $2 || '%' OR COALESCE(brand, '') ILIKE '%' || $2 || '%')
     AND ($3 = '' OR item_type = $3)
     AND ($4 = '' OR category = $4)
     AND ($5 = '' OR ($5 = 'low' AND item_type = 'product' AND stock_quantity < min_stock)
@@ -583,8 +584,9 @@ export async function listPosProducts({ branchId, customerId, search, type, page
      WHERE g.branch_id = $1
        AND g.active
        AND ($2 = '' OR g.item_type = $2)
-       AND ($4 = '' OR g.code ILIKE '%' || $4 || '%' OR g.name ILIKE '%' || $4 || '%' OR COALESCE(g.brand, '') ILIKE '%' || $4 || '%')
-     ORDER BY g.item_type, g.code DESC
+       AND ($4 = '' OR g.code ILIKE '%' || $4 || '%' OR COALESCE(g.barcode, '') ILIKE '%' || $4 || '%' OR g.name ILIKE '%' || $4 || '%' OR COALESCE(g.brand, '') ILIKE '%' || $4 || '%')
+     -- A scanned barcode or typed code that matches exactly comes first.
+     ORDER BY (g.barcode = $4 OR g.code = $4) IS TRUE DESC, g.item_type, g.code DESC
      LIMIT $5 OFFSET $6`,
     [branchId, type, pricebook?.id ?? null, search, pageSize, offset],
   );

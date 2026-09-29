@@ -8,6 +8,8 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/components/ui/Toast/ToastProvider';
 import { formatMoney } from '@/lib/format';
 import { MoneyInput } from '@/components/forms/MoneyInput';
+import { BarcodeScannerModal } from '@/components/ui/BarcodeScanner/BarcodeScannerModal';
+import { usePosBarcodeLookup } from '@/features/pos/usePosBarcodeLookup';
 import {
   checkoutPosInvoice,
   getPosCatalog,
@@ -197,6 +199,12 @@ export function MobileInvoiceCreateView() {
     setIsCatalogSheetOpen(false);
     setIsDetailSheetOpen(true);
   };
+
+  const [isScanning, setIsScanning] = useState(false);
+  const barcode = usePosBarcodeLookup(customer?.id, {
+    onFound: (item) => handleSelectCatalogItem(item as (typeof catalogItems)[0]),
+    onAmbiguous: (code) => { setActiveCatalogTab(''); setCatalogSearch(code); },
+  });
 
   const handlePackageServiceSelect = (customerPackageId: number, serviceId: number) => {
     const selectedPackage = servicePackages.find((pkg) => pkg.customerPackageId === customerPackageId);
@@ -665,17 +673,22 @@ export function MobileInvoiceCreateView() {
         initialFocusRef={catalogSearchRef}
         headerExtra={(
           <div className="sheet-toolbar">
-            <label className="input-group">
-              <i className="ph ph-magnifying-glass" aria-hidden="true" />
-              <input
-                ref={catalogSearchRef}
-                type="search"
-                aria-label="Tìm dịch vụ, sản phẩm"
-                placeholder="Tìm tên dịch vụ, sản phẩm..."
-                value={catalogSearch}
-                onChange={(e) => setCatalogSearch(e.target.value)}
-              />
-            </label>
+            <div className="mobile-catalog-search-row">
+              <label className="input-group">
+                <i className="ph ph-magnifying-glass" aria-hidden="true" />
+                <input
+                  ref={catalogSearchRef}
+                  type="search"
+                  aria-label="Tìm dịch vụ, sản phẩm"
+                  placeholder="Tìm tên, mã, mã vạch..."
+                  value={catalogSearch}
+                  onChange={(e) => setCatalogSearch(e.target.value)}
+                />
+              </label>
+              <button className="btn btn-secondary btn-icon" type="button" onClick={() => setIsScanning(true)} disabled={barcode.isLooking} aria-label="Quét mã vạch">
+                <i className="ph ph-barcode" aria-hidden="true" />
+              </button>
+            </div>
             <div className="m-chip-strip" role="group" aria-label="Lọc loại hàng">
               {[
                 { value: '', label: 'Tất cả' },
@@ -723,6 +736,13 @@ export function MobileInvoiceCreateView() {
         )}
         </div>
       </BottomSheet>
+
+      <BarcodeScannerModal
+        open={isScanning}
+        nested
+        onClose={() => setIsScanning(false)}
+        onDetected={(code) => { setIsScanning(false); void barcode.lookup(code); }}
+      />
 
       {/* Service Item Detail Sheet */}
       <MobileServiceItemDetailSheet

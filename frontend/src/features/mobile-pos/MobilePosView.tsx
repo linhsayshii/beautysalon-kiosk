@@ -9,6 +9,9 @@ import { PosReceiptPrint } from '@/features/pos/components/PosReceiptPrint';
 import { UsePackageModal } from '@/features/pos/components/UsePackageModal';
 import { MobileCartBottomSheet } from './MobileCartBottomSheet';
 import { MobileSearchBar } from '@/features/mobile-common';
+import { BarcodeScannerModal } from '@/components/ui/BarcodeScanner/BarcodeScannerModal';
+import { useToast } from '@/components/ui/Toast/ToastProvider';
+import { usePosBarcodeLookup } from '@/features/pos/usePosBarcodeLookup';
 
 type CatalogFilter = '' | 'service' | 'package' | 'account_card' | 'product';
 
@@ -251,6 +254,21 @@ export function MobilePosView() {
     });
   };
 
+  const { notify } = useToast();
+  const [isScanning, setIsScanning] = useState(false);
+  const barcode = usePosBarcodeLookup(customer?.id, {
+    onFound: (found) => {
+      const item = found as CatalogItem;
+      if (item.itemType === 'product' && Number(item.stockQuantity ?? 0) <= 0) {
+        notify('Hàng đã hết tồn kho', `${item.name} không còn tồn kho để bán.`);
+        return;
+      }
+      handleAddItem(item);
+      notify('Đã thêm vào giỏ hàng', item.name);
+    },
+    onAmbiguous: (code) => { setActiveTab(''); setSelectedSubCategory(''); setSearch(code); },
+  });
+
   // Update staff for a line
   const handleUpdateLineStaff = (itemId: number, itemType: string, staffId: number | null) => {
     setCartLines((prev) =>
@@ -346,7 +364,16 @@ export function MobilePosView() {
       ) : null}
       {/* Sticky Top Controls Cluster */}
       <div className="mobile-pos-sticky-top-controls">
-        <MobileSearchBar value={search} placeholder="Tìm hàng hóa" onChange={setSearch} />
+        <MobileSearchBar
+          value={search}
+          placeholder="Tìm tên, mã, mã vạch"
+          onChange={setSearch}
+          action={(
+            <button type="button" className="mobile-search-bar-filter-btn" onClick={() => setIsScanning(true)} disabled={barcode.isLooking} aria-label="Quét mã vạch">
+              <i className="ph ph-barcode" aria-hidden="true" />
+            </button>
+          )}
+        />
 
         {/* Category filter */}
         <div className="m-chip-strip">
@@ -556,6 +583,12 @@ export function MobilePosView() {
           setServicePackages([]);
         }}
         onSelect={handlePackageServiceSelect}
+      />
+
+      <BarcodeScannerModal
+        open={isScanning}
+        onClose={() => setIsScanning(false)}
+        onDetected={(code) => { setIsScanning(false); void barcode.lookup(code); }}
       />
     </div>
   );

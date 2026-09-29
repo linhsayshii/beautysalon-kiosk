@@ -19,6 +19,8 @@ import { CustomerCreateDialog } from '@/features/operations/components/CustomerC
 import { PosCheckoutModal } from './PosCheckoutModal';
 import { PosReceiptPrint } from './PosReceiptPrint';
 import { UsePackageModal } from './UsePackageModal';
+import { BarcodeScannerModal } from '@/components/ui/BarcodeScanner/BarcodeScannerModal';
+import { usePosBarcodeLookup } from '../usePosBarcodeLookup';
 
 type CatalogFilter = '' | 'service' | 'package' | 'account_card' | 'product';
 type PosMode = 'calendar' | 'invoice';
@@ -257,6 +259,20 @@ export function PosView() {
     });
   };
 
+  const addScannedItem = (item: CatalogItem) => {
+    if (item.itemType === 'product' && Number(item.stockQuantity ?? 0) <= 0) {
+      notify('Hàng đã hết tồn kho', `${item.name} không còn tồn kho để bán.`);
+      return;
+    }
+    addItem(item);
+    notify('Đã thêm vào hóa đơn', item.name);
+  };
+  const barcode = usePosBarcodeLookup(activeInvoice.customer?.id, {
+    onFound: (item) => addScannedItem(item as CatalogItem),
+    onAmbiguous: (code) => { setCatalogFilter(''); setCatalogSearch(code); },
+  });
+  const [isScanning, setIsScanning] = useState(false);
+
   const changeQuantity = (line: PosLine, delta: number) => {
     updateActive((invoice) => ({
       ...invoice,
@@ -390,9 +406,22 @@ export function PosView() {
             <label className="pos-search">
               <i className="ph ph-magnifying-glass" aria-hidden="true" />
               <span className="sr-only">Tìm hàng hóa</span>
-              <input value={catalogSearch} onChange={(event) => setCatalogSearch(event.target.value)} placeholder="Tìm theo mã, tên hàng hóa" />
+              <input
+                value={catalogSearch}
+                onChange={(event) => setCatalogSearch(event.target.value)}
+                onKeyDown={(event) => {
+                  // A USB barcode scanner types the code and presses Enter.
+                  if (event.key !== 'Enter' || !catalogSearch.trim() || barcode.isLooking) return;
+                  event.preventDefault();
+                  void barcode.lookup(catalogSearch, { reportMissing: false }).then((found) => { if (found) setCatalogSearch(''); });
+                }}
+                placeholder="Tìm theo mã, mã vạch, tên hàng hóa"
+              />
               {catalogSearch && <button type="button" onClick={() => setCatalogSearch('')} aria-label="Xóa từ khóa"><i className="ph ph-x" /></button>}
             </label>
+            <button className="btn btn-secondary btn-icon" type="button" onClick={() => setIsScanning(true)} disabled={barcode.isLooking} aria-label="Quét mã vạch bằng camera" title="Quét mã vạch">
+              <i className="ph ph-barcode" aria-hidden="true" />
+            </button>
           </div>
           <div className="pos-filter-tabs" role="tablist" aria-label="Loại hàng hóa">
             {filters.map((filter) => <button className={catalogFilter === filter.value ? 'is-active' : ''} type="button" role="tab" aria-selected={catalogFilter === filter.value} onClick={() => setCatalogFilter(filter.value)} key={filter.value || 'all'}><i className={`ph ${filter.icon}`} aria-hidden="true" />{filter.label}</button>)}
@@ -530,6 +559,11 @@ export function PosView() {
           setServicePackages([]);
         }}
         onSelect={handlePackageServiceSelect}
+      />
+      <BarcodeScannerModal
+        open={isScanning}
+        onClose={() => setIsScanning(false)}
+        onDetected={(code) => { setIsScanning(false); void barcode.lookup(code); }}
       />
     </main>
   );

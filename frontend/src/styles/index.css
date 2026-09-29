@@ -14,6 +14,7 @@
 
 @import '../components/ui/Select/Select.css';
 @import '../components/ui/DateTimePicker/date-time-picker.css';
+@import '../components/ui/BarcodeScanner/barcode-scanner.css';
 @import '../components/schedule-modals.css';
 
 @import '../features/inventory/components/pricebooks.css';

@@ -616,3 +616,13 @@
   gap: 14px;
   padding: 14px;
 }
+
+.mobile-catalog-search-row {
+  display: flex;
+  gap: 8px;
+}
+
+.mobile-catalog-search-row > .input-group {
+  flex: 1;
+  min-width: 0;
+}

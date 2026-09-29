@@ -132,7 +132,9 @@
   grid-template-rows: auto auto minmax(0, 1fr);
 }
 
-.pos-catalog-toolbar { padding: 12px 12px 8px; }
+.pos-catalog-toolbar { display: flex; gap: 8px; padding: 12px 12px 8px; }
+.pos-catalog-toolbar > .pos-search { flex: 1; min-width: 0; }
+.pos-catalog-toolbar > .btn { --btn-h: 42px; border-radius: 12px; }
 
 .pos-search,
 .pos-customer-search {

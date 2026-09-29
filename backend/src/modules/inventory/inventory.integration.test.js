@@ -5,7 +5,7 @@ import { PGlite } from '@electric-sql/pglite';
 import { pool } from '../../db.js';
 import { customerDebtMigration } from '../../migrations/customer-debt.js';
 import { cashbookMigration } from '../../migrations/cashbook.js';
-import { createInventoryItem } from './inventory.service.js';
+import { createInventoryItem, listPosProducts, listProducts } from './inventory.service.js';
 
 const productInput = {
   branchId: 1, type: 'product', name: 'Serum mới', category: 'Sản phẩm', salePrice: 350000, costPrice: 200000,
@@ -39,6 +39,28 @@ test('inventory item codes', async (t) => {
       await db.exec(`INSERT INTO services(branch_id,code,name,price,duration_minutes) VALUES (1,'SP000502','Ngoáy tai',10000,30);`);
       const created = await createInventoryItem({ ...productInput, name: 'Serum khác' });
       assert.equal(created.code, 'SP000503');
+    });
+
+    await t.test('POS catalog and goods list find a product by its barcode', async () => {
+      await db.exec(`INSERT INTO products(branch_id,sku,name,barcode,sale_price,cost_price) VALUES
+        (1,'SP000600','Toner hoa hồng','8931234567890',150000,80000),
+        (1,'SP000601','Toner mini','8931234567000',90000,40000);`);
+      const pos = await listPosProducts({ branchId: 1, customerId: null, search: '8931234567890', type: '' });
+      assert.deepEqual(pos.rows.map((row) => [row.code, row.barcode]), [['SP000600', '8931234567890']]);
+
+      const partial = await listPosProducts({ branchId: 1, customerId: null, search: '89312345678', type: '' });
+      assert.equal(partial.rows.length, 1);
+
+      const goods = await listProducts({ branchId: 1, search: '8931234567000', type: '', category: '', stockStatus: '', status: '', page: 1, pageSize: 20, offset: 0 });
+      assert.deepEqual(goods.rows.map((row) => row.code), ['SP000601']);
+    });
+
+    await t.test('an exact code or barcode match is listed first in the POS catalog', async () => {
+      await db.exec(`INSERT INTO products(branch_id,sku,name,barcode,sale_price,cost_price) VALUES
+        (1,'SP000700','Sữa rửa mặt','4006381333931',100000,50000),
+        (1,'SP000701','Sữa rửa mặt mini','40063813339310',50000,20000);`);
+      const pos = await listPosProducts({ branchId: 1, customerId: null, search: '4006381333931', type: '' });
+      assert.deepEqual(pos.rows.map((row) => row.code), ['SP000700', 'SP000701']);
     });
   } finally {
     pool.connect = originalConnect;
