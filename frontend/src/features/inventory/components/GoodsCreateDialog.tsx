@@ -96,6 +96,12 @@ export function GoodsCreateDialog({ type, onClose, itemId, initialData, initialT
     queryFn: () => getProducts({ type: type === 'package' ? 'service' : '', status: 'active', page: 1, pageSize: appConfig.purchaseCatalogPageSize }),
     enabled: needsCatalog,
   });
+  // The products endpoint returns every category of the branch whatever the filters, so one row is enough.
+  const categoriesQuery = useQuery({
+    queryKey: ['goods-create-catalog', 'categories'],
+    queryFn: () => getProducts({ page: 1, pageSize: 1 }),
+  });
+  const categories = useMemo(() => (categoriesQuery.data?.meta.categories ?? []).filter(Boolean), [categoriesQuery.data]);
   const itemQuery = useQuery({
     queryKey: ['inventory-item', type, itemId],
     queryFn: () => getInventoryItem(type, Number(itemId)),
@@ -242,7 +248,7 @@ export function GoodsCreateDialog({ type, onClose, itemId, initialData, initialT
             <div className="form-grid">
               <div className="field"><label className="field-label" htmlFor="goods-code">Mã hàng</label><input className="input" id="goods-code" value={form.code} onChange={(event) => update('code', event.target.value.toUpperCase())} placeholder="Tự động nếu để trống" /></div>
               {type === 'product' ? <div className="field"><label className="field-label" htmlFor="goods-barcode">Mã vạch</label><input className="input" id="goods-barcode" value={form.barcode} onChange={(event) => update('barcode', event.target.value)} placeholder="Nhập mã vạch" /></div> : type === 'service' ? <div className="field"><label className="field-label" htmlFor="goods-duration">Thời lượng</label><div className="input-suffix"><input id="goods-duration" type="number" min="1" value={form.durationMinutes} onChange={(event) => update('durationMinutes', event.target.value)} /><span>phút</span></div>{errors.durationMinutes && <small className="field-error">{errors.durationMinutes}</small>}</div> : <div className="field"><label className="field-label" htmlFor="goods-validity">Thời hạn sử dụng</label><div className="input-suffix"><input id="goods-validity" type="number" min="1" value={form.validityDays} onChange={(event) => update('validityDays', event.target.value)} placeholder="Không giới hạn" /><span>ngày</span></div></div>}
-              <div className="field"><label className="field-label" htmlFor="goods-category">Nhóm hàng</label><Combobox id="goods-category" value={form.category} onChange={(value) => update('category', value)} placeholder="Nhập hoặc chọn nhóm hàng" options={catalog.data?.meta.categories ?? []} /></div>
+              <div className="field"><label className="field-label" htmlFor="goods-category">Nhóm hàng</label><Combobox id="goods-category" value={form.category} onChange={(value) => update('category', value)} placeholder="Nhập hoặc chọn nhóm hàng" options={categories} /></div>
               <div className="field"><label className="field-label" htmlFor="goods-brand">Thương hiệu</label><input className="input" id="goods-brand" value={form.brand} onChange={(event) => update('brand', event.target.value)} placeholder="Nhập thương hiệu" /></div>
             </div>
             <label className="check"><input type="checkbox" checked={form.active} onChange={(event) => update('active', event.target.checked)} />Cho phép bán</label>
