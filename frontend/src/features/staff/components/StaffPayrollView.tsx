@@ -3,11 +3,14 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { EmptyState, ErrorState, LoadingState } from '@/components/data-display/DataState';
 import { StatusBadge } from '@/components/data-display/Badges';
 import { formatMoney } from '@/lib/format';
+import { owedTone } from '@/lib/tone';
 import { exportCsv } from '@/lib/export';
 import { useToast } from '@/components/ui/Toast/ToastProvider';
 import { Select } from '@/components/ui/Select/Select';
 import { PageHeader } from '@/components/ui/PageHeader/PageHeader';
 import { SearchToolbar } from '@/components/forms/SearchToolbar';
+import { Pagination } from '@/components/data-display/Pagination';
+import { appConfig } from '@/app/config';
 import { useWebSocket } from '@/hooks/useWebSocket';
 import { getPayrollList, type PayrollPeriodListItem } from '../staff.api';
 import { PAYROLL_PERIOD_TYPES, payrollPeriodTypeLabel } from '../payroll-labels';
@@ -24,8 +27,8 @@ export function StaffPayrollView() {
   const [expandedPeriodId, setExpandedPeriodId] = useState<number | null>(null);
   const [viewingSheetPeriodId, setViewingSheetPeriodId] = useState<number | null>(null);
 
-  // Pagination state
-  const [pageSize, setPageSize] = useState<number>(15);
+  const [page, setPage] = useState(1);
+  const pageSize = appConfig.defaultPageSize;
 
   const query = useQuery({
     queryKey: ['staff-payroll', searchTerm, selectedStatuses, periodTypeFilter],
@@ -64,6 +67,9 @@ export function StaffPayrollView() {
       return true;
     });
   }, [rawRows, selectedStatuses, searchTerm]);
+  const totalPages = Math.max(1, Math.ceil(filteredRows.length / pageSize));
+  const currentPage = Math.min(page, totalPages);
+  const pageRows = filteredRows.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
   const handleExportList = () => {
     if (!filteredRows.length) {
@@ -191,12 +197,12 @@ export function StaffPayrollView() {
                       <td colSpan={5} />
                       <td className="is-num">{formatMoney(grandSummary.totalNetSalary)}</td>
                       <td className="is-num text-success">{formatMoney(grandSummary.totalPaidAmount)}</td>
-                      <td className="is-num text-danger">{formatMoney(grandSummary.totalRemainingAmount)}</td>
+                      <td className={`is-num ${owedTone(grandSummary.totalRemainingAmount)}`}>{formatMoney(grandSummary.totalRemainingAmount)}</td>
                       <td />
                     </tr>
                   </thead>
                   <tbody>
-                    {filteredRows.map((row: PayrollPeriodListItem) => {
+                    {pageRows.map((row: PayrollPeriodListItem) => {
                       const isExpanded = expandedPeriodId === row.id;
                       return (
                         <Fragment key={row.id}>
@@ -215,7 +221,7 @@ export function StaffPayrollView() {
                             </td>
                             <td data-label="Tổng lương" className="is-num money-cell">{formatMoney(row.totalNetSalary)}</td>
                             <td data-label="Đã trả" className="is-num money-cell text-success">{formatMoney(row.totalPaidAmount)}</td>
-                            <td data-label="Còn cần trả" className="is-num money-cell text-danger">{formatMoney(row.totalRemainingAmount)}</td>
+                            <td data-label="Còn cần trả" className={`is-num money-cell ${owedTone(row.totalRemainingAmount)}`}>{formatMoney(row.totalRemainingAmount)}</td>
                             <td data-label="Trạng thái"><StatusBadge status={row.status} payroll /></td>
                           </tr>
                           {isExpanded && (
@@ -236,19 +242,12 @@ export function StaffPayrollView() {
               </div>
             )}
 
-            <div className="table-footer">
-              <label className="table-footer-size">
-                <span>Hiển thị</span>
-                <Select<number>
-                  value={pageSize}
-                  onChange={setPageSize}
-                  size="sm"
-                  aria-label="Số bản ghi mỗi trang"
-                  options={[{ value: 15, label: '15 bản ghi' }, { value: 30, label: '30 bản ghi' }, { value: 50, label: '50 bản ghi' }]}
-                />
-              </label>
-              <span>1 - {filteredRows.length} trong {filteredRows.length} bảng lương</span>
-            </div>
+            {filteredRows.length > 0 && (
+              <Pagination
+                pagination={{ page: currentPage, pageSize, total: filteredRows.length, totalPages }}
+                onChange={(nextPage) => { setExpandedPeriodId(null); setPage(nextPage); }}
+              />
+            )}
           </section>
         </div>
       </div>

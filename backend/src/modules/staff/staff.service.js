@@ -101,6 +101,16 @@ export function getStandardWorkDaysForMonth(year, month, activeWeekdays = [1, 2,
   return workDays > 0 ? workDays : 26;
 }
 
+// Work-day settings store Vietnamese weekday labels; Date#getDay() uses 0 = Sunday.
+const WEEKDAY_BY_LABEL = { CN: 0, T2: 1, T3: 2, T4: 3, T5: 4, T6: 5, T7: 6 };
+
+export function weekdaysFromLabels(labels) {
+  const weekdays = (Array.isArray(labels) ? labels : [])
+    .map((label) => WEEKDAY_BY_LABEL[label])
+    .filter((weekday) => weekday !== undefined);
+  return weekdays.length ? [...new Set(weekdays)] : [1, 2, 3, 4, 5, 6, 0];
+}
+
 export async function createStaff({
   branchId, name, role, code: requestedCode, avatarTone, active, salaryType,
   baseSalary, hourlyRate, canSell, canManageInventory, profile, accountId,
@@ -108,16 +118,22 @@ export async function createStaff({
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
-    const sequenceResult = requestedCode ? null : await client.query(
-      "SELECT nextval(pg_get_serial_sequence('staff', 'id')) AS id",
-    );
-    const reservedId = sequenceResult?.rows[0]?.id;
-    const code = requestedCode || `NV${String(reservedId).padStart(4, '0')}`;
+    let code = requestedCode;
+    if (!code) {
+      // Staff codes are unique across branches: serialise generation and follow
+      // the existing NV000123 sequence, ignoring hand-typed codes.
+      await client.query("SELECT pg_advisory_xact_lock(hashtext('staff-code'))");
+      const sequence = await client.query(
+        `SELECT COALESCE(MAX(substring(code FROM '^NV(\\d{1,15})$')::bigint), 0) + 1 AS next_number
+         FROM staff WHERE code ~ '^NV\\d{1,15}$'`,
+      );
+      code = `NV${String(sequence.rows[0].next_number).padStart(6, '0')}`;
+    }
     const staffResult = await client.query(
-      `INSERT INTO staff (id, branch_id, code, name, role, avatar_tone, active)
-       VALUES (COALESCE($1::bigint, nextval(pg_get_serial_sequence('staff', 'id'))), $2, $3, $4, $5, $6, $7)
+      `INSERT INTO staff (branch_id, code, name, role, avatar_tone, active)
+       VALUES ($1, $2, $3, $4, $5, $6)
        RETURNING id, code, name, role, avatar_tone, active, created_at`,
-      [reservedId ?? null, branchId, code, name, role, avatarTone, active],
+      [branchId, code, name, role, avatarTone, active],
     );
     const staff = staffResult.rows[0];
     await client.query(
@@ -597,7 +613,7 @@ export async function ensureMonthlyPayrollPeriods(branchId) {
       const daysInM = getDaysInMonth(year, month);
       const endsOn = `${year}-${String(month).padStart(2, '0')}-${String(daysInM).padStart(2, '0')}`;
       const code = `BL${String(year)}${String(month).padStart(2, '0')}`;
-      const name = `Bảng lương tháng ${month}/${year}`;
+      const name = `Bảng lương tháng ${String(month).padStart(2, '0')}/${year}`;
 
       // Check if period already exists
       const existing = await client.query(
@@ -631,8 +647,13 @@ export async function ensureMonthlyPayrollPeriods(branchId) {
 }
 
 async function calculatePeriodPayrollInternal(client, branchId, periodId, startsOn, endsOn, year, month) {
-  // 1. Get standard workdays in month (based on schedule settings)
-  const standardWorkDays = getStandardWorkDaysForMonth(year, month);
+  // 1. Standard workdays in the month come from the branch's working weekdays.
+  // Holidays stay in the count: they are paid days off.
+  const settingsRes = await client.query(
+    'SELECT active_work_days FROM branch_work_schedule_settings WHERE branch_id = $1',
+    [branchId],
+  );
+  const standardWorkDays = getStandardWorkDaysForMonth(year, month, weekdaysFromLabels(settingsRes.rows[0]?.active_work_days));
 
   // 2. Fetch all active staff with settings
   const staffListRes = await client.query(

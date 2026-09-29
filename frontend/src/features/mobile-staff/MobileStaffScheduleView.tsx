@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useWebSocket } from '@/hooks/useWebSocket';
 import { getMySchedule } from '@/features/staff/staff.api';
-import { weekStartIso, toIsoDate, todayIso } from '@/lib/date';
+import { weekStartIso, toIsoDate, todayIso, formatDateOnly } from '@/lib/date';
 import { useAuth } from '@/features/auth/AuthProvider';
 import type { ApiRecord } from '@/types/api';
 import { ScheduleBadge } from '@/components/ScheduleBadge';
@@ -90,7 +90,7 @@ export function MobileStaffScheduleView() {
       {/* Shifts on selected day */}
       <div className="schedule-cards-list">
         <h2 className="m-section-title">
-          Ca làm ngày {selectedDateIso}
+          Ca làm ngày {formatDateOnly(selectedDateIso)}
         </h2>
 
         {isLoading ? (

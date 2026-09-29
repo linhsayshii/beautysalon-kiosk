@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { formatMoney, formatNumber, formatPercent, initials, parseMoney } from './format';
+import { formatDecimal, formatMoney, formatNumber, formatPercent, formatRate, initials, parseMoney } from './format';
 
 describe('format helpers', () => {
   it('formats salon money values consistently with dot separator', () => {
@@ -21,5 +21,14 @@ describe('format helpers', () => {
 
   it('creates initials from the last two name segments', () => {
     expect(initials('Nguyễn Thu Hằng')).toBe('TH');
+  });
+});
+
+describe('decimal formatting', () => {
+  it('uses the Vietnamese decimal comma with at most one decimal', () => {
+    expect(formatDecimal(7.5)).toBe('7,5');
+    expect(formatDecimal(8)).toBe('8');
+    expect(formatDecimal(7.25)).toBe('7,3');
+    expect(formatRate(61.24)).toBe('61,2%');
   });
 });

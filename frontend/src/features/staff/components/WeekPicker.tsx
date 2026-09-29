@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { toIsoDate } from '@/lib/date';
 import { FloatingLayer } from '@/components/ui/FloatingLayer/FloatingLayer';
+import { scheduleWeekLabel } from '../week-label';
 
 interface WeekPickerProps {
   currentMonday: string; // YYYY-MM-DD
@@ -30,14 +31,7 @@ export function WeekPicker({ currentMonday, onChange }: WeekPickerProps) {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [isOpen]);
 
-  // Calculate week number in month
-  const getWeekNumberInMonth = (mondayDate: Date) => {
-    const day = mondayDate.getDate();
-    return Math.ceil(day / 7);
-  };
-
-  const weekNumber = getWeekNumberInMonth(selectedDate);
-  const label = `Tuần ${weekNumber} - Th. ${selectedDate.getMonth() + 1} ${selectedDate.getFullYear()}`;
+  const label = scheduleWeekLabel(currentMonday);
 
   // Navigate next / prev week
   const handlePrevWeek = () => {

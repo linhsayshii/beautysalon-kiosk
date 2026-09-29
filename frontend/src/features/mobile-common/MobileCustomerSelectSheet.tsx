@@ -2,7 +2,7 @@ import { useEffect, useState, useMemo } from 'react';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { getCustomers } from '@/features/operations/operations.api';
 import { CustomerCreateDialog } from '@/features/operations/components/CustomerCreateDialog';
-import { formatNumber, initials } from '@/lib/format';
+import { formatMoney, formatNumber, initials } from '@/lib/format';
 import type { ApiRecord } from '@/types/api';
 import { BottomSheet } from '@/components/ui/Sheet/BottomSheet';
 import { EmptyState, LoadingState } from '@/components/data-display/DataState';
@@ -142,7 +142,7 @@ export function MobileCustomerSelectSheet({
                       {debt > 0 && (
                         <span className="mobile-customer-debt-badge">
                           <i className="ph ph-warning-circle" />
-                          Nợ: {formatNumber(debt)}
+                          Nợ: {formatMoney(debt)}
                         </span>
                       )}
                     </div>

@@ -8,8 +8,9 @@ import { getBranches } from '@/features/branches/branches.api';
 import type { ApiRecord } from '@/types/api';
 import { FloatingLayer } from '@/components/ui/FloatingLayer/FloatingLayer';
 
-// Sub-page titles. Pages with hideTopBar render their own MobilePageHeader; the
-// topbar's sub-page mode is only a fallback for routes not listed here.
+// Sub-page titles. Pages with hideTopBar render their own MobilePageHeader. Every
+// mobile route is either a root tab or listed here, so an unlisted path is the
+// not-found page.
 const SUBPAGE_CONFIG: Record<string, { title: string; backTo?: string; hideTopBar?: boolean }> = {
   '/m/orders': { title: 'Đơn hàng', hideTopBar: true },
   '/m/products': { title: 'Hàng hóa', backTo: '/m/more', hideTopBar: true },
@@ -44,6 +45,7 @@ const ROOT_TAB_ROUTES = new Set([
   '/m/customers',
   '/m/schedule',
   '/m/salary',
+  '/m/my-schedule',
   '/m/attendance',
   '/m/account',
 ]);
@@ -63,7 +65,7 @@ export function MobileTopBar() {
   const subPageInfo = /^\/m\/appointments\/\d+\/edit$/.test(pathname)
     ? { title: 'Chỉnh sửa lịch', backTo: '/m/appointments', hideTopBar: true }
     : SUBPAGE_CONFIG[pathname];
-  const subPageTitle = subPageInfo?.title || 'Chi tiết';
+  const subPageTitle = subPageInfo?.title || 'Không tìm thấy trang';
 
   const { data: branchesData } = useQuery({
     queryKey: ['branches-list'],

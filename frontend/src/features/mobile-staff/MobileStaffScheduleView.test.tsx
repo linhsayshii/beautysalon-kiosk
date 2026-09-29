@@ -41,5 +41,7 @@ describe('MobileStaffScheduleView', () => {
 
     await waitFor(() => expect(screen.getByText('Ca ngày')).toBeInTheDocument());
     expect(staffApi.getMySchedule).toHaveBeenCalledWith(weekStartIso());
+    const [year, month, day] = todayIso().split('-');
+    expect(screen.getByRole('heading', { name: `Ca làm ngày ${day}/${month}/${year}` })).toBeInTheDocument();
   });
 });

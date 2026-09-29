@@ -13,6 +13,7 @@ import { DEFAULT_BRANCH_TIME_ZONE, formatBranchTime, formatDayHeader, localDateT
 import type { ApiRecord } from '@/types/api';
 import { MobilePageHeader } from '@/components/ui/MobilePageHeader/MobilePageHeader';
 import { LoadingState } from '@/components/data-display/DataState';
+import { APPOINTMENT_STATUS_LABELS } from '@/lib/appointment-status';
 
 interface AppointmentData {
   id: number;
@@ -31,15 +32,7 @@ interface AppointmentData {
   service?: { id: number | null; name?: string | null; salePrice?: number } | null;
 }
 
-const STATUS_LABELS: Record<string, string> = {
-  pending: 'Chờ xác nhận',
-  confirmed: 'Chờ phục vụ',
-  waiting: 'Đang chờ',
-  in_service: 'Đang làm',
-  completed: 'Đã xong',
-  cancelled: 'Đã hủy',
-  no_show: 'Không đến',
-};
+const STATUS_LABELS = APPOINTMENT_STATUS_LABELS;
 
 const APPOINTMENT_STATUSES = ['pending', 'confirmed', 'waiting', 'in_service', 'completed', 'cancelled', 'no_show'] as const;
 

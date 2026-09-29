@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Select } from '@/components/ui/Select/Select';
 import type { ApiRecord } from '@/types/api';
 import { Modal } from '@/components/ui/Modal/Modal';
+import { formatDateOnly } from '@/lib/date';
 
 interface AssignShiftForStaffModalProps {
   isOpen: boolean;
@@ -48,7 +49,7 @@ export function AssignShiftForStaffModal({
       open
       onClose={onClose}
       title="Xếp lịch làm việc"
-      subtitle={<>{staff.name} ({staff.code}) · {dayLabel}, {shiftDate}</>}
+      subtitle={<>{staff.name} ({staff.code}) · {dayLabel}, {formatDateOnly(shiftDate)}</>}
       size="sm"
     >
       <form onSubmit={handleSubmit}>

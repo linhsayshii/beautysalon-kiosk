@@ -11,8 +11,10 @@ import { useAuth } from '@/features/auth/AuthProvider';
 import { useWebSocket } from '@/hooks/useWebSocket';
 import { DEFAULT_BRANCH_TIME_ZONE, addCalendarDays, formatDateOnly, localDateTimeFromInstant, parseIsoDate, parseLocalDateTime, startOfIsoWeek, zonedLocalDateTimeToIso } from '@/lib/date';
 import { formatMoney } from '@/lib/format';
+import { APPOINTMENT_STATUS_LABELS } from '@/lib/appointment-status';
 import { createPosAppointment, updatePosAppointment, createPosCustomer, getPosAppointments, getPosCatalog, getPosInvoice, getPosPaymentRequests, getPosPriceQuote, getPosStaff, searchPosCustomers, getPosCustomerAvailablePackages, getPosCustomerServicePackages, type PosReceiptData, type ServicePackageOption } from '../pos.api';
 import { layoutOverlappingAppointments } from '../calendar-layout';
+import { closeInvoiceConfirmation } from '../invoice-drafts';
 import { CustomerCreateDialog } from '@/features/operations/components/CustomerCreateDialog';
 import { PosCheckoutModal } from './PosCheckoutModal';
 import { PosReceiptPrint } from './PosReceiptPrint';
@@ -230,6 +232,9 @@ export function PosView() {
   };
 
   const closeInvoice = (id: number) => {
+    const closing = invoices.find((invoice) => invoice.id === id);
+    const question = closing ? closeInvoiceConfirmation(closing) : null;
+    if (question && !window.confirm(question)) return;
     if (invoices.length === 1) {
       setInvoices([makeInvoice(1)]);
       setActiveId(1);
@@ -688,13 +693,8 @@ function PosCalendar() {
   </section>;
 }
 
-const APPOINTMENT_STATUS_OPTIONS = [
-  { value: 'pending', label: 'Chờ xác nhận', dotClass: 'is-pending' },
-  { value: 'confirmed', label: 'Chưa tới', dotClass: 'is-confirmed' },
-  { value: 'waiting', label: 'Đang chờ', dotClass: 'is-waiting' },
-  { value: 'in_service', label: 'Đang sử dụng', dotClass: 'is-in_service' },
-  { value: 'completed', label: 'Đã xong', dotClass: 'is-completed' },
-];
+const APPOINTMENT_STATUS_OPTIONS = ['pending', 'confirmed', 'waiting', 'in_service', 'completed']
+  .map((value) => ({ value, label: APPOINTMENT_STATUS_LABELS[value], dotClass: `is-${value}` }));
 
 type AppointmentServiceLine = {
   lineId: string;

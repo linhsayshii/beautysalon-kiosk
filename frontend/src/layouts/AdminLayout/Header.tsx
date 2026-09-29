@@ -89,6 +89,10 @@ export function Header() {
           <i className="ph ph-wallet" aria-hidden="true" />
           <span>Sổ quỹ</span>
         </NavLink>}
+        {account && account.role !== 'manager' && hasPermission(account.role, 'customers:manage') && <NavLink className={({ isActive }) => `action-pill ${isActive ? 'is-active' : ''}`} to="/customers" aria-label="Mở khách hàng">
+          <i className="ph ph-users" aria-hidden="true" />
+          <span>Khách hàng</span>
+        </NavLink>}
         {account && hasPermission(account.role, 'pos:use') && <NavLink className={({ isActive }) => `action-pill cashier-button ${isActive ? 'is-active' : ''}`} to="/pos" aria-label="Mở trang thu ngân">
           <i className="ph ph-shopping-cart-simple" aria-hidden="true" />
           <span>Thu ngân</span>

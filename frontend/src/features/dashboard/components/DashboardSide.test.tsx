@@ -41,4 +41,12 @@ describe('DashboardSide component', () => {
     render(<DashboardSide dashboard={emptyDashboard} />);
     expect(screen.getByText('Chưa có hoạt động gần đây.')).toBeInTheDocument();
   });
+  it('formats money in activities written before amounts were formatted', () => {
+    render(<DashboardSide dashboard={{ ...baseDashboard, activities: [
+      { id: 9, actorName: 'Lễ tân', description: 'Chốt hóa đơn HD290926-2942 - Tổng: 2500000 đ, đã thu: 2210000 đ, còn nợ: 290000 đ cho Đỗ Mỹ Linh', objectCode: 'HD290926-2942', occurredAt: '2026-09-29T02:00:00Z', avatarTone: 'blue' },
+    ] }} />);
+    expect(screen.getByText(/Tổng: 2\.500\.000đ, đã thu: 2\.210\.000đ, còn nợ: 290\.000đ cho Đỗ Mỹ Linh/)).toBeInTheDocument();
+    // Invoice codes and other numbers stay as written.
+    expect(screen.getByText(/Chốt hóa đơn HD290926-2942/)).toBeInTheDocument();
+  });
 });

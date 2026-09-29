@@ -58,9 +58,9 @@ describe('MobilePosView Component', () => {
 
     await waitFor(() => {
       expect(screen.getByText('RF Needle Skinlip 1 buổi')).toBeInTheDocument();
-      expect(screen.getByText(/2[.,]500[.,]000/)).toBeInTheDocument();
+      expect(screen.getByText('2.500.000đ')).toBeInTheDocument();
       expect(screen.getByText('Gội đầu 60k')).toBeInTheDocument();
-      expect(screen.getByText(/60[.,]000/)).toBeInTheDocument();
+      expect(screen.getByText('60.000đ')).toBeInTheDocument();
     });
   });
 

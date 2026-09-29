@@ -2,6 +2,7 @@ import { useRef } from 'react';
 import { formatDateTime, formatMoney, formatNumber } from '@/lib/format';
 import { useStoreName } from '@/services/metadata';
 import type { PosReceiptData } from '../pos.api';
+import { PAYMENT_METHOD_LABELS } from '@/lib/payment-methods';
 
 interface PosReceiptPrintProps {
   receipt: PosReceiptData;
@@ -16,13 +17,7 @@ export function PosReceiptPrint({ receipt, onClose }: PosReceiptPrintProps) {
     window.print();
   };
 
-  const paymentMethodLabel: Record<string, string> = {
-    cash: 'Tiền mặt',
-    bank_transfer: 'Chuyển khoản',
-    card: 'Quẹt thẻ',
-    wallet: 'Thẻ thành viên',
-    mixed: 'Hỗn hợp',
-  };
+  const paymentMethodLabel = PAYMENT_METHOD_LABELS;
 
   return (
     <div className="receipt-modal-backdrop" role="presentation" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>

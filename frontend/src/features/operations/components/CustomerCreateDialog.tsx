@@ -66,6 +66,9 @@ export function CustomerCreateDialog({ onClose, onSuccess, customMutationFn, ini
       : createCustomer(body)),
     onSuccess: (payload) => {
       queryClient.invalidateQueries({ queryKey: ['customers'] });
+      queryClient.invalidateQueries({ queryKey: ['customer'] });
+      queryClient.invalidateQueries({ queryKey: ['mobile-customers'] });
+      queryClient.invalidateQueries({ queryKey: ['mobile-customer-detail'] });
       queryClient.invalidateQueries({ queryKey: ['pos-customers'] });
       queryClient.invalidateQueries({ queryKey: ['pos-appointment-customers'] });
       notify(isEdit ? 'Đã cập nhật khách hàng' : 'Đã thêm khách hàng', `${payload.data.name} (${payload.data.code}) đã được lưu vào hệ thống.`);

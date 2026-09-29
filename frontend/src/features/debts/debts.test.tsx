@@ -26,6 +26,31 @@ describe('customer debt interactions',()=>{
     expect(screen.queryByText('Đang tải…')).not.toBeInTheDocument();
     expect(debts.getCustomerDebt).not.toHaveBeenCalled();
   });
+  it('styles every checkout and debt button with a standard button class', async () => {
+    const lines=[{itemId:1,itemType:'service' as const,code:'DV1',name:'Dịch vụ',category:'',unit:'lần',salePrice:1000,quantity:1,staffId:null}];
+    wrap(<PosCheckoutModal customer={{id:1,name:'Khách'}} lines={lines} onClose={()=>{}} onSuccess={()=>{}} />);
+    fireEvent.click(screen.getByRole('button',{name:'Xem công nợ / Thu nợ cũ'}));
+    fireEvent.click(await screen.findByRole('button',{name:'Thu nợ'}));
+    const panelButtons = [...document.querySelectorAll<HTMLButtonElement>('.debt-panel button:not(.app-select-trigger)')];
+    expect(panelButtons.map((button) => button.textContent)).toEqual(expect.arrayContaining(['Thanh toán đủ', 'Hủy', 'Xác nhận thu nợ']));
+    const toggle = screen.getByRole('button',{name:'Ẩn công nợ'});
+    for (const button of [...panelButtons, toggle]) expect(button.className, button.textContent ?? '').toMatch(/(^| )btn( |$)/);
+  });
+  it('styles the retry button when the debt cannot be loaded', async () => {
+    vi.mocked(debts.getCustomerDebt).mockRejectedValue(new Error('Không tải được công nợ'));
+    wrap(<CustomerDebtPanel customerId={1} />);
+    expect(await screen.findByRole('button',{name:'Thử lại'})).toHaveClass('btn');
+  });
+  it('names payment methods the same way on desktop and mobile checkout', async () => {
+    vi.spyOn(pos,'getPosStaff').mockResolvedValue({data:[],meta:{}});
+    const lines=[{itemId:1,itemType:'service' as const,code:'DV1',name:'Dịch vụ',category:'',unit:'lần',salePrice:1000,quantity:1,staffId:null}];
+    const names = ['Tiền mặt', 'Chuyển khoản', 'Quẹt thẻ', 'Thẻ tài khoản'];
+    const desktop = wrap(<PosCheckoutModal customer={{id:1,name:'Khách'}} lines={lines} onClose={()=>{}} onSuccess={()=>{}} />);
+    for (const name of names) expect(screen.getByRole('button',{name})).toBeInTheDocument();
+    desktop.unmount();
+    wrap(<MobileCartBottomSheet customer={{id:1,name:'Khách'}} lines={lines} invoiceId={4} onSelectCustomer={()=>{}} onUpdateQuantity={()=>{}} onUpdateLineStaff={()=>{}} onClose={()=>{}} onSuccess={()=>{}} />);
+    for (const name of names) expect(screen.getByRole('button',{name})).toBeInTheDocument();
+  });
   it('collects a partial amount against a selected invoice and prevents excess collection',async()=>{
     const collect=vi.spyOn(debts,'collectCustomerDebt').mockResolvedValue({data:{paymentId:7,amount:300,balance:600},meta:{}});
     wrap(<CustomerDebtPanel customerId={1} />);
@@ -68,7 +93,7 @@ describe('customer debt interactions',()=>{
     await waitFor(() => expect(collect).toHaveBeenCalledWith(1, expect.objectContaining({ amount: 1200, invoiceId: null })));
   });
 
-  it.each([['Tiền mặt', 'cash'], ['Chuyển khoản', 'bank_transfer'], ['Thẻ ngân hàng', 'card']])(
+  it.each([['Tiền mặt', 'cash'], ['Chuyển khoản', 'bank_transfer'], ['Quẹt thẻ', 'card']])(
     'sends the correct payment method for %s', async (label, paymentMethod) => {
       const collect = vi.spyOn(debts, 'collectCustomerDebt').mockResolvedValue({ data: { paymentId: 11, amount: 900, balance: 0 }, meta: {} });
       wrap(<CustomerDebtPanel customerId={1} />);
@@ -178,7 +203,7 @@ describe('customer debt interactions',()=>{
     const checkout=vi.spyOn(pos,'checkoutPosInvoice');
     const collect=vi.spyOn(debts,'collectCustomerDebt').mockResolvedValue({data:{paymentId:9,amount:100,balance:800},meta:{}});
     wrap(<PosCheckoutModal customer={{id:1,name:'Khách'}} lines={[{itemId:1,itemType:'service',code:'DV1',name:'Dịch vụ',category:'',unit:'lần',salePrice:1000,quantity:1,staffId:null}]} onClose={()=>{}} onSuccess={()=>{}} />);
-    fireEvent.click(screen.getByRole('button',{name:'Chuyển khoản (VietQR)'}));
+    fireEvent.click(screen.getByRole('button',{name:'Chuyển khoản'}));
     fireEvent.change(screen.getByLabelText('Khách thanh toán lần này (VNĐ)'),{target:{value:'300'}});
     expect(screen.getByAltText('VietQR Thanh toán').getAttribute('src')).toContain('amount=300&');
     fireEvent.click(screen.getByRole('button',{name:'Xem công nợ / Thu nợ cũ'}));

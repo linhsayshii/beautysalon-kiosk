@@ -112,9 +112,7 @@ export function MobileBottomNav() {
             <NavLink to="/m/notifications" className={({ isActive }) => `mobile-nav-item ${isActive ? 'is-active' : ''}`}>
               <i className="ph ph-bell" /><span>Thông báo</span>
             </NavLink>
-            <NavLink to="/m/account" className={({ isActive }) => `mobile-nav-item ${isActive ? 'is-active' : ''}`}>
-              <i className="ph ph-user-circle" /><span>Tài khoản</span>
-            </NavLink>
+            {/* Two tabs per side keep the centre button centred; the account is the top-bar avatar. */}
           </>
         ) : role === 'cashier' ? (
           <>

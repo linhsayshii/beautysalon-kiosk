@@ -12,6 +12,7 @@
 .app-select-container.full-width {
   display: block;
   width: 100%;
+  min-width: 0;
 }
 
 .app-combobox {
@@ -89,6 +90,8 @@
 /* Value & Placeholder */
 .app-select-value {
   flex: 1 1 auto;
+  /* Let a long label shrink and ellipsize instead of widening the trigger. */
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;

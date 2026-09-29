@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/components/ui/Toast/ToastProvider';
 import { formatDate, formatDateTime, formatMoney, formatNumber } from '@/lib/format';
+import { owedTone } from '@/lib/tone';
 import { EmptyState, ErrorState, LoadingState } from '@/components/data-display/DataState';
 import { DetailFacts, DetailHead, InlineDetail, ValueStrip } from '@/components/data-display/InlineDetail';
 import { StatusBadge } from '@/components/data-display/Badges';
@@ -133,7 +134,7 @@ export function StaffPayrollDetailAccordion({ periodId, onOpenSheetView }: Staff
           { label: 'Tổng số nhân viên', value: formatNumber(summary.totalStaff) },
           { label: 'Tổng tiền lương', value: formatMoney(summary.totalNetSalary), tone: 'primary' },
           { label: 'Đã chi trả', value: formatMoney(summary.totalPaidAmount), tone: 'success' },
-          { label: 'Còn cần trả', value: formatMoney(summary.totalRemainingAmount), tone: 'danger' },
+          { label: 'Còn cần trả', value: formatMoney(summary.totalRemainingAmount), tone: Number(summary.totalRemainingAmount) > 0 ? 'danger' : undefined },
         ]}
       />
 
@@ -220,7 +221,7 @@ export function StaffPayrollDetailAccordion({ periodId, onOpenSheetView }: Staff
                       <td className="is-num text-muted">{formatMoney(allowanceAndCommission)}</td>
                       <td className="is-num text-strong">{formatMoney(rec.netSalary)}</td>
                       <td className="is-num text-success">{formatMoney(rec.paidAmount)}</td>
-                      <td className="is-num text-strong text-danger">{formatMoney(rec.remainingAmount)}</td>
+                      <td className={`is-num text-strong ${owedTone(rec.remainingAmount)}`}>{formatMoney(rec.remainingAmount)}</td>
                     </tr>
                   );
                 })}

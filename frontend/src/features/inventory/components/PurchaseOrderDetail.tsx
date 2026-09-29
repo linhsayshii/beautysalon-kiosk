@@ -3,6 +3,7 @@ import { StatusBadge } from '@/components/data-display/Badges';
 import { ErrorState, LoadingState } from '@/components/data-display/DataState';
 import { DetailFacts, DetailHead, InlineDetail } from '@/components/data-display/InlineDetail';
 import { formatDateTime, formatMoney, formatNumber } from '@/lib/format';
+import { owedTone } from '@/lib/tone';
 import { statusLabels } from '@/types/api';
 import { getPurchaseOrder } from '../inventory.api';
 
@@ -17,7 +18,7 @@ export function PurchaseOrderDetail({ id }: { id: number }) {
         icon="ph-truck"
         title={order.code}
         tags={<StatusBadge status={order.status} purchase />}
-        meta={<>{order.supplier.name} · {order.createdBy ?? '-'}</>}
+        meta={<>{order.supplier.name}{order.createdBy ? ` · Người tạo: ${order.createdBy}` : ''}</>}
       />
       <DetailFacts
         items={[
@@ -46,7 +47,7 @@ export function PurchaseOrderDetail({ id }: { id: number }) {
                 <td className="text-strong">{item.name}</td>
                 <td className="is-num">{formatNumber(item.quantity)} {item.unit}</td>
                 <td className="is-num">{formatMoney(item.unitCost)}</td>
-                <td className="is-num text-danger">{formatMoney(item.discount)}</td>
+                <td className={`is-num ${owedTone(item.discount)}`}>{formatMoney(item.discount)}</td>
                 <td className="is-num text-strong">{formatMoney(item.lineTotal)}</td>
               </tr>
             ))}

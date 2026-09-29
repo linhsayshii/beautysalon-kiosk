@@ -72,7 +72,7 @@ describe('MobileServiceItemDetailSheet', () => {
     expect(screen.getByText(/Thời lượng: 1h30'/i)).toBeInTheDocument();
     expect(screen.getByText('Số lượng')).toBeInTheDocument();
     expect(screen.getByText('Thành tiền')).toBeInTheDocument();
-    expect(screen.getByText(/2[.,]500[.,]000/i)).toBeInTheDocument();
+    expect(screen.getByText('2.500.000đ')).toBeInTheDocument();
     expect(screen.getByText('LỊCH LÀM DỊCH VỤ')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /xong/i })).toBeInTheDocument();
   });
@@ -233,5 +233,26 @@ describe('MobileServiceItemDetailSheet', () => {
     fireEvent.click(backBtn);
 
     expect(onClose).toHaveBeenCalledTimes(1);
+  });
+  it('shows a product without the service schedule, duration or location', () => {
+    const onSaveItem = vi.fn();
+    renderWithClient(
+      <MobileServiceItemDetailSheet
+        isOpen={true}
+        item={{ itemId: 7, itemType: 'product', name: 'QA Serum', unit: 'chai', unitPrice: 350000, quantity: 1, staffId: null, staffName: null, position: null }}
+        staffList={mockStaffList}
+        onClose={vi.fn()}
+        onSaveItem={onSaveItem}
+      />
+    );
+    expect(screen.getByText('Chi tiết hàng hóa')).toBeInTheDocument();
+    expect(screen.queryByText('Chi tiết lịch dịch vụ')).not.toBeInTheDocument();
+    expect(screen.queryByText(/Thời lượng/)).not.toBeInTheDocument();
+    expect(screen.queryByText('LỊCH LÀM DỊCH VỤ')).not.toBeInTheDocument();
+    expect(screen.queryByText('Chọn vị trí')).not.toBeInTheDocument();
+    expect(screen.getByText('Đơn vị: chai')).toBeInTheDocument();
+    expect(screen.getByText('Chọn nhân viên')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /xong/i }));
+    expect(onSaveItem.mock.calls[0][0]).toMatchObject({ itemType: 'product', startsAt: null, durationMinutes: undefined, position: null });
   });
 });

@@ -1,5 +1,5 @@
 import type { CSSProperties } from 'react';
-import { formatMoney, formatNumber } from '@/lib/format';
+import { formatMoney, formatNumber, formatRate, formatSignedMoney } from '@/lib/format';
 import type { ApiRecord } from '@/types/api';
 
 export function DashboardStats({ dashboard }: { dashboard: ApiRecord }) {
@@ -17,7 +17,7 @@ export function DashboardStats({ dashboard }: { dashboard: ApiRecord }) {
           <h2>Lịch hẹn</h2>
           <span className={`trend ${appointments.changePercent < 0 ? 'negative' : 'positive'}`}>
             <i className={`ph ${appointments.changePercent < 0 ? 'ph-arrow-down' : 'ph-arrow-up'}`} />
-            {Math.abs(appointments.changePercent).toFixed(2)}%
+            {formatRate(Math.abs(appointments.changePercent))}
           </span>
         </div>
         <strong className="stat-value">{formatNumber(appointments.total)}</strong>
@@ -29,12 +29,12 @@ export function DashboardStats({ dashboard }: { dashboard: ApiRecord }) {
           <path className="gauge-progress" pathLength="100" style={{ strokeDasharray: `${completionRate} 100` }} d="M 10 52 A 40 40 0 0 1 90 52" />
         </svg>
         <span className="gauge-label">
-          <strong>{completionRate.toFixed(2)}%</strong>
+          <strong>{formatRate(completionRate)}</strong>
           <span>Hoàn thành: {appointments.completed} lịch</span>
         </span>
       </div>
     </article>
     <article className="card stat-card customer-stat"><div className="stat-copy"><div className="card-title-row"><span className="title-icon sky"><i className="ph ph-users" /></span><h2>Khách hàng</h2></div><strong className="stat-value">{formatNumber(customers.total)}</strong><ul className="legend-list"><li><span className="dot blue" />Khách mới <strong>{customers.new} lượt</strong></li><li><span className="dot sky" />Quay lại <strong>{customers.returning} lượt</strong></li><li><span className="dot pale" />Khách lẻ <strong>{customers.walkIn} lượt</strong></li></ul></div><div className="donut" role="img" aria-label={`${Math.round(returningShare)} phần trăm khách quay lại`} style={{ '--donut-a': `${newShare}%`, '--donut-b': `${newShare + returningShare}%` } as CSSProperties}><span>{Math.round(returningShare)}%</span></div></article>
-    <article className="card stat-card cash-stat"><div className="stat-copy"><div className="card-title-row"><span className="title-icon green"><i className="ph ph-wallet" /></span><h2>Thu chi hôm nay</h2></div><strong className="stat-value">{formatMoney(cash.income)}</strong><ul className="legend-list compact"><li><span className="dot blue" />Tiền thu <strong>{formatMoney(cash.income)}</strong></li><li><span className="dot pale" />Tiền chi <strong>{formatMoney(cash.expense)}</strong></li></ul></div><div className="mini-bars" role="img" aria-label={`Tiền thu ${formatMoney(cash.income)}, tiền chi ${formatMoney(cash.expense)}`}><span style={{ '--h': `${cash.income / cashMax * 100}%` } as React.CSSProperties} /><span style={{ '--h': `${cash.expense / cashMax * 100}%` } as React.CSSProperties} /></div></article>
+    <article className="card stat-card cash-stat"><div className="stat-copy"><div className="card-title-row"><span className="title-icon green"><i className="ph ph-wallet" /></span><h2>Thu chi hôm nay</h2></div><strong className="stat-value" title="Tiền thu trừ tiền chi">{formatSignedMoney(cash.income - cash.expense)}</strong><ul className="legend-list compact"><li><span className="dot blue" />Tiền thu <strong>{formatMoney(cash.income)}</strong></li><li><span className="dot pale" />Tiền chi <strong>{formatMoney(cash.expense)}</strong></li></ul></div><div className="mini-bars" role="img" aria-label={`Tiền thu ${formatMoney(cash.income)}, tiền chi ${formatMoney(cash.expense)}`}><span style={{ '--h': `${cash.income / cashMax * 100}%` } as React.CSSProperties} /><span style={{ '--h': `${cash.expense / cashMax * 100}%` } as React.CSSProperties} /></div></article>
   </div>;
 }

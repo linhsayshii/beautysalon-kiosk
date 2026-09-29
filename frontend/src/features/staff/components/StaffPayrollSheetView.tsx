@@ -6,6 +6,7 @@ import { MoneyInput } from '@/components/forms/MoneyInput';
 import { useToast } from '@/components/ui/Toast/ToastProvider';
 import { useComingSoon } from '@/components/ui/Toast/useComingSoon';
 import { formatMoney } from '@/lib/format';
+import { owedTone } from '@/lib/tone';
 import {
   getPayrollDetail,
   updatePayroll,
@@ -259,7 +260,7 @@ export function StaffPayrollSheetView({ periodId, onBack }: StaffPayrollSheetVie
                   <td className="is-num">{formatMoney(totals.deduction)}</td>
                   <td className="is-num">{formatMoney(totals.netSalary)}</td>
                   <td className="is-num text-success">{formatMoney(totals.paidAmount)}</td>
-                  <td className="is-num text-danger">{formatMoney(totals.remainingAmount)}</td>
+                  <td className={`is-num ${owedTone(totals.remainingAmount)}`}>{formatMoney(totals.remainingAmount)}</td>
                 </tr>
               </thead>
               <tbody>
@@ -284,7 +285,7 @@ export function StaffPayrollSheetView({ periodId, onBack }: StaffPayrollSheetVie
                     {moneyCell(r, 'deduction', 'text-danger')}
                     <td className="is-num text-strong">{formatMoney(r.netSalary)}</td>
                     <td className="is-num text-strong text-success">{formatMoney(r.paidAmount)}</td>
-                    <td className="is-num text-strong text-danger">{formatMoney(r.remainingAmount)}</td>
+                    <td className={`is-num text-strong ${owedTone(r.remainingAmount)}`}>{formatMoney(r.remainingAmount)}</td>
                   </tr>
                 ))}
               </tbody>

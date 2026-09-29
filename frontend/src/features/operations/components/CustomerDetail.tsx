@@ -6,6 +6,7 @@ import { DetailFacts, DetailHead, InlineDetail, ValueStrip } from '@/components/
 import { StatusBadge, InvoiceStatusBadge } from '@/components/data-display/Badges';
 import { formatDate, formatDateTime, formatMoney, formatNumber } from '@/lib/format';
 import { statusLabels } from '@/types/api';
+import type { ApiRecord } from '@/types/api';
 import { getCustomer, getCustomerActivity } from '../operations.api';
 
 type ActivityKind = 'orders' | 'appointments' | 'packages' | 'cards';
@@ -76,7 +77,7 @@ function ActivityTable({ customerId, kind }: { customerId: number; kind: Activit
                 <td className="text-strong">{row.serviceName ?? '-'}</td>
                 <td>{row.staffName ?? '-'}</td>
                 <td className="is-center">
-                  <StatusBadge status={row.status} />
+                  <StatusBadge status={row.status} appointment />
                 </td>
               </tr>
             ))}
@@ -155,7 +156,7 @@ function ActivityTable({ customerId, kind }: { customerId: number; kind: Activit
   );
 }
 
-export function CustomerDetail({ id }: { id: number }) {
+export function CustomerDetail({ id, onEdit }: { id: number; onEdit?: (customer: ApiRecord) => void }) {
   const [tab, setTab] = useState<CustomerTab>('overview');
   const query = useQuery({ queryKey: ['customer', id], queryFn: () => getCustomer(id) });
 
@@ -205,6 +206,15 @@ export function CustomerDetail({ id }: { id: number }) {
             customer.notes && { label: 'Ghi chú', value: customer.notes, span: 'wide' },
           ]}
         />
+      )}
+
+      {tab === 'overview' && onEdit && (
+        <div className="detail-actions">
+          <button className="btn btn-primary btn-sm" type="button" onClick={() => onEdit(customer)}>
+            <i className="ph ph-pencil-simple" />
+            <span>Cập nhật</span>
+          </button>
+        </div>
       )}
 
       {tab === 'debt' && <CustomerDebtPanel key={id} customerId={id} />}

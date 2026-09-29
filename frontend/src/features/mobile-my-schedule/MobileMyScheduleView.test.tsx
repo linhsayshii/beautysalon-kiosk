@@ -76,6 +76,8 @@ describe('MobileMyScheduleView', () => {
 
     renderComponent();
     expect(screen.getByText('Lịch của tôi')).toBeInTheDocument();
+    // The page owns its header, so it also owns the way back to Thêm.
+    expect(screen.getByRole('button', { name: 'Quay lại' })).toBeInTheDocument();
   });
 
   it('renders appointment items for the current staff', async () => {

@@ -1,4 +1,4 @@
-import { axisLabel, niceMaximum, smoothPath } from '@/components/charts/chartScale';
+import { axisLabel, niceMaximum, smoothPath, visibleLabelIndexes } from '@/components/charts/chartScale';
 import { formatSignedMoney, formatMoney } from '@/lib/format';
 import type { ProfitReport } from '../reports.api';
 
@@ -43,8 +43,8 @@ export function ProfitChart({ series }: { series: ProfitReport['series'] }) {
             </circle>
           ))}
         </svg>
-        <div className={`chart-x-labels ${series.length <= 12 ? 'show-all' : ''}`} aria-hidden="true">
-          {series.map((point, index) => <span key={point.key} style={{ left: `${((index + 0.5) / Math.max(series.length, 1)) * 100}%` }}>{point.label}</span>)}
+        <div className="chart-x-labels" aria-hidden="true">
+          {visibleLabelIndexes(series.length, 12).map((index) => <span key={series[index].key} style={{ left: `${((index + 0.5) / Math.max(series.length, 1)) * 100}%` }}>{series[index].label}</span>)}
         </div>
       </div>
     </div>

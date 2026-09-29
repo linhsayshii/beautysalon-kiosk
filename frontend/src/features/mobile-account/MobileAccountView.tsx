@@ -399,7 +399,7 @@ export function MobileAccountView() {
                     <span>Mật khẩu mới *</span>
                     <input
                       required
-                      minLength={12}
+                      minLength={8}
                       maxLength={128}
                       type="password"
                       autoComplete="new-password"
@@ -414,7 +414,7 @@ export function MobileAccountView() {
                     <span>Xác nhận mật khẩu mới *</span>
                     <input
                       required
-                      minLength={12}
+                      minLength={8}
                       maxLength={128}
                       type="password"
                       autoComplete="new-password"

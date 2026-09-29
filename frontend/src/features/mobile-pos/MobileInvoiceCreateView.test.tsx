@@ -193,7 +193,7 @@ describe('MobileInvoiceCreateView Component', () => {
 
     // Payment Methods
     expect(screen.getByText('Tiền mặt')).toBeInTheDocument();
-    expect(screen.getByText('VietQR / CK')).toBeInTheDocument();
+    expect(screen.getByText('Chuyển khoản')).toBeInTheDocument();
     expect(screen.getByText('Quẹt thẻ')).toBeInTheDocument();
     expect(screen.getByText('Thẻ tài khoản')).toBeInTheDocument();
 
@@ -248,7 +248,7 @@ describe('MobileInvoiceCreateView Component', () => {
 
     await waitFor(() => {
       expect(screen.getByText('Trừ gói: Gói chăm sóc da 5 buổi')).toBeInTheDocument();
-      expect(screen.getByText('0đ / cái, lần')).toBeInTheDocument();
+      expect(screen.getByText('0đ / lần')).toBeInTheDocument();
     });
 
     fireEvent.click(screen.getByRole('button', { name: /Chốt & In hóa đơn/i }));
@@ -328,8 +328,21 @@ describe('MobileInvoiceCreateView Component', () => {
     await waitFor(() => {
       expect(screen.getByText('Chăm sóc da chuyên sâu')).toBeInTheDocument();
       expect(screen.getByText('Nguyễn Kỹ Thuật Viên 1')).toBeInTheDocument();
-      expect(screen.getByText('300.000')).toBeInTheDocument();
+      const line = screen.getByText('300.000đ / Lần').closest('.mobile-form-item-card')!;
+      expect(line.querySelector('.mobile-form-item-price')).toHaveTextContent('300.000đ');
     });
+  });
+
+  it('adds a product with its own unit and no service schedule', async () => {
+    renderComponent();
+    fireEvent.click(screen.getByRole('button', { name: 'Thêm dịch vụ, sản phẩm' }));
+    expect(await screen.findByText('250.000đ')).toBeInTheDocument();
+    fireEvent.click(screen.getByText('Serum Dưỡng Ẩm HA'));
+    expect(await screen.findByText('Chi tiết hàng hóa')).toBeInTheDocument();
+    expect(screen.queryByText('LỊCH LÀM DỊCH VỤ')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Xong' }));
+    expect(await screen.findByText('250.000đ / Chai')).toBeInTheDocument();
+    expect(screen.queryByText(/cái, lần/)).not.toBeInTheDocument();
   });
 
   it('calculates total with discount and submits checkout with line-level staffId', async () => {
@@ -352,7 +365,7 @@ describe('MobileInvoiceCreateView Component', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Xong' }));
 
     // 3. Select Payment method
-    fireEvent.click(screen.getByText('VietQR / CK'));
+    fireEvent.click(screen.getByText('Chuyển khoản'));
 
     // 4. Set Discount
     const discountInput = screen.getByPlaceholderText('0');

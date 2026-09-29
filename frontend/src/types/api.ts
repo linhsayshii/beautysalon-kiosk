@@ -1,3 +1,4 @@
+import { PAYMENT_METHOD_LABELS } from '@/lib/payment-methods';
 export interface Pagination {
   page: number;
   pageSize: number;
@@ -13,7 +14,7 @@ export const statusLabels: Record<string, string> = {
   depleted: 'Đã dùng hết',
   present: 'Đúng giờ', late: 'Đi muộn', leave: 'Nghỉ phép', absent: 'Vắng mặt', working: 'Đang làm',
   approved: 'Đã duyệt', pending: 'Chờ duyệt', scheduled: 'Đã xếp lịch', confirmed: 'Đã xác nhận',
-  cash: 'Tiền mặt', bank_transfer: 'Chuyển khoản', card: 'Thẻ', wallet: 'Ví điện tử', mixed: 'Kết hợp',
+  ...PAYMENT_METHOD_LABELS,
   monthly: 'Theo ngày công chuẩn', hourly: 'Theo giờ làm việc', shift: 'Theo ca',
   product: 'Sản phẩm', service: 'Dịch vụ', package: 'Gói dịch vụ',
   account_card: 'Thẻ tài khoản',

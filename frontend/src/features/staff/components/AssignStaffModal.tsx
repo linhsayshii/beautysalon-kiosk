@@ -3,6 +3,7 @@ import type { ApiRecord } from '@/types/api';
 import { AvatarName } from '@/components/data-display/AvatarName';
 import { EmptyState } from '@/components/data-display/DataState';
 import { Modal } from '@/components/ui/Modal/Modal';
+import { formatDateOnly } from '@/lib/date';
 
 interface AssignStaffModalProps {
   isOpen: boolean;
@@ -41,7 +42,7 @@ export function AssignStaffModal({
       open
       onClose={onClose}
       title="Xếp nhân viên vào ca"
-      subtitle={<>{shiftName} ({startsAt} - {endsAt}) · Ngày {shiftDate}</>}
+      subtitle={<>{shiftName} ({startsAt} - {endsAt}) · Ngày {formatDateOnly(shiftDate)}</>}
       size="md"
     >
       <div className="modal-body">

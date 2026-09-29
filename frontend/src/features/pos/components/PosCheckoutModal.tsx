@@ -10,6 +10,7 @@ import { formatMoney } from '@/lib/format';
 import { useMetadata } from '@/services/metadata';
 import { checkoutPosInvoice, type PosCheckoutPayload, type PosReceiptData } from '../pos.api';
 import { Modal } from '@/components/ui/Modal/Modal';
+import { PAYMENT_METHOD_LABELS } from '@/lib/payment-methods';
 
 interface PosLine {
   itemId: number;
@@ -250,7 +251,7 @@ export function PosCheckoutModal({
                   onClick={() => setPaymentMethod('cash')}
                 >
                   <i className="ph ph-money" />
-                  <span>Tiền mặt</span>
+                  <span>{PAYMENT_METHOD_LABELS.cash}</span>
                 </button>
                 <button
                   type="button"
@@ -258,7 +259,7 @@ export function PosCheckoutModal({
                   onClick={() => setPaymentMethod('bank_transfer')}
                 >
                   <i className="ph ph-qr-code" />
-                  <span>Chuyển khoản (VietQR)</span>
+                  <span>{PAYMENT_METHOD_LABELS.bank_transfer}</span>
                 </button>
                 <button
                   type="button"
@@ -266,7 +267,7 @@ export function PosCheckoutModal({
                   onClick={() => setPaymentMethod('card')}
                 >
                   <i className="ph ph-credit-card" />
-                  <span>Quẹt thẻ POS</span>
+                  <span>{PAYMENT_METHOD_LABELS.card}</span>
                 </button>
                 <button
                   type="button"
@@ -274,14 +275,14 @@ export function PosCheckoutModal({
                   onClick={() => setPaymentMethod('wallet')}
                 >
                   <i className="ph ph-wallet" />
-                  <span>Thẻ thành viên</span>
+                  <span>{PAYMENT_METHOD_LABELS.wallet}</span>
                 </button>
               </div>
             </div>
 
             {/* Tab nội dung theo phương thức thanh toán */}
             <PartialPaymentFields showTransferQr={false} customerId={customer?.id} total={total} amount={amountPaid} onAmountChange={v=>setAmountPaidInput(String(v))} allowDebt={allowDebt} onAllowDebtChange={setAllowDebt} method={paymentMethod} disabled={checkoutMutation.isPending} />
-            {customer && <><button type="button" onClick={()=>setShowDebt(!showDebt)}>{showDebt ? 'Ẩn công nợ' : 'Xem công nợ / Thu nợ cũ'}</button>{showDebt && <CustomerDebtPanel key={customer.id} customerId={customer.id} />}</>}
+            {customer && <><button type="button" className="btn btn-link btn-sm" onClick={()=>setShowDebt(!showDebt)}>{showDebt ? 'Ẩn công nợ' : 'Xem công nợ / Thu nợ cũ'}</button>{showDebt && <CustomerDebtPanel key={customer.id} customerId={customer.id} />}</>}
 
             {paymentMethod === 'bank_transfer' && amountPaid > 0 && vietQrUrl && (
               <div className="payment-qr-box">

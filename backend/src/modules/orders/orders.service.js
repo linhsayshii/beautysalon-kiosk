@@ -19,7 +19,8 @@ export async function listOrders({ branchId, search, status, paymentMethod, staf
     AND ($2 = '' OR i.code ILIKE '%' || $2 || '%' OR c.name ILIKE '%' || $2 || '%' OR c.phone ILIKE '%' || $2 || '%')
     AND ($3 = '' OR i.status = $3)
     AND ($4 = '' OR i.payment_method = $4)
-    AND ($5::bigint IS NULL OR i.staff_id = $5)
+    AND ($5::bigint IS NULL OR i.staff_id = $5
+      OR EXISTS (SELECT 1 FROM invoice_items fi WHERE fi.invoice_id = i.id AND fi.staff_id = $5))
     AND ($6::date IS NULL OR i.issued_at >= $6::date)
     AND ($7::date IS NULL OR i.issued_at < $7::date + INTERVAL '1 day')
     AND ($8 = '' OR i.sales_channel = $8)
@@ -31,7 +32,12 @@ export async function listOrders({ branchId, search, status, paymentMethod, staf
          i.id, i.code, i.status, i.subtotal, i.discount, i.total, i.amount_paid, i.payment_status, i.payment_method, i.sales_channel, i.issued_at,
          i.appointment_id,
          c.code AS customer_code, COALESCE(c.name, 'Khách lẻ') AS customer_name, c.phone AS customer_phone,
-         s.name AS staff_name,
+         -- POS sales carry staff per line; fall back to those names.
+         COALESCE(s.name, (
+           SELECT string_agg(DISTINCT ls.name, ', ' ORDER BY ls.name)
+           FROM invoice_items li JOIN staff ls ON ls.id = li.staff_id
+           WHERE li.invoice_id = i.id
+         )) AS staff_name,
          COUNT(*) OVER() AS filtered_total
        FROM invoices i
        LEFT JOIN customers c ON c.id = i.customer_id

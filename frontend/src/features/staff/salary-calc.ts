@@ -116,3 +116,20 @@ export function calculateStaffShiftSalary(
     salaryType: 'none',
   };
 }
+
+const WEEKDAY_BY_LABEL: Record<string, number> = { CN: 0, T2: 1, T3: 2, T4: 3, T5: 4, T6: 5, T7: 6 };
+
+/**
+ * Standard work days in a month from the branch's saved working weekdays
+ * (labels T2…CN). Mirrors payroll on the server so projections match payslips.
+ */
+export function standardWorkDaysInMonth(year: number, month: number, activeWorkDays: string[]): number {
+  const weekdays = new Set(activeWorkDays.map((label) => WEEKDAY_BY_LABEL[label]).filter((day) => day !== undefined));
+  if (weekdays.size === 0) [0, 1, 2, 3, 4, 5, 6].forEach((day) => weekdays.add(day));
+  const daysInMonth = new Date(year, month, 0).getDate();
+  let count = 0;
+  for (let day = 1; day <= daysInMonth; day += 1) {
+    if (weekdays.has(new Date(year, month - 1, day).getDay())) count += 1;
+  }
+  return count;
+}

@@ -5,6 +5,7 @@ import { Select } from '@/components/ui/Select/Select';
 import { formatMoney, formatDateTime } from '@/lib/format';
 import { getCustomerDebt, collectCustomerDebt, usePaymentRequestKey } from './debts.api';
 import { statusLabels } from '@/types/api';
+import { PAYMENT_METHOD_LABELS } from '@/lib/payment-methods';
 
 export function CustomerDebtPanel({customerId}: {customerId:number}) {
   const fieldId = useId();
@@ -30,7 +31,7 @@ export function CustomerDebtPanel({customerId}: {customerId:number}) {
     },
   });
   if (query.isPending) return <p>Đang tải công nợ…</p>;
-  if (query.error) return <div role="alert">{query.error.message} <button type="button" onClick={()=>query.refetch()}>Thử lại</button></div>;
+  if (query.error) return <div role="alert">{query.error.message} <button type="button" className="btn btn-secondary btn-sm" onClick={()=>query.refetch()}>Thử lại</button></div>;
   const debt = query.data.data;
   const maximum = invoiceId ? debt.invoices.find(i=>i.id===invoiceId)?.debtAmount ?? 0 : debt.balance;
   return <section className="debt-panel" aria-label="Công nợ khách hàng">
@@ -62,9 +63,7 @@ export function CustomerDebtPanel({customerId}: {customerId:number}) {
             value={method}
             onChange={setMethod}
             options={[
-              {value:'cash',label:'Tiền mặt'},
-              {value:'bank_transfer',label:'Chuyển khoản'},
-              {value:'card',label:'Thẻ ngân hàng'},
+              ...(['cash','bank_transfer','card'] as const).map((value)=>({value,label:PAYMENT_METHOD_LABELS[value]})),
             ]}
             disabled={mutation.isPending}
             fullWidth
@@ -74,7 +73,7 @@ export function CustomerDebtPanel({customerId}: {customerId:number}) {
         <p>Dư nợ sau thu: <strong>{formatMoney(Math.max(0,debt.balance-amount))}</strong></p>
         {amount>maximum && <p role="alert">Số tiền vượt khoản nợ được chọn.</p>}
         {mutation.error && <p role="alert">{mutation.error.message}</p>}
-        <div className="debt-actions"><button type="button" onClick={()=>setCollecting(false)}>Hủy</button><button type="button" className="btn btn-primary" disabled={amount<=0 || amount>maximum} onClick={()=>{if(!mutation.isPending && amount>0 && amount<=maximum) mutation.mutate();}}>{mutation.isPending?'Đang thu…':'Xác nhận thu nợ'}</button></div>
+        <div className="debt-actions"><button type="button" className="btn btn-secondary" onClick={()=>setCollecting(false)}>Hủy</button><button type="button" className="btn btn-primary" disabled={amount<=0 || amount>maximum} onClick={()=>{if(!mutation.isPending && amount>0 && amount<=maximum) mutation.mutate();}}>{mutation.isPending?'Đang thu…':'Xác nhận thu nợ'}</button></div>
       </fieldset>
     </div>}
     {debt.openingDebt>0 && <p>Nợ đầu kỳ còn lại: <strong>{formatMoney(debt.openingDebt)}</strong></p>}

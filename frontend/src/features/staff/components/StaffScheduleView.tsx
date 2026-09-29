@@ -8,7 +8,7 @@ import { PageHeader } from '@/components/ui/PageHeader/PageHeader';
 import { Select } from '@/components/ui/Select/Select';
 import { DatePickerField } from '@/components/ui/DateTimePicker';
 import { errorMessage } from '@/services/api-client';
-import { todayIso, toIsoDate, weekStartIso } from '@/lib/date';
+import { startOfIsoWeek, todayIso, toIsoDate, weekStartIso } from '@/lib/date';
 import { formatMoney } from '@/lib/format';
 import type { ApiRecord } from '@/types/api';
 import { WeekPicker } from './WeekPicker';
@@ -19,8 +19,9 @@ import { ScheduleBadge } from '@/components/ScheduleBadge';
 import { ApplyWeeksModal } from '@/components/ApplyWeeksModal';
 import { DeleteScheduleModal } from '@/components/DeleteScheduleModal';
 import { getStaff, getShifts, createShift, getSchedule, assignShift, getWorkScheduleSettings, updateWorkScheduleSettings } from '../staff.api';
-import { calculateStaffShiftSalary } from '../salary-calc';
+import { calculateStaffShiftSalary, standardWorkDaysInMonth } from '../salary-calc';
 import { Modal } from '@/components/ui/Modal/Modal';
+import { scheduleWeekLabel } from '../week-label';
 
 const weekdayLabels = ['Thứ hai', 'Thứ ba', 'Thứ tư', 'Thứ năm', 'Thứ sáu', 'Thứ bảy', 'Chủ nhật'];
 
@@ -42,7 +43,6 @@ export function StaffScheduleView() {
   const [currentMonday, setCurrentMonday] = useState(weekStartIso());
   const [searchTerm, setSearchTerm] = useState('');
   const [viewMode, setViewMode] = useState<'by-staff' | 'by-shift'>('by-staff');
-  const [workDaysPerMonth, setWorkDaysPerMonth] = useState<number>(26);
   const [isSettingDaysOpen, setIsSettingDaysOpen] = useState(false);
 
   // Work week days settings (T2 -> CN)
@@ -118,6 +118,8 @@ export function StaffScheduleView() {
   }, [currentMonday]);
 
   const startDateIso = toIsoDate(weekDates[0]);
+  // Same rule as payroll: working weekdays of the month the week starts in.
+  const workDaysPerMonth = standardWorkDaysInMonth(weekDates[0].getFullYear(), weekDates[0].getMonth() + 1, activeWorkDays);
 
   // Queries
   const staffQuery = useQuery({
@@ -324,13 +326,8 @@ export function StaffScheduleView() {
     }
   };
 
-  // Get week label for display
-  const getWeekLabel = (dateStr: string): string => {
-    const date = new Date(dateStr);
-    const firstDayOfYear = new Date(date.getFullYear(), 0, 1);
-    const pastDaysOfYear = (date.getTime() - firstDayOfYear.getTime()) / 86400000;
-    return String(Math.ceil((pastDaysOfYear + firstDayOfYear.getDay() + 1) / 7));
-  };
+  // Same week label as the week picker in the header.
+  const getWeekLabel = (dateStr: string): string => scheduleWeekLabel(startOfIsoWeek(dateStr));
 
   // Get current week label for ApplyWeeksModal
   const currentWeekLabel = getWeekLabel(startDateIso);
@@ -905,9 +902,6 @@ export function StaffScheduleView() {
             <button
               type="button"
               onClick={() => {
-                // Auto compute workDays based on active days (e.g. 7 days/week ≈ 30/31 days/mo, 6 days ≈ 26 days/mo)
-                const estimatedDays = Math.round((activeWorkDays.length / 7) * 30);
-                setWorkDaysPerMonth(estimatedDays);
                 workSettingsMutation.mutate({ activeWorkDays, holidays: holidaysList });
               }}
               className="btn btn-primary"

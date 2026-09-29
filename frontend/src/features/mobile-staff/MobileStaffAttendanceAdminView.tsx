@@ -9,7 +9,7 @@ import {
 import { getStaff, getAttendance } from '@/features/staff/staff.api';
 import { getScheduleRange } from '@/features/staff/schedule-range';
 import { weekStartIso, monthStartIso, todayIso, toIsoDate, formatDateOnly } from '@/lib/date';
-import { initials } from '@/lib/format';
+import { formatDecimal, initials } from '@/lib/format';
 import type { ApiRecord } from '@/types/api';
 import { MobilePageHeader } from '@/components/ui/MobilePageHeader/MobilePageHeader';
 
@@ -342,7 +342,7 @@ export function MobileStaffAttendanceAdminView() {
 
                       <div className="mobile-staff-row-right">
                         <span className="mobile-staff-row-value blue">
-                          {stats.workedHours} giờ
+                          {formatDecimal(stats.workedHours)} giờ
                         </span>
                         <span className="text-muted">
                           {attendanceStatus}
@@ -370,7 +370,7 @@ export function MobileStaffAttendanceAdminView() {
               <div className="mobile-detail-hero-header">
                 <div>
                   <div className="text-muted">Tổng giờ làm thực tế</div>
-                  <div className="mobile-detail-hero-amount">{activeStaffStats.workedHours} giờ</div>
+                  <div className="mobile-detail-hero-amount">{formatDecimal(activeStaffStats.workedHours)} giờ</div>
                 </div>
                 <div className="text-right">
                   <div className="text-muted">Ca hoàn thành</div>
@@ -422,7 +422,7 @@ export function MobileStaffAttendanceAdminView() {
                           {formatDate(rec.workDate)} ({formatTime(rec.checkIn)} - {formatTime(rec.checkOut)})
                         </div>
                         <div className="mobile-gps-log-desc">
-                          {rec.workedMinutes ? `${(rec.workedMinutes / 60).toFixed(1)} giờ` : 'Đang làm việc'}
+                          {rec.workedMinutes ? `${formatDecimal(rec.workedMinutes / 60)} giờ` : 'Đang làm việc'}
                           {rec.lateMinutes > 0 && ` • Muộn ${rec.lateMinutes}p`}
                           {rec.earlyMinutes > 0 && ` • Sớm ${rec.earlyMinutes}p`}
                         </div>

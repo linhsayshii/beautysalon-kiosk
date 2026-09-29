@@ -4,6 +4,8 @@ import { useQuery } from '@tanstack/react-query';
 import { ErrorState, LoadingState } from '@/components/data-display/DataState';
 import { DetailFacts, DetailHead, InlineDetail, ValueStrip } from '@/components/data-display/InlineDetail';
 import { formatDateTime, formatMoney, formatNumber } from '@/lib/format';
+import { appointmentStatusLabel } from '@/lib/appointment-status';
+import { owedTone } from '@/lib/tone';
 import { statusLabels } from '@/types/api';
 import { getOrder } from '../operations.api';
 
@@ -13,14 +15,6 @@ const salesChannelLabels: Record<string, string> = {
   phone: 'Qua điện thoại',
 };
 
-const workStatusLabels: Record<string, string> = {
-  confirmed: 'Chờ phục vụ',
-  waiting: 'Đang chờ',
-  in_service: 'Đang làm',
-  completed: 'Đã xong',
-  cancelled: 'Đã hủy',
-  no_show: 'Không đến',
-};
 
 type OrderTab = 'items' | 'info' | 'payment';
 
@@ -32,6 +26,10 @@ export function OrderDetail({ id }: { id: number }) {
   if (query.error) return <ErrorState error={query.error} onRetry={() => query.refetch()} />;
 
   const order = query.data.data;
+
+  // POS sales record the staff per line, not on the invoice itself.
+  const lineStaffNames = [...new Set((order.items ?? []).map((item: { staffName?: string | null }) => item.staffName).filter(Boolean))];
+  const staffName = order.staff?.name ?? (lineStaffNames.length ? lineStaffNames.join(', ') : null);
 
   const tabs: { value: OrderTab; label: string }[] = [
     { value: 'items', label: `Hàng hóa & Dịch vụ (${order.items?.length || 0})` },
@@ -63,7 +61,7 @@ export function OrderDetail({ id }: { id: number }) {
       <ValueStrip
         items={[
           { label: 'Tổng tiền hàng', value: formatMoney(order.subtotal) },
-          { label: 'Giảm giá', value: formatMoney(order.discount), tone: 'danger' },
+          { label: 'Giảm giá', value: formatMoney(order.discount), tone: Number(order.discount) > 0 ? 'danger' : undefined },
           { label: 'Tổng thanh toán', value: formatMoney(order.total), tone: 'primary' },
           { label: 'Đã thanh toán', value: formatMoney(order.amountPaid ?? order.total), tone: 'success' },
         ]}
@@ -98,13 +96,13 @@ export function OrderDetail({ id }: { id: number }) {
                       {item.appointment ? (
                         <>
                           <span className="cell-main">{item.appointment.staff?.name || item.staffName || 'Chưa phân công'}</span>
-                          <span className="cell-sub text-primary">{workStatusLabels[item.appointment.status] || item.appointment.status}</span>
+                          <span className="cell-sub text-primary">{appointmentStatusLabel(item.appointment.status)}</span>
                         </>
-                      ) : '-'}
+                      ) : (item.staffName || '-')}
                     </td>
                     <td className="is-num">{formatNumber(item.quantity)} {item.unit}</td>
                     <td className="is-num">{formatMoney(item.unitPrice)}</td>
-                    <td className="is-num text-danger">{formatMoney(item.discount)}</td>
+                    <td className={`is-num ${owedTone(item.discount)}`}>{formatMoney(item.discount)}</td>
                     <td className="is-num text-strong">{formatMoney(item.lineTotal)}</td>
                   </tr>
                 ))}
@@ -114,7 +112,7 @@ export function OrderDetail({ id }: { id: number }) {
 
           <div className="detail-totals">
             <span>Tổng tiền hàng: <strong>{formatMoney(order.subtotal)}</strong></span>
-            <span>Giảm giá: <strong className="text-danger">{formatMoney(order.discount)}</strong></span>
+            <span>Giảm giá: <strong className={owedTone(order.discount) || undefined}>{formatMoney(order.discount)}</strong></span>
             <span>Tổng thanh toán: <strong className="is-grand">{formatMoney(order.total)}</strong></span>
           </div>
         </>
@@ -125,12 +123,12 @@ export function OrderDetail({ id }: { id: number }) {
           items={[
             { label: 'Mã hóa đơn', value: order.code, tone: 'primary' },
             { label: 'Khách hàng', value: `${order.customer?.name || 'Khách lẻ'}${order.customer?.phone ? ` (${order.customer.phone})` : ''}` },
-            { label: 'Nhân viên thực hiện', value: order.staff?.name ?? 'Chưa xác định' },
+            { label: 'Nhân viên thực hiện', value: staffName ?? 'Chưa xác định' },
             { label: 'Chi nhánh', value: order.branchName },
             { label: 'Thời gian tạo', value: formatDateTime(order.issuedAt ?? order.createdAt) },
             { label: 'Kênh bán hàng', value: salesChannelLabels[order.salesChannel] ?? order.salesChannel },
             { label: 'Trạng thái', value: <InvoiceStatusBadge status={order.status} paymentStatus={order.paymentStatus} /> },
-            { label: 'Bàn / Phòng', value: order.room || order.note || 'Chưa thiết lập' },
+            { label: 'Ghi chú', value: order.note || 'Chưa có', variant: order.note ? undefined : 'placeholder' },
           ]}
         />
       )}

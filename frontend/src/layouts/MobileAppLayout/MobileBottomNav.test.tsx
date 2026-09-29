@@ -49,12 +49,11 @@ describe('MobileBottomNav Component', () => {
       loading: false, login: vi.fn(), logout: vi.fn(), updateLocalAccount: vi.fn(), switchBranch: vi.fn(),
     });
 
-    render(<MemoryRouter><MobileBottomNav /></MemoryRouter>);
-    expect(screen.getByText('Chấm công')).toBeInTheDocument();
-    expect(screen.getByText('Lịch của tôi')).toBeInTheDocument();
-    expect(screen.getByText('Lương')).toBeInTheDocument();
-    expect(screen.getByText('Thông báo')).toBeInTheDocument();
-    expect(screen.getByText('Tài khoản')).toBeInTheDocument();
+    const { container } = render(<MemoryRouter><MobileBottomNav /></MemoryRouter>);
+    // Two tabs either side of the centre button, like the other roles; the
+    // account stays one tap away through the avatar in the top bar.
+    const slots = [...container.querySelectorAll('.mobile-bottom-nav > *')].map((node) => node.textContent || node.getAttribute('aria-label'));
+    expect(slots).toEqual(['Chấm công', 'Lịch của tôi', 'Tạo mới nhanh', 'Lương', 'Thông báo']);
 
     fireEvent.click(screen.getByRole('button', { name: /tạo mới/i }));
     expect(screen.getByText('Tạo lịch hẹn').closest('a')).toHaveAttribute('href', '/m/appointments/new');

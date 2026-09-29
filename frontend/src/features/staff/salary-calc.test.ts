@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { calculateShiftHours, calculateStaffShiftSalary } from './salary-calc';
+import { calculateShiftHours, calculateStaffShiftSalary, standardWorkDaysInMonth } from './salary-calc';
 
 describe('calculateShiftHours', () => {
   it('calculates duration for regular day shifts', () => {
@@ -74,5 +74,17 @@ describe('calculateStaffShiftSalary', () => {
     const result = calculateStaffShiftSalary(unconfigured, shifts, 26);
     expect(result.expectedSalary).toBeNull();
     expect(result.salaryType).toBe('none');
+  });
+});
+
+describe('standardWorkDaysInMonth', () => {
+  it('counts the saved working weekdays like payroll does', () => {
+    // September 2026: 30 days, Sundays on 6, 13, 20 and 27.
+    expect(standardWorkDaysInMonth(2026, 9, ['T2', 'T3', 'T4', 'T5', 'T6', 'T7'])).toBe(26);
+    expect(standardWorkDaysInMonth(2026, 9, ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'])).toBe(30);
+  });
+
+  it('falls back to every weekday when nothing valid is saved', () => {
+    expect(standardWorkDaysInMonth(2026, 2, [])).toBe(28);
   });
 });

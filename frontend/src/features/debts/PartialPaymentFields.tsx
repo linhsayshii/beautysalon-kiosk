@@ -18,7 +18,7 @@ export function PartialPaymentFields({customerId,total,amount,onAmountChange,all
     {method !== 'wallet' && <label htmlFor={id}>Khách thanh toán lần này (VNĐ)
       <MoneyInput id={id} value={amount} onChange={onAmountChange} disabled={disabled} allowEmpty={false} />
     </label>}
-    {method !== 'wallet' && <button type="button" className="debt-fill-total" disabled={disabled} onClick={()=>onAmountChange(total)}>{compact ? 'Điền đủ số tiền' : 'Thanh toán đủ'}</button>}
+    {method !== 'wallet' && <button type="button" className="btn btn-soft" disabled={disabled} onClick={()=>onAmountChange(total)}>{compact ? 'Điền đủ số tiền' : 'Thanh toán đủ'}</button>}
     <div className="debt-facts" aria-live="polite">
       <span>Nợ cũ <strong>{!customerId ? 'Chưa chọn khách hàng' : query.data ? formatMoney(query.data.data.balance) : query.isError ? 'Không tải được' : 'Đang tải…'}</strong></span>
       {(!compact || debt > 0) && <span>Nợ hóa đơn này <strong>{formatMoney(debt)}</strong></span>}

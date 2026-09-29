@@ -80,7 +80,7 @@ export function StaffPayrollPaymentModal({ periodDetail, onClose }: StaffPayroll
               <dl className="value-strip">
                 <div><dt>Lương thực nhận</dt><dd>{formatMoney(selectedRecord.netSalary)}</dd></div>
                 <div><dt>Đã thanh toán</dt><dd className="is-success">{formatMoney(selectedRecord.paidAmount)}</dd></div>
-                <div><dt>Còn cần trả</dt><dd className="is-danger">{formatMoney(selectedRecord.remainingAmount)}</dd></div>
+                <div><dt>Còn cần trả</dt><dd className={Number(selectedRecord.remainingAmount) > 0 ? 'is-danger' : undefined}>{formatMoney(selectedRecord.remainingAmount)}</dd></div>
               </dl>
             )}
 

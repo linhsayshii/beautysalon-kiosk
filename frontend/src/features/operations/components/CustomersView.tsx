@@ -12,6 +12,7 @@ import { exportCsv } from '@/lib/export';
 import { formatDateTime, formatMoney, formatNumber } from '@/lib/format';
 import { getCustomers } from '../operations.api';
 import { statusLabels } from '@/types/api';
+import type { ApiRecord } from '@/types/api';
 import { toOptions, useMetadata } from '@/services/metadata';
 import { CustomerDetail } from './CustomerDetail';
 import { CustomerCreateDialog } from './CustomerCreateDialog';
@@ -24,6 +25,7 @@ export function CustomersView() {
   const [page, setPage] = useState(1);
   const [expanded, setExpanded] = useState<number | null>(null);
   const [isCreating, setIsCreating] = useState(false);
+  const [editingCustomer, setEditingCustomer] = useState<ApiRecord | null>(null);
   const metadata = useMetadata();
   const query = useQuery({ queryKey: ['customers', filters, page], queryFn: () => getCustomers({ page, pageSize: appConfig.defaultPageSize, ...filters }) });
   const rows = query.data?.data ?? [];
@@ -92,7 +94,7 @@ export function CustomersView() {
                             </tr>
                             {expanded === row.id && (
                               <tr className="customer-detail-row expandable-detail-row">
-                                <td colSpan={8}><CustomerDetail id={row.id} /></td>
+                                <td colSpan={8}><CustomerDetail id={row.id} onEdit={setEditingCustomer} /></td>
                               </tr>
                             )}
                           </Fragment>
@@ -108,6 +110,7 @@ export function CustomersView() {
         </div>
       </main>
       {isCreating && <CustomerCreateDialog onClose={() => setIsCreating(false)} />}
+      {editingCustomer && <CustomerCreateDialog key={editingCustomer.id} initialData={editingCustomer} onClose={() => setEditingCustomer(null)} />}
     </>
   );
 }

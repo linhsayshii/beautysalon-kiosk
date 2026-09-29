@@ -19,6 +19,8 @@ import {
   MobileSortDropdown,
 } from '@/features/mobile-common';
 import { MobilePageHeader } from '@/components/ui/MobilePageHeader/MobilePageHeader';
+import { APPOINTMENT_STATUS_LABELS } from '@/lib/appointment-status';
+import { PAYMENT_METHOD_LABELS } from '@/lib/payment-methods';
 
 const salesChannelLabels: Record<string, string> = {
   salon: 'Tại salon',
@@ -26,14 +28,7 @@ const salesChannelLabels: Record<string, string> = {
   phone: 'Qua điện thoại',
 };
 
-const workStatusLabels: Record<string, string> = {
-  confirmed: 'Chờ phục vụ',
-  waiting: 'Đang chờ',
-  in_service: 'Đang làm',
-  completed: 'Đã xong',
-  cancelled: 'Đã hủy',
-  no_show: 'Không đến',
-};
+const workStatusLabels = APPOINTMENT_STATUS_LABELS;
 
 const datePresets = COMMON_DATE_PRESETS;
 
@@ -433,10 +428,7 @@ export function MobileOrdersView() {
             onChange={setDraftPaymentMethod}
             options={[
               { value: '', label: 'Tất cả phương thức' },
-              { value: 'cash', label: 'Tiền mặt' },
-              { value: 'bank_transfer', label: 'Chuyển khoản' },
-              { value: 'card', label: 'Thẻ' },
-              { value: 'wallet', label: 'Ví điện tử' },
+              ...(['cash', 'bank_transfer', 'card', 'wallet'] as const).map((value) => ({ value, label: PAYMENT_METHOD_LABELS[value] })),
             ]}
           />
         </div>

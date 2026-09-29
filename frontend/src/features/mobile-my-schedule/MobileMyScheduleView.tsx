@@ -1,11 +1,13 @@
 import { useEffect, useState, useMemo } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/features/auth/AuthProvider';
 import { getMyWorkItems, updateMyWorkItemStatus } from '@/features/staff/staff.api';
 import { useToast } from '@/components/ui/Toast/ToastProvider';
 import { DatePickerField } from '@/components/ui/DateTimePicker';
 import { DEFAULT_BRANCH_TIME_ZONE, formatBranchTime, localDateTimeFromInstant } from '@/lib/date';
 import { MobilePageHeader } from '@/components/ui/MobilePageHeader/MobilePageHeader';
+import { APPOINTMENT_STATUS_LABELS } from '@/lib/appointment-status';
 
 interface ScheduleItem {
   type: 'appointment' | 'invoice';
@@ -22,15 +24,7 @@ interface ScheduleItem {
   items?: Array<{ name: string; quantity: number }>;
 }
 
-const STATUS_LABELS: Record<string, string> = {
-  pending: 'Chờ xác nhận',
-  confirmed: 'Chờ phục vụ',
-  waiting: 'Đang chờ',
-  in_service: 'Đang làm',
-  completed: 'Đã xong',
-  cancelled: 'Đã hủy',
-  no_show: 'Không đến',
-};
+const STATUS_LABELS = APPOINTMENT_STATUS_LABELS;
 
 export function Component() {
   return <MobileMyScheduleView />;
@@ -40,6 +34,7 @@ export default Component;
 
 export function MobileMyScheduleView() {
   const { account } = useAuth();
+  const navigate = useNavigate();
   const timeZone = account?.branchTimezone ?? DEFAULT_BRANCH_TIME_ZONE;
   const queryClient = useQueryClient();
   const { notify } = useToast();
@@ -141,6 +136,7 @@ export function MobileMyScheduleView() {
     <div className="mobile-my-schedule-view">
       <MobilePageHeader
         title="Lịch của tôi"
+        onBack={() => navigate(-1)}
       >
         <div className="m-chip-strip">
           <div className="mobile-my-schedule-date-wrap">

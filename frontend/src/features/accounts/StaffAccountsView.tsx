@@ -17,7 +17,7 @@ import { useAuth } from '@/features/auth/AuthProvider';
 import type { ApiRecord } from '@/types/api';
 
 export const roleLabels: Record<string, string> = { manager: 'Quản lý', cashier: 'Thu ngân', staff: 'Nhân viên' };
-export const roleDescriptions: Record<string, string> = { manager: 'Toàn bộ hệ thống', cashier: 'Chỉ trang Thu ngân', staff: 'Bán hàng, khách hàng, chấm công' };
+export const roleDescriptions: Record<string, string> = { manager: 'Toàn bộ hệ thống', cashier: 'Thu ngân và sổ quỹ trong ngày', staff: 'Bán hàng, khách hàng, chấm công' };
 
 export function StaffAccountsView({ embedded = false, onAddAccount }: { embedded?: boolean; onAddAccount?: () => void }) {
   const client = useQueryClient();

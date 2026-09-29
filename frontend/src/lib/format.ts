@@ -18,6 +18,10 @@ export const parseMoney = (value: unknown): number => {
   return cleaned ? parseInt(cleaned, 10) : 0;
 };
 export const formatPercent = (value: unknown) => `${Math.round(Number(value ?? 0) * 100)}%`;
+/** A decimal such as hours worked (7.5 → "7,5"), with the Vietnamese decimal comma. */
+export const formatDecimal = (value: unknown) => Number(value ?? 0).toLocaleString('vi-VN', { maximumFractionDigits: 1 });
+/** A value already in percent (12.5 → "12,5%"), with the Vietnamese decimal comma. */
+export const formatRate = (value: unknown) => `${formatDecimal(value)}%`;
 export const formatDate = (value: unknown) => value ? dateFormatter.format(new Date(String(value))) : 'Không giới hạn';
 export const formatDateTime = (value: unknown) => value ? dateTimeFormatter.format(new Date(String(value))) : '-';
 export const formatTime = (value: unknown) => value ? new Date(String(value)).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) : '-';

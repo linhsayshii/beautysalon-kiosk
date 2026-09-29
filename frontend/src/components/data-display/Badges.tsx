@@ -1,16 +1,21 @@
 import { statusLabels } from '@/types/api';
+import { appointmentStatusLabel } from '@/lib/appointment-status';
 
 export function StatusBadge({
   status,
   purchase = false,
   payroll = false,
+  appointment = false,
 }: {
   status: string;
   purchase?: boolean;
   payroll?: boolean;
+  appointment?: boolean;
 }) {
   let label = statusLabels[status] ?? status;
-  if (purchase) {
+  if (appointment) {
+    label = appointmentStatusLabel(status);
+  } else if (purchase) {
     if (status === 'completed') label = 'Đã nhập hàng';
     else if (status === 'draft') label = 'Phiếu tạm';
   } else if (payroll) {

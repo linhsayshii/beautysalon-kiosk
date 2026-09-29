@@ -16,7 +16,7 @@ export function ApplyWeeksModal({
   onConfirm,
   currentWeekLabel,
 }: ApplyWeeksModalProps) {
-  const [mode, setMode] = useState<ApplyMode>('forever');
+  const [mode, setMode] = useState<ApplyMode>('one');
   const [customWeeks, setCustomWeeks] = useState(4);
   const [skipLeaves, setSkipLeaves] = useState(true);
   const [skipHolidays, setSkipHolidays] = useState(true);
@@ -24,7 +24,7 @@ export function ApplyWeeksModal({
   // Reset state when modal opens
   useEffect(() => {
     if (isOpen) {
-      setMode('forever');
+      setMode('one');
       setCustomWeeks(4);
       setSkipLeaves(true);
       setSkipHolidays(true);
@@ -63,7 +63,7 @@ export function ApplyWeeksModal({
   const showCustomRange = mode === 'custom';
 
   return (
-    <Modal open={isOpen} onClose={onClose} title={`Áp dụng lịch tuần ${currentWeekLabel}`} size="sm">
+    <Modal open={isOpen} onClose={onClose} title={`Áp dụng lịch ${currentWeekLabel.charAt(0).toLowerCase()}${currentWeekLabel.slice(1)}`} size="sm">
       <div className="modal-body">
         <p className="modal-description">Bạn muốn lặp lại lịch này như thế nào?</p>
 

@@ -8,13 +8,35 @@ export function niceMaximum(values: number[]) {
   return nice * magnitude;
 }
 
+/**
+ * Rounds a count chart maximum so each of `steps` gridlines is a whole number
+ * (1, 2 or 5 × 10^n per step): a customer count axis never shows "0,5".
+ */
+export function niceCountMaximum(values: number[], steps = 4) {
+  const raw = Math.max(...values, 0);
+  if (!raw) return steps;
+  const step = Math.ceil(raw / steps);
+  const magnitude = 10 ** Math.floor(Math.log10(step));
+  const normalized = step / magnitude;
+  const nice = normalized <= 1 ? 1 : normalized <= 2 ? 2 : normalized <= 5 ? 5 : 10;
+  return nice * magnitude * steps;
+}
+
+/** Indexes of the x-axis labels to draw: all for a short series, otherwise about six evenly spaced. */
+export function visibleLabelIndexes(count: number, showAllUpTo = 7) {
+  const step = count <= showAllUpTo ? 1 : Math.ceil(count / 6);
+  return Array.from({ length: count }, (_, index) => index).filter((index) => index % step === 0);
+}
+
+const compactNumber = (value: number) => value.toLocaleString('vi-VN', { maximumFractionDigits: 1 });
+
 /** Compact axis label: "1,5tr" for money in millions, "12k" for thousands. */
 export function axisLabel(value: number, money = false) {
   const sign = value < 0 ? '-' : '';
   const absolute = Math.abs(value);
-  if (money && absolute >= 1_000_000) return `${sign}${Number((absolute / 1_000_000).toFixed(1))}tr`;
-  if (absolute >= 1_000) return `${sign}${Number((absolute / 1_000).toFixed(1))}k`;
-  return `${sign}${Number(absolute.toFixed(1)).toLocaleString('vi-VN', { maximumFractionDigits: 1 })}`;
+  if (money && absolute >= 1_000_000) return `${sign}${compactNumber(absolute / 1_000_000)}tr`;
+  if (absolute >= 1_000) return `${sign}${compactNumber(absolute / 1_000)}k`;
+  return `${sign}${compactNumber(absolute)}`;
 }
 
 export function smoothPath(points: Array<{ x: number; y: number }>) {

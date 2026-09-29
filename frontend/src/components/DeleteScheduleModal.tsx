@@ -28,7 +28,7 @@ export function DeleteScheduleModal({
   };
 
   return (
-    <Modal open={isOpen} onClose={onClose} title={`Xóa lịch tuần ${weekLabel}`} size="sm">
+    <Modal open={isOpen} onClose={onClose} title={`Xóa lịch ${weekLabel.charAt(0).toLowerCase()}${weekLabel.slice(1)}`} size="sm">
       <div className="modal-body">
         <p className="modal-description">
           {isRecurring

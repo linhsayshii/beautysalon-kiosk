@@ -72,6 +72,18 @@ describe('MobileAccountView', () => {
     expect(screen.queryByRole('tab', { name: /Tài khoản & phân quyền/i })).not.toBeInTheDocument();
   });
 
+  it('accepts new passwords from 8 characters, as the server does', () => {
+    vi.spyOn(AuthProvider, 'useAuth').mockReturnValue({
+      account: { id: 1, username: 'staff01', displayName: 'Nguyễn Văn A', role: 'staff', branchId: 1, branchName: 'Chi nhánh Quận 1' },
+      loading: false, login: vi.fn(), logout: vi.fn(), switchBranch: vi.fn(), updateLocalAccount: vi.fn(),
+    } as unknown as ReturnType<typeof AuthProvider.useAuth>);
+    const { container } = renderComponent();
+    fireEvent.click(screen.getByRole('tab', { name: 'Bảo mật' }));
+    const inputs = [...container.querySelectorAll<HTMLInputElement>('input[autocomplete="new-password"]')];
+    expect(inputs).toHaveLength(2);
+    expect(inputs.map((input) => input.minLength)).toEqual([8, 8]);
+  });
+
   it('lets a staff account log out from the account page', async () => {
     const logout = vi.fn().mockResolvedValue(undefined);
     vi.spyOn(AuthProvider, 'useAuth').mockReturnValue({

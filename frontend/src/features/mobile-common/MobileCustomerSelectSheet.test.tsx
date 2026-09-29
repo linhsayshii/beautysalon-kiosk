@@ -96,7 +96,7 @@ describe('MobileCustomerSelectSheet', () => {
     expect(screen.getByText(/Còn: 18 Buổi DV/i)).toBeInTheDocument();
 
     // Check debt badge (Nợ: 225.000 or 225,000)
-    expect(screen.getByText(/Nợ:\s*225[.,]000/i)).toBeInTheDocument();
+    expect(screen.getByText('Nợ: 225.000đ')).toBeInTheDocument();
 
     // Check second customer without badges
     expect(screen.getByText('Trần Văn Bình')).toBeInTheDocument();

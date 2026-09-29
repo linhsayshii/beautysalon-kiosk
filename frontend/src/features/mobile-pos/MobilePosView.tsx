@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { formatMoney, formatNumber } from '@/lib/format';
+import { formatMoney } from '@/lib/format';
 import { EmptyState, ErrorState, LoadingState } from '@/components/data-display/DataState';
 import { Select } from '@/components/ui/Select/Select';
 import { getPosCatalog, getPosInvoice, getPosPaymentRequests, getPosPriceQuote, getPosStaff, getPosCustomerServicePackages, type PosReceiptData, type ServicePackageOption } from '@/features/pos/pos.api';
@@ -421,7 +421,7 @@ export function MobilePosView() {
                       </div>
 
                       <div className="mobile-pos-card-right">
-                        <div className="mobile-pos-card-price">{formatNumber(item.salePrice)}</div>
+                        <div className="mobile-pos-card-price">{formatMoney(item.salePrice)}</div>
                         {inCart && (
                           <div className="mobile-pos-card-badge">
                             {inCart.quantity}

@@ -97,7 +97,7 @@ describe('OrderDetail Component', () => {
     expect(screen.getByText('Nhân viên thực hiện')).toBeInTheDocument();
     expect(screen.getByText('Trần Văn Nhân')).toBeInTheDocument();
     expect(screen.getByText('Mã hóa đơn')).toBeInTheDocument();
-    expect(screen.getByText('Bàn / Phòng')).toBeInTheDocument();
+    expect(screen.queryByText('Bàn / Phòng')).not.toBeInTheDocument();
 
     // Switch to Tab "Thanh toán & Công nợ"
     fireEvent.click(screen.getByRole('tab', { name: /Thanh toán & Công nợ/i }));
@@ -108,5 +108,39 @@ describe('OrderDetail Component', () => {
     expect(screen.getByText('0đ')).toBeInTheDocument();
     expect(screen.getByText('Trạng thái thu tiền')).toBeInTheDocument();
     expect(screen.getByText('Đã thanh toán đủ')).toBeInTheDocument();
+  });
+
+  it('shows the staff chosen on a POS line that has no appointment', async () => {
+    vi.mocked(operationsApi.getOrder).mockResolvedValue({
+      data: {
+        ...mockOrder,
+        staff: null,
+        items: [{ ...mockOrder.items[0], staffId: 5, staffName: 'Hậu', appointment: null }],
+      },
+    } as any);
+
+    renderWithClient(<OrderDetail id={1} />);
+
+    expect(await screen.findByText('Hậu')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('tab', { name: /Thông tin hóa đơn/i }));
+    expect(screen.getByText('Hậu')).toBeInTheDocument();
+    expect(screen.queryByText('Chưa xác định')).not.toBeInTheDocument();
+  });
+  it('shows the invoice note as a note, not as a table or room', async () => {
+    vi.mocked(operationsApi.getOrder).mockResolvedValue({ data: { ...mockOrder, note: 'QA test hóa đơn nợ' } } as any);
+    renderWithClient(<OrderDetail id={1} />);
+    fireEvent.click(await screen.findByRole('tab', { name: /Thông tin hóa đơn/i }));
+    expect(screen.getByText('Ghi chú').parentElement).toHaveTextContent('QA test hóa đơn nợ');
+  });
+
+  it('does not colour zero discounts red', async () => {
+    vi.mocked(operationsApi.getOrder).mockResolvedValue({
+      data: { ...mockOrder, discount: 0, items: [{ ...mockOrder.items[0], discount: 0 }] },
+    } as any);
+    renderWithClient(<OrderDetail id={1} />);
+    const row = (await screen.findByText('Chăm sóc da chuyên sâu')).closest('tr')!;
+    expect(row.querySelectorAll('td')[6]).not.toHaveClass('text-danger');
+    const total = screen.getByText(/^Giảm giá:/).querySelector('strong')!;
+    expect(total).not.toHaveClass('text-danger');
   });
 });

@@ -134,10 +134,16 @@ async function nextItemCode(client, branchId, type, requestedCode) {
   if (requestedCode) return requestedCode;
   const source = itemSources[type];
   await client.query('SELECT pg_advisory_xact_lock($1)', [branchId]);
+  // Only codes shaped like this prefix + digits count: imported SKUs can be
+  // 13-digit barcodes or free text. The goods list shows every item type
+  // together and imports reuse prefixes across types, so scan all tables.
+  const codes = Object.values(itemSources)
+    .map((item) => `SELECT ${item.codeColumn} AS code FROM ${item.table} WHERE branch_id = $1`)
+    .join(' UNION ALL ');
   const result = await client.query(
-    `SELECT COALESCE(MAX(NULLIF(regexp_replace(${source.codeColumn}, '\\D', '', 'g'), '')::integer), 0) + 1 AS next_number
-     FROM ${source.table} WHERE branch_id = $1`,
-    [branchId],
+    `SELECT COALESCE(MAX(substring(code FROM $2)::bigint), 0) + 1 AS next_number
+     FROM (${codes}) item_codes WHERE code ~ $3`,
+    [branchId, `^${source.prefix}(\\d{1,15})$`, `^${source.prefix}\\d{1,15}$`],
   );
   return `${source.prefix}${String(number(result.rows[0].next_number)).padStart(6, '0')}`;
 }

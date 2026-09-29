@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { formatNumber, initials } from '@/lib/format';
+import { formatMoney, initials } from '@/lib/format';
 import { getPosStaff } from '@/features/pos/pos.api';
 import { DEFAULT_BRANCH_TIME_ZONE, localDateTimeFromInstant } from '@/lib/date';
 import { MobileTimePickerSheet } from './MobileTimePickerSheet';
@@ -12,6 +12,7 @@ export interface ConfiguredServiceItem {
   itemId: number;
   itemType: 'product' | 'service' | 'package' | 'account_card';
   name: string;
+  unit?: string | null;
   unitPrice: number;
   quantity: number;
   durationMinutes?: number;
@@ -141,15 +142,18 @@ export function MobileServiceItemDetailSheet({
 
   if (!isOpen || !item) return null;
 
+  // Only services are scheduled: products, packages and cards have no time slot or location.
+  const isService = item.itemType === 'service';
+
   const handleSave = () => {
     onSaveItem({
       ...item,
       quantity: Math.min(quantity, item.maxQuantity ?? Number.POSITIVE_INFINITY),
-      durationMinutes,
-      startsAt,
+      durationMinutes: isService ? durationMinutes : undefined,
+      startsAt: isService ? startsAt : null,
       staffId: selectedStaffId,
       staffName: selectedStaffName,
-      position,
+      position: isService ? position : null,
     });
     onClose();
   };
@@ -165,7 +169,7 @@ export function MobileServiceItemDetailSheet({
       <BottomSheet
         open
         onClose={onClose}
-        title="Chi tiết lịch dịch vụ"
+        title={isService ? 'Chi tiết lịch dịch vụ' : 'Chi tiết hàng hóa'}
         height="full"
         tone="muted"
         footer={<button type="button" className="btn btn-primary btn-lg" onClick={handleSave}>Xong</button>}
@@ -188,7 +192,7 @@ export function MobileServiceItemDetailSheet({
           <div className="mobile-item-info-meta">
             <h3 className="mobile-item-info-name">{item.name}</h3>
             <p className="mobile-item-info-duration">
-              Thời lượng: {formatDurationLabel(durationMinutes)}
+              {isService ? `Thời lượng: ${formatDurationLabel(durationMinutes)}` : `Đơn vị: ${item.unit || 'cái'}`}
             </p>
           </div>
         </div>
@@ -222,35 +226,39 @@ export function MobileServiceItemDetailSheet({
           <div className="mobile-item-total-group">
             <span className="mobile-item-field-label">Thành tiền</span>
             <div className="mobile-item-total-pill">
-              {formatNumber(totalPrice)}
+              {formatMoney(totalPrice)}
             </div>
           </div>
         </div>
 
-        {/* Section: LỊCH LÀM DỊCH VỤ */}
+        {/* Section: LỊCH LÀM DỊCH VỤ (services) or NHÂN VIÊN BÁN (other items) */}
         <div className="mobile-item-section">
-          <h4 className="mobile-item-section-title">LỊCH LÀM DỊCH VỤ</h4>
+          <h4 className="mobile-item-section-title">{isService ? 'LỊCH LÀM DỊCH VỤ' : 'NHÂN VIÊN BÁN'}</h4>
 
-          {/* Date & Time Range Pills */}
-          <div className="mobile-item-pills-row">
-            <button
-              type="button"
-              className="mobile-item-schedule-pill"
-              onClick={() => setIsTimePickerOpen(true)}
-            >
-              <span>{formattedDateStr}</span>
-              <i className="ph ph-calendar-blank" />
-            </button>
+          {isService && (
+            <>
+              {/* Date & Time Range Pills */}
+              <div className="mobile-item-pills-row">
+                <button
+                  type="button"
+                  className="mobile-item-schedule-pill"
+                  onClick={() => setIsTimePickerOpen(true)}
+                >
+                  <span>{formattedDateStr}</span>
+                  <i className="ph ph-calendar-blank" />
+                </button>
 
-            <button
-              type="button"
-              className="mobile-item-schedule-pill"
-              onClick={() => setIsTimePickerOpen(true)}
-            >
-              <span>{formattedTimeRangeStr}</span>
-              <i className="ph ph-clock" />
-            </button>
-          </div>
+                <button
+                  type="button"
+                  className="mobile-item-schedule-pill"
+                  onClick={() => setIsTimePickerOpen(true)}
+                >
+                  <span>{formattedTimeRangeStr}</span>
+                  <i className="ph ph-clock" />
+                </button>
+              </div>
+            </>
+          )}
 
           {/* Row: Chọn nhân viên */}
           <button
@@ -275,28 +283,32 @@ export function MobileServiceItemDetailSheet({
             </div>
           </button>
 
-          {/* Row: Chọn vị trí */}
-          <button
-            type="button"
-            className="mobile-item-picker-row"
-            onClick={() => setIsPositionPickerOpen(true)}
-          >
-            <div className="mobile-picker-row-left">
-              <i className="ph ph-map-pin mobile-picker-row-icon" />
-              <div className="mobile-picker-row-text">
-                <span className="mobile-picker-row-label">Chọn vị trí</span>
-                {position && (
-                  <span className="mobile-picker-row-sub">Vị trí phòng / giường</span>
-                )}
-              </div>
-            </div>
-            <div className="mobile-picker-row-right">
-              <span className="mobile-picker-row-val">
-                {position || 'Chưa chọn'}
-              </span>
-              <i className="ph ph-caret-right" />
-            </div>
-          </button>
+          {isService && (
+            <>
+              {/* Row: Chọn vị trí */}
+              <button
+                type="button"
+                className="mobile-item-picker-row"
+                onClick={() => setIsPositionPickerOpen(true)}
+              >
+                <div className="mobile-picker-row-left">
+                  <i className="ph ph-map-pin mobile-picker-row-icon" />
+                  <div className="mobile-picker-row-text">
+                    <span className="mobile-picker-row-label">Chọn vị trí</span>
+                    {position && (
+                      <span className="mobile-picker-row-sub">Vị trí phòng / giường</span>
+                    )}
+                  </div>
+                </div>
+                <div className="mobile-picker-row-right">
+                  <span className="mobile-picker-row-val">
+                    {position || 'Chưa chọn'}
+                  </span>
+                  <i className="ph ph-caret-right" />
+                </div>
+              </button>
+            </>
+          )}
         </div>
       </BottomSheet>
 

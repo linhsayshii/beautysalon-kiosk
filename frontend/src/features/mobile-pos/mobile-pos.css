@@ -468,9 +468,6 @@
 .mobile-checkout-sheet .debt-panel input:not([type=checkbox]) { border-radius:10px; border-color:var(--line); padding:12px; text-align:right; font-variant-numeric:tabular-nums; }
 .mobile-checkout-sheet .debt-panel > label:not(.debt-consent) { font-size:13px; font-weight:700; color:var(--ink-700); }
 .mobile-checkout-sheet .debt-panel > label input { font-weight:500; }
-.mobile-checkout-sheet .debt-panel .debt-fill-total { min-height:44px; border:1px solid var(--blue-200); border-radius:10px; background:var(--blue-50); color:var(--blue-700); font:inherit; font-weight:600; }
-.mobile-checkout-sheet .debt-panel .debt-fill-total:hover:not(:disabled) { background:var(--blue-100); border-color:var(--blue-300); }
-.mobile-checkout-sheet .debt-panel .debt-fill-total:active:not(:disabled) { background:var(--blue-200); }
 .mobile-checkout-sheet button:focus-visible { outline:2px solid var(--blue-700); outline-offset:2px; }
 .mobile-checkout-sheet .debt-panel small { line-height:1.5; }
 .mobile-checkout-sheet .debt-facts strong { font-variant-numeric:tabular-nums; text-align:right; }

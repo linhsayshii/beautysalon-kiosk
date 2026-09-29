@@ -4,6 +4,20 @@ import { HttpError } from '../../lib/http.js';
 
 const number = (value) => Number(value ?? 0);
 
+// A visit is a branch-local day with a completed appointment or a paid
+// invoice, so a walk-in POS sale counts and a checked-out appointment is
+// not counted twice.
+const visitsLateral = `
+  LEFT JOIN LATERAL (
+    SELECT COUNT(DISTINCT (v.at AT TIME ZONE vb.timezone)::date) AS visit_count, MAX(v.at) AS last_visit
+    FROM (
+      SELECT a.starts_at AS at FROM appointments a WHERE a.customer_id = c.id AND a.status = 'completed'
+      UNION ALL
+      SELECT i.issued_at FROM invoices i WHERE i.customer_id = c.id AND i.status = 'paid'
+    ) v
+    JOIN branches vb ON vb.id = c.branch_id
+  ) visits ON TRUE`;
+
 export async function listCustomers({ branchId, search, group, debtStatus, page, pageSize, offset, sort }) {
   const orderBy = listSort(sort, {
     name_asc: 'c.name ASC',
@@ -34,9 +48,7 @@ export async function listCustomers({ branchId, search, group, debtStatus, page,
        LEFT JOIN LATERAL (
          SELECT SUM(i.total) AS total_spent FROM invoices i WHERE i.customer_id = c.id AND i.status = 'paid'
        ) sales ON TRUE
-       LEFT JOIN LATERAL (
-         SELECT MAX(a.starts_at) AS last_visit FROM appointments a WHERE a.customer_id = c.id AND a.status = 'completed'
-       ) visits ON TRUE
+       ${visitsLateral}
        LEFT JOIN LATERAL (
          SELECT COUNT(*) AS active_packages FROM customer_packages cp WHERE cp.customer_id = c.id AND cp.status = 'active'
        ) packages ON TRUE
@@ -167,6 +179,7 @@ export async function getCustomer({ branchId, id }) {
   const result = await pool.query(
     `SELECT
        c.id, c.code, c.name, c.phone, c.customer_type, c.customer_group, c.debt_balance, c.created_at,
+       to_char(c.dob, 'YYYY-MM-DD') AS dob, c.gender, c.email, c.facebook,
        b.name AS branch_name,
        COALESCE(sales.total_spent, 0) AS total_spent,
        COALESCE(sales.invoice_count, 0) AS invoice_count,
@@ -181,10 +194,7 @@ export async function getCustomer({ branchId, id }) {
        SELECT COALESCE(SUM(i.total), 0) AS total_spent, COUNT(*) AS invoice_count
        FROM invoices i WHERE i.customer_id = c.id AND i.status = 'paid'
      ) sales ON TRUE
-     LEFT JOIN LATERAL (
-       SELECT COUNT(*) AS visit_count, MAX(a.starts_at) AS last_visit
-       FROM appointments a WHERE a.customer_id = c.id AND a.status = 'completed'
-     ) visits ON TRUE
+     ${visitsLateral}
      LEFT JOIN LATERAL (
        SELECT COUNT(*) AS active_packages FROM customer_packages cp
        WHERE cp.customer_id = c.id AND cp.status = 'active'
@@ -200,6 +210,7 @@ export async function getCustomer({ branchId, id }) {
   if (!row) throw new HttpError(404, 'CUSTOMER_NOT_FOUND', 'Không tìm thấy khách hàng');
   return {
     id: number(row.id), code: row.code, name: row.name, phone: row.phone,
+    dob: row.dob, gender: row.gender, email: row.email, facebook: row.facebook,
     customerType: row.customer_type, group: row.customer_group, branchName: row.branch_name,
     debtBalance: number(row.debt_balance), totalSpent: number(row.total_spent), invoiceCount: number(row.invoice_count),
     visitCount: number(row.visit_count), lastVisit: row.last_visit, activePackages: number(row.active_packages),
@@ -217,10 +228,24 @@ export async function getCustomerActivity({ branchId, id, kind }) {
     return result.rows.map((row) => ({ id: number(row.id), code: row.code, occurredAt: row.issued_at, amount: number(row.total), amountPaid: number(row.amount_paid), paymentStatus: row.payment_status, status: row.status, paymentMethod: row.payment_method }));
   }
   if (kind === 'appointments') {
-    const result = await pool.query(`SELECT a.id, a.starts_at, a.status, sv.code AS service_code, sv.name AS service_name, s.name AS staff_name
-      FROM appointments a LEFT JOIN services sv ON sv.id = a.service_id LEFT JOIN staff s ON s.id = a.staff_id
-      WHERE a.customer_id = $1 ORDER BY a.starts_at DESC, a.id DESC LIMIT 20`, [id]);
-    return result.rows.map((row) => ({ id: number(row.id), occurredAt: row.starts_at, status: row.status, serviceCode: row.service_code, serviceName: row.service_name, staffName: row.staff_name }));
+    // Appointments plus services sold straight at POS (paid lines with no
+    // appointment), newest first.
+    const result = await pool.query(`SELECT * FROM (
+        SELECT 'appointment' AS source, a.id, a.starts_at AS occurred_at, a.status, sv.code AS service_code, sv.name AS service_name, s.name AS staff_name
+        FROM appointments a LEFT JOIN services sv ON sv.id = a.service_id LEFT JOIN staff s ON s.id = a.staff_id
+        WHERE a.customer_id = $1
+        UNION ALL
+        SELECT 'invoice_item', ii.id, i.issued_at, 'completed', sv.code, COALESCE(sv.name, ii.description), s.name
+        FROM invoice_items ii
+        JOIN invoices i ON i.id = ii.invoice_id
+        LEFT JOIN services sv ON sv.id = ii.service_id
+        LEFT JOIN staff s ON s.id = ii.staff_id
+        WHERE i.customer_id = $1 AND i.status = 'paid' AND ii.item_type = 'service' AND ii.appointment_id IS NULL
+      ) history ORDER BY occurred_at DESC, id DESC LIMIT 20`, [id]);
+    return result.rows.map((row) => ({
+      id: row.source === 'appointment' ? number(row.id) : `invoice-item-${row.id}`,
+      occurredAt: row.occurred_at, status: row.status, serviceCode: row.service_code, serviceName: row.service_name, staffName: row.staff_name,
+    }));
   }
   if (kind === 'packages') {
     const result = await pool.query(`SELECT cp.id, cp.package_code AS code, sp.name, cp.sale_price, cp.total_units, cp.used_units, cp.sold_at, cp.expires_at, cp.status
@@ -246,8 +271,9 @@ export async function createCustomer({ branchId, name, code, phone, dob, gender,
     let finalCode = code?.trim();
     if (!finalCode) {
       const sequence = await client.query(
-        `SELECT COALESCE(MAX(NULLIF(regexp_replace(code, '\\D', '', 'g'), '')::integer), 0) + 1 AS next_number
-         FROM customers WHERE branch_id = $1`,
+        // Hand-typed codes (phone numbers, legacy ids) must not drive the sequence.
+        `SELECT COALESCE(MAX(substring(code FROM '^KH(\\d{1,15})$')::bigint), 0) + 1 AS next_number
+         FROM customers WHERE branch_id = $1 AND code ~ '^KH\\d{1,15}$'`,
         [branchId],
       );
       finalCode = `KH${String(number(sequence.rows[0].next_number)).padStart(6, '0')}`;

@@ -8,6 +8,7 @@ import { customerDebtMigration } from '../../migrations/customer-debt.js';
 import { cashbookMigration } from '../../migrations/cashbook.js';
 import { permissions, requirePermissions } from '../auth/auth.permissions.js';
 import cashbookRoutes from './cashbook.routes.js';
+import { createOpeningBalance } from './cashbook.service.js';
 
 function buildApp() {
   const app = express();
@@ -43,6 +44,8 @@ test('cashbook routes enforce manager and cashier boundaries', async (t) => {
       INSERT INTO user_accounts(branch_id,username,password_hash,display_name,role) VALUES(1,'cashier','unused','Thu ngân','cashier');`);
     await db.exec(customerDebtMigration);
     await db.exec(cashbookMigration);
+    // Payments must be covered by the fund, so the drawer starts with cash.
+    await createOpeningBalance({ branchId: 1, actorAccountId: 1, fund: 'cash', amount: 100000, occurredAt: new Date('2026-01-01T00:00:00Z'), requestKey: 'routes-opening-cash' });
 
     await t.test('staff accounts cannot reach the cashbook', async () => {
       assert.equal((await call('staff', '/vouchers')).status, 403);

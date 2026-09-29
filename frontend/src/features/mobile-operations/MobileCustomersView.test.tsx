@@ -6,6 +6,7 @@ import { MobileCustomersView } from './MobileCustomersView';
 import * as opsApi from '@/features/operations/operations.api';
 import { AuthProvider } from '@/features/auth/AuthProvider';
 import { WebSocketProvider } from '@/context/WebSocketContext';
+import { ToastProvider } from '@/components/ui/Toast/ToastProvider';
 
 vi.mock('@/services/websocket', () => ({
   createPosSocketConnection: vi.fn(() => ({
@@ -185,5 +186,27 @@ describe('MobileCustomersView Component', () => {
     await waitFor(() => {
       expect(screen.getByText('HD001')).toBeInTheDocument();
     });
+  });
+  it('shows the saved phone in the open detail sheet after editing', async () => {
+    vi.spyOn(opsApi, 'updateCustomer').mockResolvedValue({ data: { ...mockCustomerDetail.data, phone: '0934000111' } } as any);
+    render(
+      <MemoryRouter>
+        <QueryClientProvider client={queryClient}>
+          <WebSocketProvider>
+            <AuthProvider>
+              <ToastProvider>
+                <MobileCustomersView />
+              </ToastProvider>
+            </AuthProvider>
+          </WebSocketProvider>
+        </QueryClientProvider>
+      </MemoryRouter>
+    );
+    fireEvent.click((await screen.findByText('Nguyễn Văn A')).closest('.mobile-operations-row-item')!);
+    fireEvent.click(await screen.findByRole('button', { name: 'Sửa' }));
+    vi.mocked(opsApi.getCustomer).mockResolvedValue({ data: { ...mockCustomerDetail.data, phone: '0934000111' } } as any);
+    fireEvent.change(screen.getByPlaceholderText('Nhập số điện thoại'), { target: { value: '0934000111' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Lưu' }));
+    expect(await screen.findAllByText('0934000111')).not.toHaveLength(0);
   });
 });

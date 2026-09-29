@@ -6,18 +6,12 @@ import { publishNotification } from '../notifications/notifications.service.js';
 import { resolveApplicablePricebook, resolvePricebookItemPrice } from '../inventory/inventory.service.js';
 import { recordCashEntry } from '../cashbook/cashbook.ledger.js';
 import { config } from '../../config.js';
+import { newInvoiceCode } from './invoice-code.js';
 
 const number = (value) => Number(value ?? 0);
+const vndFormatter = new Intl.NumberFormat('vi-VN', { maximumFractionDigits: 0 });
+const formatVnd = (value) => `${vndFormatter.format(number(value))}đ`;
 
-function generateInvoiceCode() {
-  const dateStr = new Intl.DateTimeFormat('en-GB', {
-    year: '2-digit',
-    month: '2-digit',
-    day: '2-digit',
-  }).format(new Date()).replace(/\//g, '');
-  const randomSuffix = Math.floor(1000 + Math.random() * 9000);
-  return `HD${dateStr}-${randomSuffix}`;
-}
 
 /**
  * Xử lý trừ lượt gói dịch vụ trong checkout
@@ -495,17 +489,7 @@ export async function checkoutPosInvoice({
       );
       invoice = updatedInvoiceResult.rows[0];
     } else {
-      let invoiceCode = generateInvoiceCode();
-      let isUnique = false;
-      for (let attempts = 0; attempts < 5; attempts++) {
-        const existing = await client.query('SELECT id FROM invoices WHERE code = $1', [invoiceCode]);
-        if (!existing.rows[0]) {
-          isUnique = true;
-          break;
-        }
-        invoiceCode = generateInvoiceCode();
-      }
-      if (!isUnique) invoiceCode = `HD${Date.now().toString().slice(-8)}`;
+      const invoiceCode = await newInvoiceCode(client);
       const invoiceResult = await client.query(
         `INSERT INTO invoices (
            branch_id, customer_id, staff_id, code, status, pricebook_id,
@@ -716,7 +700,7 @@ export async function checkoutPosInvoice({
         branchId,
         actorStaffId || null,
         invoiceCode,
-        `Chốt hóa đơn ${invoiceCode} - Tổng: ${total} đ, đã thu: ${payment.paid} đ, còn nợ: ${payment.debt} đ cho ${customerName}`,
+        `Chốt hóa đơn ${invoiceCode} - Tổng: ${formatVnd(total)}, đã thu: ${formatVnd(payment.paid)}, còn nợ: ${formatVnd(payment.debt)} cho ${customerName}`,
       ],
     );
 
@@ -782,7 +766,7 @@ export async function checkoutPosInvoice({
       branchId,
       type: 'invoice',
       title: payment.debt > 0 ? 'Hóa đơn đã ghi nợ' : 'Hóa đơn đã thanh toán',
-      detail: `${receipt.code} · ${new Intl.NumberFormat('vi-VN').format(receipt.total)} đ · ${receipt.customer.name}`,
+      detail: `${receipt.code} · ${formatVnd(receipt.total)} · ${receipt.customer.name}`,
       targetPath: '/m/orders',
     };
     void Promise.all([

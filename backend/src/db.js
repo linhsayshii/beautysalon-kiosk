@@ -150,6 +150,12 @@ export async function runMigrations() {
       );
 
       CREATE INDEX IF NOT EXISTS idx_payroll_periods_branch ON payroll_periods(branch_id, starts_on DESC);
+
+      -- Auto-created monthly periods once used a one-digit month ("9/2026");
+      -- give them the same two-digit form as every other period.
+      UPDATE payroll_periods
+      SET name = regexp_replace(name, '^Bảng lương tháng ([1-9])/([0-9]{4})$', 'Bảng lương tháng 0\\1/\\2')
+      WHERE creator_type = 'auto' AND name ~ '^Bảng lương tháng [1-9]/[0-9]{4}$';
       CREATE INDEX IF NOT EXISTS idx_payroll_records_period ON payroll_records(payroll_period_id);
       CREATE INDEX IF NOT EXISTS idx_payroll_payments_period ON payroll_payments(payroll_period_id);
 

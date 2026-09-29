@@ -61,9 +61,10 @@ const statusCodes: Record<number, string> = {
   504: 'GATEWAY_TIMEOUT',
 };
 
-function errorLabel(message: string, status: number, code: string, requestId?: string) {
-  const reference = requestId ? ` · Mã tra cứu: ${requestId}` : '';
-  return `${message} (${status} · ${code})${reference}`;
+// Staff see the Vietnamese message; status and code stay on the error object.
+// Server faults add the request reference so support can find the log line.
+function errorLabel(message: string, status: number, requestId?: string) {
+  return status >= 500 && requestId ? `${message} · Mã tra cứu: ${requestId}` : message;
 }
 
 export class ApiError extends Error {
@@ -73,7 +74,7 @@ export class ApiError extends Error {
   readonly requestId?: string;
 
   constructor(message: string, options: ApiErrorOptions) {
-    super(errorLabel(message, options.status, options.code, options.requestId), { cause: options.cause });
+    super(errorLabel(message, options.status, options.requestId), { cause: options.cause });
     this.name = 'ApiError';
     this.status = options.status;
     this.code = options.code;
@@ -94,8 +95,9 @@ export function toQueryString(values: Record<string, QueryValue>) {
   return params.toString();
 }
 
-export function clientErrorMessage(message: string, code: string) {
-  return `${message} (${code})`;
+// The code names the failure in tests and logs; staff only see the message.
+export function clientErrorMessage(message: string, _code: string) {
+  return message;
 }
 
 export function errorMessage(cause: unknown, fallback: string) {

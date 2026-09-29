@@ -1092,8 +1092,10 @@
 .purchase-create-main { position: relative; padding: 14px; }
 .purchase-create-heading { display: flex; align-items: center; gap: 10px; }
 .purchase-create-heading h1 { font-size: 24px; letter-spacing: -0.04em; }
-.purchase-product-search { max-width: 540px; margin-left: 8px; }
-.purchase-search-results { position: absolute; z-index: 15; top: 62px; left: 118px; width: min(540px, calc(100% - 150px)); overflow: hidden; border: 1px solid var(--line); border-radius: 13px; background: #fff; box-shadow: 0 18px 45px rgba(23, 37, 61, 0.16); }
+.purchase-product-search-wrap { position: relative; flex: 1 1 auto; min-width: 0; max-width: 540px; margin-left: 8px; }
+.purchase-product-search { width: 100%; max-width: none; }
+/* Anchored to the search box so the results always open directly under it. */
+.purchase-search-results { position: absolute; z-index: 15; top: calc(100% + 6px); right: 0; left: 0; overflow: hidden; border: 1px solid var(--line); border-radius: 13px; background: #fff; box-shadow: 0 18px 45px rgba(23, 37, 61, 0.16); }
 .purchase-search-results > button { display: grid; grid-template-columns: 1fr auto auto; align-items: center; gap: 12px; width: 100%; padding: 10px 12px; border-bottom: 1px solid var(--line); background: #fff; text-align: left; }
 .purchase-search-results > button:hover { background: var(--blue-50); }
 .purchase-search-results span { display: grid; gap: 3px; }
@@ -1112,6 +1114,9 @@
 .purchase-totals { display: grid; gap: 13px; margin-top: 18px; }
 .purchase-totals > div, .purchase-totals > label { display: flex; align-items: center; justify-content: space-between; gap: 14px; color: var(--ink-700); font-size: 12px; }
 .purchase-totals .filter-control { width: 145px; }
+/* Selects in the totals stack their label above the control, like the supplier field. */
+.purchase-totals > .field { display: grid; gap: 6px; margin-top: 0; }
+.purchase-totals > .field > .field-label { white-space: nowrap; }
 .purchase-due { padding-top: 13px; border-top: 1px solid var(--line); font-weight: 800; }
 .purchase-due strong { color: var(--blue-700); font-size: 17px; }
 .purchase-totals textarea { min-height: 82px; padding: 10px; border: 1px solid var(--line-strong); border-radius: 10px; resize: vertical; font: inherit; }
@@ -1124,8 +1129,7 @@
 
 @media (max-width: 560px) {
   .purchase-create-heading { flex-wrap: wrap; }
-  .purchase-product-search { order: 3; width: 100%; margin-left: 0; }
-  .purchase-search-results { top: 106px; left: 14px; width: calc(100% - 28px); }
+  .purchase-product-search-wrap { order: 3; flex-basis: 100%; max-width: none; margin-left: 0; }
 }
 .drawer-backdrop {
   position: fixed;

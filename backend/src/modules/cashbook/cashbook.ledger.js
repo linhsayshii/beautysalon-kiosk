@@ -23,6 +23,34 @@ export function voucherPrefix(type) {
   return type === 'income' ? 'PT' : 'PC';
 }
 
+const fundLabels = { cash: 'tiền mặt', bank: 'ngân hàng' };
+
+/**
+ * Rejects a change that would leave a fund below zero. `changes` maps a fund
+ * to the signed amount about to be applied (negative = money leaving). Takes
+ * the branch cashbook lock first so two concurrent spends cannot both pass.
+ */
+export async function assertFundsCover(client, branchId, changes) {
+  await client.query('SELECT pg_advisory_xact_lock($1, $2)', [CASHBOOK_LOCK_NAMESPACE, Number(branchId)]);
+  for (const [fund, change] of Object.entries(changes)) {
+    if (!(change < 0)) continue;
+    const { rows } = await client.query(
+      `SELECT COALESCE(SUM(CASE WHEN transaction_type = 'income' THEN amount ELSE -amount END), 0) AS balance
+       FROM cash_transactions WHERE branch_id = $1 AND fund = $2 AND status = 'active'`,
+      [branchId, fund],
+    );
+    const balance = Number(rows[0].balance);
+    if (balance + change < 0) {
+      throw new HttpError(
+        409,
+        'INSUFFICIENT_FUND_BALANCE',
+        `Quỹ ${fundLabels[fund] ?? fund} không đủ số dư (hiện có ${balance.toLocaleString('vi-VN')}đ, cần ${(-change).toLocaleString('vi-VN')}đ)`,
+        { fund, balance, required: -change },
+      );
+    }
+  }
+}
+
 async function nextVoucherCode(client, branchId, type) {
   const prefix = voucherPrefix(type);
   await client.query('SELECT pg_advisory_xact_lock($1, $2)', [CASHBOOK_LOCK_NAMESPACE, Number(branchId)]);

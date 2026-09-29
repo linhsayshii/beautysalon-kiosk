@@ -52,7 +52,7 @@ const initialForm = {
   // Personal info
   idNumber: '',
   dob: '',
-  gender: 'female',
+  gender: '',
   address: '',
   province: '',
   district: '',

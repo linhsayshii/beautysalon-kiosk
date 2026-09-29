@@ -9,6 +9,7 @@ import { MoneyInput } from '@/components/forms/MoneyInput';
 import { Select } from '@/components/ui/Select/Select';
 import { searchPosCustomers, checkoutPosInvoice, getPosStaff, type PosReceiptData } from '@/features/pos/pos.api';
 import { BottomSheet } from '@/components/ui/Sheet/BottomSheet';
+import { PAYMENT_METHOD_LABELS } from '@/lib/payment-methods';
 
 interface PosLine {
   itemId: number;
@@ -356,7 +357,7 @@ export function MobileCartBottomSheet({
               onClick={() => setPaymentMethod('cash')}
             >
               <i className="ph ph-money" />
-              Tiền mặt
+              {PAYMENT_METHOD_LABELS.cash}
             </button>
             <button
               type="button"
@@ -365,7 +366,7 @@ export function MobileCartBottomSheet({
               onClick={() => setPaymentMethod('bank_transfer')}
             >
               <i className="ph ph-qr-code" />
-              VietQR / CK
+              {PAYMENT_METHOD_LABELS.bank_transfer}
             </button>
             <button
               type="button"
@@ -374,7 +375,7 @@ export function MobileCartBottomSheet({
               onClick={() => setPaymentMethod('card')}
             >
               <i className="ph ph-credit-card" />
-              Quẹt thẻ
+              {PAYMENT_METHOD_LABELS.card}
             </button>
             <button
               type="button"
@@ -383,7 +384,7 @@ export function MobileCartBottomSheet({
               onClick={() => setPaymentMethod('wallet')}
             >
               <i className="ph ph-wallet" />
-              Thẻ TK
+              {PAYMENT_METHOD_LABELS.wallet}
             </button>
           </div>
         </section>

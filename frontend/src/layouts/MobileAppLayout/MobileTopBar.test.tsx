@@ -102,14 +102,34 @@ describe('MobileTopBar Component', () => {
     expect(screen.queryByTestId('mobile-topbar-title')).not.toBeInTheDocument();
   });
 
-  it('falls back to a titled sub-page bar for routes without their own header', () => {
+  it('treats Lịch của tôi as a staff tab, with the brand bar instead of a generic title', () => {
+    vi.spyOn(auth, 'useAuth').mockReturnValue({
+      account: { id: 1, role: 'staff', displayName: 'Yến', branchId: 1, branchName: 'Chi nhánh Quận 1', staffId: 3, staffCode: 'NV3', phone: '', email: '', username: 'staff' },
+      loading: false, login: vi.fn(), logout: vi.fn(), updateLocalAccount: vi.fn(), switchBranch: vi.fn(),
+    });
+    render(
+      <QueryClientProvider client={queryClient}>
+        <WebSocketProvider>
+          <ToastProvider>
+            <MemoryRouter initialEntries={['/m/my-schedule']}>
+              <Routes><Route path="/m/my-schedule" element={<MobileTopBar />} /></Routes>
+            </MemoryRouter>
+          </ToastProvider>
+        </WebSocketProvider>
+      </QueryClientProvider>
+    );
+    expect(screen.getByText('Salon thử nghiệm')).toBeInTheDocument();
+    expect(screen.queryByTestId('mobile-topbar-title')).not.toBeInTheDocument();
+  });
+
+  it('names an unknown page as not found, with a way back', () => {
     vi.spyOn(auth, 'useAuth').mockReturnValue({
       account: { id: 1, role: 'manager', displayName: 'Hằng', branchId: 1, branchName: 'Chi nhánh Quận 1', staffId: null, staffCode: null, phone: '', email: '', username: 'hang' },
       loading: false, login: vi.fn(), logout: vi.fn(), updateLocalAccount: vi.fn(), switchBranch: vi.fn(),
     });
 
     const subpageTestCases = [
-      { path: '/m/unlisted-subpage', expectedTitle: 'Chi tiết' },
+      { path: '/m/unlisted-subpage', expectedTitle: 'Không tìm thấy trang' },
     ];
 
     for (const { path, expectedTitle } of subpageTestCases) {

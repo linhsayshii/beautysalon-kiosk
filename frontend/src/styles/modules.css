@@ -1031,14 +1031,6 @@
   transform: translateX(-100%);
 }
 
-.chart-x-labels span:nth-child(even) {
-  display: none;
-}
-
-.chart-x-labels.show-all span {
-  display: block;
-}
-
 .dashboard-chart-card {
   padding: 20px 20px 16px;
 }

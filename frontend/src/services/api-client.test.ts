@@ -20,7 +20,7 @@ describe('toQueryString', () => {
 });
 
 describe('apiRequest error details', () => {
-  it('includes the HTTP status, application code and request reference', async () => {
+  it('shows staff the Vietnamese message and keeps status, code and reference on the error', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(mockResponse(400, JSON.stringify({
       error: { status: 400, code: 'INVALID_ARGUMENT', message: 'Ngày bắt đầu không hợp lệ', requestId: 'req-123' },
     }))));
@@ -29,7 +29,7 @@ describe('apiRequest error details', () => {
 
     expect(error).toBeInstanceOf(ApiError);
     expect(error).toMatchObject({ status: 400, code: 'INVALID_ARGUMENT', requestId: 'req-123' });
-    expect(error.message).toBe('Ngày bắt đầu không hợp lệ (400 · INVALID_ARGUMENT) · Mã tra cứu: req-123');
+    expect(error.message).toBe('Ngày bắt đầu không hợp lệ');
   });
 
   it('uses a complete Vietnamese fallback when the server omits its error body', async () => {
@@ -38,7 +38,8 @@ describe('apiRequest error details', () => {
     await expect(apiRequest('/dashboard')).rejects.toMatchObject({
       status: 500,
       code: 'INTERNAL_SERVER_ERROR',
-      message: 'Lỗi máy chủ nội bộ, vui lòng thử lại sau (500 · INTERNAL_SERVER_ERROR) · Mã tra cứu: req-500',
+      // Server faults keep a reference staff can give to support.
+      message: 'Lỗi máy chủ nội bộ, vui lòng thử lại sau · Mã tra cứu: req-500',
     });
   });
 
@@ -48,7 +49,7 @@ describe('apiRequest error details', () => {
     await expect(apiRequest('/dashboard')).rejects.toMatchObject({
       status: 503,
       code: 'NETWORK_ERROR',
-      message: 'Không thể kết nối đến máy chủ. Hãy kiểm tra mạng và thử lại (503 · NETWORK_ERROR)',
+      message: 'Không thể kết nối đến máy chủ. Hãy kiểm tra mạng và thử lại',
     });
   });
 
@@ -69,8 +70,8 @@ describe('apiRequest error details', () => {
 });
 
 describe('client-side error messages', () => {
-  it('adds stable codes without hiding API errors', () => {
-    expect(clientErrorMessage('Không mở được camera', 'CAMERA_UNAVAILABLE')).toBe('Không mở được camera (CAMERA_UNAVAILABLE)');
-    expect(errorMessage(new Error('unknown'), 'Không thể lưu')).toBe('Không thể lưu (CLIENT_ERROR)');
+  it('shows plain Vietnamese messages without technical codes', () => {
+    expect(clientErrorMessage('Không mở được camera', 'CAMERA_UNAVAILABLE')).toBe('Không mở được camera');
+    expect(errorMessage(new Error('unknown'), 'Không thể lưu')).toBe('Không thể lưu');
   });
 });

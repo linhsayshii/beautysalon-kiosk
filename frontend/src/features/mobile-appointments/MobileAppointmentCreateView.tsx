@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/components/ui/Toast/ToastProvider';
 import { useAuth } from '@/features/auth/AuthProvider';
-import { formatNumber } from '@/lib/format';
+import { formatMoney } from '@/lib/format';
 import {
   createPosAppointment,
   getPosAppointmentEditor,
@@ -26,19 +26,15 @@ import {
 import { MobileHeaderAction, MobilePageHeader } from '@/components/ui/MobilePageHeader/MobilePageHeader';
 import { BottomSheet } from '@/components/ui/Sheet/BottomSheet';
 import { EmptyState, ErrorState, LoadingState } from '@/components/data-display/DataState';
+import { APPOINTMENT_STATUS_LABELS } from '@/lib/appointment-status';
 
 interface AppointmentStatusOption {
   value: string;
   label: string;
 }
 
-const APPOINTMENT_STATUSES: AppointmentStatusOption[] = [
-  { value: 'pending', label: 'Chờ xác nhận' },
-  { value: 'confirmed', label: 'Chưa tới' },
-  { value: 'waiting', label: 'Đang chờ' },
-  { value: 'in_service', label: 'Đang làm' },
-  { value: 'completed', label: 'Hoàn thành' },
-];
+const APPOINTMENT_STATUSES: AppointmentStatusOption[] = (['pending', 'confirmed', 'waiting', 'in_service', 'completed'] as const)
+  .map((value) => ({ value, label: APPOINTMENT_STATUS_LABELS[value] }));
 
 const WEEKDAY_NAMES = ['CN', 'Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7'];
 
@@ -482,7 +478,7 @@ export function MobileAppointmentCreateView() {
                         </div>
                       </div>
                       <div className="mobile-form-item-price">
-                        {formatNumber((item.unitPrice || 0) * item.quantity)}
+                        {formatMoney((item.unitPrice || 0) * item.quantity)}
                       </div>
                     </div>
 
@@ -659,7 +655,7 @@ export function MobileAppointmentCreateView() {
                 </span>
               </div>
               <span className="mobile-catalog-item-price">
-                {formatNumber(cat.salePrice)}
+                {formatMoney(cat.salePrice)}
               </span>
             </button>
           ))

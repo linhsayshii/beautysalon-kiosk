@@ -1,6 +1,7 @@
 import { pool } from '../../db.js';
 import { broadcastToBranch, realtimeEvents } from '../../lib/ws.js';
 import { resolveApplicablePricebook, resolvePricebookItemPrice } from '../inventory/inventory.service.js';
+import { newInvoiceCode } from '../pos/invoice-code.js';
 import { publishNotification } from '../notifications/notifications.service.js';
 
 function number(value) {
@@ -115,9 +116,6 @@ function appError(status, code, message) {
   return error;
 }
 
-function draftInvoiceCode() {
-  return `INV-${Date.now()}-${Math.floor(Math.random() * 1_000_000)}`;
-}
 
 async function recalculateDraftInvoice(client, invoiceId) {
   await client.query(
@@ -404,7 +402,7 @@ export async function createAppointments({ branchId, customerId, items, status, 
            payment_method, sales_channel, issued_at
          ) VALUES ($1, $2, NULL, $3, 'draft', $6, $4, 0, $4, 'cash', 'salon', $5)
          RETURNING id, code, status, subtotal, discount, total, payment_method, sales_channel, issued_at`,
-        [branchId, customerId, draftInvoiceCode(), subtotal, normalizedItems[0].startsAt, appliedPricebook?.id ?? null],
+        [branchId, customerId, await newInvoiceCode(client), subtotal, normalizedItems[0].startsAt, appliedPricebook?.id ?? null],
       );
       invoice = invoiceResult.rows[0];
     }
@@ -747,6 +745,16 @@ export async function getDashboard({ branchId, date, period = 'this_month' }) {
              AND a.starts_at >= bounds.day_start
              AND a.starts_at < bounds.day_end
              AND a.status <> 'cancelled'
+           UNION
+           -- Walk-in POS sales serve customers without an appointment.
+           SELECT c.id, c.customer_type
+           FROM invoices i
+           JOIN customers c ON c.id = i.customer_id
+           CROSS JOIN bounds
+           WHERE i.branch_id = $1
+             AND i.issued_at >= bounds.day_start
+             AND i.issued_at < bounds.day_end
+             AND i.status = 'paid'
          )
          SELECT
            COUNT(*) AS total,

@@ -73,6 +73,8 @@ test('appointment group editing and checkout preserve invoice identity and custo
     await t.test('checkout pays existing invoice once and paid invoice cannot be edited',async()=>{
       const receipt = await checkoutPosInvoice({...checkout,requestKey:'correct-customer'});
       assert.equal(receipt.id,1);assert.equal(receipt.paymentStatus,'paid');
+      const activity = (await query("SELECT description FROM activities WHERE action='pos.checkout'")).rows[0].description;
+      assert.match(activity, /Tổng: 5\.000đ, đã thu: 5\.000đ, còn nợ: 0đ/);
       const order = await getOrder({branchId:1,id:1});
       assert.equal(order.code,'EDIT-01');assert.equal(order.customer.id,2);assert.equal(order.serviceProgress.completed,2);
       await assert.rejects(createAppointments(edit),{code:'INVOICE_NOT_EDITABLE'});

@@ -130,10 +130,10 @@ describe('MobileAppointmentCreateView Component', () => {
 
     // Card 3: Status pills
     expect(screen.getByText('Chờ xác nhận')).toBeInTheDocument();
-    expect(screen.getByText('Chưa tới')).toBeInTheDocument();
+    expect(screen.getByText('Chờ phục vụ')).toBeInTheDocument();
     expect(screen.getByText('Đang chờ')).toBeInTheDocument();
     expect(screen.getByText('Đang làm')).toBeInTheDocument();
-    expect(screen.getByText('Hoàn thành')).toBeInTheDocument();
+    expect(screen.getByText('Đã xong')).toBeInTheDocument();
 
     // Bottom action button
     expect(screen.getByRole('button', { name: 'Lưu' })).toBeInTheDocument();
@@ -169,6 +169,7 @@ describe('MobileAppointmentCreateView Component', () => {
     await waitFor(() => {
       expect(screen.getByText('Chăm sóc da chuyên sâu')).toBeInTheDocument();
     });
+    expect(screen.getByText('350.000đ')).toBeInTheDocument();
 
     // Tap on item from catalog
     fireEvent.click(screen.getByText('Chăm sóc da chuyên sâu'));
@@ -184,7 +185,7 @@ describe('MobileAppointmentCreateView Component', () => {
     // Now item should be shown in Card 2 (non-empty state)
     await waitFor(() => {
       expect(screen.getByText('Chăm sóc da chuyên sâu')).toBeInTheDocument();
-      expect(screen.getByText('350.000')).toBeInTheDocument();
+      expect(screen.getByText('350.000đ')).toBeInTheDocument();
     });
   });
 
@@ -298,7 +299,7 @@ describe('MobileAppointmentCreateView Component', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Xong' }));
 
     await waitFor(() => expect(screen.getByText('Dùng gói: Gói chăm sóc da 5 buổi')).toBeInTheDocument());
-    expect(screen.getByText('0')).toBeInTheDocument();
+    expect(screen.getByText('0đ')).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: 'Lưu' }));
     await waitFor(() => {

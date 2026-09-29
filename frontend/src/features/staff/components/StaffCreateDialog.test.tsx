@@ -43,6 +43,8 @@ describe('StaffCreateDialog', () => {
     const payload = vi.mocked(staffApi.createStaff).mock.calls[0][0];
     expect(payload.baseSalary).toBe(0);
     expect(payload.profile).toMatchObject({ allowances: [], deductions: [] });
+    // Gender is only saved when the manager picks one.
+    expect(payload.profile.gender).toBe('');
   });
 
   it('edits the saved salary setup instead of replacing it with samples', async () => {

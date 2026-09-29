@@ -6,7 +6,7 @@ import { useEffect, useState, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/components/ui/Toast/ToastProvider';
-import { formatMoney, formatNumber } from '@/lib/format';
+import { formatMoney } from '@/lib/format';
 import { MoneyInput } from '@/components/forms/MoneyInput';
 import {
   checkoutPosInvoice,
@@ -31,6 +31,7 @@ import {
 import { MobileHeaderAction, MobilePageHeader } from '@/components/ui/MobilePageHeader/MobilePageHeader';
 import { BottomSheet } from '@/components/ui/Sheet/BottomSheet';
 import { EmptyState } from '@/components/data-display/DataState';
+import { PAYMENT_METHOD_LABELS } from '@/lib/payment-methods';
 
 type PaymentMethod = 'cash' | 'bank_transfer' | 'card' | 'wallet';
 
@@ -182,10 +183,11 @@ export function MobileInvoiceCreateView() {
       itemId: catItem.itemId,
       itemType: catItem.itemType,
       name: catItem.name,
+      unit: catItem.unit,
       unitPrice: catItem.salePrice,
       quantity: 1,
-      durationMinutes: 60,
-      startsAt: new Date(),
+      durationMinutes: catItem.itemType === 'service' ? 60 : undefined,
+      startsAt: catItem.itemType === 'service' ? new Date() : null,
       staffId: null,
       staffName: null,
       position: null,
@@ -452,12 +454,12 @@ export function MobileInvoiceCreateView() {
                             {item.name}
                           </div>
                           <div className="text-muted">
-                            {formatMoney(item.unitPrice)} / cái, lần
+                            {formatMoney(item.unitPrice)} / {item.unit || 'lần'}
                           </div>
                         </div>
                       </div>
                       <div className="mobile-form-item-price">
-                        {formatNumber((item.unitPrice || 0) * item.quantity)}
+                        {formatMoney((item.unitPrice || 0) * item.quantity)}
                       </div>
                     </div>
 
@@ -543,7 +545,7 @@ export function MobileInvoiceCreateView() {
                 onClick={() => setPaymentMethod('bank_transfer')}
               >
                 <i className="ph ph-qr-code" />
-                <span>VietQR / CK</span>
+                <span>{PAYMENT_METHOD_LABELS.bank_transfer}</span>
               </button>
               <button
                 type="button"
@@ -551,7 +553,7 @@ export function MobileInvoiceCreateView() {
                 onClick={() => setPaymentMethod('card')}
               >
                 <i className="ph ph-credit-card" />
-                <span>Quẹt thẻ</span>
+                <span>{PAYMENT_METHOD_LABELS.card}</span>
               </button>
               <button
                 type="button"
@@ -559,7 +561,7 @@ export function MobileInvoiceCreateView() {
                 onClick={() => setPaymentMethod('wallet')}
               >
                 <i className="ph ph-wallet" />
-                <span>Thẻ tài khoản</span>
+                <span>{PAYMENT_METHOD_LABELS.wallet}</span>
               </button>
             </div>
           </div>
@@ -714,7 +716,7 @@ export function MobileInvoiceCreateView() {
                 </span>
               </div>
               <span className="mobile-catalog-item-price">
-                {formatNumber(cat.salePrice)}
+                {formatMoney(cat.salePrice)}
               </span>
             </button>
           ))

@@ -192,7 +192,17 @@ describe('StaffPayrollView Component', () => {
     expect(screen.getByText('Bảng lương tháng 07/2026')).toBeInTheDocument();
 
     // Check Pagination text
-    expect(screen.getByText(/1 - 2 trong 2 bảng lương/i)).toBeInTheDocument();
+    // Same pagination footer as every other list.
+    expect(screen.getByText('Hiển thị 1-2 trên tổng số 2 bản ghi')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Trang sau' })).toBeDisabled();
+  });
+
+  it('colours only amounts still owed to staff in red', async () => {
+    renderWithClient(<StaffPayrollView />);
+    const owedRow = (await screen.findByText('BL202608')).closest('tr')!;
+    const settledRow = screen.getByText('BL202607').closest('tr')!;
+    expect(owedRow.querySelector('[data-label="Còn cần trả"]')).toHaveClass('text-danger');
+    expect(settledRow.querySelector('[data-label="Còn cần trả"]')).not.toHaveClass('text-danger');
   });
 
   it('filters rows by search term and status checkboxes', async () => {

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { formatMoney, formatNumber } from '@/lib/format';
 import { Select } from '@/components/ui/Select/Select';
-import { axisLabel, niceMaximum, smoothPath } from '@/components/charts/chartScale';
+import { axisLabel, niceCountMaximum, niceMaximum, smoothPath, visibleLabelIndexes } from '@/components/charts/chartScale';
 import type { ApiRecord } from '@/types/api';
 
 type ChartView = 'hour' | 'day' | 'weekday';
@@ -23,13 +23,20 @@ export const dashboardPeriods: Array<{ key: DashboardPeriod; value: DashboardPer
   { key: 'last_month', value: 'last_month', label: 'Tháng trước' },
 ];
 
-function ChartLabels({ points }: { points: ApiRecord[] }) {
-  return <div className={`chart-x-labels ${points.length <= 7 ? 'show-all' : ''}`} aria-hidden="true">{points.map((point, index) => <span className={index === 0 ? 'is-first' : index === points.length - 1 ? 'is-last' : ''} style={{ left: `${points.length > 1 ? index / (points.length - 1) * 100 : 50}%` }} key={`${point.label}-${index}`}>{point.label}</span>)}</div>;
+// Line charts put points on the plot edges; bar charts centre each bar in its slot.
+function ChartLabels({ points, centered = false }: { points: ApiRecord[]; centered?: boolean }) {
+  const count = points.length;
+  const onEdges = !centered && count > 1;
+  return <div className="chart-x-labels" aria-hidden="true">{visibleLabelIndexes(count).map((index) => {
+    const left = centered ? (index + 0.5) / count * 100 : count > 1 ? index / (count - 1) * 100 : 50;
+    const edgeClass = onEdges && index === 0 ? 'is-first' : onEdges && index === count - 1 ? 'is-last' : '';
+    return <span className={edgeClass} style={{ left: `${left}%` }} key={`${points[index].label}-${index}`}>{points[index].label}</span>;
+  })}</div>;
 }
 
 function LineChart({ points, view }: { points: ApiRecord[]; view: ChartView }) {
   const values = points.map((point) => Number(point.value ?? 0));
-  const maximum = niceMaximum(values);
+  const maximum = niceCountMaximum(values);
   const coordinates = values.map((value, index) => ({
     x: points.length > 1 ? index / (points.length - 1) * chartWidth : chartWidth / 2,
     y: chartHeight - value / maximum * (chartHeight - 8),
@@ -42,7 +49,7 @@ function BarChart({ points, view }: { points: ApiRecord[]; view: ChartView }) {
   const maximum = niceMaximum(values);
   const slot = chartWidth / Math.max(points.length, 1);
   const barWidth = Math.min(34, slot * 0.66);
-  return <div className="standard-chart"><div className="chart-y-labels">{tickRates.map((rate) => <span key={rate}>{axisLabel(maximum * rate, true)}</span>)}</div><div className="standard-chart-plot"><svg viewBox={`0 0 ${chartWidth} ${chartHeight}`} preserveAspectRatio="none" role="img" aria-label={`Biểu đồ doanh thu ${views.find((item) => item.key === view)?.label.toLowerCase()}`}>{tickRates.map((rate) => <line className="chart-grid-line" x1="0" x2={chartWidth} y1={chartHeight * (1 - rate)} y2={chartHeight * (1 - rate)} key={rate} />)}{points.map((point, index) => { const value = Number(point.value ?? 0); const height = value / maximum * (chartHeight - 8); return <rect className="standard-bar" x={index * slot + (slot - barWidth) / 2} y={chartHeight - height} width={barWidth} height={height} rx="6" key={`${point.label}-${index}`}><title>{point.label}: {formatMoney(value)}</title></rect>; })}</svg><ChartLabels points={points} /></div></div>;
+  return <div className="standard-chart"><div className="chart-y-labels">{tickRates.map((rate) => <span key={rate}>{axisLabel(maximum * rate, true)}</span>)}</div><div className="standard-chart-plot"><svg viewBox={`0 0 ${chartWidth} ${chartHeight}`} preserveAspectRatio="none" role="img" aria-label={`Biểu đồ doanh thu ${views.find((item) => item.key === view)?.label.toLowerCase()}`}>{tickRates.map((rate) => <line className="chart-grid-line" x1="0" x2={chartWidth} y1={chartHeight * (1 - rate)} y2={chartHeight * (1 - rate)} key={rate} />)}{points.map((point, index) => { const value = Number(point.value ?? 0); const height = value / maximum * (chartHeight - 8); return <rect className="standard-bar" x={index * slot + (slot - barWidth) / 2} y={chartHeight - height} width={barWidth} height={height} rx="6" key={`${point.label}-${index}`}><title>{point.label}: {formatMoney(value)}</title></rect>; })}</svg><ChartLabels points={points} centered /></div></div>;
 }
 
 function ChartTabs({ value, onChange }: { value: ChartView; onChange: (view: ChartView) => void }) {

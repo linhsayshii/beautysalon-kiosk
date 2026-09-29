@@ -3,7 +3,7 @@ import { pool } from '../../db.js';
 import { HttpError } from '../../lib/http.js';
 import { broadcastToBranch, realtimeEvents } from '../../lib/ws.js';
 import { beginPaymentRequest, finishPaymentRequest, money } from '../debts/debts.service.js';
-import { cashCategory, recordCashEntry } from './cashbook.ledger.js';
+import { assertFundsCover, cashCategory, recordCashEntry } from './cashbook.ledger.js';
 
 const number = (value) => Number(value ?? 0);
 const TRANSFER_CATEGORIES = ['fund_transfer_in', 'fund_transfer_out'];
@@ -217,6 +217,7 @@ export async function createVoucher({ branchId, actorAccountId, type, fund, cate
     const payload = { operation: 'cash-voucher', type, fund, categoryKey, amount: value, occurredAt: occurredAt?.toISOString() ?? null, counterpartyName, note, actorAccountId };
     const replay = await beginPaymentRequest(client, branchId, requestKey, payload);
     if (replay) return { ...replay, replayed: true };
+    if (type === 'expense') await assertFundsCover(client, branchId, { [fund]: -value });
     const entry = await recordCashEntry(client, {
       branchId, type, categoryKey, amount: value, fund,
       paymentMethod: fund === 'cash' ? 'cash' : 'bank_transfer',
@@ -242,6 +243,7 @@ export async function createTransfer({ branchId, actorAccountId, fromFund, toFun
     const payload = { operation: 'cash-transfer', fromFund, toFund, amount: value, occurredAt: occurredAt?.toISOString() ?? null, note, actorAccountId };
     const replay = await beginPaymentRequest(client, branchId, requestKey, payload);
     if (replay) return { ...replay, replayed: true };
+    await assertFundsCover(client, branchId, { [fromFund]: -value });
     const transferGroup = randomUUID();
     // Both halves share one timestamp so neither fund briefly shows the move alone.
     const at = occurredAt ?? new Date();
@@ -291,6 +293,17 @@ export async function cancelVoucher({ branchId, actorAccountId, id, reason }) {
     if (!CANCELLABLE_SOURCES.includes(row.source_type)) {
       throw new HttpError(409, 'VOUCHER_HAS_SOURCE', 'Phiếu tạo tự động từ chứng từ khác, không thể hủy tại sổ quỹ');
     }
+    // Cancelling removes the voucher (and its transfer twin) from the funds:
+    // income leaving the ledger must still be covered by what is left.
+    const affected = await client.query(
+      `SELECT fund, SUM(CASE WHEN transaction_type = 'income' THEN -amount ELSE amount END) AS change
+       FROM cash_transactions
+       WHERE branch_id = $1 AND status = 'active'
+         AND (id = $2 OR ($3::uuid IS NOT NULL AND transfer_group = $3::uuid))
+       GROUP BY fund`,
+      [branchId, id, row.transfer_group],
+    );
+    await assertFundsCover(client, branchId, Object.fromEntries(affected.rows.map((entry) => [entry.fund, Number(entry.change)])));
     await client.query(
       `UPDATE cash_transactions
        SET status = 'cancelled', cancelled_at = NOW(), cancelled_by = $3, cancel_reason = $4
