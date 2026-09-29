@@ -21,6 +21,7 @@ import { PosReceiptPrint } from './PosReceiptPrint';
 import { UsePackageModal } from './UsePackageModal';
 import { BarcodeScannerModal } from '@/components/ui/BarcodeScanner/BarcodeScannerModal';
 import { usePosBarcodeLookup } from '../usePosBarcodeLookup';
+import { expectedLineCommission } from '../commission';
 import { ProductImageViewButton } from '@/features/inventory/components/ProductImageViewButton';
 
 type CatalogFilter = '' | 'service' | 'package' | 'account_card' | 'product';
@@ -38,6 +39,8 @@ interface CatalogItem {
   imageUrl?: string;
   commissionType?: 'percent' | 'fixed' | null;
   commissionRate?: number;
+  tourCommissionType?: 'percent' | 'fixed' | null;
+  tourCommissionRate?: number;
   usePackageId?: number | null;
   usePackageServiceId?: number | null;
 }
@@ -45,6 +48,9 @@ interface CatalogItem {
 interface PosLine extends CatalogItem {
   quantity: number;
   staffId: number | null;
+  /** Service lines: earns the original commission; the performer (staffId) earns the tour. */
+  consultantStaffId?: number | null;
+  consultantOpen?: boolean;
   commissionType: 'percent' | 'fixed' | null;
   commissionRate: number;
 }
@@ -164,7 +170,9 @@ export function PosView() {
         itemType: item.itemType,
         code: item.code || '', name: item.name, category: '', unit: item.unit || 'lần', salePrice: item.unitPrice,
         stockQuantity: null, quantity: item.quantity, staffId: item.staffId || null,
+        consultantStaffId: item.consultantStaffId || null,
         commissionType: item.commissionType || null, commissionRate: item.commissionRate || 0,
+        tourCommissionType: item.tourCommissionType || null, tourCommissionRate: item.tourCommissionRate || 0,
         usePackageId: item.customerPackageId || null,
         usePackageServiceId: item.customerPackageId ? item.serviceId : null,
       })),
@@ -297,6 +305,17 @@ export function PosView() {
     }));
   };
 
+  const updateLineConsultant = (line: PosLine, consultantStaffId: number | null, consultantOpen: boolean) => {
+    updateActive((invoice) => ({
+      ...invoice,
+      lines: invoice.lines.map((current) =>
+        current.itemId === line.itemId && current.itemType === line.itemType
+          ? { ...current, consultantStaffId, consultantOpen }
+          : current
+      ),
+    }));
+  };
+
   const handlePackageServiceSelect = (customerPackageId: number, serviceId: number) => {
     const pkg = servicePackages.find(p => p.customerPackageId === customerPackageId);
     const svc = pkg?.services.find(s => s.serviceId === serviceId);
@@ -323,19 +342,14 @@ export function PosView() {
   };
 
   function calculateExpectedCommission(line: PosLine): string {
-    if (!line.staffId) return '-';
-    if (!line.commissionType || !line.commissionRate) return '0đ';
-
-    const revenue = line.salePrice * line.quantity;
-    let amount = 0;
-
-    if (line.commissionType === 'percent') {
-      amount = revenue * line.commissionRate;
-    } else {
-      amount = line.quantity * line.commissionRate;
-    }
-
-    return formatMoney(Math.round(amount));
+    if (!line.staffId && !line.consultantStaffId) return '-';
+    const expected = expectedLineCommission({ ...line, unitPrice: line.salePrice, isPackageRedemption: Boolean(line.usePackageId) });
+    if (line.itemType !== 'service') return formatMoney(expected.total);
+    const parts = [
+      line.staffId ? `Tua ${formatMoney(expected.tour)}` : null,
+      line.consultantStaffId ? `TV ${formatMoney(expected.consulting)}` : null,
+    ].filter(Boolean);
+    return parts.join(' · ');
   }
 
   const removeLine = (line: PosLine) => updateActive((invoice) => ({
@@ -507,6 +521,16 @@ export function PosView() {
                       triggerClassName="pos-line-staff-trigger"
                       options={[{ value: '', label: '-- NV --' }, ...staffList.map((staff) => ({ value: staff.id, label: staff.name }))]}
                     />
+                    {line.itemType === 'service' && (
+                      <ConsultantPicker
+                        serviceName={line.name}
+                        value={line.consultantStaffId ?? null}
+                        open={Boolean(line.consultantOpen || line.consultantStaffId)}
+                        staffList={staffList}
+                        triggerClassName="pos-line-staff-trigger"
+                        onChange={(consultantStaffId, open) => updateLineConsultant(line, consultantStaffId, open)}
+                      />
+                    )}
                   </div>
                   <span className="pos-line-commission">{calculateExpectedCommission(line)}</span>
                   <strong className="pos-line-total">{formatMoney(line.salePrice * line.quantity)}</strong>
@@ -598,12 +622,15 @@ interface AppointmentItem {
   note?: string;
   customer: { id: number | null; name: string; phone?: string };
   staff: { id: number | null; name?: string | null };
+  consultant?: { id: number; name: string } | null;
   service: {
     id: number | null;
     name?: string | null;
     salePrice?: number;
     commissionType?: 'percent' | 'fixed' | null;
     commissionRate?: number;
+    tourCommissionType?: 'percent' | 'fixed' | null;
+    tourCommissionRate?: number;
   };
 }
 
@@ -743,12 +770,49 @@ type AppointmentServiceLine = {
   name: string;
   salePrice: number;
   staffId: number | null;
+  consultantStaffId?: number | null;
+  consultantOpen?: boolean;
   commissionType?: 'percent' | 'fixed' | null;
   commissionRate?: number;
+  tourCommissionType?: 'percent' | 'fixed' | null;
+  tourCommissionRate?: number;
   fromPackageId?: number | null;
   packageName?: string;
   remainingUnits?: number;
 };
+
+/** Optional consultant for a service line: hidden behind "+ Tư vấn bán" until used. */
+export function ConsultantPicker({ serviceName, value, open, staffList, triggerClassName, onChange }: {
+  serviceName: string;
+  value: number | null;
+  open: boolean;
+  staffList: Array<{ id: number; name: string }>;
+  triggerClassName: string;
+  onChange: (consultantStaffId: number | null, open: boolean) => void;
+}) {
+  if (!open) {
+    return (
+      <button type="button" className="btn btn-link btn-sm pos-consultant-add" onClick={() => onChange(null, true)}>
+        <i className="ph ph-plus" aria-hidden="true" />Tư vấn bán
+      </button>
+    );
+  }
+  return (
+    <span className="pos-consultant">
+      <Select<number | string>
+        aria-label={`Nhân viên tư vấn ${serviceName}`}
+        value={value ?? ''}
+        onChange={(staffId) => onChange(staffId === '' ? null : Number(staffId), true)}
+        size="sm"
+        triggerClassName={triggerClassName}
+        options={[{ value: '', label: '-- Tư vấn --' }, ...staffList.map((staff) => ({ value: staff.id, label: staff.name }))]}
+      />
+      <button type="button" className="btn btn-ghost btn-icon btn-sm" aria-label={`Bỏ nhân viên tư vấn ${serviceName}`} onClick={() => onChange(null, false)}>
+        <i className="ph ph-x" />
+      </button>
+    </span>
+  );
+}
 
 function AppointmentDrawer({
   selection,
@@ -789,8 +853,11 @@ function AppointmentDrawer({
       name: initialAppointment.service.name || 'Dịch vụ',
       salePrice: initialAppointment.service.salePrice || 0,
       staffId: initialAppointment.staff.id ?? null,
+      consultantStaffId: initialAppointment.consultant?.id ?? null,
       commissionType: initialAppointment.service.commissionType ?? null,
       commissionRate: initialAppointment.service.commissionRate ?? 0,
+      tourCommissionType: initialAppointment.service.tourCommissionType ?? null,
+      tourCommissionRate: initialAppointment.service.tourCommissionRate ?? 0,
     }] : [],
   );
 
@@ -873,8 +940,11 @@ function AppointmentDrawer({
         name: item.name,
         salePrice: item.unitPrice,
         staffId: item.appointment.staff?.id ?? item.staffId ?? null,
+        consultantStaffId: item.consultantStaffId ?? null,
         commissionType: item.commissionType ?? null,
         commissionRate: item.commissionRate ?? 0,
+        tourCommissionType: item.tourCommissionType ?? null,
+        tourCommissionRate: item.tourCommissionRate ?? 0,
         // Preserve the redemption source when reopening an appointment.  It
         // must survive a later save so POS does not turn a package session
         // back into a normally charged service.
@@ -895,6 +965,7 @@ function AppointmentDrawer({
           customerId: customer!.id,
           serviceId: service.id,
           staffId: service.staffId,
+          consultantStaffId: service.consultantStaffId ?? null,
           status: service.appointmentId === initialAppointment!.id ? status : undefined,
           note: service.appointmentId === initialAppointment!.id ? note : undefined,
           startsAt: service.appointmentId === initialAppointment!.id ? startsAtIso : undefined,
@@ -913,6 +984,7 @@ function AppointmentDrawer({
             items: additions.map((service) => ({
               serviceId: service.id,
               staffId: service.staffId,
+              consultantStaffId: service.consultantStaffId ?? null,
               quantity: 1,
               usePackageId: service.fromPackageId ?? null,
               usePackageServiceId: service.fromPackageId ? service.id : null,
@@ -931,6 +1003,7 @@ function AppointmentDrawer({
         items: additions.map((service) => ({
           serviceId: service.id,
           staffId: service.staffId,
+          consultantStaffId: service.consultantStaffId ?? null,
           quantity: 1,
           usePackageId: service.fromPackageId ?? null,
           usePackageServiceId: service.fromPackageId ? service.id : null,
@@ -952,7 +1025,10 @@ function AppointmentDrawer({
         return [...current, { ...service, lineId: crypto.randomUUID(), staffId: null }];
       }
       return current.map((item) => item.lineId === replaceServiceLineId
-        ? { ...service, lineId: item.lineId, appointmentId: item.appointmentId, staffId: item.staffId }
+        ? {
+          ...service, lineId: item.lineId, appointmentId: item.appointmentId, staffId: item.staffId,
+          consultantStaffId: item.consultantStaffId, consultantOpen: item.consultantOpen,
+        }
         : item);
     });
     setReplaceServiceLineId(null);
@@ -1153,11 +1229,13 @@ function AppointmentDrawer({
               ) : (
                 <div className="kv-selected-services-list">
                   {selectedServices.map((service) => {
-                    const commission = !service.staffId || !service.commissionType || !service.commissionRate
-                      ? 0
-                      : Math.round(service.commissionType === 'percent'
-                        ? service.salePrice * service.commissionRate
-                        : service.commissionRate);
+                    const commission = expectedLineCommission({
+                      ...service,
+                      itemType: 'service',
+                      quantity: 1,
+                      unitPrice: service.fromPackageId ? 0 : service.salePrice,
+                      isPackageRedemption: Boolean(service.fromPackageId),
+                    }).total;
                     return (
                       <div key={service.lineId} className="kv-service-row">
                         <div className="kv-service-row-main">
@@ -1196,6 +1274,16 @@ function AppointmentDrawer({
                               size="sm"
                               triggerClassName="kv-service-assignment-trigger"
                               options={[{ value: '', label: 'Chưa phân công' }, ...staffList.map((staff) => ({ value: staff.id, label: staff.name }))]}
+                            />
+                            <ConsultantPicker
+                              serviceName={service.name}
+                              value={service.consultantStaffId ?? null}
+                              open={Boolean(service.consultantOpen || service.consultantStaffId)}
+                              staffList={staffList}
+                              triggerClassName="kv-service-assignment-trigger"
+                              onChange={(consultantStaffId, consultantOpen) => setSelectedServices((current) => current.map((item) => (
+                                item.lineId === service.lineId ? { ...item, consultantStaffId, consultantOpen } : item
+                              )))}
                             />
                             <span className="kv-service-commission">Hoa hồng: <strong>{formatMoney(commission)}</strong></span>
                           </div>
@@ -1342,6 +1430,8 @@ function AppointmentDrawer({
                         salePrice: svc.salePrice,
                         commissionType: svc.commissionType,
                         commissionRate: svc.commissionRate,
+                        tourCommissionType: svc.tourCommissionType,
+                        tourCommissionRate: svc.tourCommissionRate,
                         fromPackageId: null,
                       });
                     }}

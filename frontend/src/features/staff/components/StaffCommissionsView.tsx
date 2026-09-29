@@ -11,6 +11,12 @@ import { monthStartIso, todayIso } from '@/lib/date';
 import { formatDate, formatMoney, formatNumber, formatPercent } from '@/lib/format';
 import { getCommissions } from '../staff.api';
 
+const commissionTypeBadges = {
+  tour: { label: 'Tua dịch vụ', className: 'badge-info' },
+  consulting: { label: 'Tư vấn bán', className: 'badge-violet' },
+  service: { label: 'Thực hiện dịch vụ', className: 'badge-neutral' },
+};
+
 export function StaffCommissionsView() {
   const [activeTab, setActiveTab] = useState<'by_staff' | 'details'>('by_staff');
   const [draft, setDraft] = useState({ from: monthStartIso(), to: todayIso() });
@@ -26,28 +32,30 @@ export function StaffCommissionsView() {
   const rows = data?.rows ?? [];
   const staffSummary = data?.staffSummary ?? [];
 
-  const totalRevenue = rows.reduce((sum: number, row: Record<string, any>) => sum + Number(row.revenue), 0);
-  const totalCommission = rows.reduce((sum: number, row: Record<string, any>) => sum + Number(row.amount), 0);
-  const serviceCommission = rows
-    .filter((r: Record<string, any>) => r.commissionType === 'service')
-    .reduce((sum: number, row: Record<string, any>) => sum + Number(row.amount), 0);
-  const consultingCommission = rows
-    .filter((r: Record<string, any>) => r.commissionType === 'consulting')
-    .reduce((sum: number, row: Record<string, any>) => sum + Number(row.amount), 0);
+  // Totals come from the per-staff summary, which covers the whole period
+  // (the detail list is capped).
+  const sum = (key: 'totalRevenue' | 'totalAmount' | 'serviceAmount' | 'consultingAmount' | 'tourAmount') =>
+    staffSummary.reduce((total, summary) => total + Number(summary[key] ?? 0), 0);
+  const totalRevenue = sum('totalRevenue');
+  const totalCommission = sum('totalAmount');
+  const tourCommission = sum('tourAmount');
+  const consultingCommission = sum('consultingAmount');
+  // Service commission is only recorded for sales made before tour commission existed.
+  const legacyServiceCommission = sum('serviceAmount');
 
   return (
     <main className="page">
       <div className="page-stack">
         <PageHeader
           title="Bảng hoa hồng"
-          subtitle="Tổng hợp và chi tiết hoa hồng theo nhân viên, thực hiện dịch vụ và tư vấn bán hàng."
+          subtitle="Tổng hợp và chi tiết hoa hồng theo nhân viên: hoa hồng tua khi thực hiện dịch vụ và hoa hồng tư vấn bán."
         />
 
         <SummaryStrip
           items={[
             { label: 'Tổng hoa hồng', value: formatMoney(totalCommission), note: 'Tất cả nhân viên', tone: 'green' },
-            { label: 'HH Thực hiện DV', value: formatMoney(serviceCommission), note: 'Kỹ thuật viên làm dịch vụ', tone: 'blue' },
-            { label: 'HH Tư vấn bán hàng', value: formatMoney(consultingCommission), note: 'Tư vấn mỹ phẩm / gói', tone: 'violet' },
+            { label: 'HH Tua', value: formatMoney(tourCommission), note: 'Nhân viên thực hiện dịch vụ', tone: 'blue' },
+            { label: 'HH Tư vấn bán', value: formatMoney(consultingCommission), note: legacyServiceCommission ? `Thực hiện (cũ): ${formatMoney(legacyServiceCommission)}` : 'Tư vấn dịch vụ, bán sản phẩm', tone: 'violet' },
             { label: 'Doanh thu phát sinh', value: formatMoney(totalRevenue), note: 'Có tính hoa hồng', tone: 'orange' },
           ]}
         />
@@ -107,10 +115,11 @@ export function StaffCommissionsView() {
                     <thead>
                       <tr>
                         <th>Nhân viên</th>
-                        <th className="is-num">DT Dịch vụ</th>
-                        <th className="is-num text-primary">HH Thực hiện DV</th>
+                        <th className="is-num">DT Tua</th>
+                        <th className="is-num text-primary">HH Tua</th>
                         <th className="is-num">DT Tư vấn</th>
-                        <th className="is-num text-violet">HH Tư vấn bán hàng</th>
+                        <th className="is-num text-violet">HH Tư vấn bán</th>
+                        {legacyServiceCommission > 0 && <th className="is-num">HH Thực hiện (cũ)</th>}
                         <th className="is-num text-success">Tổng hoa hồng</th>
                         <th>Lượt phát sinh</th>
                         <th />
@@ -126,14 +135,14 @@ export function StaffCommissionsView() {
                               tone={summary.staff.avatarTone}
                             />
                           </td>
-                          <td data-label="DT Dịch vụ" className="money-cell is-num">
-                            {formatMoney(summary.serviceRevenue)}
+                          <td data-label="DT Tua" className="money-cell is-num">
+                            {formatMoney(summary.tourRevenue)}
                           </td>
                           <td
-                            data-label="HH Thực hiện"
+                            data-label="HH Tua"
                             className="money-cell is-num text-primary"
                           >
-                            {formatMoney(summary.serviceAmount)}
+                            {formatMoney(summary.tourAmount)}
                           </td>
                           <td data-label="DT Tư vấn" className="money-cell is-num">
                             {formatMoney(summary.consultingRevenue)}
@@ -144,6 +153,11 @@ export function StaffCommissionsView() {
                           >
                             {formatMoney(summary.consultingAmount)}
                           </td>
+                          {legacyServiceCommission > 0 && (
+                            <td data-label="HH Thực hiện (cũ)" className="money-cell is-num">
+                              {formatMoney(summary.serviceAmount)}
+                            </td>
+                          )}
                           <td
                             data-label="Tổng hoa hồng"
                             className="money-cell is-num text-success"
@@ -169,19 +183,26 @@ export function StaffCommissionsView() {
                                     ],
                                   },
                                   {
-                                    title: 'Hoa hồng Thực hiện Dịch vụ',
+                                    title: 'Hoa hồng tua',
                                     rows: [
-                                      ['Doanh thu dịch vụ', formatMoney(summary.serviceRevenue)],
-                                      ['Hoa hồng dịch vụ', formatMoney(summary.serviceAmount)],
+                                      ['Doanh thu tính tua', formatMoney(summary.tourRevenue)],
+                                      ['Hoa hồng tua', formatMoney(summary.tourAmount)],
                                     ],
                                   },
                                   {
-                                    title: 'Hoa hồng Tư vấn Bán hàng',
+                                    title: 'Hoa hồng tư vấn bán',
                                     rows: [
                                       ['Doanh thu tư vấn', formatMoney(summary.consultingRevenue)],
                                       ['Hoa hồng tư vấn', formatMoney(summary.consultingAmount)],
                                     ],
                                   },
+                                  ...(summary.serviceAmount > 0 ? [{
+                                    title: 'Hoa hồng thực hiện (trước khi có tua)',
+                                    rows: [
+                                      ['Doanh thu dịch vụ', formatMoney(summary.serviceRevenue)],
+                                      ['Hoa hồng dịch vụ', formatMoney(summary.serviceAmount)],
+                                    ] as Array<[string, string]>,
+                                  }] : []),
                                   {
                                     title: 'Tổng cộng',
                                     rows: [['Tổng hoa hồng thụ hưởng', formatMoney(summary.totalAmount)]],
@@ -235,8 +256,8 @@ export function StaffCommissionsView() {
                           />
                         </td>
                         <td data-label="Loại hoa hồng">
-                          <span className={row.commissionType === 'consulting' ? 'badge badge-violet' : 'badge badge-info'}>
-                            {row.commissionType === 'consulting' ? 'Tư vấn bán hàng' : 'Thực hiện dịch vụ'}
+                          <span className={`badge ${commissionTypeBadges[row.commissionType as keyof typeof commissionTypeBadges]?.className ?? 'badge-info'}`}>
+                            {commissionTypeBadges[row.commissionType as keyof typeof commissionTypeBadges]?.label ?? 'Thực hiện dịch vụ'}
                           </span>
                         </td>
                         <td data-label="Nguồn">
@@ -254,10 +275,10 @@ export function StaffCommissionsView() {
                         <td data-label="Doanh thu" className="money-cell is-num">
                           {formatMoney(row.revenue)}
                         </td>
-                        <td data-label="Tỷ lệ">{formatPercent(row.rate)}</td>
+                        <td data-label="Tỷ lệ">{row.rate > 1 ? formatMoney(row.rate) : formatPercent(row.rate)}</td>
                         <td
                           data-label="Hoa hồng"
-                          className={`money-cell is-num ${row.commissionType === 'consulting' ? 'text-violet' : 'text-success'}`}
+                          className={`money-cell is-num ${row.commissionType === 'consulting' ? 'text-violet' : row.commissionType === 'tour' ? 'text-primary' : 'text-success'}`}
                         >
                           {formatMoney(row.amount)}
                         </td>

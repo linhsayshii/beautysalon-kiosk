@@ -67,10 +67,94 @@ function buildFormFromItem(data: ApiRecord) {
 
 function buildCommissionFromItem(data: ApiRecord) {
   const ct = data.commissionType ?? null;
+  const tt = data.tourCommissionType ?? null;
   return {
     commissionType: ct,
     commissionRate: ct === 'percent' ? Number(data.commissionRate ?? 0) * 100 : Number(data.commissionRate ?? 0),
+    tourCommissionType: tt,
+    tourCommissionRate: tt === 'percent' ? Number(data.tourCommissionRate ?? 0) * 100 : Number(data.tourCommissionRate ?? 0),
   };
+}
+
+interface CommissionSectionProps {
+  id: string;
+  title: string;
+  description: string;
+  type: CommissionType;
+  /** Percent as a whole number (10 = 10%) or a fixed amount in dong. */
+  rate: number;
+  onTypeChange: (type: CommissionType) => void;
+  onRateChange: (rate: number) => void;
+  salePrice: number;
+  noun: string;
+}
+
+function CommissionSection({ id, title, description, type, rate, onTypeChange, onRateChange, salePrice, noun }: CommissionSectionProps) {
+  const lowerTitle = title.toLowerCase();
+  return (
+    <section className="form-section is-card" role="group" aria-labelledby={`${id}-title`}>
+      <div className="form-section-head"><div><h3 className="form-section-title" id={`${id}-title`}>{title}</h3><p className="form-section-text">{description}</p></div></div>
+      <div className="commission-inline">
+        <label className="commission-toggle">
+          <input
+            type="checkbox"
+            checked={type !== null}
+            onChange={(e) => {
+              onTypeChange(e.target.checked ? 'percent' : null);
+              onRateChange(0);
+            }}
+          />
+          <span>Cho phép tính {lowerTitle}</span>
+        </label>
+
+        {type !== null && (
+          <div className="commission-config-row">
+            <div className="segmented" role="group" aria-label={`Loại ${lowerTitle}`}>
+              <button type="button" aria-pressed={type === 'percent'} onClick={() => onTypeChange('percent')}>
+                % giá bán
+              </button>
+              <button type="button" aria-pressed={type === 'fixed'} onClick={() => onTypeChange('fixed')}>
+                Số tiền cố định
+              </button>
+            </div>
+
+            <div className="commission-rate-row">
+              {type === 'percent' ? (
+                <div className="input-suffix commission-rate-input">
+                  <input
+                    id={`${id}-rate`}
+                    type="text"
+                    inputMode="numeric"
+                    aria-label={`Mức ${lowerTitle}`}
+                    value={rate}
+                    onChange={(event) => onRateChange(Number(event.target.value.replace(/\D/g, '')) || 0)}
+                    placeholder="0"
+                  />
+                  <span>%</span>
+                </div>
+              ) : (
+                <MoneyInput
+                  id={`${id}-rate`}
+                  aria-label={`Mức ${lowerTitle}`}
+                  suffix="đ"
+                  value={rate}
+                  onChange={onRateChange}
+                  placeholder="0"
+                  wrapperClassName="input-suffix commission-rate-input"
+                />
+              )}
+
+              {type === 'percent' && (
+                <div className="commission-preview">
+                  ≈ {formatMoney(salePrice * (rate / 100))} / {noun}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+    </section>
+  );
 }
 
 export function GoodsCreateDialog({ type, onClose, itemId, initialData, initialTab = 'information' }: GoodsCreateDialogProps) {
@@ -88,6 +172,12 @@ export function GoodsCreateDialog({ type, onClose, itemId, initialData, initialT
   );
   const [commissionRate, setCommissionRate] = useState(
     initialData ? buildCommissionFromItem(initialData).commissionRate : 0,
+  );
+  const [tourCommissionType, setTourCommissionType] = useState<CommissionType>(
+    initialData ? buildCommissionFromItem(initialData).tourCommissionType : null,
+  );
+  const [tourCommissionRate, setTourCommissionRate] = useState(
+    initialData ? buildCommissionFromItem(initialData).tourCommissionRate : 0,
   );
   const nameRef = useRef<HTMLInputElement>(null);
   const queryClient = useQueryClient();
@@ -121,9 +211,11 @@ export function GoodsCreateDialog({ type, onClose, itemId, initialData, initialT
     const source = itemQuery.data?.data ?? initialData;
     if (source) {
       setForm(buildFormFromItem(source));
-      const { commissionType: ct, commissionRate: cr } = buildCommissionFromItem(source);
-      setCommissionType(ct);
-      setCommissionRate(cr);
+      const commission = buildCommissionFromItem(source);
+      setCommissionType(commission.commissionType);
+      setCommissionRate(commission.commissionRate);
+      setTourCommissionType(commission.tourCommissionType);
+      setTourCommissionRate(commission.tourCommissionRate);
       if (Array.isArray(source.packageItems)) {
         setPackageItems(source.packageItems.map((item: { serviceId: number; units: number }) => ({
           serviceId: String(item.serviceId),
@@ -223,6 +315,8 @@ export function GoodsCreateDialog({ type, onClose, itemId, initialData, initialT
       scopeItems: scopeItems.map((key) => { const [itemType, itemId] = key.split(':'); return { itemType, itemId: Number(itemId) }; }),
       commissionType: commissionType,
       commissionRate: commissionType === 'percent' ? commissionRate / 100 : commissionRate,
+      tourCommissionType: type === 'service' ? tourCommissionType : null,
+      tourCommissionRate: type !== 'service' ? 0 : tourCommissionType === 'percent' ? tourCommissionRate / 100 : tourCommissionRate,
     };
     mutation.mutate(payload);
   };
@@ -261,76 +355,31 @@ export function GoodsCreateDialog({ type, onClose, itemId, initialData, initialT
               {type === 'account_card' ? <div className="field"><label className="field-label" htmlFor="goods-face-value">Mệnh giá sử dụng</label><MoneyInput id="goods-face-value" suffix="đ" value={numeric(form.faceValue)} onChange={(val) => update('faceValue', String(val))} />{errors.faceValue && <small className="field-error">{errors.faceValue}</small>}</div> : <div className="field"><label className="field-label" htmlFor="goods-cost-price">Giá vốn</label><MoneyInput id="goods-cost-price" suffix="đ" value={numeric(form.costPrice)} onChange={(val) => update('costPrice', String(val))} />{errors.costPrice && <small className="field-error">{errors.costPrice}</small>}</div>}
             </div></section>
 
-            <section className="form-section is-card">
-              <div className="form-section-head"><div><h3 className="form-section-title">Hoa hồng</h3><p className="form-section-text">Thiết lập hoa hồng cho nhân viên khi bán {copy.noun}.</p></div></div>
-              <div className="commission-inline">
-                <label className="commission-toggle">
-                  <input
-                    type="checkbox"
-                    checked={commissionType !== null}
-                    onChange={(e) => {
-                      setCommissionType(e.target.checked ? 'percent' : null);
-                      setCommissionRate(0);
-                    }}
-                  />
-                  <span>Cho phép tính hoa hồng</span>
-                </label>
+            <CommissionSection
+              id="goods-commission"
+              title={type === 'service' ? 'Hoa hồng tư vấn bán' : type === 'product' ? 'Hoa hồng bán' : 'Hoa hồng'}
+              description={type === 'service'
+                ? 'Trả cho nhân viên tư vấn bán được chọn trên từng dòng dịch vụ.'
+                : `Thiết lập hoa hồng cho nhân viên khi bán ${copy.noun}.`}
+              type={commissionType}
+              rate={commissionRate}
+              onTypeChange={setCommissionType}
+              onRateChange={setCommissionRate}
+              salePrice={numeric(form.salePrice)}
+              noun={copy.noun}
+            />
 
-                {commissionType !== null && (
-                  <>
-                    <div className="commission-config-row">
-                      <div className="segmented" role="group" aria-label="Loại hoa hồng">
-                        <button
-                          type="button"
-                          aria-pressed={commissionType === 'percent'}
-                          onClick={() => setCommissionType('percent')}
-                        >
-                          % giá bán
-                        </button>
-                        <button
-                          type="button"
-                          aria-pressed={commissionType === 'fixed'}
-                          onClick={() => setCommissionType('fixed')}
-                        >
-                          Số tiền cố định
-                        </button>
-                      </div>
-
-                      <div className="commission-rate-row">
-                        {commissionType === 'percent' ? (
-                          <div className="input-suffix commission-rate-input">
-                            <input
-                              id="goods-commission-rate"
-                              type="text"
-                              inputMode="numeric"
-                              value={commissionRate}
-                              onChange={(event) => setCommissionRate(Number(event.target.value.replace(/\D/g, '')) || 0)}
-                              placeholder="0"
-                            />
-                            <span>%</span>
-                          </div>
-                        ) : (
-                          <MoneyInput
-                            id="goods-commission-rate"
-                            suffix="đ"
-                            value={commissionRate}
-                            onChange={(val) => setCommissionRate(val)}
-                            placeholder="0"
-                            wrapperClassName="input-suffix commission-rate-input"
-                          />
-                        )}
-
-                        {commissionType === 'percent' && (
-                          <div className="commission-preview">
-                            ≈ {formatMoney(numeric(form.salePrice) * (commissionRate / 100))} / {copy.noun}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </>
-                )}
-              </div>
-            </section>
+            {type === 'service' && <CommissionSection
+              id="goods-tour-commission"
+              title="Hoa hồng tua"
+              description="Trả cho nhân viên thực hiện mỗi lượt làm dịch vụ."
+              type={tourCommissionType}
+              rate={tourCommissionRate}
+              onTypeChange={setTourCommissionType}
+              onRateChange={setTourCommissionRate}
+              salePrice={numeric(form.salePrice)}
+              noun="lượt"
+            />}
 
             {type === 'product' && <section className="form-section is-card"><div className="form-section-head"><div><h3 className="form-section-title">Tồn kho</h3><p className="form-section-text">{isEdit ? 'Điều chỉnh số lượng tồn hiện tại và cảnh báo tồn.' : 'Thiết lập số lượng ban đầu và cảnh báo tồn.'}</p></div></div><div className="form-grid form-grid-3"><div className="field"><label className="field-label" htmlFor="goods-stock">{isEdit ? 'Tồn hiện tại' : 'Tồn ban đầu'}</label><input className="input" id="goods-stock" type="number" min="0" value={form.initialStock} onChange={(event) => update('initialStock', event.target.value)} /></div><div className="field"><label className="field-label" htmlFor="goods-min-stock">Tồn tối thiểu</label><input className="input" id="goods-min-stock" type="number" min="0" value={form.minStock} onChange={(event) => update('minStock', event.target.value)} /></div><div className="field"><label className="field-label" htmlFor="goods-max-stock">Tồn tối đa</label><input className="input" id="goods-max-stock" type="number" min="1" value={form.maxStock} onChange={(event) => update('maxStock', event.target.value)} placeholder="Không giới hạn" aria-invalid={Boolean(errors.maxStock)} />{errors.maxStock && <small className="field-error">{errors.maxStock}</small>}</div></div><div className="field field-compact"><label className="field-label" htmlFor="goods-unit">Đơn vị tính</label><input className="input" id="goods-unit" value={form.unit} onChange={(event) => update('unit', event.target.value)} /></div></section>}
 

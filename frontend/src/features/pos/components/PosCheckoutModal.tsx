@@ -22,6 +22,7 @@ interface PosLine {
   salePrice: number;
   quantity: number;
   staffId: number | null;
+  consultantStaffId?: number | null;
   usePackageId?: number | null;
   usePackageServiceId?: number | null;
 }
@@ -113,6 +114,7 @@ export function PosCheckoutModal({
           itemId: line.itemId,
           quantity: line.quantity,
           staffId: line.staffId ?? undefined,
+          consultantStaffId: line.itemType === 'service' ? line.consultantStaffId ?? null : null,
           usePackageId: line.usePackageId ?? undefined,
           usePackageServiceId: line.usePackageServiceId ?? undefined,
         })),

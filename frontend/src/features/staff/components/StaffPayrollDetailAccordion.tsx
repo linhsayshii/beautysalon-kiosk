@@ -81,6 +81,7 @@ export function StaffPayrollDetailAccordion({ periodId, onOpenSheetView }: Staff
     totalAllowance: 0,
     totalBonus: 0,
     totalCommission: 0,
+    totalTourCommission: 0,
     totalDeduction: 0,
     totalIncome: 0,
     totalNetSalary: 0,
@@ -103,6 +104,7 @@ export function StaffPayrollDetailAccordion({ periodId, onOpenSheetView }: Staff
       allowance: r.allowance,
       bonus: r.bonus,
       commission: r.commission,
+      tourCommission: r.tourCommission,
       deduction: r.deduction,
       totalIncome: r.totalIncome,
       netSalary: r.netSalary,
@@ -209,7 +211,7 @@ export function StaffPayrollDetailAccordion({ periodId, onOpenSheetView }: Staff
               </thead>
               <tbody>
                 {records.map((rec) => {
-                  const allowanceAndCommission = (rec.allowance || 0) + (rec.commission || 0) + (rec.bonus || 0);
+                  const allowanceAndCommission = (rec.allowance || 0) + (rec.commission || 0) + (rec.tourCommission || 0) + (rec.bonus || 0);
                   return (
                     <tr key={rec.id}>
                       <td className="is-code">{rec.code}</td>

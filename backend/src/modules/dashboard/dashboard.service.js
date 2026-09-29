@@ -69,13 +69,16 @@ export async function listAppointments({ branchId, dateFrom, dateTo }) {
             c.id AS customer_id, c.name AS customer_name, c.phone AS customer_phone,
             s.id AS staff_id, s.name AS staff_name,
             sv.id AS service_id, sv.name AS service_name, COALESCE(ii.unit_price, sv.price) AS service_sale_price,
-            sv.commission_type AS service_commission_type, sv.commission_rate AS service_commission_rate
+            sv.commission_type AS service_commission_type, sv.commission_rate AS service_commission_rate,
+            sv.tour_commission_type AS service_tour_commission_type, sv.tour_commission_rate AS service_tour_commission_rate,
+            cst.id AS consultant_staff_id, cst.name AS consultant_staff_name
      FROM appointments a
      CROSS JOIN bounds
      LEFT JOIN customers c ON c.id = a.customer_id
      LEFT JOIN staff s ON s.id = a.staff_id
      LEFT JOIN services sv ON sv.id = a.service_id
      LEFT JOIN invoice_items ii ON ii.appointment_id = a.id
+     LEFT JOIN staff cst ON cst.id = ii.consultant_staff_id
      LEFT JOIN invoices i ON i.id = a.invoice_id
      WHERE a.branch_id = $1
        AND a.starts_at >= bounds.range_start
@@ -99,12 +102,15 @@ export async function listAppointments({ branchId, dateFrom, dateTo }) {
     paymentRequestedAt: row.payment_requested_at || null,
     customer: { id: row.customer_id ? number(row.customer_id) : null, name: row.customer_name ?? 'Khách lẻ', phone: row.customer_phone },
     staff: { id: row.staff_id ? number(row.staff_id) : null, name: row.staff_name },
+    consultant: row.consultant_staff_id ? { id: number(row.consultant_staff_id), name: row.consultant_staff_name } : null,
     service: {
       id: row.service_id ? number(row.service_id) : null,
       name: row.service_name,
       salePrice: number(row.service_sale_price),
       commissionType: row.service_commission_type,
       commissionRate: number(row.service_commission_rate),
+      tourCommissionType: row.service_tour_commission_type,
+      tourCommissionRate: number(row.service_tour_commission_rate),
     },
   }));
 }
@@ -307,6 +313,7 @@ export async function createAppointments({ branchId, customerId, items, status, 
     const plannedPackageServiceUnits = new Map();
     for (const item of items) {
       const { serviceId, staffId, startsAt, endsAt, usePackageId, usePackageServiceId } = item;
+      const consultantStaffId = item.consultantStaffId || null;
       const quantity = Number(item.quantity ?? 1);
       if (!Number.isSafeInteger(quantity) || quantity < 1) throw appError(400, 'INVALID_QUANTITY', 'Số lượng phải là số nguyên dương');
       if (!(startsAt instanceof Date) || !(endsAt instanceof Date) || !Number.isFinite(startsAt.getTime()) || !Number.isFinite(endsAt.getTime()) || endsAt <= startsAt || endsAt - startsAt > 8 * 60 * 60 * 1000) throw appError(400, 'INVALID_TIME_RANGE', 'Thời gian lịch hẹn không hợp lệ');
@@ -323,6 +330,10 @@ export async function createAppointments({ branchId, customerId, items, status, 
       ]);
       if (!serviceResult.rows[0]) throw appError(404, 'SERVICE_NOT_FOUND', 'Không tìm thấy dịch vụ');
       if (staffId && !staffResult.rows[0]) throw appError(404, 'STAFF_NOT_FOUND', 'Không tìm thấy nhân viên');
+      if (consultantStaffId) {
+        const consultantResult = await client.query('SELECT id FROM staff WHERE id = $1 AND branch_id = $2 AND active', [consultantStaffId, branchId]);
+        if (!consultantResult.rows[0]) throw appError(404, 'STAFF_NOT_FOUND', 'Không tìm thấy nhân viên tư vấn');
+      }
 
       if (staffId) {
         const overlap = await client.query(
@@ -373,6 +384,7 @@ export async function createAppointments({ branchId, customerId, items, status, 
         note: item.note !== undefined ? item.note : note,
         serviceId,
         staffId: staffId || null,
+        consultantStaffId,
         startsAt,
         endsAt,
         quantity,
@@ -425,10 +437,10 @@ export async function createAppointments({ branchId, customerId, items, status, 
       const invoiceItemResult = await client.query(
         `INSERT INTO invoice_items (
            invoice_id, item_type, service_id, staff_id, appointment_id, customer_package_id,
-           description, quantity, unit_price, line_total
-         ) VALUES ($1, 'service', $2, $3, $4, $5, $6, $7, $8, $7::numeric * $8::numeric)
+           description, quantity, unit_price, line_total, consultant_staff_id
+         ) VALUES ($1, 'service', $2, $3, $4, $5, $6, $7, $8, $7::numeric * $8::numeric, $9)
          RETURNING id`,
-        [invoice.id, item.serviceId, item.staffId, appointment.id, item.customerPackageId, item.service.name, item.quantity, item.unitPrice],
+        [invoice.id, item.serviceId, item.staffId, appointment.id, item.customerPackageId, item.service.name, item.quantity, item.unitPrice, item.consultantStaffId],
       );
       appointments.push({
         id: number(appointment.id),
@@ -575,7 +587,7 @@ export async function transitionAppointmentWorkStatus({ branchId, staffId, id, s
   }
 }
 
-export async function updateAppointment({ branchId, id, customerId, serviceId, staffId, startsAt, endsAt, status, note, actorAccountId = null }) {
+export async function updateAppointment({ branchId, id, customerId, serviceId, staffId, consultantStaffId, startsAt, endsAt, status, note, actorAccountId = null }) {
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
@@ -628,6 +640,10 @@ export async function updateAppointment({ branchId, id, customerId, serviceId, s
       error.code = 'STAFF_NOT_FOUND';
       throw error;
     }
+    if (consultantStaffId) {
+      const consultantResult = await client.query('SELECT id FROM staff WHERE id = $1 AND branch_id = $2 AND active', [consultantStaffId, branchId]);
+      if (!consultantResult.rows[0]) throw appError(404, 'STAFF_NOT_FOUND', 'Không tìm thấy nhân viên tư vấn');
+    }
 
     if (targetStaffId && targetStatus !== 'cancelled' && targetStatus !== 'no_show') {
       const overlap = await client.query(
@@ -661,6 +677,15 @@ export async function updateAppointment({ branchId, id, customerId, serviceId, s
       service: serviceResult.rows[0] || null,
       status: targetStatus,
     });
+    // An omitted consultant keeps the one on the draft line; null removes it.
+    if (consultantStaffId !== undefined && existing.invoice_id) {
+      await client.query(
+        `UPDATE invoice_items ii SET consultant_staff_id = $1
+         FROM invoices i
+         WHERE i.id = ii.invoice_id AND i.status = 'draft' AND ii.invoice_id = $2 AND ii.appointment_id = $3`,
+        [consultantStaffId, existing.invoice_id, id],
+      );
+    }
     await refreshInvoicePaymentReadiness(client, {
       invoiceId: existing.invoice_id,
       triggeredByStaffId: null,
@@ -1054,11 +1079,12 @@ export async function getAppointmentEditor({ branchId, id }) {
   const result = await pool.query(
     `SELECT a.*, i.code AS invoice_code, i.status AS invoice_status, c.name AS customer_name, c.phone,
       s.name AS service_name, st.name AS staff_name, ii.quantity, ii.unit_price, ii.customer_package_id,
-      sp.name AS package_name
+      ii.consultant_staff_id, cst.name AS consultant_staff_name, sp.name AS package_name
      FROM appointments a JOIN invoices i ON i.id=a.invoice_id
      JOIN customers c ON c.id=a.customer_id JOIN services s ON s.id=a.service_id
      LEFT JOIN staff st ON st.id=a.staff_id
      JOIN invoice_items ii ON ii.appointment_id=a.id AND ii.invoice_id=i.id
+     LEFT JOIN staff cst ON cst.id=ii.consultant_staff_id
      LEFT JOIN customer_packages cp ON cp.id=ii.customer_package_id
      LEFT JOIN service_packages sp ON sp.id=cp.package_id
      WHERE a.branch_id=$1 AND a.invoice_id=$2 AND a.status <> 'cancelled' ORDER BY a.starts_at,a.id`,
@@ -1073,6 +1099,8 @@ export async function getAppointmentEditor({ branchId, id }) {
       unitPrice: number(row.unit_price), quantity: number(row.quantity),
       durationMinutes: (new Date(row.ends_at)-new Date(row.starts_at))/60000, startsAt: row.starts_at,
       staffId: row.staff_id ? number(row.staff_id) : null, staffName: row.staff_name,
+      consultantStaffId: row.consultant_staff_id ? number(row.consultant_staff_id) : null,
+      consultantStaffName: row.consultant_staff_name || null,
       usePackageId: row.customer_package_id ? number(row.customer_package_id) : null,
       usePackageServiceId: row.customer_package_id ? number(row.service_id) : null, packageName: row.package_name,
     })) };

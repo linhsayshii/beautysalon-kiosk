@@ -255,4 +255,67 @@ describe('MobileServiceItemDetailSheet', () => {
     fireEvent.click(screen.getByRole('button', { name: /xong/i }));
     expect(onSaveItem.mock.calls[0][0]).toMatchObject({ itemType: 'product', startsAt: null, durationMinutes: undefined, position: null });
   });
+
+  it('adds a consultant to a service line and saves them with the performer', async () => {
+    const onSaveItem = vi.fn();
+    renderWithClient(
+      <MobileServiceItemDetailSheet
+        isOpen={true}
+        item={{ ...sampleItem, staffId: 1, staffName: 'Nguyễn Thu Trang' }}
+        staffList={mockStaffList}
+        onClose={vi.fn()}
+        onSaveItem={onSaveItem}
+      />
+    );
+
+    expect(screen.queryByText('NHÂN VIÊN TƯ VẤN BÁN')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Thêm nhân viên tư vấn bán' }));
+
+    expect(await screen.findByText('Chọn nhân viên tư vấn bán')).toBeInTheDocument();
+    fireEvent.click(screen.getByText('Lê Minh Anh'));
+
+    expect(screen.getByText('NHÂN VIÊN TƯ VẤN BÁN')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /xong/i }));
+    expect(onSaveItem.mock.calls[0][0]).toMatchObject({
+      staffId: 1,
+      staffName: 'Nguyễn Thu Trang',
+      consultantStaffId: 2,
+      consultantStaffName: 'Lê Minh Anh',
+    });
+  });
+
+  it('shows a saved consultant and removes it with the minus button', () => {
+    const onSaveItem = vi.fn();
+    renderWithClient(
+      <MobileServiceItemDetailSheet
+        isOpen={true}
+        item={{ ...sampleItem, consultantStaffId: 3, consultantStaffName: 'Trần Thảo' }}
+        staffList={mockStaffList}
+        onClose={vi.fn()}
+        onSaveItem={onSaveItem}
+      />
+    );
+
+    expect(screen.getByText('NHÂN VIÊN TƯ VẤN BÁN')).toBeInTheDocument();
+    expect(screen.getByText('Trần Thảo')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Bỏ nhân viên tư vấn bán' }));
+    expect(screen.getByRole('button', { name: 'Thêm nhân viên tư vấn bán' })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: /xong/i }));
+    expect(onSaveItem.mock.calls[0][0]).toMatchObject({ consultantStaffId: null, consultantStaffName: null });
+  });
+
+  it('offers no consultant for a product', () => {
+    renderWithClient(
+      <MobileServiceItemDetailSheet
+        isOpen={true}
+        item={{ itemId: 7, itemType: 'product', name: 'QA Serum', unit: 'chai', unitPrice: 350000, quantity: 1 }}
+        staffList={mockStaffList}
+        onClose={vi.fn()}
+        onSaveItem={vi.fn()}
+      />
+    );
+    expect(screen.queryByRole('button', { name: 'Thêm nhân viên tư vấn bán' })).not.toBeInTheDocument();
+  });
 });

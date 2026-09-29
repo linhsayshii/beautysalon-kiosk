@@ -10,6 +10,7 @@ import { Select } from '@/components/ui/Select/Select';
 import { searchPosCustomers, checkoutPosInvoice, getPosStaff, type PosReceiptData } from '@/features/pos/pos.api';
 import { BottomSheet } from '@/components/ui/Sheet/BottomSheet';
 import { PAYMENT_METHOD_LABELS } from '@/lib/payment-methods';
+import { expectedLineCommission } from '@/features/pos/commission';
 
 interface PosLine {
   itemId: number;
@@ -21,10 +22,13 @@ interface PosLine {
   salePrice: number;
   quantity: number;
   staffId?: number | null;
+  consultantStaffId?: number | null;
   usePackageId?: number | null;
   usePackageServiceId?: number | null;
   commissionType: 'percent' | 'fixed' | null;
   commissionRate: number;
+  tourCommissionType?: 'percent' | 'fixed' | null;
+  tourCommissionRate?: number;
 }
 
 interface PosCustomer {
@@ -45,6 +49,7 @@ interface MobileCartBottomSheetProps {
   onSelectCustomer: (cust: PosCustomer | null) => void;
   onUpdateQuantity: (itemId: number, itemType: string, delta: number) => void;
   onUpdateLineStaff: (itemId: number, itemType: string, staffId: number | null) => void;
+  onUpdateLineConsultant?: (itemId: number, itemType: string, consultantStaffId: number | null) => void;
   onClose: () => void;
   onSuccess: (receipt: PosReceiptData) => void;
 }
@@ -63,6 +68,7 @@ export function MobileCartBottomSheet({
   onSelectCustomer,
   onUpdateQuantity,
   onUpdateLineStaff,
+  onUpdateLineConsultant,
   onClose,
   onSuccess,
 }: MobileCartBottomSheetProps) {
@@ -96,40 +102,16 @@ export function MobileCartBottomSheet({
 
   const total = Math.max(0, subtotal - discountValue);
 
-  // Calculate expected commission for a line
-  const calculateExpectedCommission = (line: PosLine): string => {
-    if (!line.staffId) return '-';
-    if (!line.commissionType || !line.commissionRate) return '0đ';
-
-    const revenue = line.salePrice * line.quantity;
-    let amount = 0;
-
-    if (line.commissionType === 'percent') {
-      amount = revenue * line.commissionRate / 100;
-    } else {
-      amount = line.quantity * line.commissionRate;
-    }
-
-    return formatMoney(Math.round(amount));
-  };
+  const lineCommission = (line: PosLine) => expectedLineCommission({
+    ...line,
+    unitPrice: line.salePrice,
+    isPackageRedemption: Boolean(line.usePackageId),
+  });
+  const calculateExpectedCommission = (line: PosLine): string => formatMoney(lineCommission(line).total);
 
   // Calculate total expected commission
   const totalCommission = useMemo(() => {
-    return lines.reduce((sum, line) => {
-      if (!line.staffId) return sum;
-      if (!line.commissionType || !line.commissionRate) return sum;
-
-      const revenue = line.salePrice * line.quantity;
-      let amount = 0;
-
-      if (line.commissionType === 'percent') {
-        amount = revenue * line.commissionRate / 100;
-      } else {
-        amount = line.quantity * line.commissionRate;
-      }
-
-      return sum + amount;
-    }, 0);
+    return lines.reduce((sum, line) => sum + lineCommission(line).total, 0);
   }, [lines]);
 
   const amountPaid = paymentMethod === 'wallet' ? total : amountInput ?? total;
@@ -162,6 +144,7 @@ export function MobileCartBottomSheet({
         itemType: l.itemType,
         quantity: l.quantity,
         staffId: l.staffId || null,
+        consultantStaffId: l.itemType === 'service' ? l.consultantStaffId || null : null,
         usePackageId: l.usePackageId ?? undefined,
         usePackageServiceId: l.usePackageServiceId ?? undefined,
       })),
@@ -297,7 +280,7 @@ export function MobileCartBottomSheet({
                 </div>
 
                 <div className="checkout-line-amounts">
-                  {line.itemType === 'service' && line.staffId != null && (
+                  {line.itemType === 'service' && (line.staffId != null || line.consultantStaffId != null) && (
                     <span className="checkout-commission" aria-label={`Hoa hồng ${line.name}: ${calculateExpectedCommission(line)}`} title="Hoa hồng nhân viên">
                       {calculateExpectedCommission(line)}
                     </span>
@@ -308,6 +291,11 @@ export function MobileCartBottomSheet({
                   <span>Nhân viên</span><Select<number | string> aria-label={`Nhân viên thực hiện ${line.name}`} value={line.staffId ?? ''}
                     onChange={value => onUpdateLineStaff(line.itemId, line.itemType, value === '' ? null : Number(value))}
                     size="sm" options={[{ value: '', label: 'Chọn nhân viên' }, ...staffList.map(staff => ({ value: staff.id, label: staff.name }))]} />
+                </div>}
+                {line.itemType === 'service' && onUpdateLineConsultant && <div className="checkout-line-staff">
+                  <span>Tư vấn</span><Select<number | string> aria-label={`Nhân viên tư vấn ${line.name}`} value={line.consultantStaffId ?? ''}
+                    onChange={value => onUpdateLineConsultant(line.itemId, line.itemType, value === '' ? null : Number(value))}
+                    size="sm" options={[{ value: '', label: 'Không có' }, ...staffList.map(staff => ({ value: staff.id, label: staff.name }))]} />
                 </div>}
               </div>
             ))}

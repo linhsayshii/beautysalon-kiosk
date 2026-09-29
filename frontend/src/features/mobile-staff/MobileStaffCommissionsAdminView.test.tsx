@@ -41,8 +41,10 @@ describe('MobileStaffCommissionsAdminView Component', () => {
       staffSummary: [
         {
           staff: { id: 4, name: 'Thu Phương', code: 'NV000016', role: 'Kỹ thuật viên chính' },
-          serviceAmount: 2400000,
+          serviceAmount: 0,
           consultingAmount: 800000,
+          tourRevenue: 12000000,
+          tourAmount: 2400000,
           totalAmount: 3200000,
           totalRevenue: 16000000,
           serviceRevenue: 12000000,
@@ -107,7 +109,10 @@ describe('MobileStaffCommissionsAdminView Component', () => {
     await waitFor(() => {
       expect(screen.getByText('Tổng hợp hoa hồng nhân viên')).toBeInTheDocument();
       expect(screen.getByText('Chi tiết phân loại hoa hồng')).toBeInTheDocument();
-      expect(screen.getByText('Hoa hồng làm dịch vụ')).toBeInTheDocument();
+      expect(screen.getByText('Hoa hồng tua')).toBeInTheDocument();
+      expect(screen.getByText('+2.400.000đ')).toBeInTheDocument();
+      // Records from before tour commission existed are only listed when present.
+      expect(screen.queryByText('Hoa hồng thực hiện (cũ)')).not.toBeInTheDocument();
     });
   });
 });

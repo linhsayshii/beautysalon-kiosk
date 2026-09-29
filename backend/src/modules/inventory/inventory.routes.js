@@ -43,6 +43,14 @@ const commission = (body) => {
   if (type === 'percent' && rate > 1) throw new HttpError(400, 'INVALID_COMMISSION_RATE', 'Hoa hồng phần trăm không được lớn hơn 100%');
   return { commissionType: type, commissionRate: rate };
 };
+// Only a service pays tour commission, to the staff member who performs it.
+const tourCommission = (body, itemType) => {
+  if (itemType !== 'service') return { tourCommissionType: null, tourCommissionRate: 0 };
+  const type = body.tourCommissionType === null ? null : parseEnum(body.tourCommissionType, 'tourCommissionType', ['percent', 'fixed'], null);
+  const rate = type ? nonNegative(body.tourCommissionRate, 'tourCommissionRate') : 0;
+  if (type === 'percent' && rate > 1) throw new HttpError(400, 'INVALID_TOUR_COMMISSION_RATE', 'Hoa hồng tua phần trăm không được lớn hơn 100%');
+  return { tourCommissionType: type, tourCommissionRate: rate };
+};
 
 router.put('/items/:itemType/:itemId', asyncRoute(async (request, response) => {
   const type = parseEnum(request.params.itemType, 'itemType', itemTypes);
@@ -79,6 +87,7 @@ router.put('/items/:itemType/:itemId', asyncRoute(async (request, response) => {
   const minStock = request.body.minStock !== undefined ? nonNegative(request.body.minStock, 'minStock') : 0;
   const maxStock = optionalPositive(request.body.maxStock, 'maxStock');
   const { commissionType, commissionRate } = commission(request.body);
+  const { tourCommissionType, tourCommissionRate } = tourCommission(request.body, type);
   if (maxStock !== null && maxStock < minStock) {
     throw new HttpError(400, 'INVALID_STOCK_RANGE', 'Tồn tối đa phải lớn hơn hoặc bằng tồn tối thiểu');
   }
@@ -111,6 +120,8 @@ router.put('/items/:itemType/:itemId', asyncRoute(async (request, response) => {
     stockQuantity: request.body.initialStock === undefined ? undefined : nonNegative(request.body.initialStock, 'initialStock'),
     commissionType,
     commissionRate,
+    tourCommissionType,
+    tourCommissionRate,
   });
   response.json({ data });
 }));
@@ -158,6 +169,7 @@ router.post('/items', asyncRoute(async (request, response) => {
   const minStock = nonNegative(request.body.minStock, 'minStock');
   const maxStock = optionalPositive(request.body.maxStock, 'maxStock');
   const { commissionType, commissionRate } = commission(request.body);
+  const { tourCommissionType, tourCommissionRate } = tourCommission(request.body, type);
   if (maxStock !== null && maxStock < minStock) {
     throw new HttpError(400, 'INVALID_STOCK_RANGE', 'Tồn tối đa phải lớn hơn hoặc bằng tồn tối thiểu');
   }
@@ -189,6 +201,8 @@ router.post('/items', asyncRoute(async (request, response) => {
     scopeItems: uniqueScopeItems,
     commissionType,
     commissionRate,
+    tourCommissionType,
+    tourCommissionRate,
   });
   response.status(201).json({ data });
 }));

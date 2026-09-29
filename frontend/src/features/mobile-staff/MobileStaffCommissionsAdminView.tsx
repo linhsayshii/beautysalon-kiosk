@@ -235,9 +235,9 @@ export function MobileStaffCommissionsAdminView() {
                         <div className="mobile-staff-avatar emerald">
                           <i
                             className={
-                              tx.commissionType === 'service'
-                                ? 'ph ph-sparkle'
-                                : 'ph ph-shopping-bag'
+                              tx.commissionType === 'consulting'
+                                ? 'ph ph-handshake'
+                                : 'ph ph-sparkle'
                             }
                           />
                         </div>
@@ -299,23 +299,35 @@ export function MobileStaffCommissionsAdminView() {
               <div className="mobile-detail-list">
                 <div className="mobile-detail-item">
                   <div className="mobile-detail-item-left">
-                    <span className="mobile-detail-item-title">Hoa hồng làm dịch vụ</span>
-                    <span className="mobile-detail-item-sub">Gội đầu, làm móng, chăm sóc da...</span>
+                    <span className="mobile-detail-item-title">Hoa hồng tua</span>
+                    <span className="mobile-detail-item-sub">Thực hiện dịch vụ</span>
                   </div>
                   <span className="mobile-detail-item-value text-success">
-                    +{formatMoney(selectedStaffSummary.serviceAmount)}
+                    +{formatMoney(selectedStaffSummary.tourAmount)}
                   </span>
                 </div>
 
                 <div className="mobile-detail-item">
                   <div className="mobile-detail-item-left">
-                    <span className="mobile-detail-item-title">Hoa hồng tư vấn bán sản phẩm</span>
-                    <span className="mobile-detail-item-sub">Bán mỹ phẩm, liệu trình spa...</span>
+                    <span className="mobile-detail-item-title">Hoa hồng tư vấn bán</span>
+                    <span className="mobile-detail-item-sub">Tư vấn dịch vụ, bán sản phẩm</span>
                   </div>
                   <span className="mobile-detail-item-value text-success">
                     +{formatMoney(selectedStaffSummary.consultingAmount)}
                   </span>
                 </div>
+
+                {selectedStaffSummary.serviceAmount > 0 && (
+                  <div className="mobile-detail-item">
+                    <div className="mobile-detail-item-left">
+                      <span className="mobile-detail-item-title">Hoa hồng thực hiện (cũ)</span>
+                      <span className="mobile-detail-item-sub">Ghi nhận trước khi có hoa hồng tua</span>
+                    </div>
+                    <span className="mobile-detail-item-value text-success">
+                      +{formatMoney(selectedStaffSummary.serviceAmount)}
+                    </span>
+                  </div>
+                )}
 
                 <div className="mobile-detail-item">
                   <div className="mobile-detail-item-left">
@@ -350,7 +362,7 @@ export function MobileStaffCommissionsAdminView() {
                   </div>
                 </div>
                 <span className="mobile-shift-badge theme-green">
-                  {selectedTxRecord.commissionType === 'service' ? 'Làm dịch vụ' : 'Tư vấn bán SP'}
+                  {selectedTxRecord.commissionType === 'tour' ? 'Tua dịch vụ' : selectedTxRecord.commissionType === 'consulting' ? 'Tư vấn bán' : 'Làm dịch vụ'}
                 </span>
               </div>
             </div>

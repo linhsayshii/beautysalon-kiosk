@@ -13,26 +13,30 @@ const goodsCte = `
       p.branch_id, 'product'::text AS item_type, p.id AS item_id, p.sku AS code, p.name,
       p.category, p.brand, p.unit, p.sale_price, p.cost_price,
       p.last_purchase_price, COALESCE(ib.quantity, 0) AS stock_quantity,
-      p.min_stock, p.max_stock, p.active, p.commission_type, p.commission_rate, p.barcode, p.image_url
+      p.min_stock, p.max_stock, p.active, p.commission_type, p.commission_rate, p.barcode, p.image_url,
+      NULL::varchar AS tour_commission_type, 0::numeric AS tour_commission_rate
     FROM products p
     LEFT JOIN inventory_balances ib ON ib.product_id = p.id AND ib.branch_id = p.branch_id
     UNION ALL
     SELECT
       s.branch_id, 'service'::text, s.id, s.code, s.name,
       s.category, s.brand, 'lần'::varchar, s.price, s.cost_price,
-      0::numeric, NULL::numeric, 0::numeric, NULL::numeric, s.active, s.commission_type, s.commission_rate, NULL::varchar, s.image_url
+      0::numeric, NULL::numeric, 0::numeric, NULL::numeric, s.active, s.commission_type, s.commission_rate, NULL::varchar, s.image_url,
+      s.tour_commission_type, s.tour_commission_rate
     FROM services s
     UNION ALL
     SELECT
       sp.branch_id, 'package'::text, sp.id, sp.code, sp.name,
       sp.category, sp.brand, 'gói'::varchar, sp.list_price, sp.cost_price,
-      0::numeric, NULL::numeric, 0::numeric, NULL::numeric, sp.active, sp.commission_type, sp.commission_rate, NULL::varchar, sp.image_url
+      0::numeric, NULL::numeric, 0::numeric, NULL::numeric, sp.active, sp.commission_type, sp.commission_rate, NULL::varchar, sp.image_url,
+      NULL::varchar, 0::numeric
     FROM service_packages sp
     UNION ALL
     SELECT
       ac.branch_id, 'account_card'::text, ac.id, ac.code, ac.name,
       ac.category, ac.brand, 'thẻ'::varchar, ac.sale_price, 0::numeric,
-      0::numeric, NULL::numeric, 0::numeric, NULL::numeric, ac.active, ac.commission_type, ac.commission_rate, NULL::varchar, ac.image_url
+      0::numeric, NULL::numeric, 0::numeric, NULL::numeric, ac.active, ac.commission_type, ac.commission_rate, NULL::varchar, ac.image_url,
+      NULL::varchar, 0::numeric
     FROM account_cards ac
   )
 `;
@@ -57,6 +61,8 @@ function mapProduct(row) {
     active: row.active,
     commissionType: row.commission_type,
     commissionRate: parseFloat(row.commission_rate) || 0,
+    tourCommissionType: row.tour_commission_type ?? null,
+    tourCommissionRate: parseFloat(row.tour_commission_rate) || 0,
     imageUrl: row.image_url || '',
   };
 }
@@ -96,6 +102,7 @@ export async function getInventoryItem({ branchId, type, id }) {
       category: row.category, brand: row.brand, unit: 'lần', salePrice: number(row.price), costPrice: number(row.cost_price),
       durationMinutes: number(row.duration_minutes), active: row.active, imageUrl: row.image_url,
       description: row.description, note: row.note, commissionType: row.commission_type, commissionRate: number(row.commission_rate),
+      tourCommissionType: row.tour_commission_type, tourCommissionRate: number(row.tour_commission_rate),
     };
   }
 
@@ -266,6 +273,7 @@ export async function createInventoryItem({
   branchId, type, name, code: requestedCode, category, brand, salePrice, costPrice, active,
   imageUrl, description, note, barcode, unit, initialStock, minStock, maxStock, durationMinutes,
   validityDays, usageSchedule, packageItems, faceValue, allowedTypes, scopeItems, commissionType, commissionRate,
+  tourCommissionType = null, tourCommissionRate = 0,
 }) {
   const client = await pool.connect();
   try {
@@ -291,10 +299,10 @@ export async function createInventoryItem({
       const result = await client.query(
         `INSERT INTO services (
           branch_id, code, name, price, cost_price, duration_minutes, category, brand,
-          active, image_url, description, note, commission_type, commission_rate
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+          active, image_url, description, note, commission_type, commission_rate, tour_commission_type, tour_commission_rate
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
         RETURNING id`,
-        [branchId, code, name, salePrice, costPrice, durationMinutes, category, brand || null, active, imageUrl || null, description || null, note || null, commissionType, commissionRate],
+        [branchId, code, name, salePrice, costPrice, durationMinutes, category, brand || null, active, imageUrl || null, description || null, note || null, commissionType, commissionRate, tourCommissionType, tourCommissionRate],
       );
       created = result.rows[0];
     } else if (type === 'package') {
@@ -364,6 +372,7 @@ export async function updateInventoryItem({
   branchId, type, id, name, code, category, brand, salePrice, costPrice, active,
   imageUrl, description, note, barcode, unit, minStock, maxStock, durationMinutes,
   validityDays, usageSchedule, packageItems, faceValue, allowedTypes, scopeItems, stockQuantity, commissionType, commissionRate,
+  tourCommissionType = null, tourCommissionRate = 0,
 }) {
   const client = await pool.connect();
   try {
@@ -427,9 +436,11 @@ export async function updateInventoryItem({
            description = $10,
            note = $11,
            commission_type = $12,
-           commission_rate = $13
+           commission_rate = $13,
+           tour_commission_type = $16,
+           tour_commission_rate = $17
          WHERE branch_id = $14 AND id = $15`,
-        [finalCode, name, salePrice, costPrice, durationMinutes, category, brand || null, active, imageUrl || null, description || null, note || null, commissionType, commissionRate, branchId, id],
+        [finalCode, name, salePrice, costPrice, durationMinutes, category, brand || null, active, imageUrl || null, description || null, note || null, commissionType, commissionRate, branchId, id, tourCommissionType, tourCommissionRate],
       );
     } else if (type === 'package') {
       let totalUnits = undefined;

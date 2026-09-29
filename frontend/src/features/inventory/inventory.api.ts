@@ -48,6 +48,8 @@ export interface CreateInventoryItemInput extends ApiRecord {
   name: string;
   commissionType?: 'percent' | 'fixed' | null;
   commissionRate?: number;
+  tourCommissionType?: 'percent' | 'fixed' | null;
+  tourCommissionRate?: number;
 }
 
 export const getProducts = (filters: ApiRecord, options: RequestInit = {}) => apiRequest<ApiEnvelope<ApiRecord[], InventoryMeta>>(`/inventory/products?${toQueryString(filters)}`, options);

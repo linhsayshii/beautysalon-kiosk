@@ -5,7 +5,7 @@ import { PGlite } from '@electric-sql/pglite';
 import { pool } from '../../db.js';
 import { customerDebtMigration } from '../../migrations/customer-debt.js';
 import { cashbookMigration } from '../../migrations/cashbook.js';
-import { createInventoryItem, listPosProducts, listProducts } from './inventory.service.js';
+import { createInventoryItem, getInventoryItem, listPosProducts, listProducts, updateInventoryItem } from './inventory.service.js';
 
 const productInput = {
   branchId: 1, type: 'product', name: 'Serum mới', category: 'Sản phẩm', salePrice: 350000, costPrice: 200000,
@@ -61,6 +61,25 @@ test('inventory item codes', async (t) => {
         (1,'SP000701','Sữa rửa mặt mini','40063813339310',50000,20000);`);
       const pos = await listPosProducts({ branchId: 1, customerId: null, search: '4006381333931', type: '' });
       assert.deepEqual(pos.rows.map((row) => row.code), ['SP000700', 'SP000701']);
+    });
+
+    await t.test('a service keeps its tour commission; other goods have none', async () => {
+      const service = await createInventoryItem({
+        ...productInput, type: 'service', name: 'Gội đầu dưỡng sinh', durationMinutes: 60,
+        tourCommissionType: 'fixed', tourCommissionRate: 50000,
+      });
+      const detail = await getInventoryItem({ branchId: 1, type: 'service', id: service.itemId });
+      assert.deepEqual([detail.tourCommissionType, detail.tourCommissionRate], ['fixed', 50000]);
+
+      await updateInventoryItem({
+        ...productInput, type: 'service', id: service.itemId, name: 'Gội đầu dưỡng sinh', durationMinutes: 60,
+        tourCommissionType: 'percent', tourCommissionRate: 0.05,
+      });
+      const pos = await listPosProducts({ branchId: 1, customerId: null, search: 'Gội đầu dưỡng sinh', type: 'service' });
+      assert.deepEqual([pos.rows[0].tourCommissionType, pos.rows[0].tourCommissionRate], ['percent', 0.05]);
+
+      const products = await listPosProducts({ branchId: 1, customerId: null, search: 'SP000700', type: '' });
+      assert.deepEqual([products.rows[0].tourCommissionType, products.rows[0].tourCommissionRate], [null, 0]);
     });
   } finally {
     pool.connect = originalConnect;

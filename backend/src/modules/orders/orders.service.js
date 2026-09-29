@@ -128,6 +128,8 @@ export async function getOrder({ branchId, id }) {
        a.status AS appointment_status, a.starts_at AS appointment_starts_at, a.ends_at AS appointment_ends_at,
        ast.id AS appointment_staff_id, ast.name AS appointment_staff_name,
        s.commission_type AS service_commission_type, s.commission_rate AS service_commission_rate,
+       s.tour_commission_type AS service_tour_commission_type, s.tour_commission_rate AS service_tour_commission_rate,
+       ii.consultant_staff_id, cst.name AS consultant_staff_name,
        redeemed_package.name AS customer_package_name,
        COALESCE(s.code, p.sku, '-') AS item_code,
        COALESCE(s.name, p.name, ii.description) AS item_name,
@@ -138,6 +140,7 @@ export async function getOrder({ branchId, id }) {
      LEFT JOIN customer_packages cp ON cp.id = ii.customer_package_id
      LEFT JOIN service_packages redeemed_package ON redeemed_package.id = cp.package_id
      LEFT JOIN staff st ON st.id = ii.staff_id
+     LEFT JOIN staff cst ON cst.id = ii.consultant_staff_id
      LEFT JOIN appointments a ON a.id = ii.appointment_id
      LEFT JOIN staff ast ON ast.id = a.staff_id
      WHERE ii.invoice_id = $1
@@ -159,6 +162,8 @@ export async function getOrder({ branchId, id }) {
     accountCardId: item.account_card_id ? number(item.account_card_id) : null,
     staffId: item.staff_id ? number(item.staff_id) : null,
     staffName: item.line_staff_name || null,
+    consultantStaffId: item.consultant_staff_id ? number(item.consultant_staff_id) : null,
+    consultantStaffName: item.consultant_staff_name || null,
     unit: item.unit,
     quantity: number(item.quantity),
     unitPrice: number(item.unit_price),
@@ -166,6 +171,8 @@ export async function getOrder({ branchId, id }) {
     lineTotal: number(item.line_total),
     commissionType: item.service_commission_type,
     commissionRate: number(item.service_commission_rate),
+    tourCommissionType: item.service_tour_commission_type,
+    tourCommissionRate: number(item.service_tour_commission_rate),
     appointment: item.appointment_id ? {
       id: number(item.appointment_id),
       status: item.appointment_status,

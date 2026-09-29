@@ -277,6 +277,19 @@ export async function runMigrations() {
 
       CREATE UNIQUE INDEX IF NOT EXISTS uniq_pricebooks_default_per_branch
         ON pricebooks(branch_id) WHERE is_default;
+
+      -- Tour commission: a service pays its performer per turn, while its
+      -- original commission goes to the consultant chosen on each line.
+      ALTER TABLE services
+        ADD COLUMN IF NOT EXISTS tour_commission_type VARCHAR(10) DEFAULT NULL
+          CHECK (tour_commission_type IS NULL OR tour_commission_type IN ('percent', 'fixed')),
+        ADD COLUMN IF NOT EXISTS tour_commission_rate NUMERIC(14, 2) NOT NULL DEFAULT 0
+          CHECK (tour_commission_rate >= 0);
+      ALTER TABLE invoice_items
+        ADD COLUMN IF NOT EXISTS consultant_staff_id BIGINT REFERENCES staff(id) ON DELETE SET NULL;
+      ALTER TABLE payroll_records
+        ADD COLUMN IF NOT EXISTS tour_commission NUMERIC(14, 2) NOT NULL DEFAULT 0
+          CHECK (tour_commission >= 0);
     `);
     console.log('[database] payroll migrations checked and applied');
   } catch (err) {

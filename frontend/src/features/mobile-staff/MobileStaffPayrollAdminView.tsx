@@ -265,9 +265,15 @@ export function MobileStaffPayrollAdminView() {
                 </span>
               </div>
               <div className="mobile-detail-cell">
-                <span className="mobile-detail-cell-label">Hoa hồng dịch vụ</span>
+                <span className="mobile-detail-cell-label">Hoa hồng tư vấn bán</span>
                 <span className="mobile-detail-cell-value text-primary">
                   +{formatMoney(selectedStaffRecord.commission)}
+                </span>
+              </div>
+              <div className="mobile-detail-cell">
+                <span className="mobile-detail-cell-label">Hoa hồng tua</span>
+                <span className="mobile-detail-cell-value text-primary">
+                  +{formatMoney(selectedStaffRecord.tourCommission)}
                 </span>
               </div>
             </div>

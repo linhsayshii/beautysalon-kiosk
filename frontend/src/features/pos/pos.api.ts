@@ -149,6 +149,8 @@ export interface PosCheckoutPayload {
     itemId: number;
     quantity: number;
     staffId?: number | null;
+    /** Service lines only: earns the service's original commission. */
+    consultantStaffId?: number | null;
     usePackageId?: number | null;
     usePackageServiceId?: number | null;
   }>;

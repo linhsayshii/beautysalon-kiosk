@@ -7,6 +7,7 @@ import { resolveApplicablePricebook, resolvePricebookItemPrice } from '../invent
 import { recordCashEntry } from '../cashbook/cashbook.ledger.js';
 import { config } from '../../config.js';
 import { newInvoiceCode } from './invoice-code.js';
+import { buildCommissionEntries } from './commission-entries.js';
 
 const number = (value) => Number(value ?? 0);
 const vndFormatter = new Intl.NumberFormat('vi-VN', { maximumFractionDigits: 0 });
@@ -178,6 +179,22 @@ export async function checkoutPosInvoice({
         }
       }
 
+      // The consultant earns a service's original commission; the performer
+      // (staffId) earns its tour commission.
+      const consultantStaffId = line.consultantStaffId ? Number(line.consultantStaffId) : null;
+      if (consultantStaffId) {
+        if (itemType !== 'service') {
+          throw new HttpError(400, 'CONSULTANT_NOT_ALLOWED', 'Chỉ dòng dịch vụ mới có nhân viên tư vấn bán');
+        }
+        const consultantResult = await client.query(
+          'SELECT id FROM staff WHERE id = $1 AND branch_id = $2 AND active = TRUE',
+          [consultantStaffId, branchId],
+        );
+        if (!consultantResult.rows[0]) {
+          throw new HttpError(404, 'STAFF_NOT_FOUND', `Nhân viên tư vấn #${consultantStaffId} không tồn tại hoặc đã ngừng hoạt động`);
+        }
+      }
+
       if (!['service', 'product', 'package', 'account_card'].includes(itemType) || !itemId) {
         throw new HttpError(400, 'INVALID_ITEM', 'Hàng hóa hoặc dịch vụ không hợp lệ');
       }
@@ -191,7 +208,7 @@ export async function checkoutPosInvoice({
         // A redeemed service is free on this invoice. Its package usage is
         // recorded once the invoice has an id below.
         const pkgServiceResult = await client.query(
-          `SELECT id, code, name, price, commission_type, commission_rate
+          `SELECT id, code, name, price, commission_type, commission_rate, tour_commission_type, tour_commission_rate
            FROM services WHERE id = $1 AND branch_id = $2 AND active = TRUE`,
           [line.usePackageServiceId, branchId],
         );
@@ -206,14 +223,19 @@ export async function checkoutPosInvoice({
           productId: null,
           customerPackageId: line.usePackageId,
           staffId: lineStaffId || staffId || null,
+          consultantStaffId,
           code: pkgSvc.code,
           name: pkgSvc.name,
           unit: 'lần',
           quantity,
           unitPrice: 0,
           lineTotal: 0,
+          listPrice: number(pkgSvc.price),
+          isPackageRedemption: true,
           commissionType: pkgSvc.commission_type,
           commissionRate: number(pkgSvc.commission_rate),
+          tourCommissionType: pkgSvc.tour_commission_type,
+          tourCommissionRate: number(pkgSvc.tour_commission_rate),
         });
         packageRedemptions.push({
           packageId: line.usePackageId,
@@ -226,7 +248,7 @@ export async function checkoutPosInvoice({
         continue;
       } else if (itemType === 'service') {
         const sResult = await client.query(
-          `SELECT id, code, name, price, commission_type, commission_rate
+          `SELECT id, code, name, price, commission_type, commission_rate, tour_commission_type, tour_commission_rate
            FROM services WHERE id = $1 AND branch_id = $2 AND active = TRUE`,
           [itemId, branchId],
         );
@@ -244,14 +266,19 @@ export async function checkoutPosInvoice({
           serviceId: itemId,
           productId: null,
           staffId: lineStaffId || staffId || null,
+          consultantStaffId,
           code,
           name,
           unit,
           quantity,
           unitPrice: price,
           lineTotal: price * quantity,
+          listPrice: number(sResult.rows[0].price),
+          isPackageRedemption: false,
           commissionType: sResult.rows[0].commission_type,
           commissionRate: number(sResult.rows[0].commission_rate),
+          tourCommissionType: sResult.rows[0].tour_commission_type,
+          tourCommissionRate: number(sResult.rows[0].tour_commission_rate),
         });
       } else if (itemType === 'product') {
         const pResult = await client.query(
@@ -533,8 +560,8 @@ export async function checkoutPosInvoice({
       const itemResult = await client.query(
         `INSERT INTO invoice_items (
            invoice_id, item_type, service_id, product_id, package_id, customer_package_id, account_card_id,
-           staff_id, appointment_id, description, quantity, unit_price, line_total
-         ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+           staff_id, appointment_id, description, quantity, unit_price, line_total, consultant_staff_id
+         ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
          RETURNING id`,
         [
           invoiceId,
@@ -550,19 +577,25 @@ export async function checkoutPosInvoice({
           item.quantity,
           item.unitPrice,
           item.lineTotal,
+          item.consultantStaffId || null,
         ],
       );
       invoiceItemIds.push({
         itemId: Number(itemResult.rows[0].id),
         productId: item.productId,
         staffId: item.staffId,
+        consultantStaffId: item.consultantStaffId || null,
         unitPrice: item.unitPrice,
+        listPrice: item.listPrice ?? item.unitPrice,
+        isPackageRedemption: Boolean(item.isPackageRedemption),
         quantity: item.quantity,
         lineTotal: item.lineTotal,
         name: item.name,
         itemType: item.itemType,
         commissionType: item.commissionType,
         commissionRate: item.commissionRate,
+        tourCommissionType: item.tourCommissionType || null,
+        tourCommissionRate: item.tourCommissionRate || 0,
       });
     }
 
@@ -647,31 +680,16 @@ export async function checkoutPosInvoice({
       // was sold, so it is intentionally not written to the cashbook.
     }
 
-    // 8. Create per-line commission records for staff assigned to each item
-    if (invoiceItemIds.length > 0) {
-      // The catalog item is the single source of truth for commission. Staff
-      // profiles never contribute a default rate.
-      for (const item of invoiceItemIds) {
-        if (!item.staffId) continue;
-
-        const revenue = item.lineTotal;
-        let amount = 0;
-        const rate = item.commissionRate || 0;
-
-        if (item.commissionType === 'percent') {
-          amount = Math.round(revenue * rate);
-        } else if (item.commissionType === 'fixed') {
-          amount = item.quantity * rate;
-        }
-
-        if (amount > 0) {
-          await client.query(
-            `INSERT INTO commission_records (
-               branch_id, staff_id, invoice_id, invoice_item_id, source_name, revenue, rate, amount, occurred_on, commission_type
-             ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, CURRENT_DATE, $9)`,
-            [branchId, item.staffId, invoiceId, item.itemId, `Thực hiện dịch vụ`, revenue, rate, amount, 'service'],
-          );
-        }
+    // 8. Create per-line commission records. The catalog item is the single
+    // source of truth for rates; staff profiles never contribute a default.
+    for (const item of invoiceItemIds) {
+      for (const entry of buildCommissionEntries(item)) {
+        await client.query(
+          `INSERT INTO commission_records (
+             branch_id, staff_id, invoice_id, invoice_item_id, source_name, revenue, rate, amount, occurred_on, commission_type
+           ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, CURRENT_DATE, $9)`,
+          [branchId, entry.staffId, invoiceId, item.itemId, entry.sourceName, entry.revenue, entry.rate, entry.amount, entry.commissionType],
+        );
       }
     }
 

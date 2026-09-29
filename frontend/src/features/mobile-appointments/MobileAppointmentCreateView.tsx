@@ -293,6 +293,7 @@ export function MobileAppointmentCreateView() {
           note: editingId && note === editorQuery.data?.data?.note ? item.note ?? note : note,
           serviceId: item.itemId,
           staffId: item.staffId || null,
+          consultantStaffId: item.consultantStaffId || null,
           quantity: item.quantity,
           usePackageId: item.usePackageId || null,
           usePackageServiceId: item.usePackageServiceId || null,
@@ -494,6 +495,13 @@ export function MobileAppointmentCreateView() {
                           <span className="mobile-form-tag">
                             <i className="ph ph-user" />
                             Chưa phân thợ
+                          </span>
+                        )}
+
+                        {item.consultantStaffName && (
+                          <span className="mobile-form-tag is-staff">
+                            <i className="ph ph-handshake" />
+                            Tư vấn: {item.consultantStaffName}
                           </span>
                         )}
 

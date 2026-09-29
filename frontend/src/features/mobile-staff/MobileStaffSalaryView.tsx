@@ -122,7 +122,8 @@ export function MobileStaffSalaryView() {
             <h2>Chi tiết thu nhập</h2>
             <SalaryLine title="Lương cơ bản" subtitle={`${activeRecord.workUnits}/${activeRecord.standardWorkDays} ngày công tiêu chuẩn`} value={activeRecord.baseSalary} />
             <SalaryLine title="Lương tăng ca" subtitle="Theo điều chỉnh của kỳ lương" value={activeRecord.overtimeSalary} sign="+" tone="positive" />
-            <SalaryLine title="Hoa hồng" subtitle="Từ dịch vụ và sản phẩm" value={activeRecord.commission} sign="+" tone="accent" />
+            <SalaryLine title="Hoa hồng" subtitle="Tư vấn bán dịch vụ và sản phẩm" value={activeRecord.commission} sign="+" tone="accent" />
+            <SalaryLine title="Hoa hồng tua" subtitle="Từ các lượt thực hiện dịch vụ" value={activeRecord.tourCommission ?? 0} sign="+" tone="accent" />
             <SalaryLine title="Phụ cấp" subtitle="Theo điều chỉnh của kỳ lương" value={activeRecord.allowance} sign="+" tone="positive" />
             <SalaryLine title="Thưởng" subtitle="Theo điều chỉnh của kỳ lương" value={activeRecord.bonus} sign="+" tone="positive" />
             <SalaryLine title="Khấu trừ" subtitle="Theo điều chỉnh của kỳ lương" value={activeRecord.deduction} sign="-" tone="negative" />

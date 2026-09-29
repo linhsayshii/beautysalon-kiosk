@@ -332,7 +332,7 @@ export function MobileProductsView() {
         <div className="mobile-create-type-list">
           {([
             ['product', 'ph ph-package', 'Sản phẩm', 'Có tồn kho, giá vốn và đơn vị tính'],
-            ['service', 'ph ph-sparkle', 'Dịch vụ', 'Có thời lượng và hoa hồng thực hiện'],
+            ['service', 'ph ph-sparkle', 'Dịch vụ', 'Có thời lượng, hoa hồng tua và tư vấn bán'],
             ['package', 'ph ph-stack', 'Gói dịch vụ', 'Gồm nhiều dịch vụ hoặc liệu trình'],
             ['account_card', 'ph ph-credit-card', 'Thẻ tài khoản', 'Có mệnh giá và phạm vi thanh toán'],
           ] as const).map(([type, icon, label, description]) => (

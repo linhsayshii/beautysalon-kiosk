@@ -93,9 +93,10 @@ export function StaffPayrollSheetView({ periodId, onBack }: StaffPayrollSheetVie
         const allowance = edits.allowance !== undefined ? Number(edits.allowance) : r.allowance;
         const bonus = edits.bonus !== undefined ? Number(edits.bonus) : r.bonus;
         const commission = edits.commission !== undefined ? Number(edits.commission) : r.commission;
+        const tourCommission = edits.tourCommission !== undefined ? Number(edits.tourCommission) : r.tourCommission;
         const deduction = edits.deduction !== undefined ? Number(edits.deduction) : r.deduction;
 
-        const totalIncome = baseSalary + overtimeSalary + allowance + bonus + commission;
+        const totalIncome = baseSalary + overtimeSalary + allowance + bonus + commission + tourCommission;
         const netSalary = Math.max(0, totalIncome - deduction);
         const remainingAmount = Math.max(0, netSalary - r.paidAmount);
 
@@ -107,6 +108,7 @@ export function StaffPayrollSheetView({ periodId, onBack }: StaffPayrollSheetVie
           allowance,
           bonus,
           commission,
+          tourCommission,
           deduction,
           totalIncome,
           netSalary,
@@ -127,6 +129,7 @@ export function StaffPayrollSheetView({ periodId, onBack }: StaffPayrollSheetVie
         baseSalary: acc.baseSalary + r.baseSalary,
         overtimeSalary: acc.overtimeSalary + r.overtimeSalary,
         commission: acc.commission + r.commission,
+        tourCommission: acc.tourCommission + (r.tourCommission || 0),
         allowance: acc.allowance + r.allowance,
         bonus: acc.bonus + r.bonus,
         totalIncome: acc.totalIncome + r.totalIncome,
@@ -139,6 +142,7 @@ export function StaffPayrollSheetView({ periodId, onBack }: StaffPayrollSheetVie
         baseSalary: 0,
         overtimeSalary: 0,
         commission: 0,
+        tourCommission: 0,
         allowance: 0,
         bonus: 0,
         totalIncome: 0,
@@ -241,6 +245,7 @@ export function StaffPayrollSheetView({ periodId, onBack }: StaffPayrollSheetVie
                   <th className="is-num">Lương chính</th>
                   <th className="is-num">Làm thêm</th>
                   <th className="is-num">Hoa hồng</th>
+                  <th className="is-num">Hoa hồng tua</th>
                   <th className="is-num">Phụ cấp</th>
                   <th className="is-num">Thưởng</th>
                   <th className="is-num">Tổng thu nhập</th>
@@ -254,6 +259,7 @@ export function StaffPayrollSheetView({ periodId, onBack }: StaffPayrollSheetVie
                   <td className="is-num">{formatMoney(totals.baseSalary)}</td>
                   <td className="is-num">{formatMoney(totals.overtimeSalary)}</td>
                   <td className="is-num">{formatMoney(totals.commission)}</td>
+                  <td className="is-num">{formatMoney(totals.tourCommission)}</td>
                   <td className="is-num">{formatMoney(totals.allowance)}</td>
                   <td className="is-num">{formatMoney(totals.bonus)}</td>
                   <td className="is-num">{formatMoney(totals.totalIncome)}</td>
@@ -279,6 +285,7 @@ export function StaffPayrollSheetView({ periodId, onBack }: StaffPayrollSheetVie
                     {moneyCell(r, 'baseSalary')}
                     {moneyCell(r, 'overtimeSalary')}
                     {moneyCell(r, 'commission')}
+                    {moneyCell(r, 'tourCommission')}
                     {moneyCell(r, 'allowance')}
                     {moneyCell(r, 'bonus')}
                     <td className="is-num text-strong">{formatMoney(r.totalIncome)}</td>

@@ -21,7 +21,8 @@ export interface CommissionDetail {
   itemQuantity: number;
   productName?: string;
   sourceName: string;
-  commissionType: 'service' | 'consulting';
+  /** tour: performer's tour; consulting: consultant or product seller; service: records before tour commission. */
+  commissionType: 'service' | 'consulting' | 'tour';
   revenue: number;
   rate: number;
   amount: number;
@@ -36,6 +37,8 @@ export interface CommissionStaffSummary {
   serviceAmount: number;
   consultingRevenue: number;
   consultingAmount: number;
+  tourRevenue: number;
+  tourAmount: number;
   transactionCount: number;
 }
 
@@ -78,6 +81,8 @@ export interface PayrollRecordItem {
   allowance: number;
   bonus: number;
   commission: number;
+  /** Tour commission from performing services, paid separately from `commission`. */
+  tourCommission: number;
   deduction: number;
   totalIncome: number;
   netSalary: number;
@@ -124,6 +129,7 @@ export interface PayrollPeriodDetail {
     totalAllowance: number;
     totalBonus: number;
     totalCommission: number;
+    totalTourCommission?: number;
     totalDeduction: number;
     totalIncome: number;
     totalNetSalary: number;
@@ -152,6 +158,7 @@ export interface PayrollPeriodListItem {
   totalPaidAmount: number;
   totalRemainingAmount: number;
   totalCommission: number;
+  totalTourCommission?: number;
 }
 
 export interface PayrollListResponse {
@@ -161,6 +168,7 @@ export interface PayrollListResponse {
     totalPaidAmount: number;
     totalRemainingAmount: number;
     totalCommission: number;
+    totalTourCommission?: number;
   };
 }
 

@@ -324,6 +324,7 @@ export function MobileInvoiceCreateView() {
         itemId: item.itemId,
         quantity: item.quantity || 1,
         staffId: item.staffId || null,
+        consultantStaffId: item.itemType === 'service' ? item.consultantStaffId || null : null,
         usePackageId: item.usePackageId || null,
         usePackageServiceId: item.usePackageServiceId || null,
       })),
@@ -485,6 +486,13 @@ export function MobileInvoiceCreateView() {
                           <span className="mobile-form-tag">
                             <i className="ph ph-user" />
                             Chưa chọn nhân viên
+                          </span>
+                        )}
+
+                        {item.consultantStaffName && (
+                          <span className="mobile-form-tag is-staff">
+                            <i className="ph ph-handshake" />
+                            Tư vấn: {item.consultantStaffName}
                           </span>
                         )}
 

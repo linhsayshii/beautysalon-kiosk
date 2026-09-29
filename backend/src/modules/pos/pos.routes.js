@@ -278,6 +278,7 @@ router.post('/appointments', asyncRoute(async (request, response) => {
     return {
       serviceId: parsePositiveInteger(item.serviceId, 'serviceId'),
       staffId: item.staffId ? parsePositiveInteger(item.staffId, 'staffId') : null,
+      consultantStaffId: item.consultantStaffId ? parsePositiveInteger(item.consultantStaffId, 'consultantStaffId') : null,
       quantity: Math.max(1, Math.floor(Number(item.quantity || 1))),
       usePackageId: item.usePackageId ? parsePositiveInteger(item.usePackageId, 'usePackageId') : null,
       usePackageServiceId: item.usePackageServiceId ? parsePositiveInteger(item.usePackageServiceId, 'usePackageServiceId') : null,
@@ -318,6 +319,7 @@ router.put('/appointments/:id/editor', asyncRoute(async (request, response) => {
       note: item.note !== undefined ? text(item.note, 500) : undefined,
       serviceId: parsePositiveInteger(item.serviceId, 'serviceId'),
       staffId: item.staffId ? parsePositiveInteger(item.staffId, 'staffId') : null,
+      consultantStaffId: item.consultantStaffId ? parsePositiveInteger(item.consultantStaffId, 'consultantStaffId') : null,
       quantity: Math.max(1, Math.floor(Number(item.quantity || 1))),
       usePackageId: item.usePackageId ? parsePositiveInteger(item.usePackageId, 'usePackageId') : null,
       usePackageServiceId: item.usePackageServiceId ? parsePositiveInteger(item.usePackageServiceId, 'usePackageServiceId') : null,
@@ -353,6 +355,7 @@ router.put('/appointments/:id', asyncRoute(async (request, response) => {
     customerId: request.body.customerId !== undefined ? parsePositiveInteger(request.body.customerId, 'customerId') : undefined,
     serviceId: request.body.serviceId !== undefined ? (request.body.serviceId ? parsePositiveInteger(request.body.serviceId, 'serviceId') : null) : undefined,
     staffId: request.body.staffId !== undefined ? (request.body.staffId ? parsePositiveInteger(request.body.staffId, 'staffId') : null) : undefined,
+    consultantStaffId: request.body.consultantStaffId !== undefined ? (request.body.consultantStaffId ? parsePositiveInteger(request.body.consultantStaffId, 'consultantStaffId') : null) : undefined,
     startsAt,
     endsAt,
     status: request.body.status ? parseEnum(request.body.status, 'status', appointmentStatuses) : undefined,
@@ -387,6 +390,7 @@ router.post('/checkout', asyncRoute(async (request, response) => {
     itemId: parsePositiveInteger(line.itemId, 'itemId'),
     quantity: Math.max(1, Math.floor(Number(line.quantity || 1))),
     staffId: line.staffId ? parsePositiveInteger(line.staffId, 'staffId') : null,
+    consultantStaffId: line.consultantStaffId ? parsePositiveInteger(line.consultantStaffId, 'consultantStaffId') : null,
     usePackageId: line.usePackageId ? parsePositiveInteger(line.usePackageId, 'usePackageId') : null,
     usePackageServiceId: line.usePackageServiceId ? parsePositiveInteger(line.usePackageServiceId, 'usePackageServiceId') : null,
   }));

@@ -260,7 +260,8 @@ describe('StaffPayrollView Component', () => {
     // Should switch to Sheet View
     expect(await screen.findByRole('heading', { level: 1, name: /Cập nhật bảng tính lương/i })).toBeInTheDocument();
     expect(screen.getByText(/Lương chính/i)).toBeInTheDocument();
-    expect(screen.getByText(/Hoa hồng/i)).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', { name: 'Hoa hồng' })).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', { name: 'Hoa hồng tua' })).toBeInTheDocument();
     expect(screen.getByText(/Tổng thu nhập/i)).toBeInTheDocument();
 
     // Click Back button

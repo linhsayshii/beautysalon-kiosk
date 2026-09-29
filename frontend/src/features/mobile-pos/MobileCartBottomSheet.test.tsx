@@ -49,4 +49,17 @@ describe('Mobile checkout identity and payment safety', () => {
     expect(screen.getByLabelText('Khách thanh toán lần này (VNĐ)')).toHaveValue('1.000.000');
     expect(props.onClose).not.toHaveBeenCalled();
   });
+  it('sends the consultant of a service line and shows tour plus consulting commission', async () => {
+    const checkout = vi.spyOn(posApi, 'checkoutPosInvoice').mockRejectedValue(new Error('stop'));
+    const line = {
+      ...props.lines[0], consultantStaffId: 2,
+      commissionType: 'percent' as const, commissionRate: 0.1, tourCommissionType: 'fixed' as const, tourCommissionRate: 50000,
+    };
+    show({ lines: [line], onUpdateLineConsultant: vi.fn() } as Partial<typeof props>);
+    expect(screen.getByLabelText('Hoa hồng Lăn kim tái tạo: 230.000đ')).toBeInTheDocument();
+    expect(screen.getByLabelText('Nhân viên tư vấn Lăn kim tái tạo')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Xác nhận thanh toán' }));
+    await waitFor(() => expect(checkout).toHaveBeenCalled());
+    expect(checkout.mock.calls[0][0].lines[0]).toMatchObject({ staffId: 2, consultantStaffId: 2 });
+  });
 });

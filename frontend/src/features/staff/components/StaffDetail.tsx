@@ -119,6 +119,7 @@ function StaffPayslipsTab({ staff }: { staff: ApiRecord }) {
             <th>Kỳ làm việc</th>
             <th className="is-num">Lương chính</th>
             <th className="is-num">Hoa hồng</th>
+            <th className="is-num">Hoa hồng tua</th>
             <th className="is-num">Phụ cấp</th>
             <th className="is-num">Thực lĩnh</th>
             <th className="is-center">Trạng thái</th>
@@ -131,6 +132,7 @@ function StaffPayslipsTab({ staff }: { staff: ApiRecord }) {
               <td>{data.period ? `${formatDate(data.period.startsOn)} - ${formatDate(data.period.endsOn)}` : '-'}</td>
               <td className="is-num">{formatMoney(row.baseSalary)}</td>
               <td className="is-num">{formatMoney(row.commission)}</td>
+              <td className="is-num">{formatMoney(row.tourCommission)}</td>
               <td className="is-num">{formatMoney(row.allowance)}</td>
               <td className="is-num text-strong text-success">{formatMoney(row.netSalary)}</td>
               <td className="is-center"><StatusBadge status={row.status} /></td>

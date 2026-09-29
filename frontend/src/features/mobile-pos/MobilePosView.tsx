@@ -8,6 +8,7 @@ import { getPosCatalog, getPosInvoice, getPosPaymentRequests, getPosPriceQuote, 
 import { PosReceiptPrint } from '@/features/pos/components/PosReceiptPrint';
 import { UsePackageModal } from '@/features/pos/components/UsePackageModal';
 import { MobileCartBottomSheet } from './MobileCartBottomSheet';
+import { expectedLineCommission } from '@/features/pos/commission';
 import { MobileSearchBar } from '@/features/mobile-common';
 import { BarcodeScannerModal } from '@/components/ui/BarcodeScanner/BarcodeScannerModal';
 import { useToast } from '@/components/ui/Toast/ToastProvider';
@@ -26,11 +27,14 @@ interface CatalogItem {
   stockQuantity: number | null;
   commissionType: 'percent' | 'fixed' | null;
   commissionRate: number;
+  tourCommissionType?: 'percent' | 'fixed' | null;
+  tourCommissionRate?: number;
 }
 
 interface PosLine extends CatalogItem {
   quantity: number;
   staffId: number | null;
+  consultantStaffId?: number | null;
   usePackageId?: number | null;
   usePackageServiceId?: number | null;
 }
@@ -48,6 +52,12 @@ const filterTabs: Array<{ value: CatalogFilter; label: string }> = [
   { value: 'account_card', label: 'Thẻ TK' },
   { value: 'product', label: 'Sản phẩm' },
 ];
+
+const lineCommission = (line: PosLine) => expectedLineCommission({
+  ...line,
+  unitPrice: line.salePrice,
+  isPackageRedemption: Boolean(line.usePackageId),
+});
 
 export function MobilePosView() {
   const [searchParams] = useSearchParams();
@@ -124,8 +134,11 @@ export function MobilePosView() {
         stockQuantity: null,
         commissionType: item.commissionType || null,
         commissionRate: item.commissionRate || 0,
+        tourCommissionType: item.tourCommissionType || null,
+        tourCommissionRate: item.tourCommissionRate || 0,
         quantity: item.quantity,
         staffId: item.staffId || null,
+        consultantStaffId: item.itemType === 'service' ? item.consultantStaffId || null : null,
         usePackageId: item.customerPackageId || null,
         usePackageServiceId: item.customerPackageId ? item.serviceId : null,
       }));
@@ -221,21 +234,7 @@ export function MobilePosView() {
   }, [cartLines]);
 
   const totalCommission = useMemo(() => {
-    return cartLines.reduce((sum, line) => {
-      if (!line.staffId) return sum;
-      if (!line.commissionType || !line.commissionRate) return sum;
-
-      const revenue = line.salePrice * line.quantity;
-      let amount = 0;
-
-      if (line.commissionType === 'percent') {
-        amount = (revenue * line.commissionRate) / 100;
-      } else {
-        amount = line.quantity * line.commissionRate;
-      }
-
-      return sum + amount;
-    }, 0);
+    return cartLines.reduce((sum, line) => sum + lineCommission(line).total, 0);
   }, [cartLines]);
 
   // Add or increment item
@@ -275,6 +274,16 @@ export function MobilePosView() {
       prev.map((l) =>
         l.itemId === itemId && l.itemType === itemType
           ? { ...l, staffId }
+          : l
+      )
+    );
+  };
+
+  const handleUpdateLineConsultant = (itemId: number, itemType: string, consultantStaffId: number | null) => {
+    setCartLines((prev) =>
+      prev.map((l) =>
+        l.itemId === itemId && l.itemType === itemType
+          ? { ...l, consultantStaffId }
           : l
       )
     );
@@ -507,14 +516,22 @@ export function MobilePosView() {
                     />
                   </div>
 
+                  {line.itemType === 'service' && (
+                    <div className="staff-select">
+                      <label>TV:</label>
+                      <Select<number | string>
+                        aria-label={`Nhân viên tư vấn ${line.name}`}
+                        value={line.consultantStaffId ?? ''}
+                        onChange={(staffId) => handleUpdateLineConsultant(line.itemId, line.itemType, staffId === '' ? null : Number(staffId))}
+                        size="sm"
+                        triggerClassName="mobile-pos-staff-trigger"
+                        options={[{ value: '', label: '-- Không --' }, ...staffList.map((staff) => ({ value: staff.id, label: staff.name }))]}
+                      />
+                    </div>
+                  )}
+
                   <div className="commission-badge">
-                    HH: {line.staffId && line.commissionType && line.commissionRate
-                      ? formatMoney(Math.round(
-                          line.commissionType === 'percent'
-                            ? (line.salePrice * line.quantity * line.commissionRate) / 100
-                            : line.commissionRate
-                        ))
-                      : '-'}
+                    HH: {lineCommission(line).total > 0 ? formatMoney(lineCommission(line).total) : '-'}
                   </div>
                 </div>
               </div>
@@ -558,6 +575,7 @@ export function MobilePosView() {
           onSelectCustomer={(value) => { if (!(invoiceId && (invoiceQuery.data?.data?.fromAppointment || invoiceQuery.data?.data?.serviceProgress?.total > 0))) setCustomer(value); }}
           onUpdateQuantity={handleUpdateQuantity}
           onUpdateLineStaff={handleUpdateLineStaff}
+          onUpdateLineConsultant={handleUpdateLineConsultant}
           onClose={() => setIsCartOpen(false)}
           onSuccess={(receipt) => {
             setIsCartOpen(false);

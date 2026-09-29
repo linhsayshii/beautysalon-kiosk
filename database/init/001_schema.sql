@@ -172,6 +172,7 @@ CREATE TABLE payroll_records (
   allowance NUMERIC(14, 2) NOT NULL DEFAULT 0 CHECK (allowance >= 0),
   bonus NUMERIC(14, 2) NOT NULL DEFAULT 0 CHECK (bonus >= 0),
   commission NUMERIC(14, 2) NOT NULL DEFAULT 0 CHECK (commission >= 0),
+  tour_commission NUMERIC(14, 2) NOT NULL DEFAULT 0 CHECK (tour_commission >= 0),
   deduction NUMERIC(14, 2) NOT NULL DEFAULT 0 CHECK (deduction >= 0),
   total_income NUMERIC(14, 2) NOT NULL DEFAULT 0 CHECK (total_income >= 0),
   net_salary NUMERIC(14, 2) NOT NULL DEFAULT 0 CHECK (net_salary >= 0),
@@ -222,6 +223,10 @@ CREATE TABLE services (
   active BOOLEAN NOT NULL DEFAULT TRUE,
   commission_type VARCHAR(20) CHECK (commission_type IN ('percent', 'fixed')),
   commission_rate NUMERIC(14, 2) NOT NULL DEFAULT 0 CHECK (commission_rate >= 0),
+  -- Tour commission pays the performer per turn; commission_* above pays the
+  -- consultant chosen on the invoice line.
+  tour_commission_type VARCHAR(10) CHECK (tour_commission_type IN ('percent', 'fixed')),
+  tour_commission_rate NUMERIC(14, 2) NOT NULL DEFAULT 0 CHECK (tour_commission_rate >= 0),
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
@@ -474,6 +479,7 @@ CREATE TABLE invoice_items (
   customer_package_id BIGINT,
   account_card_id BIGINT REFERENCES account_cards(id) ON DELETE SET NULL,
   staff_id BIGINT REFERENCES staff(id) ON DELETE SET NULL,
+  consultant_staff_id BIGINT REFERENCES staff(id) ON DELETE SET NULL,
   appointment_id BIGINT REFERENCES appointments(id) ON DELETE SET NULL,
   description VARCHAR(220) NOT NULL,
   quantity NUMERIC(12, 2) NOT NULL DEFAULT 1 CHECK (quantity > 0),

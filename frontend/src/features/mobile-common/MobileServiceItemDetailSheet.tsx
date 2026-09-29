@@ -19,6 +19,9 @@ export interface ConfiguredServiceItem {
   startsAt?: Date | string | null;
   staffId?: number | null;
   staffName?: string | null;
+  /** Earns the service's original commission; the performer (staffId) earns its tour commission. */
+  consultantStaffId?: number | null;
+  consultantStaffName?: string | null;
   position?: string | null;
   note?: string;
   usePackageId?: number | null;
@@ -97,9 +100,13 @@ export function MobileServiceItemDetailSheet({
   const [selectedStaffId, setSelectedStaffId] = useState<number | null>(null);
   const [selectedStaffName, setSelectedStaffName] = useState<string | null>(null);
   const [position, setPosition] = useState<string | null>(null);
+  const [consultantOpen, setConsultantOpen] = useState(false);
+  const [consultantId, setConsultantId] = useState<number | null>(null);
+  const [consultantName, setConsultantName] = useState<string | null>(null);
 
   // Sub-sheet pickers
   const [isStaffPickerOpen, setIsStaffPickerOpen] = useState(false);
+  const [staffPickerTarget, setStaffPickerTarget] = useState<'performer' | 'consultant'>('performer');
   const [isPositionPickerOpen, setIsPositionPickerOpen] = useState(false);
   const [isTimePickerOpen, setIsTimePickerOpen] = useState(false);
   const [staffSearch, setStaffSearch] = useState('');
@@ -117,6 +124,9 @@ export function MobileServiceItemDetailSheet({
       setSelectedStaffName(item.staffName ?? null);
       setPosition(item.position ?? null);
       setCustomPosition(item.position ?? '');
+      setConsultantId(item.consultantStaffId ?? null);
+      setConsultantName(item.consultantStaffName ?? null);
+      setConsultantOpen(Boolean(item.consultantStaffId));
     }
   }, [isOpen, item]);
 
@@ -153,9 +163,28 @@ export function MobileServiceItemDetailSheet({
       startsAt: isService ? startsAt : null,
       staffId: selectedStaffId,
       staffName: selectedStaffName,
+      consultantStaffId: isService && consultantOpen ? consultantId : null,
+      consultantStaffName: isService && consultantOpen ? consultantName : null,
       position: isService ? position : null,
     });
     onClose();
+  };
+
+  const openStaffPicker = (target: 'performer' | 'consultant') => {
+    setStaffPickerTarget(target);
+    setIsStaffPickerOpen(true);
+  };
+  const pickingConsultant = staffPickerTarget === 'consultant';
+  const pickedStaffId = pickingConsultant ? consultantId : selectedStaffId;
+  const pickStaff = (staff: { id: number; name: string } | null) => {
+    if (pickingConsultant) {
+      setConsultantId(staff?.id ?? null);
+      setConsultantName(staff?.name ?? null);
+    } else {
+      setSelectedStaffId(staff?.id ?? null);
+      setSelectedStaffName(staff?.name ?? null);
+    }
+    setIsStaffPickerOpen(false);
   };
 
   const localStart = localDateTimeFromInstant(startsAt, timeZone);
@@ -264,7 +293,7 @@ export function MobileServiceItemDetailSheet({
           <button
             type="button"
             className="mobile-item-picker-row"
-            onClick={() => setIsStaffPickerOpen(true)}
+            onClick={() => openStaffPicker('performer')}
           >
             <div className="mobile-picker-row-left">
               <i className="ph ph-user-circle mobile-picker-row-icon" />
@@ -310,12 +339,66 @@ export function MobileServiceItemDetailSheet({
             </>
           )}
         </div>
+
+        {isService && (consultantOpen ? (
+          <div className="mobile-item-section">
+            <div className="mobile-item-section-head">
+              <h4 className="mobile-item-section-title">NHÂN VIÊN TƯ VẤN BÁN</h4>
+              <button
+                type="button"
+                className="btn btn-ghost btn-icon btn-sm"
+                aria-label="Bỏ nhân viên tư vấn bán"
+                onClick={() => {
+                  setConsultantOpen(false);
+                  setConsultantId(null);
+                  setConsultantName(null);
+                }}
+              >
+                <i className="ph ph-minus-circle" />
+              </button>
+            </div>
+            <button
+              type="button"
+              className="mobile-item-picker-row"
+              onClick={() => openStaffPicker('consultant')}
+            >
+              <div className="mobile-picker-row-left">
+                <i className="ph ph-handshake mobile-picker-row-icon" />
+                <div className="mobile-picker-row-text">
+                  <span className="mobile-picker-row-label">Chọn nhân viên</span>
+                  {consultantName && (
+                    <span className="mobile-picker-row-sub">Nhận hoa hồng tư vấn bán</span>
+                  )}
+                </div>
+              </div>
+              <div className="mobile-picker-row-right">
+                <span className="mobile-picker-row-val">
+                  {consultantName || 'Chưa chọn'}
+                </span>
+                <i className="ph ph-caret-right" />
+              </div>
+            </button>
+          </div>
+        ) : (
+          <div className="mobile-item-section">
+            <button
+              type="button"
+              className="btn btn-link mobile-item-add-link"
+              onClick={() => {
+                setConsultantOpen(true);
+                openStaffPicker('consultant');
+              }}
+            >
+              Thêm nhân viên tư vấn bán
+            </button>
+          </div>
+        ))}
       </BottomSheet>
 
       <BottomSheet
         open={isStaffPickerOpen}
         onClose={() => setIsStaffPickerOpen(false)}
-        title="Chọn nhân viên"
+        title={pickingConsultant ? 'Chọn nhân viên tư vấn bán' : 'Chọn nhân viên'}
         height="full"
         nested
         initialFocusRef={staffSearchRef}
@@ -339,28 +422,24 @@ export function MobileServiceItemDetailSheet({
           <button
             type="button"
             className={`mobile-staff-picker-item ${
-              selectedStaffId === null ? 'is-selected' : ''
+              pickedStaffId === null ? 'is-selected' : ''
             }`}
-            onClick={() => {
-              setSelectedStaffId(null);
-              setSelectedStaffName(null);
-              setIsStaffPickerOpen(false);
-            }}
+            onClick={() => pickStaff(null)}
           >
             <div className="mobile-staff-avatar no-staff">
               <i className="ph ph-user-minus" />
             </div>
             <div className="mobile-staff-info">
               <span className="mobile-staff-name">Chưa chọn nhân viên</span>
-              <span className="mobile-staff-role">Tự động phân bổ sau</span>
+              <span className="mobile-staff-role">{pickingConsultant ? 'Không ai nhận hoa hồng tư vấn' : 'Tự động phân bổ sau'}</span>
             </div>
-            {selectedStaffId === null && (
+            {pickedStaffId === null && (
               <i className="ph ph-check-circle mobile-staff-check" />
             )}
           </button>
 
           {filteredStaff.map((staff) => {
-            const isSelected = selectedStaffId === staff.id;
+            const isSelected = pickedStaffId === staff.id;
             return (
               <button
                 key={staff.id}
@@ -368,11 +447,7 @@ export function MobileServiceItemDetailSheet({
                 className={`mobile-staff-picker-item ${
                   isSelected ? 'is-selected' : ''
                 }`}
-                onClick={() => {
-                  setSelectedStaffId(staff.id);
-                  setSelectedStaffName(staff.name);
-                  setIsStaffPickerOpen(false);
-                }}
+                onClick={() => pickStaff(staff)}
               >
                 <div className="mobile-staff-avatar">
                   {initials(staff.name)}

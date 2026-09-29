@@ -281,6 +281,18 @@
   letter-spacing: 0.04em;
 }
 
+.mobile-item-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.mobile-item-add-link {
+  justify-content: flex-start;
+  padding: 0;
+}
+
 .mobile-item-pills-row {
   display: flex;
   gap: 10px;

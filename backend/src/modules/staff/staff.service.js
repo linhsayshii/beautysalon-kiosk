@@ -1,5 +1,5 @@
 import { pool } from '../../db.js';
-import { HttpError } from '../../lib/http.js';
+import { HttpError, parsePositiveInteger } from '../../lib/http.js';
 import { broadcastToBranch, realtimeEvents } from '../../lib/ws.js';
 import { recordCashEntry } from '../cashbook/cashbook.ledger.js';
 import { config } from '../../config.js';
@@ -446,7 +446,7 @@ export async function getStaffPayrollHistory({ branchId, staffId }) {
        pp.id AS period_id, pp.code AS period_code, pp.name AS period_name,
        pp.period_type, pp.starts_on::text AS starts_on_str, pp.ends_on::text AS ends_on_str, pp.status AS period_status,
        pr.id, pr.code, pr.base_salary, pr.overtime_salary, pr.allowance, pr.bonus,
-       pr.commission, pr.deduction, pr.total_income, pr.net_salary, pr.paid_amount,
+       pr.commission, pr.tour_commission, pr.deduction, pr.total_income, pr.net_salary, pr.paid_amount,
        pr.remaining_amount, pr.work_units, pr.standard_work_days, pr.hourly_rate,
        pr.status, pr.note
      FROM payroll_records pr
@@ -473,6 +473,7 @@ export async function getStaffPayrollHistory({ branchId, staffId }) {
     allowance: number(row.allowance),
     bonus: number(row.bonus),
     commission: number(row.commission),
+    tourCommission: number(row.tour_commission),
     deduction: number(row.deduction),
     totalIncome: number(row.total_income),
     netSalary: number(row.net_salary),
@@ -524,7 +525,7 @@ export async function listCommissions({ branchId, dateFrom, dateTo }) {
       `SELECT
          cr.id, cr.source_name, cr.revenue, cr.rate, cr.amount, cr.occurred_on,
          cr.invoice_id, cr.invoice_item_id,
-         COALESCE(cr.commission_type, CASE WHEN cr.source_name ILIKE '%tư vấn%' OR cr.source_name ILIKE '%sản phẩm%' THEN 'consulting' ELSE 'service' END) AS commission_type,
+         COALESCE(cr.commission_type, 'service') AS commission_type,
          s.id AS staff_id, s.code AS staff_code, s.name AS staff_name, s.role, s.avatar_tone,
          i.code AS invoice_code,
          ii.quantity AS item_quantity,
@@ -543,10 +544,12 @@ export async function listCommissions({ branchId, dateFrom, dateTo }) {
          s.id, s.code, s.name, s.role, s.avatar_tone,
          COALESCE(SUM(cr.revenue), 0) AS total_revenue,
          COALESCE(SUM(cr.amount), 0) AS total_amount,
-         COALESCE(SUM(CASE WHEN cr.source_name ILIKE '%tư vấn%' OR cr.source_name ILIKE '%sản phẩm%' THEN 0 ELSE cr.revenue END), 0) AS service_revenue,
-         COALESCE(SUM(CASE WHEN cr.source_name ILIKE '%tư vấn%' OR cr.source_name ILIKE '%sản phẩm%' THEN 0 ELSE cr.amount END), 0) AS service_amount,
-         COALESCE(SUM(CASE WHEN cr.source_name ILIKE '%tư vấn%' OR cr.source_name ILIKE '%sản phẩm%' THEN cr.revenue ELSE 0 END), 0) AS consulting_revenue,
-         COALESCE(SUM(CASE WHEN cr.source_name ILIKE '%tư vấn%' OR cr.source_name ILIKE '%sản phẩm%' THEN cr.amount ELSE 0 END), 0) AS consulting_amount,
+         COALESCE(SUM(cr.revenue) FILTER (WHERE COALESCE(cr.commission_type, 'service') = 'service'), 0) AS service_revenue,
+         COALESCE(SUM(cr.amount) FILTER (WHERE COALESCE(cr.commission_type, 'service') = 'service'), 0) AS service_amount,
+         COALESCE(SUM(cr.revenue) FILTER (WHERE cr.commission_type = 'consulting'), 0) AS consulting_revenue,
+         COALESCE(SUM(cr.amount) FILTER (WHERE cr.commission_type = 'consulting'), 0) AS consulting_amount,
+         COALESCE(SUM(cr.revenue) FILTER (WHERE cr.commission_type = 'tour'), 0) AS tour_revenue,
+         COALESCE(SUM(cr.amount) FILTER (WHERE cr.commission_type = 'tour'), 0) AS tour_amount,
          COUNT(cr.id) AS transaction_count
        FROM staff s
        LEFT JOIN commission_records cr ON cr.staff_id = s.id AND cr.occurred_on >= $2::date AND cr.occurred_on <= $3::date
@@ -579,6 +582,8 @@ export async function listCommissions({ branchId, dateFrom, dateTo }) {
       serviceAmount: number(row.service_amount),
       consultingRevenue: number(row.consulting_revenue),
       consultingAmount: number(row.consulting_amount),
+      tourRevenue: number(row.tour_revenue),
+      tourAmount: number(row.tour_amount),
       transactionCount: number(row.transaction_count),
     })),
   };
@@ -697,19 +702,23 @@ async function calculatePeriodPayrollInternal(client, branchId, periodId, starts
     });
   }
 
-  // 4. Fetch commissions per staff in period
+  // 4. Fetch commissions per staff in period. Tour commission is paid in its
+  // own payroll column; every other commission type goes to `commission`.
   const commissionsRes = await client.query(
     `SELECT
        staff_id,
-       COALESCE(SUM(amount), 0) AS total_commission
+       COALESCE(SUM(amount) FILTER (WHERE commission_type IS DISTINCT FROM 'tour'), 0) AS total_commission,
+       COALESCE(SUM(amount) FILTER (WHERE commission_type = 'tour'), 0) AS total_tour_commission
      FROM commission_records
      WHERE branch_id = $1 AND occurred_on >= $2::date AND occurred_on <= $3::date
      GROUP BY staff_id`,
     [branchId, startsOn, endsOn],
   );
   const staffCommissionMap = new Map();
+  const staffTourCommissionMap = new Map();
   for (const row of commissionsRes.rows) {
     staffCommissionMap.set(number(row.staff_id), number(row.total_commission));
+    staffTourCommissionMap.set(number(row.staff_id), number(row.total_tour_commission));
   }
 
   // 4.5. Fetch late/early minutes AND count from completed attendance records (for deduction)
@@ -771,6 +780,7 @@ async function calculatePeriodPayrollInternal(client, branchId, periodId, starts
     const hourlyRate = number(staff.hourly_rate);
     const workInfo = staffWorkMap.get(sId) || { shifts: 0, hours: 0 };
     const commission = staffCommissionMap.get(sId) || 0;
+    const tourCommission = staffTourCommissionMap.get(sId) || 0;
     const existing = existingRecordMap.get(sId);
 
     let baseSalary = 0;
@@ -805,7 +815,7 @@ async function calculatePeriodPayrollInternal(client, branchId, periodId, starts
     const deduction = Math.max(autoDeduction, manualDeduction);
     const paidAmount = existing ? number(existing.paid_amount) : 0;
 
-    const totalIncome = baseSalary + overtimeSalary + commission + allowance + bonus;
+    const totalIncome = baseSalary + overtimeSalary + commission + tourCommission + allowance + bonus;
     const netSalary = Math.max(0, totalIncome - deduction);
     const remainingAmount = Math.max(0, netSalary - paidAmount);
     const code = existing?.code || `PL${String(periodId).padStart(4, '0')}${String(sId).padStart(3, '0')}`;
@@ -814,12 +824,13 @@ async function calculatePeriodPayrollInternal(client, branchId, periodId, starts
       `INSERT INTO payroll_records (
          payroll_period_id, staff_id, code, base_salary, overtime_salary,
          allowance, bonus, commission, deduction, total_income, net_salary,
-         paid_amount, remaining_amount, work_units, standard_work_days, hourly_rate, status
-       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, 'draft')
+         paid_amount, remaining_amount, work_units, standard_work_days, hourly_rate, status, tour_commission
+       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, 'draft', $17)
        ON CONFLICT (payroll_period_id, staff_id) DO UPDATE SET
          code = EXCLUDED.code,
          base_salary = EXCLUDED.base_salary,
          commission = EXCLUDED.commission,
+         tour_commission = EXCLUDED.tour_commission,
          total_income = EXCLUDED.total_income,
          net_salary = EXCLUDED.net_salary,
          remaining_amount = EXCLUDED.remaining_amount,
@@ -829,7 +840,7 @@ async function calculatePeriodPayrollInternal(client, branchId, periodId, starts
       [
         periodId, sId, code, baseSalary, overtimeSalary,
         allowance, bonus, commission, deduction, totalIncome, netSalary,
-        paidAmount, remainingAmount, workUnits, standardWorkDays, hourlyRate,
+        paidAmount, remainingAmount, workUnits, standardWorkDays, hourlyRate, tourCommission,
       ],
     );
   }
@@ -853,7 +864,8 @@ export async function listPayrollPeriods({ branchId, search, status, periodType 
       COALESCE(SUM(pr.net_salary), 0) AS total_net_salary,
       COALESCE(SUM(pr.paid_amount), 0) AS total_paid_amount,
       COALESCE(SUM(pr.remaining_amount), 0) AS total_remaining_amount,
-      COALESCE(SUM(pr.commission), 0) AS total_commission
+      COALESCE(SUM(pr.commission), 0) AS total_commission,
+      COALESCE(SUM(pr.tour_commission), 0) AS total_tour_commission
     FROM payroll_periods pp
     LEFT JOIN payroll_records pr ON pr.payroll_period_id = pp.id
     WHERE pp.branch_id = $1
@@ -903,6 +915,7 @@ export async function listPayrollPeriods({ branchId, search, status, periodType 
     totalPaidAmount: number(row.total_paid_amount),
     totalRemainingAmount: number(row.total_remaining_amount),
     totalCommission: number(row.total_commission),
+    totalTourCommission: number(row.total_tour_commission),
   }));
 
   const grandSummary = rows.reduce((acc, row) => ({
@@ -910,7 +923,8 @@ export async function listPayrollPeriods({ branchId, search, status, periodType 
     totalPaidAmount: acc.totalPaidAmount + row.totalPaidAmount,
     totalRemainingAmount: acc.totalRemainingAmount + row.totalRemainingAmount,
     totalCommission: acc.totalCommission + row.totalCommission,
-  }), { totalNetSalary: 0, totalPaidAmount: 0, totalRemainingAmount: 0, totalCommission: 0 });
+    totalTourCommission: acc.totalTourCommission + row.totalTourCommission,
+  }), { totalNetSalary: 0, totalPaidAmount: 0, totalRemainingAmount: 0, totalCommission: 0, totalTourCommission: 0 });
 
   return {
     rows,
@@ -939,7 +953,7 @@ export async function getPayrollPeriodDetail({ branchId, periodId }) {
     pool.query(
       `SELECT
          pr.id, pr.code, pr.base_salary, pr.overtime_salary, pr.allowance, pr.bonus,
-         pr.commission, pr.deduction, pr.total_income, pr.net_salary, pr.paid_amount,
+         pr.commission, pr.tour_commission, pr.deduction, pr.total_income, pr.net_salary, pr.paid_amount,
          pr.remaining_amount, pr.work_units, pr.standard_work_days, pr.hourly_rate,
          pr.status, pr.note,
          s.id AS staff_id, s.code AS staff_code, s.name AS staff_name, s.role, s.avatar_tone,
@@ -981,6 +995,7 @@ export async function getPayrollPeriodDetail({ branchId, periodId }) {
     allowance: number(row.allowance),
     bonus: number(row.bonus),
     commission: number(row.commission),
+    tourCommission: number(row.tour_commission),
     deduction: number(row.deduction),
     totalIncome: number(row.total_income),
     netSalary: number(row.net_salary),
@@ -1000,6 +1015,7 @@ export async function getPayrollPeriodDetail({ branchId, periodId }) {
     totalAllowance: acc.totalAllowance + rec.allowance,
     totalBonus: acc.totalBonus + rec.bonus,
     totalCommission: acc.totalCommission + rec.commission,
+    totalTourCommission: acc.totalTourCommission + rec.tourCommission,
     totalDeduction: acc.totalDeduction + rec.deduction,
     totalIncome: acc.totalIncome + rec.totalIncome,
     totalNetSalary: acc.totalNetSalary + rec.netSalary,
@@ -1012,6 +1028,7 @@ export async function getPayrollPeriodDetail({ branchId, periodId }) {
     totalAllowance: 0,
     totalBonus: 0,
     totalCommission: 0,
+    totalTourCommission: 0,
     totalDeduction: 0,
     totalIncome: 0,
     totalNetSalary: 0,
@@ -1095,7 +1112,7 @@ export async function updatePayrollRecords({ branchId, periodId, records, note }
 
         // Fetch current record
         const curRes = await client.query(
-          `SELECT base_salary, overtime_salary, allowance, bonus, commission, deduction, paid_amount, note
+          `SELECT base_salary, overtime_salary, allowance, bonus, commission, tour_commission, deduction, paid_amount, note
            FROM payroll_records WHERE id = $1 AND payroll_period_id = $2`,
           [rId, periodId],
         );
@@ -1106,21 +1123,22 @@ export async function updatePayrollRecords({ branchId, periodId, records, note }
           const allowance = rec.allowance === undefined ? number(cur.allowance) : number(rec.allowance);
           const bonus = rec.bonus === undefined ? number(cur.bonus) : number(rec.bonus);
           const commission = rec.commission === undefined ? number(cur.commission) : number(rec.commission);
+          const tourCommission = rec.tourCommission === undefined ? number(cur.tour_commission) : number(rec.tourCommission);
           const deduction = rec.deduction === undefined ? number(cur.deduction) : number(rec.deduction);
-          if ([baseSalary, overtimeSalary, allowance, bonus, commission, deduction].some((value) => value < 0)) {
+          if ([baseSalary, overtimeSalary, allowance, bonus, commission, tourCommission, deduction].some((value) => value < 0)) {
             throw new HttpError(400, 'INVALID_PAYROLL_AMOUNT', 'Các khoản lương không được âm');
           }
           const paidAmount = number(cur.paid_amount);
-          const totalIncome = baseSalary + overtimeSalary + commission + allowance + bonus;
+          const totalIncome = baseSalary + overtimeSalary + commission + tourCommission + allowance + bonus;
           const netSalary = Math.max(0, totalIncome - deduction);
           const remainingAmount = Math.max(0, netSalary - paidAmount);
 
           await client.query(
             `UPDATE payroll_records
              SET base_salary = $1, overtime_salary = $2, allowance = $3, bonus = $4, commission = $5, deduction = $6,
-                 total_income = $7, net_salary = $8, remaining_amount = $9, note = $10
+                 total_income = $7, net_salary = $8, remaining_amount = $9, note = $10, tour_commission = $13
              WHERE id = $11 AND payroll_period_id = $12`,
-            [baseSalary, overtimeSalary, allowance, bonus, commission, deduction, totalIncome, netSalary, remainingAmount, rec.note === undefined ? cur.note : recNote, rId, periodId],
+            [baseSalary, overtimeSalary, allowance, bonus, commission, deduction, totalIncome, netSalary, remainingAmount, rec.note === undefined ? cur.note : recNote, rId, periodId, tourCommission],
           );
         }
       }
@@ -1354,7 +1372,7 @@ export async function getPayroll({ branchId, periodCode }) {
   if (result.rows.length > 0) {
     return getPayrollPeriodDetail({ branchId, periodId: result.rows[0].id });
   }
-  return { period: null, rows: [], summary: { totalNetSalary: 0, totalCommission: 0 } };
+  return { period: null, rows: [], summary: { totalNetSalary: 0, totalCommission: 0, totalTourCommission: 0 } };
 }
 
 // ============================================================================
