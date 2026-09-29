@@ -16,7 +16,7 @@ docker compose up -d --wait database
 docker compose exec -T database sh -c 'exec psql -X -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB"' < database/seeds/minji_seed.sql
 # Continue only after successful seeding; skip seeding for an existing database.
 docker compose up -d --build --wait   # web :8080, API :3000, Postgres :5432
-docker compose down                  # stop, keep database; down -v does not delete ./data
+docker compose down                  # stop, keep database; down -v does not delete ./data or ./uploads
 docker compose logs -f
 ```
 
@@ -49,13 +49,14 @@ Node 24 in the Dockerfiles and `backend/package.json` engines. CI (`.github/work
 ### Backend (`backend/src/`)
 - `server.js` runs `runMigrations()` **before** it starts listening. It then creates the Express app (`app.js`) and attaches the WebSocket server (`lib/ws.js`) to the same HTTP server.
 - `app.js` sets up the middleware chain on `/api/v1`: request ID → security headers → trusted-origin check (`AUTH_TRUSTED_ORIGINS`) → rate limit → JSON body. `/health`, `/ready` and `/auth` are public. Everything mounted after `requireAuth` needs a session cookie. Each module is mounted with `requirePermissions(...)`.
-- Modules live in `modules/<name>/` as `<name>.routes.js` (HTTP parsing and validation) plus `<name>.service.js` (SQL). The modules are auth, attendance, branches, cashbook, customers, dashboard, debts, inventory, notifications, orders, pos, reports and staff. `domain-options.js` holds the enums exposed via `GET /api/v1/meta`.
+- Modules live in `modules/<name>/` as `<name>.routes.js` (HTTP parsing and validation) plus `<name>.service.js` (SQL). The modules are auth, attendance, branches, cashbook, customers, dashboard, debts, inventory, media, notifications, orders, pos, reports and staff. `domain-options.js` holds the enums exposed via `GET /api/v1/meta`.
 - **Roles and permissions** (`modules/auth/auth.permissions.js`): the DB roles are `manager`, `cashier` and `staff`. `manager` has every permission except `attendance:self`. `cashier` has `pos:use` (POS and debts) and `cashbook:write` (create vouchers, see today's vouchers only). `finance:read` (fund balances, cancel/transfer vouchers, profit report) is manager-only. `staff` has `attendance:self`, `pos:use` and `customers:manage` (sales, appointments, customers and debt collection, but no cashbook, finance, inventory or reports). Add a new endpoint group by mounting it in `app.js` with the right permission.
 - **Branch scoping**: services receive `request.account.branchId` from the session. Never accept `branchId` from the client. Every query filters by `branch_id`.
 - **Errors**: throw `new HttpError(status, CODE, vietnameseMessage)` from `lib/http.js`, and wrap async handlers in `asyncRoute`. `apiErrorHandler` in `app.js` produces `{ error: { status, code, message, requestId, details? } }`. For 5xx responses it hides the message. Common server codes are `AUTH_REQUIRED` (401), `ACCESS_DENIED` (403), `ROUTE_NOT_FOUND` (404), `MALFORMED_JSON`, `PAYLOAD_TOO_LARGE` and `INVALID_ARGUMENT`. The frontend client makes up `NETWORK_ERROR` (503), `REQUEST_TIMEOUT` (504) and `INVALID_RESPONSE` (502) for failures on its side.
 - **Transactions**: mutations use `pool.connect()` + `BEGIN`/`COMMIT`/`ROLLBACK`. Analytics reads use `BEGIN READ ONLY`. All SQL is parameterized.
 - **Cashbook** (`modules/cashbook/`): `cash_transactions` is the voucher ledger (`PT`/`PC` codes per branch, `fund` = `cash` | `bank`, soft cancel). Every money movement goes through `recordCashEntry()` in `cashbook.ledger.js` inside the caller's transaction (POS, debt collection, payroll payment, received purchase orders). Wallet (prepaid card) payments are not written to a fund. Categories and their `countsInProfit` flag live in `domain-options.js`.
 - **Profit report** (`modules/reports/`): revenue = paid invoices by branch-local `issued_at` with the invoice discount spread over lines; account-card sales are deposits, not revenue; cost = quantity × current `cost_price`; expenses = active vouchers whose category `countsInProfit`.
+- **Media** (`modules/media/`): goods photos are compressed in the browser (`lib/image-compress.ts`, WebP/JPEG, ≤1200px) and posted as a raw body to `POST /media/product-images` (`inventory:manage`, ≤1 MB, magic bytes checked). Files go to `UPLOAD_DIR/<branchId>/products/<uuid>.<ext>` (`./uploads` bind mount; back it up with `./data`) and are served branch-scoped by `GET /media/products/:file`. `image_url` stores that path or a legacy http(s) URL; replacing an image deletes the old file after COMMIT.
 - **Realtime**: `lib/ws.js` authenticates the WS upgrade with the session cookie and exposes `broadcastToBranch(branchId, event, data)`. Events (`realtimeEvents`) are published only **after** the transaction commits. They are invalidation signals, and clients refetch rather than trusting the payload.
 
 ### Database schema changes

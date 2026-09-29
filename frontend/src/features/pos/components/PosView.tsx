@@ -21,6 +21,7 @@ import { PosReceiptPrint } from './PosReceiptPrint';
 import { UsePackageModal } from './UsePackageModal';
 import { BarcodeScannerModal } from '@/components/ui/BarcodeScanner/BarcodeScannerModal';
 import { usePosBarcodeLookup } from '../usePosBarcodeLookup';
+import { ProductImageViewButton } from '@/features/inventory/components/ProductImageViewButton';
 
 type CatalogFilter = '' | 'service' | 'package' | 'account_card' | 'product';
 type PosMode = 'calendar' | 'invoice';
@@ -34,6 +35,7 @@ interface CatalogItem {
   unit: string;
   salePrice: number;
   stockQuantity: number | null;
+  imageUrl?: string;
   commissionType?: 'percent' | 'fixed' | null;
   commissionRate?: number;
   usePackageId?: number | null;
@@ -435,11 +437,15 @@ export function PosView() {
                 <div className="pos-product-grid">
                   {items.map((item) => {
                     const soldOut = item.itemType === 'product' && Number(item.stockQuantity ?? 0) <= 0;
-                    return <button className="pos-product" type="button" disabled={soldOut} onClick={() => addItem(item)} key={`${item.itemType}-${item.itemId}`}>
-                      <span className={`pos-product-icon is-${item.itemType}`}><i className={`ph ${itemIcons[item.itemType]}`} aria-hidden="true" /></span>
-                      <span className="pos-product-copy"><strong>{item.name}</strong><small>{item.code}{item.itemType === 'product' ? ` · Tồn ${item.stockQuantity ?? 0}` : ` · ${item.unit}`}</small></span>
-                      <span className="pos-product-price">{soldOut ? 'Hết hàng' : formatMoney(item.salePrice)}</span>
-                    </button>;
+                    // The view-image button sits beside the tile button because buttons cannot be nested.
+                    return <div className={`pos-product-cell${item.imageUrl ? ' has-image' : ''}`} key={`${item.itemType}-${item.itemId}`}>
+                      <button className="pos-product" type="button" disabled={soldOut} onClick={() => addItem(item)}>
+                        <span className={`pos-product-icon is-${item.itemType}`}><i className={`ph ${itemIcons[item.itemType]}`} aria-hidden="true" /></span>
+                        <span className="pos-product-copy"><strong>{item.name}</strong><small>{item.code}{item.itemType === 'product' ? ` · Tồn ${item.stockQuantity ?? 0}` : ` · ${item.unit}`}</small></span>
+                        <span className="pos-product-price">{soldOut ? 'Hết hàng' : formatMoney(item.salePrice)}</span>
+                      </button>
+                      <ProductImageViewButton imageUrl={item.imageUrl} name={item.name} className="pos-product-image-btn" />
+                    </div>;
                   })}
                 </div>
               </section>

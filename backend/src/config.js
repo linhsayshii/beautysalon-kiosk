@@ -1,3 +1,6 @@
+import { resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
 function integerFromEnv(name, fallback) {
   const value = Number.parseInt(process.env[name] ?? String(fallback), 10);
   if (!Number.isFinite(value)) {
@@ -58,6 +61,10 @@ export const config = Object.freeze({
     cookieSecure,
     qrSecret,
     qrLifetimeSeconds: 15,
+  },
+  uploads: {
+    // Product photos live outside the image so they survive rebuilds; compose mounts ./uploads here.
+    dir: resolve(process.env.UPLOAD_DIR ?? fileURLToPath(new URL('../uploads', import.meta.url))),
   },
   database: {
     host: process.env.DB_HOST ?? 'localhost',

@@ -3,6 +3,7 @@ import { pool } from '../../db.js';
 import { HttpError } from '../../lib/http.js';
 import { broadcastToBranch, realtimeEvents } from '../../lib/ws.js';
 import { recordCashEntry } from '../cashbook/cashbook.ledger.js';
+import { deleteProductImage } from '../media/media.storage.js';
 
 const number = (value) => Number(value ?? 0);
 
@@ -12,26 +13,26 @@ const goodsCte = `
       p.branch_id, 'product'::text AS item_type, p.id AS item_id, p.sku AS code, p.name,
       p.category, p.brand, p.unit, p.sale_price, p.cost_price,
       p.last_purchase_price, COALESCE(ib.quantity, 0) AS stock_quantity,
-      p.min_stock, p.max_stock, p.active, p.commission_type, p.commission_rate, p.barcode
+      p.min_stock, p.max_stock, p.active, p.commission_type, p.commission_rate, p.barcode, p.image_url
     FROM products p
     LEFT JOIN inventory_balances ib ON ib.product_id = p.id AND ib.branch_id = p.branch_id
     UNION ALL
     SELECT
       s.branch_id, 'service'::text, s.id, s.code, s.name,
       s.category, s.brand, 'lần'::varchar, s.price, s.cost_price,
-      0::numeric, NULL::numeric, 0::numeric, NULL::numeric, s.active, s.commission_type, s.commission_rate, NULL::varchar
+      0::numeric, NULL::numeric, 0::numeric, NULL::numeric, s.active, s.commission_type, s.commission_rate, NULL::varchar, s.image_url
     FROM services s
     UNION ALL
     SELECT
       sp.branch_id, 'package'::text, sp.id, sp.code, sp.name,
       sp.category, sp.brand, 'gói'::varchar, sp.list_price, sp.cost_price,
-      0::numeric, NULL::numeric, 0::numeric, NULL::numeric, sp.active, sp.commission_type, sp.commission_rate, NULL::varchar
+      0::numeric, NULL::numeric, 0::numeric, NULL::numeric, sp.active, sp.commission_type, sp.commission_rate, NULL::varchar, sp.image_url
     FROM service_packages sp
     UNION ALL
     SELECT
       ac.branch_id, 'account_card'::text, ac.id, ac.code, ac.name,
       ac.category, ac.brand, 'thẻ'::varchar, ac.sale_price, 0::numeric,
-      0::numeric, NULL::numeric, 0::numeric, NULL::numeric, ac.active, ac.commission_type, ac.commission_rate, NULL::varchar
+      0::numeric, NULL::numeric, 0::numeric, NULL::numeric, ac.active, ac.commission_type, ac.commission_rate, NULL::varchar, ac.image_url
     FROM account_cards ac
   )
 `;
@@ -56,6 +57,7 @@ function mapProduct(row) {
     active: row.active,
     commissionType: row.commission_type,
     commissionRate: parseFloat(row.commission_rate) || 0,
+    imageUrl: row.image_url || '',
   };
 }
 
@@ -371,7 +373,7 @@ export async function updateInventoryItem({
     const source = itemSources[type];
     if (!source) throw new HttpError(400, 'INVALID_TYPE', 'Loại hàng không hợp lệ');
 
-    const existing = await client.query(`SELECT id, ${source.codeColumn} AS code FROM ${source.table} WHERE branch_id = $1 AND id = $2`, [branchId, id]);
+    const existing = await client.query(`SELECT id, ${source.codeColumn} AS code, image_url FROM ${source.table} WHERE branch_id = $1 AND id = $2`, [branchId, id]);
     if (!existing.rows[0]) throw new HttpError(404, 'ITEM_NOT_FOUND', 'Không tìm thấy hàng hóa');
 
     const finalCode = code ? code.trim().toUpperCase() : existing.rows[0].code;
@@ -521,6 +523,11 @@ export async function updateInventoryItem({
     );
 
     await client.query('COMMIT');
+    const previousImageUrl = existing.rows[0].image_url;
+    if (previousImageUrl && previousImageUrl !== (imageUrl || null)) {
+      // The file is only unreachable once the new URL is committed; a failed cleanup just leaves an orphan.
+      await deleteProductImage({ branchId, url: previousImageUrl }).catch((error) => console.error('[media] could not delete replaced product image', error));
+    }
     return { itemId: number(id), itemType: type, code: finalCode, name, salePrice, active };
   } catch (error) {
     await client.query('ROLLBACK');

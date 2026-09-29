@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { domainOptions } from '../../domain-options.js';
-import { asyncRoute, HttpError, parseDateTime, parseEnum, parseIsoDate, parseOptionalHttpUrl, parsePagination, parsePositiveInteger } from '../../lib/http.js';
+import { asyncRoute, HttpError, parseDateTime, parseEnum, parseIsoDate, parsePagination, parsePositiveInteger } from '../../lib/http.js';
 import {
   createInventoryItem,
   createPricebook,
@@ -18,6 +18,7 @@ import {
   updatePricebook,
   updatePricebookItem,
 } from './inventory.service.js';
+import { parseProductImageUrl } from '../media/media.storage.js';
 
 const router = Router();
 const itemTypes = domainOptions.filters.products.types;
@@ -93,7 +94,7 @@ router.put('/items/:itemType/:itemId', asyncRoute(async (request, response) => {
     salePrice: nonNegative(request.body.salePrice, 'salePrice'),
     costPrice: nonNegative(request.body.costPrice, 'costPrice'),
     active: boolean(request.body.active),
-    imageUrl: parseOptionalHttpUrl(request.body.imageUrl, 'imageUrl'),
+    imageUrl: parseProductImageUrl(request.body.imageUrl),
     description: text(request.body.description, 3000),
     note: text(request.body.note, 3000),
     barcode: text(request.body.barcode, 80),
@@ -171,7 +172,7 @@ router.post('/items', asyncRoute(async (request, response) => {
     salePrice: nonNegative(request.body.salePrice, 'salePrice'),
     costPrice: nonNegative(request.body.costPrice, 'costPrice'),
     active: boolean(request.body.active),
-    imageUrl: parseOptionalHttpUrl(request.body.imageUrl, 'imageUrl'),
+    imageUrl: parseProductImageUrl(request.body.imageUrl),
     description: text(request.body.description, 3000),
     note: text(request.body.note, 3000),
     barcode: text(request.body.barcode, 80),

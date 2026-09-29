@@ -200,6 +200,10 @@
 .pos-product-copy strong { overflow: hidden; color: var(--ink-950); font-size: 12px; font-weight: 720; text-overflow: ellipsis; white-space: nowrap; }
 .pos-product-copy small { overflow: hidden; color: var(--ink-500); font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
 .pos-product-price { color: var(--ink-950); font-size: 12px; font-weight: 760; font-variant-numeric: tabular-nums; white-space: nowrap; }
+/* The view-image button is a sibling of the tile button, placed over its right edge. */
+.pos-product-cell { position: relative; display: grid; }
+.pos-product-cell.has-image .pos-product { padding-right: 42px; }
+.pos-product-image-btn { position: absolute; top: 50%; right: 6px; transform: translateY(-50%); }
 
 .pos-bill { display: grid; grid-template-rows: auto minmax(0, 1fr) auto; }
 .pos-customer-bar { padding: 12px; border-bottom: 1px solid var(--line); }

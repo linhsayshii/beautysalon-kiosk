@@ -626,3 +626,18 @@
   flex: 1;
   min-width: 0;
 }
+
+/* Invoice catalog row; the optional view-image button sits over its right edge so every row keeps the same width. */
+.mobile-catalog-item-cell {
+  position: relative;
+}
+.mobile-catalog-item-cell.has-image .mobile-catalog-item-row {
+  padding-right: 56px;
+}
+.mobile-catalog-item-image-btn {
+  --btn-h: var(--control-h);
+  position: absolute;
+  top: 50%;
+  right: 6px;
+  transform: translateY(-50%);
+}

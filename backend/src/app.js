@@ -20,6 +20,7 @@ import branchRoutes from './modules/branches/branches.routes.js';
 import notificationRoutes from './modules/notifications/notifications.routes.js';
 import cashbookRoutes from './modules/cashbook/cashbook.routes.js';
 import reportRoutes from './modules/reports/reports.routes.js';
+import mediaRoutes, { productImageBodyParser } from './modules/media/media.routes.js';
 
 export function requestIdentity(request, response, next) {
   request.id = randomUUID();
@@ -67,6 +68,8 @@ export function createApp() {
   app.use('/api/v1', createRateLimiter({ windowMs: 60_000, max: config.http.apiRateLimit }));
   // Staff avatars are uploaded as base64 data URLs; 3 MB accepts the UI's 2 MB file limit.
   app.use(express.json({ limit: '3mb' }));
+  // Product photos arrive as compressed binary bodies rather than JSON.
+  app.use('/api/v1/media/product-images', productImageBodyParser);
   app.use('/api/v1', requireJsonBody);
 
   app.get('/api/v1/health', (request, response) => {
@@ -131,6 +134,8 @@ export function createApp() {
   app.use('/api/v1/attendance', attendanceRoutes);
   app.use('/api/v1/branches', branchRoutes);
   app.use('/api/v1/notifications', notificationRoutes);
+  // Viewing is open to every signed-in role (POS staff); uploading checks inventory:manage in the router.
+  app.use('/api/v1/media', mediaRoutes);
   app.use('/api/v1/pos', requirePermissions(permissions.usePos), posRoutes);
   app.use('/api/v1/debts', requirePermissions(permissions.usePos), debtRoutes);
   app.use('/api/v1/dashboard', requirePermissions(permissions.readDashboard), dashboardRoutes);

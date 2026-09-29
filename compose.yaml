@@ -49,7 +49,11 @@ services:
       VIETQR_BANK_BIN: ${VIETQR_BANK_BIN:-ICB}
       VIETQR_ACCOUNT_NUMBER: ${VIETQR_ACCOUNT_NUMBER:-108868686868}
       VIETQR_ACCOUNT_NAME: ${VIETQR_ACCOUNT_NAME:-ANNA CHILL BEAUTY}
+      UPLOAD_DIR: /app/uploads
       TZ: Asia/Ho_Chi_Minh
+    volumes:
+      # Compressed product photos; back this up together with ./data.
+      - ./uploads:/app/uploads
     depends_on:
       database:
         condition: service_healthy

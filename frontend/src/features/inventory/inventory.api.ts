@@ -53,6 +53,10 @@ export interface CreateInventoryItemInput extends ApiRecord {
 export const getProducts = (filters: ApiRecord, options: RequestInit = {}) => apiRequest<ApiEnvelope<ApiRecord[], InventoryMeta>>(`/inventory/products?${toQueryString(filters)}`, options);
 export const getInventoryItem = (itemType: string, itemId: number) => apiRequest<ApiEnvelope<ApiRecord>>(`/inventory/items/${itemType}/${itemId}`);
 export const createInventoryItem = (body: CreateInventoryItemInput) => apiRequest<ApiEnvelope<ApiRecord>>('/inventory/items', { method: 'POST', body: JSON.stringify(body) });
+/** Uploads an already-compressed photo (see `compressImage`) and returns its URL for `imageUrl`. */
+export const uploadProductImage = (image: Blob) => apiRequest<ApiEnvelope<{ url: string }>>('/media/product-images', {
+  method: 'POST', body: image, headers: { 'Content-Type': image.type },
+});
 export const updateInventoryItem = (itemType: string, itemId: number, body: ApiRecord) =>
   apiRequest<ApiEnvelope<ApiRecord>>(`/inventory/items/${itemType}/${itemId}`, { method: 'PUT', body: JSON.stringify(body) });
 export const getPricebooks = (filters: ApiRecord) => apiRequest<ApiEnvelope<ApiRecord[], InventoryMeta>>(`/inventory/pricebooks?${toQueryString(filters)}`);

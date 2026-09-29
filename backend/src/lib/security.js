@@ -35,6 +35,8 @@ export function requireJsonBody(request, response, next) {
     request.body = {};
     return next();
   }
+  // Only the image upload route mounts a raw parser, so a Buffer body means an accepted image.
+  if (Buffer.isBuffer(request.body)) return next();
   if (hasBody && !request.is('application/json')) {
     return next(new HttpError(415, 'JSON_REQUIRED', 'Nội dung yêu cầu phải dùng application/json'));
   }

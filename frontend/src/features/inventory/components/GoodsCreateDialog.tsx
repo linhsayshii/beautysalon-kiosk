@@ -12,6 +12,7 @@ import type { CreateInventoryItemInput, InventoryItemType } from '../inventory.a
 import type { ApiRecord } from '@/types/api';
 import { Modal } from '@/components/ui/Modal/Modal';
 import { BarcodeInput } from '@/components/ui/BarcodeScanner/BarcodeScannerModal';
+import { ProductImageField } from './ProductImageField';
 
 type CommissionType = 'percent' | 'fixed' | null;
 
@@ -76,6 +77,7 @@ export function GoodsCreateDialog({ type, onClose, itemId, initialData, initialT
   const isEdit = Boolean(itemId && initialData);
   const [tab, setTab] = useState<'information' | 'details'>(initialTab);
   const [form, setForm] = useState(initialData ? buildFormFromItem(initialData) : initialForm);
+  const [imageUploading, setImageUploading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [packageItems, setPackageItems] = useState<PackageItem[]>([]);
   const [serviceToAdd, setServiceToAdd] = useState('');
@@ -194,7 +196,7 @@ export function GoodsCreateDialog({ type, onClose, itemId, initialData, initialT
 
   const submit = (event: FormEvent) => {
     event.preventDefault();
-    if (!validate()) return;
+    if (imageUploading || !validate()) return;
     const payload: CreateInventoryItemInput = {
       type,
       name: form.name.trim(),
@@ -336,12 +338,12 @@ export function GoodsCreateDialog({ type, onClose, itemId, initialData, initialT
 
             {type === 'account_card' && <section className="form-section is-card"><div className="form-section-head"><div><h3 className="form-section-title">Phạm vi thanh toán</h3><p className="form-section-text">Chọn loại hàng và hàng hóa được phép thanh toán bằng thẻ.</p></div></div><div className="scope-type-options">{[['product', 'Sản phẩm'], ['service', 'Dịch vụ'], ['package', 'Gói dịch vụ, liệu trình']].map(([value, label]) => <label key={value}><input type="checkbox" checked={allowedTypes.includes(value)} onChange={() => toggleAllowedType(value)} />{label}</label>)}</div>{errors.allowedTypes && <small className="field-error section-error">{errors.allowedTypes}</small>}<div className="scope-items"><strong>Giới hạn theo hàng hóa cụ thể</strong><small>Không chọn mục nào nghĩa là áp dụng cho toàn bộ loại hàng đã chọn.</small>{catalog.isPending ? <div className="goods-inline-state">Đang tải hàng hóa...</div> : availableItems.filter((item) => allowedTypes.includes(item.itemType)).length ? <div className="scope-item-grid">{availableItems.filter((item) => allowedTypes.includes(item.itemType)).map((item) => { const key = `${item.itemType}:${item.itemId}`; return <label key={key}><input type="checkbox" checked={scopeItems.includes(key)} onChange={() => setScopeItems((current) => current.includes(key) ? current.filter((value) => value !== key) : [...current, key])} /><span><strong>{item.name}</strong><small>{item.code}</small></span></label>; })}</div> : <div className="goods-inline-state">Chưa có hàng hóa để giới hạn phạm vi.</div>}</div></section>}
           </> : <div className="goods-details-tab">
-            <div className="field"><label className="field-label" htmlFor="goods-image">Đường dẫn hình ảnh</label><input className="input" id="goods-image" type="url" value={form.imageUrl} onChange={(event) => update('imageUrl', event.target.value)} placeholder="https://..." /><small className="field-help">Có thể bổ sung dịch vụ lưu trữ ảnh sau. Hiện tại đường dẫn được lưu trực tiếp trong database.</small></div>
+            <ProductImageField value={form.imageUrl} onChange={(url) => update('imageUrl', url)} onUploadingChange={setImageUploading} disabled={mutation.isPending} />
             <div className="field"><label className="field-label" htmlFor="goods-description">Mô tả</label><textarea className="textarea" id="goods-description" rows={6} value={form.description} onChange={(event) => update('description', event.target.value)} placeholder={`Mô tả ${copy.noun}`} /></div>
             <div className="field"><label className="field-label" htmlFor="goods-note">Ghi chú nội bộ</label><textarea className="textarea" id="goods-note" rows={4} value={form.note} onChange={(event) => update('note', event.target.value)} placeholder="Thông tin chỉ dùng trong nội bộ" /></div>
           </div>}
         </div>
-        <footer className="modal-footer"><button className="btn btn-secondary" type="button" onClick={onClose} disabled={mutation.isPending}>Bỏ qua</button><button className="btn btn-primary" type="submit" disabled={mutation.isPending || (isEdit && itemQuery.isPending) || Boolean(itemQuery.error)}>{mutation.isPending ? 'Đang lưu...' : isEdit && itemQuery.isPending ? 'Đang tải...' : 'Lưu'}</button></footer>
+        <footer className="modal-footer"><button className="btn btn-secondary" type="button" onClick={onClose} disabled={mutation.isPending}>Bỏ qua</button><button className="btn btn-primary" type="submit" disabled={mutation.isPending || imageUploading || (isEdit && itemQuery.isPending) || Boolean(itemQuery.error)}>{mutation.isPending ? 'Đang lưu...' : imageUploading ? 'Đang tải ảnh...' : isEdit && itemQuery.isPending ? 'Đang tải...' : 'Lưu'}</button></footer>
       </form>
   </Modal>;
 }

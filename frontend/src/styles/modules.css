@@ -697,6 +697,66 @@
   display: grid;
   gap: 16px;
 }
+
+/* Goods photo: preview square beside the camera / file actions. */
+.goods-image-field {
+  display: grid;
+  grid-template-columns: 160px minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+.goods-image-frame {
+  display: grid;
+  place-items: center;
+  aspect-ratio: 1;
+  overflow: hidden;
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--radius-inner);
+  background: var(--surface-muted);
+}
+.goods-image-frame img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.goods-image-placeholder {
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+  color: var(--ink-500);
+  font-size: var(--text-sm);
+}
+.goods-image-placeholder i {
+  font-size: 28px;
+}
+.goods-image-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.goods-image-actions .field-help {
+  flex-basis: 100%;
+}
+.goods-image-preview {
+  display: grid;
+  place-items: center;
+}
+.goods-image-preview img {
+  max-width: 100%;
+  /* Leaves room for the dialog header, including when it docks as a bottom sheet on phones. */
+  max-height: 60dvh;
+  border-radius: var(--radius-inner);
+  object-fit: contain;
+}
+@media (max-width: 640px) {
+  .goods-image-field {
+    grid-template-columns: 1fr;
+  }
+  .goods-image-frame {
+    width: min(220px, 100%);
+  }
+}
 .goods-type.account_card {
   border-color: var(--orange-line);
   color: var(--orange);

@@ -34,6 +34,7 @@ import { MobileHeaderAction, MobilePageHeader } from '@/components/ui/MobilePage
 import { BottomSheet } from '@/components/ui/Sheet/BottomSheet';
 import { EmptyState } from '@/components/data-display/DataState';
 import { PAYMENT_METHOD_LABELS } from '@/lib/payment-methods';
+import { ProductImageViewButton } from '@/features/inventory/components/ProductImageViewButton';
 
 type PaymentMethod = 'cash' | 'bank_transfer' | 'card' | 'wallet';
 
@@ -125,6 +126,7 @@ export function MobileInvoiceCreateView() {
       unit: string;
       salePrice: number;
       stockQuantity: number | null;
+      imageUrl?: string;
     }>;
   }, [catalogResponse]);
 
@@ -716,22 +718,24 @@ export function MobileInvoiceCreateView() {
           <EmptyState compact title="Không tìm thấy mặt hàng nào" message={null} />
         ) : (
           catalogItems.map((cat) => (
-            <button
-              type="button"
-              key={`${cat.itemType}-${cat.itemId}`}
-              className="mobile-catalog-item-row"
-              onClick={() => handleSelectCatalogItem(cat)}
-            >
-              <div className="mobile-catalog-item-info">
-                <span className="mobile-catalog-item-name">{cat.name}</span>
-                <span className="mobile-catalog-item-cat">
-                  {cat.category || 'Dịch vụ'} {cat.code ? `• ${cat.code}` : ''}
+            <div key={`${cat.itemType}-${cat.itemId}`} className={`mobile-catalog-item-cell${cat.imageUrl ? ' has-image' : ''}`}>
+              <button
+                type="button"
+                className="mobile-catalog-item-row"
+                onClick={() => handleSelectCatalogItem(cat)}
+              >
+                <div className="mobile-catalog-item-info">
+                  <span className="mobile-catalog-item-name">{cat.name}</span>
+                  <span className="mobile-catalog-item-cat">
+                    {cat.category || 'Dịch vụ'} {cat.code ? `• ${cat.code}` : ''}
+                  </span>
+                </div>
+                <span className="mobile-catalog-item-price">
+                  {formatMoney(cat.salePrice)}
                 </span>
-              </div>
-              <span className="mobile-catalog-item-price">
-                {formatMoney(cat.salePrice)}
-              </span>
-            </button>
+              </button>
+              <ProductImageViewButton imageUrl={cat.imageUrl} name={cat.name} className="mobile-catalog-item-image-btn" />
+            </div>
           ))
         )}
         </div>
