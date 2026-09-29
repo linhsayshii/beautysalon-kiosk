@@ -35,6 +35,10 @@ function observeViewport() {
   const previousTop = root.style.getPropertyValue(TOP);
   let revealTimer = 0;
   let keyboardWasOpen = false;
+  let restingHeight = 0;
+  let restingWidth = 0;
+  let visibleTop = 0;
+  let visibleHeight = window.innerHeight;
   let lastHeight = '';
   let lastTop = '';
 
@@ -43,26 +47,40 @@ function observeViewport() {
     const zoomed = viewport && Math.abs(viewport.scale - 1) > 0.05;
     const height = zoomed ? window.innerHeight : (viewport?.height ?? window.innerHeight);
     const editing = document.activeElement?.matches(EDITABLE) ?? false;
+    // iOS 26 Safari shrinks innerHeight with the keyboard too, so compare with
+    // the height seen before any field was focused (same width/orientation).
+    if (!zoomed && !editing && !keyboardWasOpen) {
+      restingHeight = Math.max(window.innerHeight, height);
+      restingWidth = window.innerWidth;
+    }
+    const fullHeight = Math.max(window.innerHeight, restingWidth === window.innerWidth ? restingHeight : 0);
     // Keep the layout stable through blur/click until the keyboard actually
     // closes. Reflowing on pointer focus can move a checkbox before its click.
-    const keyboardOpen = !zoomed && (editing || keyboardWasOpen) && window.innerHeight - height > 100;
+    const keyboardOpen = !zoomed && (editing || keyboardWasOpen) && fullHeight - height > 100;
     keyboardWasOpen = keyboardOpen;
-    // Only the keyboard should move the shell. Without it, an offset means Safari
-    // is panning or bouncing the document; following it drags the whole app
-    // against the swipe. Every write restyles the document, so skip no-ops.
-    const top = keyboardOpen ? (viewport?.offsetTop ?? 0) : 0;
+    // Only typing should move the shell. Without a focused field, an offset means
+    // Safari is panning or bouncing the document; following it drags the whole
+    // app against the swipe. With one, Safari has panned to the field and every
+    // overlay must follow, or it is left above the screen. Every write restyles
+    // the document, so skip no-ops.
+    const top = !zoomed && (keyboardOpen || editing) ? (viewport?.offsetTop ?? 0) : 0;
+    visibleTop = top;
+    visibleHeight = height;
     const nextHeight = `${Math.round(height)}px`;
     const nextTop = `${Math.round(top)}px`;
     if (nextHeight !== lastHeight) root.style.setProperty(HEIGHT, (lastHeight = nextHeight));
     if (nextTop !== lastTop) root.style.setProperty(TOP, (lastTop = nextTop));
     root.classList.toggle('software-keyboard-open', keyboardOpen);
     root.classList.toggle('compact-keyboard-viewport', Boolean(keyboardOpen && height < 400));
-    window.clearTimeout(revealTimer);
     // Safari emits visualViewport scroll events while the user pans. Updating
     // scrollTop in response reverses or fights that gesture. Reveal the focused
-    // field only after focus or a viewport resize caused by the keyboard.
-    if (keyboardOpen && event?.type !== 'scroll' && event?.type !== 'focusout') {
-      revealTimer = window.setTimeout(() => revealFocusedField(top, height), 120);
+    // field only after focus or a viewport resize caused by the keyboard. Safari
+    // also pans while the keyboard slides in, so a scroll must not cancel that
+    // reveal, and the reveal measures the viewport as it is when it runs.
+    if (event?.type === 'scroll' && keyboardOpen) return;
+    window.clearTimeout(revealTimer);
+    if (keyboardOpen && event?.type !== 'focusout') {
+      revealTimer = window.setTimeout(() => revealFocusedField(visibleTop, visibleHeight), 120);
     }
   };
 

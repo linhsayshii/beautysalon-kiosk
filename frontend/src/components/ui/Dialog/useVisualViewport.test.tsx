@@ -52,6 +52,26 @@ describe('keyboard viewport for all forms', () => {
     expect(document.documentElement).not.toHaveClass('software-keyboard-open');
   });
 
+  it('still reveals the field when Safari pans right after the keyboard opens', () => {
+    const { getByRole, getByTestId } = render(<Form />);
+    const field = getByRole('textbox', { name: 'Tìm kiếm' });
+    const scroll = getByTestId('scroll');
+    Object.defineProperties(scroll, { clientHeight: { value: 600 }, scrollHeight: { value: 1200 } });
+    scroll.getBoundingClientRect = () => ({ top: 400 } as DOMRect);
+    field.getBoundingClientRect = () => ({ top: 900, bottom: 944 } as DOMRect);
+    act(() => {
+      field.focus();
+      viewport.height = 400;
+      viewport.dispatchEvent(new Event('resize'));
+      // iOS pans during the keyboard animation, before the reveal runs.
+      viewport.offsetTop = 300;
+      viewport.dispatchEvent(new Event('scroll'));
+      vi.advanceTimersByTime(150);
+    });
+    // Visible sheet area: 412..688 in layout coordinates.
+    expect(scroll.scrollTop).toBe(256);
+  });
+
   it('does not change a container scroll position while the visual viewport pans', () => {
     const { getByRole, getByTestId } = render(<Form />);
     const note = getByRole('textbox', { name: 'Ghi chú' });
@@ -123,6 +143,37 @@ describe('keyboard viewport for all forms', () => {
       vi.advanceTimersByTime(50);
     });
     expect(document.documentElement.style.getPropertyValue('--app-viewport-top')).toBe('120px');
+  });
+
+  it('detects the keyboard and follows the pan when innerHeight shrinks with it', () => {
+    const innerHeight = window.innerHeight;
+    const { getByRole } = render(<Form />);
+    try {
+      act(() => {
+        getByRole('textbox', { name: 'Ghi chú' }).focus();
+        // iOS 26 Safari reports the keyboard in innerHeight as well.
+        Object.defineProperty(window, 'innerHeight', { configurable: true, value: 430 });
+        viewport.height = 430;
+        viewport.dispatchEvent(new Event('resize'));
+        // A field low in the sheet makes Safari pan the visual viewport.
+        viewport.offsetTop = 320;
+        viewport.dispatchEvent(new Event('scroll'));
+      });
+      expect(document.documentElement).toHaveClass('software-keyboard-open');
+      expect(document.documentElement.style.getPropertyValue('--app-viewport-top')).toBe('320px');
+    } finally {
+      Object.defineProperty(window, 'innerHeight', { configurable: true, value: innerHeight });
+    }
+  });
+
+  it('keeps an overlay on the visible area while a field is focused, even if the keyboard is not detected', () => {
+    const { getByRole } = render(<Form />);
+    act(() => {
+      getByRole('textbox', { name: 'Tìm kiếm' }).focus();
+      viewport.offsetTop = 180;
+      viewport.dispatchEvent(new Event('scroll'));
+    });
+    expect(document.documentElement.style.getPropertyValue('--app-viewport-top')).toBe('180px');
   });
 
   it('does not interpret pinch zoom as a software keyboard', () => {
