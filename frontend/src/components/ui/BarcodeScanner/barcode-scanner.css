@@ -6,17 +6,27 @@
 
 .barcode-scanner-frame {
   position: relative;
-  display: grid;
   overflow: hidden;
   aspect-ratio: 4 / 3;
+  max-height: calc(var(--app-viewport-height, 100dvh) * .45);
   border-radius: var(--radius-inner);
   background: var(--ink-950);
 }
 
+/* Absolutely placed so the video's own size never stretches the frame. */
 .barcode-scanner-frame video {
+  position: absolute;
+  inset: 0;
   width: 100%;
   height: 100%;
   object-fit: cover;
+}
+
+/* While the code is typed, the keyboard leaves room only for the field and its
+ * button. The camera keeps running and reappears when the keyboard closes. */
+.software-keyboard-open .barcode-scanner-frame,
+.software-keyboard-open .barcode-scanner-hint {
+  display: none;
 }
 
 .barcode-scanner-frame.is-error video,

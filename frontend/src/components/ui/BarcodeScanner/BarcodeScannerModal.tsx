@@ -129,7 +129,13 @@ export function BarcodeScannerModal({ open, onClose, onDetected, title = 'Quét 
               onChange={(event) => setManualCode(event.target.value)}
               placeholder="Nhập hoặc dùng máy quét"
               inputMode="text"
+              enterKeyHint="done"
               autoComplete="off"
+              // iOS can pause a hidden video; resume the preview once the keyboard closes.
+              onBlur={() => {
+                const video = videoRef.current;
+                if (video?.srcObject && video.paused) void video.play().catch(() => undefined);
+              }}
             />
             <button className="btn btn-primary" type="submit" disabled={!manualCode.trim()}>Xác nhận</button>
           </div>
