@@ -16,6 +16,8 @@ concurrency:
 env:
   # Matches the Dockerfiles and backend/package.json engines.
   NODE_VERSION: '24'
+  # Production containers run in this zone and the date-bucketing tests assume it; runners default to UTC.
+  TZ: Asia/Ho_Chi_Minh
   COMPOSE: docker compose -f compose.yaml -f compose.ci.yaml
 
 jobs:
