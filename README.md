@@ -107,7 +107,7 @@ docker compose exec -T database sh -c \
 
 ## Seed trong CI
 
-CI dùng volume riêng qua `compose.ci.yaml`. Job kiểm thử toàn hệ thống nạp `anna_seed.sql`; job kiểm tra bảo mật nạp `minji_seed.sql`. Cả hai đều đợi database sẵn sàng, nạp đúng file với `ON_ERROR_STOP=1`, rồi mới khởi động API. Các bước dùng cùng cấu hình `DB_*` và `-f compose.yaml -f compose.ci.yaml`.
+CI (`.github/workflows/ci.yml`) có ba job: `frontend` (typecheck, vitest, build), `backend` (`npm run check`) và `smoke`. Job `smoke` dùng volume riêng qua `compose.ci.yaml`, nạp `anna_seed.sql` rồi chạy `scripts/ci-smoke.mjs` (đăng nhập, phân quyền, khách hàng, thanh toán POS) và kiểm tra Nginx proxy; sau đó xoá volume, nạp `minji_seed.sql` và chạy lại script ở chế độ `SMOKE_SEED=minji`. Mỗi lần nạp seed đều đợi database sẵn sàng và dùng `ON_ERROR_STOP=1` trước khi khởi động API.
 
 Kiểm thử seed chạy với PostgreSQL nhúng (PGlite), không đụng tới database local:
 

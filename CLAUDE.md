@@ -42,7 +42,7 @@ node --test --test-name-pattern="pattern" src/app.test.js
 ```
 Backend tests are colocated as `*.test.js` (some under `__tests__/`). `*.integration.test.js` and some others run against an in-memory **PGlite** database: they load `database/init/001_schema.sql` plus migrations, then monkey-patch `pool.query` from `src/db.js`. They need no running Postgres.
 
-Node 24 in the Dockerfiles and `backend/package.json` engines. CI (`.github/workflows/ci.yml`) uses Node 22 and also runs a full-stack smoke test through `compose.yaml` + `compose.ci.yaml`.
+Node 24 in the Dockerfiles and `backend/package.json` engines. CI (`.github/workflows/ci.yml`) uses Node 24 and has three jobs: `frontend`, `backend` and `smoke`. `smoke` runs `scripts/ci-smoke.mjs` inside the API container through `compose.yaml` + `compose.ci.yaml`, once on the Anna seed and once on Minji (`SMOKE_SEED=anna|minji`); run it locally with `COMPOSE_PROJECT_NAME=annaci_local` to keep it apart from the dev stack.
 
 ## Architecture
 

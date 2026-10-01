@@ -6,400 +6,98 @@ on:
   pull_request:
     branches: [master, main]
 
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 env:
-  # Use unique DB name per run to avoid conflicts
-  DB_NAME: annachill_ci_${{ github.run_id }}
-  DB_USER: annachill_ci
-  DB_PASSWORD: ci_test_password_${{ github.run_id }}_$(date +%s)
-  API_PORT: 3000
-  WEB_PORT: 8080
+  # Matches the Dockerfiles and backend/package.json engines.
+  NODE_VERSION: '24'
+  COMPOSE: docker compose -f compose.yaml -f compose.ci.yaml
 
 jobs:
-  # ===========================================================================
-  # Job 1: Frontend Quality Checks
-  # ===========================================================================
-  frontend-quality:
-    name: Frontend TypeScript + Tests
+  frontend:
+    name: Frontend (typecheck, tests, build)
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     defaults:
       run:
         working-directory: frontend
-
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
-          node-version: '22'
-          cache: 'npm'
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
           cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+      - run: npm run typecheck
+      # Includes src/styles/styles.contract.test.ts (design-system guard rails).
+      - run: npm run test
+      - run: npm run build
 
-      - name: Install dependencies
-        run: npm ci
-
-      - name: TypeScript type check
-        run: npm run typecheck
-
-      - name: Run unit tests
-        run: npm run test
-
-      - name: Build for production
-        run: npm run build
-
-  # ===========================================================================
-  # Job 2: Backend Quality Checks
-  # ===========================================================================
-  backend-quality:
-    name: Backend Quality Checks
+  backend:
+    name: Backend (syntax check, tests)
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     defaults:
       run:
         working-directory: backend
-
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
-          node-version: '22'
-          cache: 'npm'
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
           cache-dependency-path: backend/package-lock.json
+      - run: npm ci
+      # node --check on every file, then node --test (PGlite integration tests, seed tests).
+      - run: npm run check
 
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Syntax check (--check on all JS files)
-        run: npm run check
-
-      - name: Run backend unit tests
-        run: node --test src/**/*.test.js
-
-  # ===========================================================================
-  # Job 3: Integration Tests (Full Stack with Real Database)
-  # ===========================================================================
-  integration-tests:
-    name: Full Stack Integration Tests
+  smoke:
+    name: Full-stack smoke (Docker Compose)
     runs-on: ubuntu-latest
-    needs: [frontend-quality, backend-quality]
-
+    needs: [frontend, backend]
+    timeout-minutes: 25
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '22'
+      - name: Build images
+        run: $COMPOSE build api frontend
 
-      # ---------------------------------------------------------------------------
-      # Build Docker images with CI environment
-      # ---------------------------------------------------------------------------
-      - name: Build Docker images
-        env:
-          DB_NAME: ${{ env.DB_NAME }}
-          DB_USER: ${{ env.DB_USER }}
-          DB_PASSWORD: ${{ env.DB_PASSWORD }}
+      - name: Seed Anna and start the stack
         run: |
-          docker compose -f compose.yaml -f compose.ci.yaml build api frontend
-
-      # ---------------------------------------------------------------------------
-      # Start services
-      # ---------------------------------------------------------------------------
-      - name: Initialize database and seed Anna explicitly
-        run: |
-          docker compose -f compose.yaml -f compose.ci.yaml up -d --wait --wait-timeout 90 database
-          docker compose -f compose.yaml -f compose.ci.yaml exec -T database sh -c \
-            'exec psql -X -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB"' \
+          $COMPOSE up -d --wait --wait-timeout 90 database
+          $COMPOSE exec -T database sh -c 'exec psql -X -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB"' \
             < database/seeds/anna_seed.sql
+          $COMPOSE up -d --wait --wait-timeout 120 api frontend
 
-      - name: Start API and frontend
-        run: docker compose -f compose.yaml -f compose.ci.yaml up -d --wait --wait-timeout 120 api frontend
+      - name: API smoke test (Anna)
+        run: $COMPOSE exec -T api env SMOKE_SEED=anna node --input-type=module < scripts/ci-smoke.mjs
 
-      # ---------------------------------------------------------------------------
-      # API Integration Tests
-      # ---------------------------------------------------------------------------
-      - name: Run API Integration Tests
+      - name: Nginx serves the SPA and proxies the API
         run: |
-          # Run integration tests inside the api container
-          docker compose -f compose.yaml -f compose.ci.yaml exec -T api node --input-type=module << 'EOF'
-          const BASE = 'http://localhost:3000/api/v1';
-          const ADMIN_CREDS = { username: 'admin', password: '12345678' };
+          $COMPOSE exec -T frontend wget -q -O - http://127.0.0.1/ | grep '<div id="root"' >/dev/null
+          $COMPOSE exec -T frontend wget -q -O - http://127.0.0.1/api/v1/ready | grep '"ready"' >/dev/null
 
-          let errors = [];
-          let authCookie = '';
-          let testCustomerId = null;
-          let testOrderId = null;
-          let testStaffId = null;
-
-          // Helper for API calls (uses cookies, not Bearer tokens)
-          async function api(method, path, body, withAuth = true) {
-            const opts = {
-              method,
-              headers: { 'Content-Type': 'application/json' },
-            };
-            if (withAuth && authCookie) opts.headers['Cookie'] = authCookie;
-            if (body) opts.body = JSON.stringify(body);
-
-            try {
-              const res = await fetch(`${BASE}${path}`, opts);
-              // Capture cookie from Set-Cookie header
-              const setCookie = res.headers.get('set-cookie');
-              if (setCookie) {
-                authCookie = setCookie.split(';')[0];
-              }
-              const data = await res.json().catch(() => ({}));
-              return { status: res.status, data, ok: res.ok };
-            } catch (e) {
-              errors.push(`NETWORK ERROR: ${method} ${path} → ${e.message}`);
-              return { status: 0, data: {}, ok: false };
-            }
-          }
-
-          function check(res, name, condition = res.ok) {
-            if (condition) {
-              console.log(`  ✓ ${name}`);
-            } else {
-              const msg = res.data?.error?.message || JSON.stringify(res.data);
-              errors.push(`${name}: ${res.status} ${res.data?.error?.code || ''} ${msg}`);
-              console.log(`  ✗ ${name} → ${res.status} ${res.data?.error?.code || 'FAILED'}`);
-            }
-          }
-
-          // ==================== PUBLIC ENDPOINTS ====================
-          console.log('\n📋 Testing public endpoints...');
-
-          let res = await api('GET', '/health', null, false);
-          check(res, 'GET /health');
-
-          res = await api('GET', '/ready', null, false);
-          check(res, 'GET /ready', res.ok && res.data.status === 'ready');
-
-          // ==================== AUTHENTICATION ====================
-          console.log('\n🔐 Testing authentication...');
-
-          // Login first (this sets the cookie for subsequent requests)
-          res = await api('POST', '/auth/login', ADMIN_CREDS, false);
-          check(res, 'POST /auth/login (valid)');
-
-          // Test invalid login
-          res = await api('POST', '/auth/login', { username: 'admin', password: 'wrongpassword' }, false);
-          check(res, 'POST /auth/login (invalid credentials)', res.status === 401);
-
-          // Test missing auth - clear cookie and try protected endpoint
-          authCookie = '';
-          res = await api('GET', '/staff', null, true);
-          check(res, 'GET /staff (no auth)', res.status === 401 && res.data.error?.code === 'AUTH_REQUIRED');
-
-          // Re-login to get fresh cookie
-          res = await api('POST', '/auth/login', ADMIN_CREDS, false);
-
-          // ==================== META & BRANCHES ====================
-          console.log('\n🏢 Testing meta and branches...');
-
-          res = await api('GET', '/meta');
-          check(res, 'GET /meta');
-
-          res = await api('GET', '/branches');
-          check(res, 'GET /branches');
-          const branchId = res.data?.data?.[0]?.id || 1;
-
-          // ==================== STAFF ====================
-          console.log('\n👥 Testing staff endpoints...');
-
-          res = await api('GET', '/staff');
-          check(res, 'GET /staff');
-          if (res.ok && res.data.data?.length > 0) {
-            testStaffId = res.data.data[0].id;
-          }
-
-          // ==================== CUSTOMERS ====================
-          console.log('\n👤 Testing customer endpoints...');
-
-          res = await api('GET', '/customers');
-          check(res, 'GET /customers');
-
-          res = await api('POST', '/customers', {
-            name: 'Test Customer CI',
-            phone: '0900000001',
-            customer_type: 'walk_in',
-            customer_group: 'Cá nhân',
-          });
-          check(res, 'POST /customers (create)');
-          if (res.ok && res.data.data?.id) {
-            testCustomerId = res.data.data.id;
-          }
-
-          if (testCustomerId) {
-            res = await api('PUT', `/customers/${testCustomerId}`, {
-              name: 'Test Customer CI Updated',
-            });
-            check(res, 'PUT /customers/:id (update)');
-          }
-
-          // ==================== DASHBOARD ====================
-          console.log('\n📊 Testing dashboard...');
-
-          res = await api('GET', '/dashboard');
-          check(res, 'GET /dashboard');
-
-          // ==================== POS & ORDERS ====================
-          console.log('\n💳 Testing POS and orders...');
-
-          res = await api('GET', '/pos/catalog');
-          check(res, 'GET /pos/catalog');
-
-          res = await api('GET', '/pos/customers');
-          check(res, 'GET /pos/customers');
-
-          res = await api('GET', '/pos/staff');
-          check(res, 'GET /pos/staff');
-
-          // Create order via checkout
-          const orderPayload = {
-            customerId: testCustomerId,
-            lines: [
-              { itemType: 'service', itemId: 1, quantity: 1 },
-            ],
-            paymentMethod: 'cash',
-          };
-          res = await api('POST', '/pos/checkout', orderPayload);
-          check(res, 'POST /pos/checkout (create order)');
-          if (res.ok && res.data.data?.invoiceId) {
-            testOrderId = res.data.data.invoiceId;
-          }
-
-          // List orders
-          res = await api('GET', '/orders');
-          check(res, 'GET /orders');
-
-          // ==================== INVENTORY ====================
-          console.log('\n📦 Testing inventory...');
-
-          res = await api('GET', '/inventory/products');
-          check(res, 'GET /inventory/products');
-
-          res = await api('GET', '/inventory/pricebooks');
-          check(res, 'GET /inventory/pricebooks');
-
-          res = await api('GET', '/inventory/suppliers');
-          check(res, 'GET /inventory/suppliers');
-
-          res = await api('GET', '/inventory/purchase-orders');
-          check(res, 'GET /inventory/purchase-orders');
-
-          // ==================== ERROR HANDLING ====================
-          console.log('\n⚠️  Testing error handling...');
-
-          // 404 for non-existent route
-          res = await api('GET', '/nonexistent-route');
-          check(res, '404 for non-existent route', res.status === 404 && res.data.error?.code === 'ROUTE_NOT_FOUND');
-
-          // 400 for invalid request
-          res = await api('POST', '/customers', {});
-          check(res, 'POST /customers (validation error)', res.status === 400);
-
-          // ==================== REPORT ====================
-          console.log('\n⚠️  Testing error handling...');
-
-          // 404 for non-existent route
-          res = await api('GET', '/nonexistent-route', null);
-          check(res, '404 for non-existent route', res.status === 404 && res.data.error?.code === 'ROUTE_NOT_FOUND');
-
-          // 400 for invalid request
-          res = await api('POST', '/customers', {});
-          check(res, 'POST /customers (validation error)', res.status === 400);
-
-          // ==================== REPORT ====================
-          console.log('\n' + '='.repeat(50));
-          if (errors.length === 0) {
-            console.log('✅ ALL INTEGRATION TESTS PASSED!');
-            console.log('='.repeat(50));
-          } else {
-            console.log(`❌ ${errors.length} test(s) failed:`);
-            errors.forEach(e => console.log('  - ' + e));
-            console.log('='.repeat(50));
-            process.exit(1);
-          }
-          EOF
-
-      # ---------------------------------------------------------------------------
-      # Cleanup
-      # ---------------------------------------------------------------------------
-      - name: Cleanup
-        if: always()
-        run: docker compose -f compose.yaml -f compose.ci.yaml down -v || true
-
-  # ===========================================================================
-  # Job 4: Mobile Features Check
-  # ===========================================================================
-  mobile-features:
-    name: Mobile Features TypeScript Check
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: frontend
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-          cache: 'npm'
-          cache-dependency-path: frontend/package-lock.json
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: TypeScript check (mobile features)
-        run: npm run typecheck
-
-      - name: Run mobile-specific tests
-        run: npm run test
-
-  # ===========================================================================
-  # Job 5: Security & Performance Checks
-  # ===========================================================================
-  security-checks:
-    name: Security & Performance Checks
-    runs-on: ubuntu-latest
-    needs: [integration-tests]
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Build Docker images
-        run: docker compose -f compose.yaml -f compose.ci.yaml build api
-
-      - name: Initialize database and seed Minji explicitly
+      - name: Reset database and seed Minji
         run: |
-          docker compose -f compose.yaml -f compose.ci.yaml up -d --wait --wait-timeout 90 database
-          docker compose -f compose.yaml -f compose.ci.yaml exec -T database sh -c \
-            'exec psql -X -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB"' \
+          $COMPOSE down -v
+          $COMPOSE up -d --wait --wait-timeout 90 database
+          $COMPOSE exec -T database sh -c 'exec psql -X -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB"' \
             < database/seeds/minji_seed.sql
+          $COMPOSE up -d --wait --wait-timeout 120 api
 
-      - name: Run API
-        run: docker compose -f compose.yaml -f compose.ci.yaml up -d --wait --wait-timeout 120 api
+      - name: API smoke test (Minji)
+        run: $COMPOSE exec -T api env SMOKE_SEED=minji node --input-type=module < scripts/ci-smoke.mjs
 
-      - name: Security headers check
-        run: |
-          echo "🔒 Checking security headers..."
-          HEADERS=$(docker compose -f compose.yaml -f compose.ci.yaml exec -T api node -e "fetch('http://localhost:3000/api/v1/health', {headers: {'foo':'bar'}}).then(r=>{let h={};r.headers.forEach((v,k)=>h[k]=v);return JSON.stringify(h)}).then(console.log).catch(console.error)")
-          echo "$HEADERS"
-
-      - name: Error response format check
-        run: |
-          echo "📝 Checking error response format..."
-          RESP=$(docker compose -f compose.yaml -f compose.ci.yaml exec -T api node -e "fetch('http://localhost:3000/api/v1/nonexistent').then(r=>r.json()).then(console.log).catch(console.error)" 2>/dev/null)
-          echo "$RESP"
+      - name: Dump logs on failure
+        if: failure()
+        run: $COMPOSE logs --no-color --tail=200
 
       - name: Cleanup
         if: always()
-        run: docker compose -f compose.yaml -f compose.ci.yaml down -v || true
+        run: $COMPOSE down -v
