@@ -47,15 +47,10 @@
 
 .detail-drawer,
 .drawer-backdrop,
-.appointment-drawer-backdrop,
-.date-time-picker-backdrop {
+.appointment-drawer-backdrop {
   top: var(--app-viewport-top, 0px);
   bottom: auto;
   height: var(--app-viewport-height, 100dvh);
-}
-
-.date-time-picker-dialog {
-  max-height: min(720px, calc(var(--app-viewport-height, 100dvh) - 32px));
 }
 
 /* On a short/landscape viewport, pinned headers and action bars can consume

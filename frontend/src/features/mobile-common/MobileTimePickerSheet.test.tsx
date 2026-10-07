@@ -36,9 +36,9 @@ describe('MobileTimePickerSheet', () => {
     );
 
     fireEvent.click(screen.getByLabelText('Giờ'));
-    fireEvent.click(screen.getByRole('option', { name: '14 giờ' }));
+    fireEvent.click(screen.getByRole('option', { name: '14' }));
     fireEvent.click(screen.getByLabelText('Phút'));
-    fireEvent.click(screen.getByRole('option', { name: '45 phút' }));
+    fireEvent.click(screen.getByRole('option', { name: '45' }));
     fireEvent.click(screen.getByRole('button', { name: 'Xác nhận' }));
 
     expect(onSelectTime).toHaveBeenCalledWith(expect.any(Date));

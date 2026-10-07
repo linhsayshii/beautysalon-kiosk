@@ -7,6 +7,9 @@ import { BottomSheet } from '@/components/ui/Sheet/BottomSheet';
 import { EmptyState, ErrorState, LoadingState } from '@/components/data-display/DataState';
 import { DetailFacts, DetailHead, InlineDetail, ValueStrip } from '@/components/data-display/InlineDetail';
 import { MobileCard, MobileFilterSheet, MobileSearchBar } from '@/features/mobile-common';
+import { DatePickerField, DateRangePickerField, DateTimePickerField, TimePickerField } from '@/components/ui/DateTimePicker';
+import { DateRangeFilter } from '@/components/forms/FilterPanel';
+import { monthStartIso, todayIso } from '@/lib/date';
 
 /*
  * Development-only reference of the unified UI template (styles/ui/*).
@@ -25,6 +28,41 @@ function Section({ title, children }: { title: string; children: React.ReactNode
       <header className="card-header"><h2 className="card-title">{title}</h2></header>
       <div className="card-body" style={stack}>{children}</div>
     </section>
+  );
+}
+
+/** The four date controls; every date in the app goes through one of them. */
+function DatePickers() {
+  const [range, setRange] = useState({ from: monthStartIso(), to: todayIso() });
+  const [day, setDay] = useState(todayIso());
+  const [dob, setDob] = useState('');
+  const [dateTime, setDateTime] = useState('');
+  const [time, setTime] = useState('08:00');
+  return (
+    <div className="form-grid">
+      <div className="field">
+        <span className="field-label">Khoảng ngày (DateRangePickerField)</span>
+        <DateRangePickerField className="input" aria-label="Khoảng ngày" from={range.from} to={range.to} onChange={(from, to) => setRange({ from, to })} />
+        <p className="field-hint">Chọn nhanh theo kỳ, hoặc bấm ngày đầu rồi ngày cuối.</p>
+      </div>
+      <DateRangeFilter label="Bộ lọc (DateRangeFilter)" from={range.from} to={range.to} onChange={(from, to) => setRange({ from, to })} />
+      <div className="field">
+        <span className="field-label">Một ngày (DatePickerField, max = hôm nay)</span>
+        <DatePickerField className="input" aria-label="Một ngày" value={day} max={todayIso()} onChange={setDay} />
+      </div>
+      <div className="field">
+        <span className="field-label">Ngày xa (presets=false)</span>
+        <DatePickerField className="input" aria-label="Ngày sinh" value={dob} max={todayIso()} presets={false} onChange={setDob} placeholder="--/--/----" />
+      </div>
+      <div className="field">
+        <span className="field-label">Ngày kèm giờ (DateTimePickerField)</span>
+        <DateTimePickerField className="input" aria-label="Ngày kèm giờ" value={dateTime} onChange={setDateTime} placeholder="Bây giờ" />
+      </div>
+      <div className="field">
+        <span className="field-label">Giờ (TimePickerField)</span>
+        <TimePickerField className="input" aria-label="Giờ" value={time} onChange={setTime} />
+      </div>
+    </div>
   );
 }
 
@@ -98,6 +136,10 @@ function DesktopKit() {
             <textarea className="textarea" id="kit-note" placeholder="Ghi chú nội bộ" />
           </div>
           <label className="check"><input type="checkbox" defaultChecked />Gửi tin nhắn xác nhận</label>
+        </Section>
+
+        <Section title="Chọn ngày">
+          <DatePickers />
         </Section>
 
         <Section title="Badge, chip, tab">
@@ -329,6 +371,7 @@ function MobileKit() {
               <button className="btn btn-primary btn-block" type="button">Nút chính full width</button>
               <button className="btn btn-secondary btn-block" type="button">Nút phụ</button>
             </section>
+            <section className="card card-body"><DatePickers /></section>
             <section className="card"><EmptyState compact title="Chưa có lịch hẹn" message="Tạo lịch hẹn đầu tiên cho hôm nay." /></section>
             <section className="card"><ErrorState compact error={sampleError} onRetry={() => undefined} /></section>
           </div>

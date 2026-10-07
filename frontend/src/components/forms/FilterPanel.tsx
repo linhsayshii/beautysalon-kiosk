@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { Select } from '@/components/ui/Select/Select';
-import { DatePickerField } from '@/components/ui/DateTimePicker';
+import { DateRangePickerField } from '@/components/ui/DateTimePicker';
 
 export interface SelectOption {
   value: string;
@@ -27,25 +27,11 @@ export function SelectFilter({ label, value, options, onChange }: { label: strin
   );
 }
 
-export function DateRangeFilter({ label, from, to, onFromChange, onToChange, layout = 'stacked' }: { label: string; from: string; to: string; onFromChange: (value: string) => void; onToChange: (value: string) => void; layout?: 'stacked' | 'inline' }) {
+export function DateRangeFilter({ label, from, to, onChange, layout = 'stacked' }: { label: string; from: string; to: string; onChange: (from: string, to: string) => void; layout?: 'stacked' | 'inline' }) {
   return (
     <div className={`filter-group date-filter-group date-filter-group--${layout}`}>
       <label>{layout === 'inline' ? `${label}:` : label}</label>
-      <div className="date-range-inputs">
-        <DatePickerField
-          className="filter-control"
-          aria-label={`${label} từ ngày`}
-          value={from}
-          onChange={onFromChange}
-        />
-        <span className="date-range-separator" aria-hidden="true">-</span>
-        <DatePickerField
-          className="filter-control"
-          aria-label={`${label} đến ngày`}
-          value={to}
-          onChange={onToChange}
-        />
-      </div>
+      <DateRangePickerField className="filter-control" aria-label={label} from={from} to={to} onChange={onChange} />
     </div>
   );
 }

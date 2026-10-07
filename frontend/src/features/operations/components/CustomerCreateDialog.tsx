@@ -195,6 +195,7 @@ export function CustomerCreateDialog({ onClose, onSuccess, customMutationFn, ini
                     className="input"
                     value={form.dob}
                     max={todayIso()}
+                    presets={false}
                     onChange={(dob) => update('dob', dob)}
                     placeholder="--/--/----"
                   />

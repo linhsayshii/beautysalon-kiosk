@@ -107,7 +107,7 @@ export function CashbookView() {
     )}
     <div className="page-grid">
       <FilterPanel title="Bộ lọc sổ quỹ" onApply={apply} onReset={reset}>
-        {canManage && <DateRangeFilter label="Thời gian" from={draft.dateFrom} to={draft.dateTo} onFromChange={(dateFrom) => setDraft({ ...draft, dateFrom })} onToChange={(dateTo) => setDraft({ ...draft, dateTo })} />}
+        {canManage && <DateRangeFilter label="Thời gian" from={draft.dateFrom} to={draft.dateTo} onChange={(dateFrom, dateTo) => setDraft({ ...draft, dateFrom, dateTo })} />}
         <SelectFilter label="Loại phiếu" value={draft.type} onChange={(type) => setDraft({ ...draft, type, category: '' })} options={[all, { value: 'income', label: 'Phiếu thu' }, { value: 'expense', label: 'Phiếu chi' }]} />
         <SelectFilter label="Quỹ" value={draft.fund} onChange={(fund) => setDraft({ ...draft, fund })} options={[all, { value: 'cash', label: fundLabels.cash }, { value: 'bank', label: fundLabels.bank }]} />
         <SelectFilter label="Loại thu chi" value={draft.category} onChange={(category) => setDraft({ ...draft, category })} options={[all, ...categories.map((category) => ({ value: category.key, label: category.label }))]} />

@@ -231,18 +231,8 @@
     flex: 0 0 auto;
   }
 
-  .filter-panel > .date-filter-group .date-range-inputs {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-  }
-
   .filter-panel > .date-filter-group .filter-control {
-    width: 145px;
-  }
-
-  .filter-panel > .date-filter-group .date-range-separator {
-    display: inline;
+    width: auto;
   }
 
   .filter-actions {

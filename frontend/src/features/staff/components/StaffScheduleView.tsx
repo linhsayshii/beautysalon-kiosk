@@ -5,7 +5,7 @@ import { LoadingState } from '@/components/data-display/DataState';
 import { useToast } from '@/components/ui/Toast/ToastProvider';
 import { PageHeader } from '@/components/ui/PageHeader/PageHeader';
 import { Select } from '@/components/ui/Select/Select';
-import { DatePickerField } from '@/components/ui/DateTimePicker';
+import { DateRangePickerField } from '@/components/ui/DateTimePicker';
 import { errorMessage } from '@/services/api-client';
 import { startOfIsoWeek, todayIso, toIsoDate, weekStartIso } from '@/lib/date';
 import { formatMoney } from '@/lib/format';
@@ -925,24 +925,15 @@ export function StaffScheduleView() {
             </div>
             <div className="field-row">
               <label className="field-label">
-                Từ ngày:
+                Thời gian:
               </label>
               <div className="field-row-control">
-                <DatePickerField
-                  value={newHolidayFrom}
-                  onChange={setNewHolidayFrom}
-                  className="input"
-                />
-              </div>
-            </div>
-            <div className="field-row">
-              <label className="field-label">
-                Đến ngày:
-              </label>
-              <div className="field-row-control">
-                <DatePickerField
-                  value={newHolidayTo}
-                  onChange={setNewHolidayTo}
+                <DateRangePickerField
+                  from={newHolidayFrom}
+                  to={newHolidayTo}
+                  onChange={(from, to) => { setNewHolidayFrom(from); setNewHolidayTo(to); }}
+                  presets={false}
+                  aria-label="Thời gian kỳ lễ"
                   className="input"
                 />
               </div>

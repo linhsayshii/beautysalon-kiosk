@@ -59,17 +59,6 @@
   cursor: pointer;
 }
 
-.date-range-inputs {
-  display: grid;
-  gap: 8px;
-}
-
-.date-range-separator {
-  display: none;
-  color: var(--ink-400);
-  font-weight: 600;
-}
-
 .date-filter-group--inline {
   display: flex;
   align-items: center;
@@ -82,18 +71,8 @@
   white-space: nowrap;
 }
 
-.date-filter-group--inline .date-range-inputs {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
 .date-filter-group--inline .filter-control {
-  width: 145px;
-}
-
-.date-filter-group--inline .date-range-separator {
-  display: inline;
+  width: auto;
 }
 .nav-menu .menu-item:is(button) {
   width: 100%;

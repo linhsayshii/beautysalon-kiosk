@@ -151,6 +151,7 @@ export function MobileMyScheduleView() {
               className="mobile-my-schedule-date-chip"
               value={selectedDate}
               onChange={setSelectedDate}
+              allowClear={false}
               timeZone={timeZone}
               aria-label="Chọn ngày"
             />

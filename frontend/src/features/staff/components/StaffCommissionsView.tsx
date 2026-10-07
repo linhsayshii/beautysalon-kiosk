@@ -90,8 +90,7 @@ export function StaffCommissionsView() {
                 label="Kỳ hoa hồng"
                 from={draft.from}
                 to={draft.to}
-                onFromChange={(from) => setDraft({ ...draft, from })}
-                onToChange={(to) => setDraft({ ...draft, to })}
+                onChange={(from, to) => setDraft({ ...draft, from, to })}
                 layout="inline"
               />
               <button className="btn btn-secondary" type="button" onClick={() => setRange(draft)}>

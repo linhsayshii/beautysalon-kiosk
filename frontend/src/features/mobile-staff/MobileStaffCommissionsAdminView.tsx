@@ -1,4 +1,4 @@
-import { DatePickerField } from '@/components/ui/DateTimePicker';
+import { DateRangePickerField } from '@/components/ui/DateTimePicker';
 import { ErrorState, LoadingState } from '@/components/data-display/DataState';
 import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
@@ -143,8 +143,7 @@ export function MobileStaffCommissionsAdminView() {
         </div>
 
         <div className="mobile-commission-date-range">
-          <label><span>Từ ngày</span><DatePickerField aria-label="Hoa hồng từ ngày" value={dateFrom} max={dateTo} allowClear={false} onChange={(value) => { setDateFrom(value); setSelectedStaffSummary(null); setSelectedTxRecord(null); }} /></label>
-          <label><span>Đến ngày</span><DatePickerField aria-label="Hoa hồng đến ngày" value={dateTo} min={dateFrom} allowClear={false} onChange={(value) => { setDateTo(value); setSelectedStaffSummary(null); setSelectedTxRecord(null); }} /></label>
+          <DateRangePickerField className="input" aria-label="Kỳ hoa hồng" from={dateFrom} to={dateTo} onChange={(from, to) => { setDateFrom(from); setDateTo(to); setSelectedStaffSummary(null); setSelectedTxRecord(null); }} />
         </div>
         {/* Summary Bar */}
         <div className="m-summary-bar">

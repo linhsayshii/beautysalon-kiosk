@@ -46,7 +46,7 @@ export function OrdersView() {
       <FilterPanel title="Bộ lọc đơn hàng" onApply={apply} onReset={reset}>
         <SelectFilter label="Trạng thái" value={draft.status} onChange={(status) => setDraft({ ...draft, status })} options={[{ value: '', label: 'Tất cả' }, ...toOptions(metadata.data?.data.filters.orders.statuses ?? [], {...statusLabels,paid:'Đã chốt hóa đơn'})]} />
         <SelectFilter label="Thanh toán" value={draft.paymentMethod} onChange={(paymentMethod) => setDraft({ ...draft, paymentMethod })} options={[{ value: '', label: 'Tất cả' }, ...toOptions(metadata.data?.data.filters.orders.paymentMethods ?? [], statusLabels)]} />
-        <DateRangeFilter label="Thời gian bán" from={draft.dateFrom} to={draft.dateTo} onFromChange={(dateFrom) => setDraft({ ...draft, dateFrom })} onToChange={(dateTo) => setDraft({ ...draft, dateTo })} />
+        <DateRangeFilter label="Thời gian bán" from={draft.dateFrom} to={draft.dateTo} onChange={(dateFrom, dateTo) => setDraft({ ...draft, dateFrom, dateTo })} />
       </FilterPanel>
       <section className="data-panel">
         <SearchToolbar value={draft.search} placeholder="Tìm mã đơn, khách hàng, số điện thoại" onChange={(search) => setDraft({ ...draft, search })} onSearch={apply} onRefresh={() => query.refetch()} />

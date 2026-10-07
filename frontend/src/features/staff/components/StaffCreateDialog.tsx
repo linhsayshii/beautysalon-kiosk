@@ -374,7 +374,7 @@ export function StaffCreateDialog({ onClose, staff, initialTab = 'info', onSaved
                 </div>
                 <div className="field">
                   <label className="field-label" htmlFor="staff-start-date">Ngày bắt đầu làm việc</label>
-                  <DatePickerField id="staff-start-date" value={form.startDate} onChange={(startDate) => update('startDate', startDate)} className="input" />
+                  <DatePickerField id="staff-start-date" presets={false} value={form.startDate} onChange={(startDate) => update('startDate', startDate)} className="input" />
                 </div>
                 <div className="field">
                   <label className="field-label" htmlFor="staff-account">Tài khoản đăng nhập</label>
@@ -434,7 +434,7 @@ export function StaffCreateDialog({ onClose, staff, initialTab = 'info', onSaved
                 </div>
                 <div className="field">
                   <label className="field-label" htmlFor="staff-dob">Ngày sinh</label>
-                  <DatePickerField id="staff-dob" value={form.dob} max={todayIso()} onChange={(dob) => update('dob', dob)} className="input" />
+                  <DatePickerField id="staff-dob" presets={false} value={form.dob} max={todayIso()} onChange={(dob) => update('dob', dob)} className="input" />
                 </div>
                 <fieldset className="field">
                   <legend className="field-label">Giới tính</legend>

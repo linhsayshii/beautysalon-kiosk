@@ -67,7 +67,7 @@ export function ProfitReportView() {
     <section className="card report-toolbar" aria-label="Kỳ báo cáo">
       <div className="report-toolbar-period">
         <Select<ReportPeriod> aria-label="Kỳ báo cáo" value={period} onChange={setPeriod} options={reportPeriods} />
-        <DateRangeFilter layout="inline" label="Thời gian" from={dateFrom} to={dateTo} onFromChange={(from) => setRange(from, dateTo)} onToChange={(to) => setRange(dateFrom, to)} />
+        <DateRangeFilter layout="inline" label="Thời gian" from={dateFrom} to={dateTo} onChange={setRange} />
       </div>
       <div className="segmented" role="group" aria-label="Gom nhóm biểu đồ">
         <button type="button" aria-pressed={(groupBy ?? report?.groupBy) === 'day'} onClick={() => setGroupBy('day')}>Theo ngày</button>
