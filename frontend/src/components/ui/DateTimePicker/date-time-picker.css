@@ -1,6 +1,8 @@
 /* Trigger: a field-sized button showing the chosen value. */
 .app-date-time-trigger {
   display: inline-flex;
+  /* Lets grid/flex parents (filter sidebars) shrink it; long text ellipsizes instead of overflowing. */
+  min-width: 0;
   align-items: center;
   gap: 8px;
   min-height: var(--control-h);

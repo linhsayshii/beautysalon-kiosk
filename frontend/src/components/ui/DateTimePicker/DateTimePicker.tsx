@@ -515,7 +515,11 @@ export function DateRangePickerField({
 
   const pending = anchor ? [anchor, hover ?? anchor].sort() : null;
   const selection = pending ? { from: pending[0], to: pending[1] } : hasRange ? { from, to } : null;
-  const text = !hasRange ? placeholder : from === to ? formatDateOnly(from) : `${formatDateOnly(from)} - ${formatDateOnly(to)}`;
+  const text = !hasRange ? placeholder
+    : from === to ? formatDateOnly(from)
+      // Same year: "01/10 - 07/10/2026" fits a 220px filter sidebar.
+      : from.slice(0, 4) === to.slice(0, 4) ? `${formatDateOnly(from, { day: '2-digit', month: '2-digit' })} - ${formatDateOnly(to)}`
+        : `${formatDateOnly(from)} - ${formatDateOnly(to)}`;
 
   return (
     <>

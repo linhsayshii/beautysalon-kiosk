@@ -18,6 +18,7 @@ describe('date pickers', () => {
   it('picks a range with two clicks in either order', () => {
     const onChange = vi.fn();
     render(<DateRangePickerField aria-label="Thời gian" from="2026-10-01" to="2026-10-07" onChange={onChange} />);
+    expect(screen.getByRole('button', { name: /Thời gian/ })).toHaveTextContent('01/10 - 07/10/2026');
     fireEvent.click(screen.getByRole('button', { name: /Thời gian/ }));
     const october = screen.getByRole('grid', { name: 'Tháng 10 năm 2026' });
     fireEvent.click(october.querySelector('[data-date="2026-10-20"]')!);
