@@ -54,12 +54,12 @@ export function MobileTopBar() {
   return (
     <header className="mobile-topbar">
       <Link to="/m" className="mobile-brand">
-        <span className="brand-mark"><span /><span /></span>
+        <span className="brand-mark" aria-hidden="true"><span /><span /></span>
         <span className="mobile-store-title">{storeName}</span>
       </Link>
 
       <div className="mobile-top-right">
-        <span className={`mobile-status-dot ${isConnected ? 'online' : 'offline'}`} title={isConnected ? 'Realtime Online' : 'Offline'} />
+        <span className={`mobile-status-dot ${isConnected ? 'online' : 'offline'}`} role="img" aria-label={isConnected ? 'Đang đồng bộ trực tiếp' : 'Mất kết nối, dữ liệu có thể chưa mới'} title={isConnected ? 'Đang đồng bộ trực tiếp' : 'Mất kết nối, dữ liệu có thể chưa mới'} />
 
         {/* Shop Icon Button & Dropdown Menu Container */}
         <div className="mobile-shop-dropdown-container" ref={dropdownRef}>

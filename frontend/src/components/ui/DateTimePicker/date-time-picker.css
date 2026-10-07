@@ -89,7 +89,7 @@
 
 .date-picker-weekdays,
 .date-picker-grid { display: grid; grid-template-columns: repeat(7, 40px); }
-.date-picker-weekdays span { padding: 6px 0; color: var(--ink-500); font-size: 12.5px; text-align: center; }
+.date-picker-weekdays span { padding: 6px 0; color: var(--ink-500); font-size: var(--text-xs); text-align: center; }
 .date-picker-grid { row-gap: 2px; }
 
 .date-picker-day {

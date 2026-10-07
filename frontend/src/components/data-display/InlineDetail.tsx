@@ -93,13 +93,16 @@ function valueClass(item: DetailValue) {
   return [item.tone && `is-${item.tone}`, item.variant && `is-${item.variant}`].filter(Boolean).join(' ') || undefined;
 }
 
+/** A formatted zero ("0đ", "0 lượt") is not a highlight, whatever tone the caller asked for. */
+const isZeroText = (value: ReactNode) => typeof value === 'string' && /^0(?![\d.,])/.test(value);
+
 export function ValueStrip({ items }: { items: DetailValue[] }) {
   return (
     <dl className="value-strip">
       {items.map((item, index) => (
         <div key={index}>
           <dt>{item.label}</dt>
-          <dd className={valueClass(item)}>{item.value}</dd>
+          <dd className={isZeroText(item.value) ? 'is-zero' : valueClass(item)}>{item.value}</dd>
         </div>
       ))}
     </dl>

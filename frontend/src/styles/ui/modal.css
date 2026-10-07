@@ -88,10 +88,9 @@
 
 .modal-title {
   color: var(--ink-950);
-  font-size: var(--text-xl);
-  font-weight: var(--weight-heavy);
+  font-size: var(--text-lg);
+  font-weight: var(--weight-semibold);
   line-height: var(--leading-tight);
-  letter-spacing: -0.02em;
 }
 
 .modal-subtitle {
@@ -117,8 +116,8 @@
 
 .modal-close:hover,
 .modal-close:focus-visible {
-  color: var(--blue-700);
-  background: var(--blue-50);
+  color: var(--ink-950);
+  background: var(--surface-hover);
 }
 
 /* Tabs passed as headerExtra line up with the header and body padding. */
@@ -305,10 +304,9 @@
 .sheet-title {
   overflow: hidden;
   color: var(--ink-950);
-  font-size: 17px;
-  font-weight: var(--weight-heavy);
+  font-size: var(--text-lg);
+  font-weight: var(--weight-semibold);
   line-height: var(--leading-tight);
-  letter-spacing: -0.01em;
   text-overflow: ellipsis;
   white-space: nowrap;
 }

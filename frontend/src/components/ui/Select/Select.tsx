@@ -31,7 +31,7 @@ export interface SelectProps<T = string | number> {
   triggerClassName?: string;
   style?: CSSProperties;
   menuClassName?: string;
-  variant?: 'default' | 'filter' | 'chart' | 'bordered' | 'ghost' | 'pill';
+  variant?: 'default' | 'filter' | 'chart' | 'ghost' | 'pill';
   size?: 'sm' | 'md' | 'lg';
   align?: 'left' | 'right';
   fullWidth?: boolean;

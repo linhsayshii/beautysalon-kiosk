@@ -19,7 +19,7 @@
   color: var(--ink-700);
   background: var(--surface-hover);
   font-size: var(--text-xs);
-  font-weight: var(--weight-bold);
+  font-weight: var(--weight-semibold);
   line-height: 1;
   white-space: nowrap;
 }
@@ -34,22 +34,24 @@
   font-size: var(--text-2xs);
 }
 
+/* One status table for the whole app: grey waits, blue is in progress,
+ * green is done, amber needs attention, red failed or was stopped. */
 .badge-success,
 .status-badge.paid,
 .status-badge.active,
 .status-badge.present,
 .status-badge.approved,
-.status-badge.confirmed { color: var(--green); background: var(--green-soft); }
+.status-badge.confirmed,
+.status-badge.completed { color: var(--green); background: var(--green-soft); }
 
 .badge-info,
-.status-badge.draft,
-.status-badge.pending,
 .status-badge.scheduled,
 .status-badge.working { color: var(--blue-700); background: var(--blue-100); }
 
 .badge-warning,
 .status-badge.refunded,
-.status-badge.late { color: var(--orange); background: var(--orange-soft); }
+.status-badge.late,
+.status-badge.unpaid { color: var(--orange); background: var(--orange-soft); }
 
 .badge-danger,
 .status-badge.cancelled,
@@ -57,10 +59,11 @@
 .status-badge.absent { color: var(--red); background: var(--red-soft); }
 
 .badge-violet,
-.status-badge.completed,
 .status-badge.leave { color: var(--violet); background: var(--violet-soft); }
 
-.badge-neutral { color: var(--ink-600); background: var(--surface-hover); }
+.badge-neutral,
+.status-badge.draft,
+.status-badge.pending { color: var(--ink-600); background: var(--surface-hover); }
 
 .chip {
   display: inline-flex;

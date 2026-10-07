@@ -135,7 +135,7 @@ export function StaffPayrollDetailAccordion({ periodId, onOpenSheetView }: Staff
         items={[
           { label: 'Tổng số nhân viên', value: formatNumber(summary.totalStaff) },
           { label: 'Tổng tiền lương', value: formatMoney(summary.totalNetSalary), tone: 'primary' },
-          { label: 'Đã chi trả', value: formatMoney(summary.totalPaidAmount), tone: 'success' },
+          { label: 'Đã chi trả', value: formatMoney(summary.totalPaidAmount), tone: Number(summary.totalPaidAmount) > 0 ? 'success' : undefined },
           { label: 'Còn cần trả', value: formatMoney(summary.totalRemainingAmount), tone: Number(summary.totalRemainingAmount) > 0 ? 'danger' : undefined },
         ]}
       />
@@ -144,17 +144,11 @@ export function StaffPayrollDetailAccordion({ periodId, onOpenSheetView }: Staff
         <>
           <DetailFacts
             items={[
-              { label: 'Mã bảng lương', value: period.code, tone: 'primary' },
-              { label: 'Tên bảng lương', value: period.name },
               { label: 'Kỳ hạn trả', value: payrollPeriodTypeLabel(period.periodType) },
-              { label: 'Kỳ làm việc', value: `${formatDate(period.startsOn)} - ${formatDate(period.endsOn)}` },
               { label: 'Ngày tạo', value: formatDateTime(period.createdAt) },
-              { label: 'Người tạo', value: period.creatorName || 'Auto' },
-              { label: 'Người lập bảng', value: period.creatorName || 'Auto' },
-              { label: 'Trạng thái', value: <StatusBadge status={period.status} payroll /> },
               { label: 'Phạm vi áp dụng', value: 'Tất cả nhân viên' },
               { label: 'Người chốt lương', value: period.approvedByName || '-' },
-              { label: 'Ghi chú', value: period.note || 'Ghi chú...', span: 'wide', variant: period.note ? 'note' : 'placeholder' },
+              { label: 'Ghi chú', value: period.note || 'Chưa có', span: 'wide', variant: period.note ? 'note' : 'placeholder' },
             ]}
           />
 

@@ -180,8 +180,13 @@
 .value-strip dd {
   margin: 0;
   color: var(--ink-950);
-  font-weight: var(--weight-bold);
+  font-weight: var(--weight-semibold);
   font-variant-numeric: tabular-nums;
+}
+
+.value-strip dd.is-zero {
+  color: var(--ink-500);
+  font-weight: var(--weight-regular);
 }
 
 /* Label/value grid */

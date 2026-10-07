@@ -70,11 +70,6 @@
   box-sizing: border-box;
 }
 
-.app-select-trigger:hover:not(:disabled) {
-  border-color: var(--blue-400);
-  background-color: var(--surface-muted);
-}
-
 .app-select-trigger:focus-visible,
 .app-select-container.is-open .app-select-trigger {
   border-color: var(--blue-500);
@@ -161,7 +156,7 @@
   border-radius: 8px;
   color: var(--ink-800);
   font-size: 13px;
-  font-weight: 550;
+  font-weight: var(--weight-medium);
   cursor: pointer;
   transition: background-color 100ms ease, color 100ms ease;
   user-select: none;
@@ -177,7 +172,7 @@
 .app-select-item.is-selected {
   background-color: var(--blue-50);
   color: var(--blue-700);
-  font-weight: 650;
+  font-weight: var(--weight-semibold);
 }
 
 .app-select-item.is-selected:hover,
@@ -233,13 +228,9 @@
   background-color: var(--surface-muted);
   color: var(--ink-800);
   font-size: 13px;
-  font-weight: 650;
+  font-weight: var(--weight-semibold);
 }
 
-.app-select-container.variant-chart .app-select-trigger:hover:not(:disabled) {
-  background-color: var(--canvas);
-  border-color: var(--blue-400);
-}
 
 .app-select-container.variant-chart.is-open .app-select-trigger {
   background-color: #ffffff;
@@ -259,9 +250,6 @@
 }
 
 /* Bordered variant */
-.app-select-container.variant-bordered .app-select-trigger {
-  border-color: var(--blue-500);
-}
 
 /* Sizes */
 .app-select-container.size-sm .app-select-trigger {

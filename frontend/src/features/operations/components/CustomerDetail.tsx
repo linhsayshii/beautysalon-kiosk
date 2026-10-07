@@ -198,8 +198,6 @@ export function CustomerDetail({ id, onEdit }: { id: number; onEdit?: (customer:
       {tab === 'overview' && (
         <DetailFacts
           items={[
-            { label: 'Số điện thoại', value: customer.phone ?? 'Chưa có' },
-            { label: 'Nhóm khách hàng', value: customer.group },
             { label: 'Lần cuối đến', value: customer.lastVisit ? formatDateTime(customer.lastVisit) : 'Chưa có' },
             { label: 'Gói đang dùng', value: `${formatNumber(customer.activePackages)} gói` },
             customer.address && { label: 'Địa chỉ', value: customer.address, span: 'wide' },

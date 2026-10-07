@@ -52,7 +52,7 @@ export function OrderDetail({ id }: { id: number }) {
       />
 
       {Number(order.serviceProgress?.total || 0) > 0 && (
-        <p className="detail-section-title text-success">
+        <p className={`detail-section-title ${order.serviceProgress.completed >= order.serviceProgress.total ? 'text-success' : 'text-muted'}`}>
           <i className="ph ph-check-circle" aria-hidden="true" />
           Tiến độ dịch vụ: {order.serviceProgress.completed}/{order.serviceProgress.total} đã xong
         </p>
@@ -110,11 +110,6 @@ export function OrderDetail({ id }: { id: number }) {
             </table>
           </div>
 
-          <div className="detail-totals">
-            <span>Tổng tiền hàng: <strong>{formatMoney(order.subtotal)}</strong></span>
-            <span>Giảm giá: <strong className={owedTone(order.discount) || undefined}>{formatMoney(order.discount)}</strong></span>
-            <span>Tổng thanh toán: <strong className="is-grand">{formatMoney(order.total)}</strong></span>
-          </div>
         </>
       )}
 

@@ -32,6 +32,13 @@ describe('DashboardSide component', () => {
     expect(screen.queryByText('Hoàng Văn E')).not.toBeInTheDocument();
   });
 
+  it('leaves zero counts out of the reminders', () => {
+    const { container } = render(<DashboardSide dashboard={{ ...baseDashboard, reminders: { customersInDebt: 0, productsBelowStock: 1, productsAboveStock: 0 } }} />);
+    expect(container.textContent).toContain('Không có khách hàng nào đang nợ');
+    expect(container.textContent).toContain('Có 1 hàng hóa dưới định mức tồn');
+    expect(container.textContent).not.toContain('vượt');
+  });
+
   it('renders empty message when no activities exist', () => {
     const emptyDashboard = {
       ...baseDashboard,

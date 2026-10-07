@@ -16,6 +16,7 @@ import {
 import { StatusBadge } from '@/components/data-display/Badges';
 import { MobileHeaderAction, MobilePageHeader } from '@/components/ui/MobilePageHeader/MobilePageHeader';
 import { ErrorState, LoadingState } from '@/components/data-display/DataState';
+import { amountTone } from '@/lib/tone';
 
 export function MobileStaffPayrollAdminView() {
   const [periodType, setPeriodType] = useState<string>('monthly');
@@ -184,7 +185,7 @@ export function MobileStaffPayrollAdminView() {
                       </div>
 
                       <div className="mobile-staff-row-right">
-                        <span className="mobile-staff-row-value blue">
+                        <span className={`mobile-staff-row-value ${amountTone(record.netSalary)}`}>
                           {formatMoney(record.netSalary)}
                         </span>
                         <StatusBadge status={record.status} payroll />

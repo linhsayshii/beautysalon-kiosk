@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { EmptyState, ErrorState, LoadingState } from '@/components/data-display/DataState';
 import { StatusBadge } from '@/components/data-display/Badges';
 import { formatMoney } from '@/lib/format';
-import { owedTone } from '@/lib/tone';
+import { amountTone, owedTone } from '@/lib/tone';
 import { exportCsv } from '@/lib/export';
 import { useToast } from '@/components/ui/Toast/ToastProvider';
 import { Select } from '@/components/ui/Select/Select';
@@ -195,7 +195,7 @@ export function StaffPayrollView() {
                     <tr className="table-summary-row">
                       <td colSpan={4} />
                       <td className="is-num">{formatMoney(grandSummary.totalNetSalary)}</td>
-                      <td className="is-num text-success">{formatMoney(grandSummary.totalPaidAmount)}</td>
+                      <td className={`is-num ${amountTone(grandSummary.totalPaidAmount)}`}>{formatMoney(grandSummary.totalPaidAmount)}</td>
                       <td className={`is-num ${owedTone(grandSummary.totalRemainingAmount)}`}>{formatMoney(grandSummary.totalRemainingAmount)}</td>
                       <td />
                     </tr>
@@ -215,9 +215,9 @@ export function StaffPayrollView() {
                             <td data-label="Kỳ làm việc" className="text-muted numeric-cell">
                               {new Date(row.startsOn).toLocaleDateString('vi-VN')} - {new Date(row.endsOn).toLocaleDateString('vi-VN')}
                             </td>
-                            <td data-label="Tổng lương" className="is-num money-cell">{formatMoney(row.totalNetSalary)}</td>
-                            <td data-label="Đã trả" className="is-num money-cell text-success">{formatMoney(row.totalPaidAmount)}</td>
-                            <td data-label="Còn cần trả" className={`is-num money-cell ${owedTone(row.totalRemainingAmount)}`}>{formatMoney(row.totalRemainingAmount)}</td>
+                            <td data-label="Tổng lương" className={`is-num money-cell ${amountTone(row.totalNetSalary)}`}>{formatMoney(row.totalNetSalary)}</td>
+                            <td data-label="Đã trả" className={`is-num money-cell ${amountTone(row.totalPaidAmount)}`}>{formatMoney(row.totalPaidAmount)}</td>
+                            <td data-label="Còn cần trả" className={`is-num money-cell ${owedTone(row.totalRemainingAmount, 'text-muted')}`}>{formatMoney(row.totalRemainingAmount)}</td>
                             <td data-label="Trạng thái"><StatusBadge status={row.status} payroll /></td>
                           </tr>
                           {isExpanded && (

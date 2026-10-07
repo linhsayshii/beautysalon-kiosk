@@ -78,8 +78,9 @@ describe('StaffDetail Component', () => {
     expect(screen.getByText('0912345678')).toBeInTheDocument();
     expect(screen.getByText('Phòng ban')).toBeInTheDocument();
     expect(screen.getByText('Chăm sóc da')).toBeInTheDocument();
-    expect(screen.getByText('Chức danh')).toBeInTheDocument();
-    expect(screen.getByText('Chi nhánh làm việc')).toBeInTheDocument();
+    // Role and branch already sit in the head, so the grid does not repeat them.
+    expect(screen.queryByText('Chức danh')).not.toBeInTheDocument();
+    expect(screen.queryByText('Chi nhánh làm việc')).not.toBeInTheDocument();
     expect(screen.getByText('Hình thức lương')).toBeInTheDocument();
     expect(screen.getByText('Trạng thái hoạt động')).toBeInTheDocument();
     expect(screen.getByText('Đang hoạt động')).toBeInTheDocument();

@@ -10,6 +10,7 @@ import { useDrawer } from '@/components/ui/Drawer/DrawerProvider';
 import { monthStartIso, todayIso } from '@/lib/date';
 import { formatDate, formatMoney, formatNumber, formatPercent } from '@/lib/format';
 import { getCommissions } from '../staff.api';
+import { amountTone } from '@/lib/tone';
 
 const commissionTypeBadges = {
   tour: { label: 'Tua dịch vụ', className: 'badge-info' },
@@ -115,11 +116,11 @@ export function StaffCommissionsView() {
                       <tr>
                         <th>Nhân viên</th>
                         <th className="is-num">DT Tua</th>
-                        <th className="is-num text-primary">HH Tua</th>
+                        <th className="is-num">HH Tua</th>
                         <th className="is-num">DT Tư vấn</th>
-                        <th className="is-num text-violet">HH Tư vấn bán</th>
+                        <th className="is-num">HH Tư vấn bán</th>
                         {legacyServiceCommission > 0 && <th className="is-num">HH Thực hiện (cũ)</th>}
-                        <th className="is-num text-success">Tổng hoa hồng</th>
+                        <th className="is-num">Tổng hoa hồng</th>
                         <th>Lượt phát sinh</th>
                         <th />
                       </tr>
@@ -134,21 +135,21 @@ export function StaffCommissionsView() {
                               tone={summary.staff.avatarTone}
                             />
                           </td>
-                          <td data-label="DT Tua" className="money-cell is-num">
+                          <td data-label="DT Tua" className={`money-cell is-num ${amountTone(summary.tourRevenue)}`}>
                             {formatMoney(summary.tourRevenue)}
                           </td>
                           <td
                             data-label="HH Tua"
-                            className="money-cell is-num text-primary"
+                            className={`money-cell is-num ${amountTone(summary.tourAmount)}`}
                           >
                             {formatMoney(summary.tourAmount)}
                           </td>
-                          <td data-label="DT Tư vấn" className="money-cell is-num">
+                          <td data-label="DT Tư vấn" className={`money-cell is-num ${amountTone(summary.consultingRevenue)}`}>
                             {formatMoney(summary.consultingRevenue)}
                           </td>
                           <td
                             data-label="HH Tư vấn"
-                            className="money-cell is-num text-violet"
+                            className={`money-cell is-num ${amountTone(summary.consultingAmount)}`}
                           >
                             {formatMoney(summary.consultingAmount)}
                           </td>
@@ -159,7 +160,7 @@ export function StaffCommissionsView() {
                           )}
                           <td
                             data-label="Tổng hoa hồng"
-                            className="money-cell is-num text-success"
+                            className={`money-cell is-num ${amountTone(summary.totalAmount, 'text-strong')}`}
                           >
                             {formatMoney(summary.totalAmount)}
                           </td>
@@ -277,7 +278,7 @@ export function StaffCommissionsView() {
                         <td data-label="Tỷ lệ">{row.rate > 1 ? formatMoney(row.rate) : formatPercent(row.rate)}</td>
                         <td
                           data-label="Hoa hồng"
-                          className={`money-cell is-num ${row.commissionType === 'consulting' ? 'text-violet' : row.commissionType === 'tour' ? 'text-primary' : 'text-success'}`}
+                          className="money-cell is-num text-strong"
                         >
                           {formatMoney(row.amount)}
                         </td>

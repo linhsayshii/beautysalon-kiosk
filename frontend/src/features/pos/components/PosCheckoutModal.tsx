@@ -240,7 +240,7 @@ export function PosCheckoutModal({
           {/* Cột phải: Phương thức thanh toán & Thu tiền */}
           <section className="pos-checkout-payment-section">
             <div className="checkout-section-header">
-              <h3>Phương thức & Thu tiền</h3>
+              <h3>Thu tiền</h3>
             </div>
 
             {/* Chọn phương thức thanh toán */}

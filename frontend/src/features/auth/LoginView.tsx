@@ -35,11 +35,11 @@ export function LoginView() {
     <div className="login-shell">
       <div className="login-mobile-brand"><span className="brand-mark" aria-hidden="true"><span /><span /></span><span>{storeName}</span></div>
       <aside className="login-visual">
-        <div className="login-brand"><span className="brand-mark" aria-hidden="true"><span /><span /></span><span>{storeName}</span></div>
-        <div className="login-visual-copy"><span>Hệ thống quản lý</span><h2>{storeName}</h2><p>Đăng nhập vào tài khoản của bạn</p></div>
+        <div className="login-brand"><span className="brand-mark" aria-hidden="true"><span /><span /></span></div>
+        <div className="login-visual-copy"><span>Hệ thống quản lý</span><h2>{storeName}</h2></div>
       </aside>
       <section className="login-card" aria-labelledby="login-title">
-        <div className="login-heading"><h1 id="login-title">Đăng nhập hệ thống</h1><p>Đăng nhập vào tài khoản của bạn</p></div>
+        <div className="login-heading"><h1 id="login-title">Đăng nhập</h1></div>
         <form onSubmit={submit}>
           <label className="auth-field"><span>Tên đăng nhập</span><div><input autoFocus autoComplete="username" value={username} onChange={(event) => setUsername(event.target.value)} placeholder="Nhập tên đăng nhập" /></div></label>
           <label className="auth-field"><span>Mật khẩu</span><div><input type={showPassword ? 'text' : 'password'} autoComplete="current-password" value={password} onChange={(event) => setPassword(event.target.value)} placeholder="Nhập mật khẩu" /><button type="button" onClick={() => setShowPassword((value) => !value)} aria-label={showPassword ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}><i className={`ph ${showPassword ? 'ph-eye-slash' : 'ph-eye'}`} /></button></div></label>

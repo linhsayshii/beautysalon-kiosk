@@ -5,7 +5,6 @@ import * as auth from '@/features/auth/AuthProvider';
 import { Header } from './Header';
 
 vi.mock('@/services/metadata', () => ({ useStoreName: () => 'Anna Chill Beauty' }));
-vi.mock('@/hooks/useWebSocket', () => ({ useWebSocket: () => ({ isConnected: true }) }));
 
 function renderAs(role: 'manager' | 'cashier' | 'staff') {
   vi.spyOn(auth, 'useAuth').mockReturnValue({

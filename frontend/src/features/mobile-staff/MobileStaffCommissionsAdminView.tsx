@@ -16,6 +16,7 @@ import { monthStartIso, todayIso } from '@/lib/date';
 import { formatMoney, formatPercent, initials } from '@/lib/format';
 import { MobilePageHeader } from '@/components/ui/MobilePageHeader/MobilePageHeader';
 import { formatDateOnly } from '@/lib/date';
+import { amountTone } from '@/lib/tone';
 
 export function MobileStaffCommissionsAdminView() {
   const [activeTab, setActiveTab] = useState<'by_staff' | 'details'>('by_staff');
@@ -193,7 +194,7 @@ export function MobileStaffCommissionsAdminView() {
                       </div>
 
                       <div className="mobile-staff-row-right">
-                        <span className="mobile-staff-row-value emerald">
+                        <span className={`mobile-staff-row-value ${amountTone(staff.totalAmount)}`}>
                           {formatMoney(staff.totalAmount)}
                         </span>
                         <span className="text-muted">
@@ -253,7 +254,7 @@ export function MobileStaffCommissionsAdminView() {
                       </div>
 
                       <div className="mobile-staff-row-right">
-                        <span className="mobile-staff-row-value emerald">
+                        <span className="mobile-staff-row-value">
                           +{formatMoney(tx.amount)}
                         </span>
                         <span className="text-muted">

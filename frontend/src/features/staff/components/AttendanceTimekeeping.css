@@ -45,17 +45,16 @@
 .week-navigator {
   display: flex;
   align-items: center;
-  height: 36px;
+  height: var(--control-h);
   background: #ffffff;
   border: 1px solid var(--line-strong);
-  border-radius: 8px;
+  border-radius: var(--radius-control);
   overflow: hidden;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
 }
 
 .week-nav-btn {
   height: 100%;
-  width: 32px;
+  width: 36px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -72,12 +71,22 @@
 }
 
 .week-label-display {
-  padding: 0 12px;
-  font-weight: 600;
-  color: var(--ink-700);
-  white-space: nowrap;
+  align-self: stretch;
   min-width: 150px;
+  padding: 0 12px;
+  border: 0;
+  color: var(--ink-800);
+  background: transparent;
+  font: inherit;
+  font-weight: var(--weight-semibold);
   text-align: center;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.week-label-display:hover,
+.week-label-display[aria-expanded="true"] {
+  background-color: var(--surface-hover);
 }
 /* Week Picker Calendar Popover */
 .week-popover {
@@ -104,7 +113,7 @@
 
 .week-popover-month {
   font-size: 14px;
-  font-weight: 700;
+  font-weight: var(--weight-bold);
   color: var(--ink-800);
 }
 
@@ -131,7 +140,7 @@
   grid-template-columns: repeat(7, 1fr);
   text-align: center;
   font-size: 12px;
-  font-weight: 600;
+  font-weight: var(--weight-semibold);
   color: var(--ink-500);
   margin-bottom: 6px;
 }
@@ -177,20 +186,20 @@
   justify-content: center;
   border-radius: 50%;
   font-size: 12px;
-  font-weight: 500;
+  font-weight: var(--weight-medium);
   color: var(--ink-700);
 }
 
 .calendar-day-badge.is-endpoint {
   background-color: var(--blue-600);
   color: #ffffff;
-  font-weight: 700;
+  font-weight: var(--weight-bold);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 .calendar-day-badge.is-mid-week {
   color: var(--sky);
-  font-weight: 600;
+  font-weight: var(--weight-semibold);
 }
 
 .calendar-day-badge.is-muted {
@@ -244,7 +253,7 @@
 .attendance-matrix-table th {
   padding: 10px 8px;
   font-size: 13px;
-  font-weight: 600;
+  font-weight: var(--weight-semibold);
   color: var(--ink-700);
   border-right: 1px solid var(--line);
   width: calc((100% - 170px) / 7);
@@ -293,18 +302,18 @@
 }
 
 .day-col-title {
-  font-weight: 600;
+  font-weight: var(--weight-semibold);
   color: var(--ink-600);
 }
 
 .day-col-title.is-today {
   color: var(--blue-600);
-  font-weight: 700;
+  font-weight: var(--weight-bold);
 }
 
 .day-badge-num {
   font-size: 12px;
-  font-weight: 600;
+  font-weight: var(--weight-semibold);
   color: var(--ink-800);
 }
 
@@ -340,7 +349,7 @@
 
 .shift-name-text {
   font-size: 13px;
-  font-weight: 700;
+  font-weight: var(--weight-bold);
   color: var(--ink-800);
   line-height: 1.3;
 }
@@ -364,27 +373,29 @@
 }
 
 /* Empty Slot placeholder */
+/* An empty slot stays blank; the plus shows on hover or keyboard focus. */
 .empty-slot-btn {
-  height: 100%;
-  min-height: 90px;
   display: flex;
   align-items: center;
   justify-content: center;
+  width: 100%;
+  height: 100%;
+  min-height: 90px;
   padding: 8px;
-  border-radius: 8px;
   border: 1px dashed transparent;
-  color: var(--ink-300);
-  font-size: 11px;
-  text-align: center;
-  line-height: 1.4;
+  border-radius: var(--radius-sm);
+  color: transparent;
+  background: transparent;
+  font-size: 18px;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: background-color var(--duration-fast) ease, border-color var(--duration-fast) ease, color var(--duration-fast) ease;
 }
 
-.empty-slot-btn:hover {
-  background-color: var(--surface-hover);
+.empty-slot-btn:hover,
+.empty-slot-btn:focus-visible {
   border-color: var(--blue-200);
   color: var(--blue-600);
+  background-color: var(--blue-50);
 }
 
 /* Assigned Staff Card */
@@ -411,19 +422,19 @@
 }
 
 .card-staff-name {
-  font-weight: 700;
+  font-weight: var(--weight-bold);
   font-size: 12px;
 }
 
 .card-staff-detail {
   font-size: 11px;
-  font-weight: 500;
+  font-weight: var(--weight-medium);
   margin-top: 3px;
 }
 
 .card-staff-sub {
-  font-size: 10px;
-  font-weight: 500;
+  font-size: var(--text-2xs);
+  font-weight: var(--weight-medium);
   margin-top: 2px;
 }
 
@@ -497,7 +508,7 @@
   justify-content: center;
   gap: 24px;
   font-size: 12px;
-  font-weight: 500;
+  font-weight: var(--weight-medium);
   color: var(--ink-600);
 }
 
@@ -547,7 +558,7 @@
 .attendance-summary-table th {
   padding: 12px 16px;
   font-size: 12px;
-  font-weight: 600;
+  font-weight: var(--weight-semibold);
   color: var(--ink-500);
   text-transform: uppercase;
   letter-spacing: 0.03em;
@@ -587,7 +598,7 @@
 }
 
 .summary-staff-name {
-  font-weight: 700;
+  font-weight: var(--weight-bold);
   color: var(--ink-800);
   font-size: 14px;
 }
@@ -602,7 +613,7 @@
    ========================================================================== */
 .duration-tag {
   font-size: 12px;
-  font-weight: 600;
+  font-weight: var(--weight-semibold);
   color: var(--ink-600);
   background: var(--canvas);
   padding: 4px 8px;
@@ -654,7 +665,7 @@
   width: 160px;
   padding: 12px 14px;
   font-size: 13px;
-  font-weight: 700;
+  font-weight: var(--weight-bold);
   color: var(--ink-800);
   border-right: 1px solid var(--line);
   vertical-align: middle;
@@ -677,18 +688,18 @@
 
 .day-title {
   font-size: 13px;
-  font-weight: 600;
+  font-weight: var(--weight-semibold);
   color: var(--ink-600);
 }
 
 .day-title.is-today-text {
   color: var(--blue-600);
-  font-weight: 700;
+  font-weight: var(--weight-bold);
 }
 
 .day-number {
   font-size: 13px;
-  font-weight: 700;
+  font-weight: var(--weight-bold);
   color: var(--ink-800);
 }
 
@@ -717,7 +728,7 @@
   justify-content: flex-end;
   gap: 4px;
   font-size: 12px;
-  font-weight: 600;
+  font-weight: var(--weight-semibold);
   color: var(--ink-800);
 }
 
@@ -729,7 +740,7 @@
 
 .salary-header-total {
   font-size: 15px;
-  font-weight: 800;
+  font-weight: var(--weight-bold);
   color: var(--ink-800);
   margin-top: 4px;
 }
@@ -753,7 +764,7 @@
 }
 
 .staff-name-bold {
-  font-weight: 700;
+  font-weight: var(--weight-bold);
   font-size: 13px;
   color: var(--ink-800);
   white-space: nowrap;
@@ -789,7 +800,7 @@
 
 .schedule-add-text {
   font-size: 11px;
-  font-weight: 500;
+  font-weight: var(--weight-medium);
   color: var(--blue-600);
   opacity: 0;
   transition: opacity 0.15s ease;
@@ -814,7 +825,7 @@
   padding: 0 8px;
   border-radius: 6px;
   font-size: 12px;
-  font-weight: 600;
+  font-weight: var(--weight-semibold);
   line-height: 1;
   text-align: center;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
@@ -877,7 +888,7 @@
 
 .salary-amount {
   font-size: 13px;
-  font-weight: 700;
+  font-weight: var(--weight-bold);
   color: var(--ink-800);
 }
 
@@ -911,7 +922,7 @@
   padding: 2px 8px;
   border-radius: 4px;
   font-size: 11px;
-  font-weight: 600;
+  font-weight: var(--weight-semibold);
 }
 /* ==========================================================================
    KIOTVIET WORK DAYS & HOLIDAYS SETTINGS MODAL
@@ -938,7 +949,7 @@
   border: 1px solid var(--line-strong);
   background-color: #ffffff;
   font-size: 13px;
-  font-weight: 600;
+  font-weight: var(--weight-semibold);
   color: var(--ink-700);
   cursor: pointer;
   user-select: none;

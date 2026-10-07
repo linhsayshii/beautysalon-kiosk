@@ -397,7 +397,7 @@ export function PosView() {
           ))}
         </div>
         <button className="pos-add-invoice" type="button" onClick={addInvoice} aria-label="Thêm hóa đơn"><i className="ph ph-plus" aria-hidden="true" /></button>
-        <div className="pos-shift-status"><i className="ph ph-storefront" aria-hidden="true" /><span>Chi nhánh trung tâm</span></div>
+        <div className="pos-shift-status"><i className="ph ph-storefront" aria-hidden="true" /><span>{account?.branchName ?? 'Chi nhánh hiện tại'}</span></div>
       </section>
 
       {paymentRequests.data?.data?.length ? (
@@ -493,7 +493,7 @@ export function PosView() {
           </div>
 
           <div className="pos-bill-content">
-            {!activeInvoice.lines.length ? <div className="pos-empty-bill"><span className="pos-empty-illustration"><i className="ph ph-receipt" /><i className="ph ph-check-circle" /></span><strong>Hóa đơn đang trống</strong><p>Chọn dịch vụ hoặc sản phẩm từ danh sách bên trái để bắt đầu.</p></div> : (
+            {!activeInvoice.lines.length ? <div className="pos-empty-bill"><span className="pos-empty-illustration"><i className="ph ph-receipt" aria-hidden="true" /></span><strong>Hóa đơn đang trống</strong><p>Chọn dịch vụ hoặc sản phẩm từ danh sách bên trái để bắt đầu.</p></div> : (
               <div className="pos-line-list">
                 <div className="pos-line-heading"><span>{itemCount} mặt hàng</span><button type="button" onClick={() => updateActive((invoice) => ({ ...invoice, lines: [] }))}>Xóa tất cả</button></div>
                 {activeInvoice.lines.map((line) => <article className="pos-line" key={`${line.itemType}-${line.itemId}`}>
@@ -517,7 +517,7 @@ export function PosView() {
                       aria-label={`Nhân viên cho ${line.name}`}
                       size="sm"
                       triggerClassName="pos-line-staff-trigger"
-                      options={[{ value: '', label: '-- NV --' }, ...staffList.map((staff) => ({ value: staff.id, label: staff.name }))]}
+                      options={[{ value: '', label: 'Chọn NV' }, ...staffList.map((staff) => ({ value: staff.id, label: staff.name }))]}
                     />
                     {line.itemType === 'service' && (
                       <ConsultantPicker
@@ -803,7 +803,7 @@ export function ConsultantPicker({ serviceName, value, open, staffList, triggerC
         onChange={(staffId) => onChange(staffId === '' ? null : Number(staffId), true)}
         size="sm"
         triggerClassName={triggerClassName}
-        options={[{ value: '', label: '-- Tư vấn --' }, ...staffList.map((staff) => ({ value: staff.id, label: staff.name }))]}
+        options={[{ value: '', label: 'Chọn tư vấn' }, ...staffList.map((staff) => ({ value: staff.id, label: staff.name }))]}
       />
       <button type="button" className="btn btn-ghost btn-icon btn-sm" aria-label={`Bỏ nhân viên tư vấn ${serviceName}`} onClick={() => onChange(null, false)}>
         <i className="ph ph-x" />

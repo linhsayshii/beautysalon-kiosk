@@ -32,13 +32,13 @@
   width: 52px;
   height: 52px;
   border-radius: 26px;
-  background: linear-gradient(135deg, var(--blue-600) 0%, var(--sky) 100%);
+  background: var(--blue-600);
   color: #ffffff;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 18px;
-  font-weight: 700;
+  font-weight: var(--weight-bold);
   flex-shrink: 0;
 }
 
@@ -51,7 +51,7 @@
 
 .more-user-name {
   font-size: 16px;
-  font-weight: 700;
+  font-weight: var(--weight-bold);
   color: var(--ink-950);
   white-space: nowrap;
   overflow: hidden;
@@ -61,7 +61,7 @@
 .more-user-branch {
   font-size: 12px;
   color: var(--blue-600);
-  font-weight: 600;
+  font-weight: var(--weight-semibold);
   display: flex;
   align-items: center;
   gap: 4px;
@@ -108,7 +108,7 @@
 
 .store-settings-title {
   font-size: 14px;
-  font-weight: 600;
+  font-weight: var(--weight-semibold);
   color: var(--ink-950);
 }
 
@@ -139,7 +139,7 @@
 
 .more-category-title {
   font-size: 13px;
-  font-weight: 700;
+  font-weight: var(--weight-bold);
   text-transform: uppercase;
   letter-spacing: 0.5px;
   color: var(--ink-500);
@@ -161,7 +161,7 @@
   text-decoration: none;
   color: var(--ink-800);
   font-size: 14px;
-  font-weight: 500;
+  font-weight: var(--weight-medium);
   transition: background 0.1s ease;
   background: transparent;
   border: none;
@@ -186,7 +186,7 @@
 
 .more-item-label {
   font-size: 14px;
-  font-weight: 600;
+  font-weight: var(--weight-semibold);
   color: var(--ink-950);
   white-space: nowrap;
   overflow: hidden;
@@ -239,7 +239,7 @@
 }
 
 .branch-option-title {
-  font-weight: 600;
+  font-weight: var(--weight-semibold);
   color: var(--ink-950);
   font-size: 14px;
 }

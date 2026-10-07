@@ -35,8 +35,8 @@
 
 .mobile-item-info-name {
   margin: 0;
-  font-size: 15.5px;
-  font-weight: 750;
+  font-size: var(--text-lg);
+  font-weight: var(--weight-semibold);
   color: var(--ink-950);
   line-height: 1.35;
 }
@@ -44,7 +44,7 @@
 .mobile-item-info-duration {
   margin: 0;
   font-size: 13px;
-  font-weight: 600;
+  font-weight: var(--weight-semibold);
   color: var(--ink-500);
 }
 
@@ -69,7 +69,7 @@
 
 .mobile-item-field-label {
   font-size: 12px;
-  font-weight: 700;
+  font-weight: var(--weight-bold);
   color: var(--ink-500);
   text-transform: uppercase;
   letter-spacing: 0.03em;
@@ -91,7 +91,7 @@
   border: none;
   background: transparent;
   font-size: 18px;
-  font-weight: 700;
+  font-weight: var(--weight-bold);
   color: var(--ink-700);
   cursor: pointer;
   display: grid;
@@ -107,7 +107,7 @@
   min-width: 32px;
   text-align: center;
   font-size: 15px;
-  font-weight: 750;
+  font-weight: var(--weight-semibold);
   color: var(--ink-950);
 }
 
@@ -122,7 +122,7 @@
   align-items: center;
   justify-content: center;
   font-size: 16px;
-  font-weight: 800;
+  font-weight: var(--weight-bold);
   letter-spacing: -0.02em;
 }
 
@@ -141,7 +141,7 @@
 .mobile-item-section-title {
   margin: 0;
   font-size: 13px;
-  font-weight: 750;
+  font-weight: var(--weight-semibold);
   color: var(--ink-900);
   letter-spacing: 0.04em;
 }
@@ -173,8 +173,8 @@
   border: 1px solid var(--line);
   background: var(--surface-muted);
   color: var(--ink-900);
-  font-size: 13.5px;
-  font-weight: 700;
+  font-size: var(--text-sm);
+  font-weight: var(--weight-bold);
   cursor: pointer;
   transition: all 0.15s ease;
   min-height: 48px;
@@ -230,13 +230,13 @@
 
 .mobile-picker-row-label {
   font-size: 14px;
-  font-weight: 700;
+  font-weight: var(--weight-bold);
   color: var(--ink-950);
 }
 
 .mobile-picker-row-sub {
   font-size: 12px;
-  font-weight: 600;
+  font-weight: var(--weight-semibold);
   color: var(--blue-600);
   margin-top: 1px;
 }
@@ -248,8 +248,8 @@
 }
 
 .mobile-picker-row-val {
-  font-size: 13.5px;
-  font-weight: 600;
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
   color: var(--ink-500);
 }
 
@@ -288,8 +288,8 @@
   border-radius: 50%;
   background: var(--blue-100);
   color: var(--blue-700);
-  font-size: 13.5px;
-  font-weight: 750;
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
   display: grid;
   place-items: center;
   flex-shrink: 0;
@@ -308,8 +308,8 @@
 }
 
 .mobile-staff-name {
-  font-size: 14.5px;
-  font-weight: 700;
+  font-size: var(--text-md);
+  font-weight: var(--weight-bold);
   color: var(--ink-950);
 }
 
@@ -428,7 +428,7 @@
   background: var(--red);
   color: #ffffff;
   font-size: 11px;
-  font-weight: 750;
+  font-weight: var(--weight-semibold);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -465,14 +465,14 @@
 
 .mobile-metric-label {
   font-size: 12px;
-  font-weight: 600;
+  font-weight: var(--weight-semibold);
   color: var(--ink-500);
   line-height: 1.25;
 }
 
 .mobile-metric-value {
   font-size: 18px;
-  font-weight: 800;
+  font-weight: var(--weight-bold);
   color: var(--ink-950);
   line-height: 1.2;
 }
@@ -550,8 +550,8 @@
 }
 
 .mobile-card-title {
-  font-size: 14.5px;
-  font-weight: 750;
+  font-size: var(--text-md);
+  font-weight: var(--weight-semibold);
   color: var(--ink-950);
   white-space: nowrap;
   overflow: hidden;
@@ -579,7 +579,7 @@
   padding: 3px 8px;
   border-radius: 999px;
   font-size: 11px;
-  font-weight: 700;
+  font-weight: var(--weight-bold);
   background: var(--canvas);
   color: var(--ink-600);
 }
@@ -630,7 +630,7 @@
 
 .mobile-card-detail-val {
   font-size: 13px;
-  font-weight: 650;
+  font-weight: var(--weight-semibold);
   color: var(--ink-800);
 }
 
@@ -662,8 +662,8 @@
   border-radius: 9px;
   border: none;
   background: transparent;
-  font-size: 13.5px;
-  font-weight: 650;
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
   color: var(--ink-600);
   cursor: pointer;
   transition: all 0.15s ease;
@@ -675,15 +675,15 @@
 .mobile-segmented-btn.is-active {
   background: var(--surface);
   color: var(--blue-600);
-  font-weight: 750;
+  font-weight: var(--weight-semibold);
   box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
 }
 
 .mobile-segmented-badge {
   padding: 1px 6px;
   border-radius: 999px;
-  font-size: 10.5px;
-  font-weight: 750;
+  font-size: var(--text-2xs);
+  font-weight: var(--weight-semibold);
   background: var(--line-strong);
   color: var(--ink-800);
 }

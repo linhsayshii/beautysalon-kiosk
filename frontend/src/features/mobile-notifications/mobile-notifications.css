@@ -14,7 +14,7 @@
 /* Header */
 .mobile-notifications-unread-count {
   font-size: 12px;
-  font-weight: 600;
+  font-weight: var(--weight-semibold);
   color: #ffffff;
   background: var(--red);
   padding: 2px 8px;
@@ -47,8 +47,8 @@
 }
 
 .mobile-notification-card.is-unread {
-  background: var(--green-soft);
-  border-color: var(--green-line);
+  background: var(--blue-50);
+  border-color: var(--blue-200);
 }
 
 .mobile-notification-card.is-unread::after {
@@ -59,7 +59,7 @@
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: var(--green);
+  background: var(--blue-600);
 }
 
 /* Icon Avatar */
@@ -110,7 +110,7 @@
 
 .mobile-notification-title-text {
   font-size: 14px;
-  font-weight: 700;
+  font-weight: var(--weight-bold);
   color: var(--ink-950);
   line-height: 1.3;
 }

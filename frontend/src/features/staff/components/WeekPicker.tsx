@@ -98,9 +98,17 @@ export function WeekPicker({ currentMonday, onChange }: WeekPickerProps) {
           <i className="ph ph-caret-left" />
         </button>
 
-        <div className="week-label-display">
+        {/* The label opens the week calendar, so no separate "Chọn" button is needed. */}
+        <button
+          type="button"
+          className="week-label-display"
+          onClick={() => setIsOpen(!isOpen)}
+          aria-haspopup="dialog"
+          aria-expanded={isOpen}
+          title="Chọn tuần"
+        >
           {label}
-        </div>
+        </button>
 
         <button
           type="button"
@@ -112,13 +120,6 @@ export function WeekPicker({ currentMonday, onChange }: WeekPickerProps) {
         </button>
       </div>
 
-      <button
-        type="button"
-        onClick={() => setIsOpen(!isOpen)}
-        className="btn btn-secondary"
-      >
-        Chọn
-      </button>
 
       {/* Popover Calendar */}
       {isOpen && (

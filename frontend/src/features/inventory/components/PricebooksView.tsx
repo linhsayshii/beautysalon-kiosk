@@ -209,15 +209,6 @@ export function PricebooksView() {
   const rows = query.data?.data ?? [];
   const book = query.data?.meta.pricebook ?? { id: 0, name: '' };
   const allBooks = query.data?.meta.pricebooks ?? [];
-  // An empty filter means the server-selected default pricebook. Keeping that
-  // explicit in the control avoids accidentally displaying an old inactive
-  // book with the same name as the default.
-  const pricebookOptions = [
-    { value: '', label: allBooks.find(item => item.isDefault)?.name || 'Bảng giá chung' },
-    ...allBooks
-      .filter((item) => !item.isDefault)
-      .map((item) => ({ value: String(item.id), label: `${item.name}${item.active ? '' : ' (Ngừng)'}` })),
-  ];
   const defaultBook = allBooks.find((item) => item.isDefault) ?? book;
   const additionalBooks = allBooks.filter((item) => !item.isDefault);
   const selectedBook = allBooks.find((item) => String(item.id) === String(book.id)) ?? allBooks.find((item) => item.isDefault);
@@ -242,10 +233,9 @@ export function PricebooksView() {
   return (
     <main className="page">
       <div className="page-stack">
-        <PageHeader title="Thiết lập giá" subtitle="Quản lý bảng giá và giá bán hàng hóa." />
+        <PageHeader title="Thiết lập giá" subtitle="Quản lý bảng giá và giá bán hàng hóa." actionLabel="Thêm bảng giá" onAction={openCreate} />
         <div className="page-grid">
           <FilterPanel title="Bảng giá" onApply={apply} onReset={() => { setDraft(initialFilters); setFilters(initialFilters); setPage(1); }}>
-            <SelectFilter label="Bảng giá" value={draft.pricebookId} onChange={(pricebookId) => setDraft({ ...draft, pricebookId })} options={pricebookOptions} />
             <SelectFilter label="Nhóm hàng" value={draft.category} onChange={(category) => setDraft({ ...draft, category })} options={[{ value: '', label: 'Tất cả' }, ...(query.data?.meta.categories ?? []).map((category) => ({ value: category, label: category }))]} />
           </FilterPanel>
           <section className="data-panel">
@@ -253,23 +243,22 @@ export function PricebooksView() {
               <div className="pricebook-strip" aria-label="Chọn bảng giá">
                 <button
                   type="button"
-                  className={`pricebook-chip ${!draft.pricebookId ? 'active' : ''}`}
+                  className="chip"
                   aria-pressed={!draft.pricebookId}
                   onClick={() => { setDraft({ ...draft, pricebookId: '' }); setFilters({ ...draft, pricebookId: '' }); setPage(1); }}
                 >
                   {defaultBook.name || 'Bảng giá chung'}
                 </button>
                 {additionalBooks.map((pb) => (
-                  <button type="button" key={pb.id} className={`pricebook-chip ${String(draft.pricebookId) === String(pb.id) ? 'active' : ''}`} aria-pressed={String(draft.pricebookId) === String(pb.id)} onClick={() => { setDraft({ ...draft, pricebookId: String(pb.id) }); setFilters({ ...draft, pricebookId: String(pb.id) }); setPage(1); }}>
+                  <button type="button" key={pb.id} className="chip" aria-pressed={String(draft.pricebookId) === String(pb.id)} onClick={() => { setDraft({ ...draft, pricebookId: String(pb.id) }); setFilters({ ...draft, pricebookId: String(pb.id) }); setPage(1); }}>
                     {pb.name}{pb.active ? '' : ' (Ngừng)'}
                   </button>
                 ))}
               </div>
               <div className="pricebook-actions">
-                <button type="button" className="btn btn-secondary btn-sm" onClick={() => selectedBook && openEdit(selectedBook)} title={`Cài đặt ${book.name || 'bảng giá'}`} aria-label={`Cài đặt ${book.name || 'bảng giá'}`} disabled={!selectedBook}>
+                <button type="button" className="btn btn-ghost btn-icon btn-sm" onClick={() => selectedBook && openEdit(selectedBook)} title={`Cài đặt ${book.name || 'bảng giá'}`} aria-label={`Cài đặt ${book.name || 'bảng giá'}`} disabled={!selectedBook}>
                   <i className="ph ph-gear" />
                 </button>
-                <button type="button" className="btn btn-primary btn-sm" onClick={openCreate}>+ Thêm bảng giá</button>
               </div>
             </div>
             <SearchToolbar value={draft.search} placeholder="Tìm theo mã hoặc tên hàng" onChange={(search) => setDraft({ ...draft, search })} onSearch={apply} onRefresh={() => query.refetch()} />

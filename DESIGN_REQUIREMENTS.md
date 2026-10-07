@@ -19,13 +19,14 @@ Phạm vi hiện tại: toàn bộ giao diện quản trị và mobile. Template
 
 ### 3.1 Hình khối
 
-- Card lớn: bo góc `16px`.
-- Card con và item danh sách: bo góc `12px`.
+- Card lớn: bo góc `12px` (`--radius-card`).
+- Card con và item danh sách: bo góc `8-12px`.
 - Badge và chip: dạng pill, bo góc tối đa.
 - Button, input và select: bo góc `12px` (`--radius-control`), cao 40px trên desktop và 44px trên mobile/sheet.
 - Viền card: `1px` với màu xanh xám rất nhạt.
 - Card trong trang dùng viền mảnh, không bóng; bóng chỉ tách các lớp nổi như dropdown, modal và sheet.
-- Không dùng góc vuông, glow neon hoặc glassmorphism.
+- Không dùng góc vuông, glow neon, glassmorphism hoặc gradient trang trí (gradient chỉ còn ở panel navy màn đăng nhập và skeleton tải).
+- Không vẽ hình trang trí trong card số liệu (vòng tròn màu, ô icon nhiều màu); icon trong tiêu đề card dùng xám `--ink-500`.
 
 ### 3.2 Màu sắc
 
@@ -36,6 +37,7 @@ Phạm vi hiện tại: toàn bộ giao diện quản trị và mobile. Template
 | `--blue-100` | `#E5EFFF` | Badge và trạng thái nhẹ |
 | `--ink-950` | `#111827` | Tiêu đề, số liệu |
 | `--ink-600` | `#526178` | Mô tả và nhãn phụ |
+| `--ink-500` | `#5B6A80` | Chữ phụ, số 0; đạt 4.5:1 trên cả `--surface` lẫn `--canvas` |
 | `--surface` | `#FFFFFF` | Card |
 | `--canvas` | `#F1F4F8` | Nền ứng dụng |
 | `--line` | `#DFE6EF` | Viền và đường chia |
@@ -44,6 +46,10 @@ Phạm vi hiện tại: toàn bộ giao diện quản trị và mobile. Template
 | `--red` | `#C6283D` | Giảm sút hoặc lỗi |
 
 Màu xanh là accent duy nhất cho hành động. Xanh lá, cam và đỏ chỉ biểu thị trạng thái dữ liệu.
+
+Một bảng trạng thái cho cả app (`.status-badge`, `.badge-*`): xám là đang chờ hoặc nháp (`draft`, `pending`), xanh dương là đang làm (`scheduled`, `working`), xanh lá là đã xong (`paid`, `completed`, `approved`), cam là cần chú ý (`unpaid`, `late`, `refunded`), đỏ là hủy hoặc hỏng, tím chỉ cho nghỉ phép. Nhóm khách, loại hàng hóa là phân loại, không dùng màu trạng thái.
+
+Số 0 không phải tin tức: tiền, số lượt, số giờ bằng 0 hiển thị xám `--ink-500`, chữ thường (`amountTone()` trong `lib/tone.ts`, `ValueStrip` tự làm). Màu xanh lá/xanh dương chỉ cho số khác 0 thật sự cần nhấn; nợ chỉ đỏ khi lớn hơn 0 (`owedTone()`). Trạng thái bình thường lặp ở mọi dòng (nhân viên đang hoạt động) là chữ xám, chỉ ngoại lệ mới có badge.
 
 Mỗi tông trạng thái (`green`, `orange`, `red`, `violet`, `sky`, `pink`, `mint`) có ba token: `--x` cho chữ và điểm màu, `--x-soft` cho nền nhạt, `--x-line` cho viền trên nền nhạt. Trạng thái lịch hẹn dùng chung bộ `--appt-*` cho lịch POS, chấm trạng thái trên desktop và mobile:
 
@@ -62,10 +68,11 @@ Không viết mã màu hex ngoài `tokens.css`; test contract sẽ báo lỗi.
 
 - Font: hệ thống sans-serif ưu tiên `SF Pro Display`, `SF Pro Text`, `Segoe UI`, `Arial`.
 - Tiêu đề trang dùng token 22px/weight 600 trên desktop; control nhập trên mobile luôn ít nhất 16px để tránh iOS tự zoom.
-- Tiêu đề card: 16-18px, weight 700.
-- KPI chính: 28-34px, weight 750.
+- Độ đậm chỉ dùng bốn bậc token: `--weight-regular` 400, `--weight-medium` 500, `--weight-semibold` 600, `--weight-bold` 700; không viết số lẻ như 650, 720, 850.
+- Tiêu đề card và modal: 16-18px, weight 600.
+- KPI chính: 22px (strip) hoặc 28px (dashboard), weight 600.
 - Body: 14px, line-height 1.5.
-- Metadata: 12-13px, weight 500.
+- Metadata: 12-13px, weight 400-500. Không dùng chữ dưới 11px; chữ đọc trong POS tối thiểu 12px.
 - Số liệu dùng `font-variant-numeric: tabular-nums` để thẳng hàng.
 
 ### 3.4 Khoảng cách
@@ -89,7 +96,9 @@ Không viết mã màu hex ngoài `tokens.css`; test contract sẽ báo lỗi.
 - Logo AnnaChill bên trái.
 - Menu chính tinh gọn: Tổng quan, Hàng hóa, Đơn hàng, Khách hàng, Nhân viên, Tài chính (Sổ quỹ, Báo cáo lãi lỗ). Không hiển thị Vị trí và Phân tích.
 - Khu vực hành động bên phải: Bán online, Thu ngân, thông báo, trợ giúp, cài đặt, tài khoản.
-- Mục đang chọn có nền trắng mờ và underline trắng.
+- Topbar phẳng, tràn ngang, nền `--blue-600`, không bóng, không bo góc.
+- Mục đang chọn: chữ trắng đậm hơn và underline trắng 2px; độ đậm chữ không đổi giữa các mục để hàng không xô.
+- Phím tắt bên phải là nền trắng mờ chữ trắng; riêng "Thu ngân" nền trắng đặc vì là việc dùng cả ngày. "Giao diện di động" nằm trong menu tài khoản, không lặp trên topbar.
 - Menu Hàng hóa mở bằng hover, click hoặc bàn phím; dropdown có nhóm Danh mục, Kho hàng, Nhập hàng.
 - Các trang Nhân viên không lặp lại thanh sub-navigation ngang trong nội dung; chuyển trang qua dropdown Nhân viên trên topbar.
 - Trên màn hình nhỏ hơn 1120px, menu chính chuyển thành nút hamburger và panel trượt xuống.
@@ -111,7 +120,7 @@ Ba card đầu trang:
 ### 4.4 Biểu đồ
 
 - Lượng khách hàng: line chart theo giờ, có tab Theo giờ, Theo ngày, Theo thứ.
-- Doanh thu thuần: bar chart theo giờ, có badge tổng doanh thu, hóa đơn và trả hàng.
+- Doanh thu thuần: bar chart theo giờ; dưới tiêu đề là số doanh thu đậm, theo sau là số hóa đơn và trả hàng bằng chữ phụ (không pill màu).
 - Dropdown thời gian mặc định là Tháng này.
 - Tooltip xuất hiện khi hover hoặc focus vào điểm dữ liệu.
 - Biểu đồ cần có nhãn trục, đường lưới nhẹ và màu accent đồng nhất.
