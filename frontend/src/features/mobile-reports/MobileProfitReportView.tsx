@@ -38,10 +38,10 @@ export function MobileProfitReportView() {
           : query.error ? <ErrorState compact error={query.error} onRetry={() => query.refetch()} />
             : report && summary && <>
               <MobileMetricCards items={[
-                { label: 'Doanh thu thuần', value: formatMoney(summary.netRevenue), tone: 'blue' },
-                { label: 'Giá vốn', value: formatMoney(summary.cogs), tone: 'orange' },
+                { label: 'Doanh thu thuần', value: formatMoney(summary.netRevenue) },
+                { label: 'Giá vốn', value: formatMoney(summary.cogs) },
                 { label: 'Lợi nhuận gộp', value: formatSignedMoney(summary.grossProfit), note: `Biên ${formatMargin(summary.grossMargin)}`, tone: summary.grossProfit < 0 ? 'red' : 'green' },
-                { label: 'Lợi nhuận thuần', value: formatSignedMoney(summary.netProfit), note: `Biên ${formatMargin(summary.netMargin)}`, tone: summary.netProfit < 0 ? 'red' : 'violet' },
+                { label: 'Lợi nhuận thuần', value: formatSignedMoney(summary.netProfit), note: `Biên ${formatMargin(summary.netMargin)}`, tone: summary.netProfit < 0 ? 'red' : 'green' },
               ]} />
 
               {summary.missingCostCount > 0 && (

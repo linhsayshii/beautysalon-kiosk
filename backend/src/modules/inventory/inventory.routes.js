@@ -5,6 +5,7 @@ import {
   createInventoryItem,
   createPricebook,
   createPurchaseOrder,
+  completePurchaseOrder,
   deletePricebook,
   getInventoryItem,
   getPricebook,
@@ -209,6 +210,7 @@ router.post('/items', asyncRoute(async (request, response) => {
 
 router.get('/products', asyncRoute(async (request, response) => {
   const result = await listProducts({
+    sort: text(request.query.sort, 40),
     branchId: request.account.branchId,
     search: text(request.query.search),
     type: parseEnum(request.query.type, 'type', itemTypes),
@@ -222,6 +224,8 @@ router.get('/products', asyncRoute(async (request, response) => {
 
 router.get('/pricebooks', asyncRoute(async (request, response) => {
   const result = await listPricebooks({
+    sort: text(request.query.sort, 40),
+    type: parseEnum(request.query.type, 'type', itemTypes),
     branchId: request.account.branchId,
     pricebookId: request.query.pricebookId ? parsePositiveInteger(request.query.pricebookId, 'pricebookId') : null,
     search: text(request.query.search), category: text(request.query.category, 100),
@@ -341,6 +345,11 @@ router.get('/purchase-orders', asyncRoute(async (request, response) => {
 
 router.get('/purchase-orders/:id', asyncRoute(async (request, response) => {
   const data = await getPurchaseOrder({ branchId: request.account.branchId, id: parsePositiveInteger(request.params.id, 'id') });
+  response.json({ data });
+}));
+
+router.post('/purchase-orders/:id/complete', asyncRoute(async (request, response) => {
+  const data = await completePurchaseOrder({ branchId: request.account.branchId, id: parsePositiveInteger(request.params.id, 'id'), actorAccountId: request.account.id });
   response.json({ data });
 }));
 

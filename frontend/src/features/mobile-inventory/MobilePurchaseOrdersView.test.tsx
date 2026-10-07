@@ -90,7 +90,7 @@ describe('MobilePurchaseOrdersView Component', () => {
     vi.spyOn(inventoryApi, 'getPurchaseOrder').mockResolvedValue(mockOrderDetail as any);
   });
 
-  it('renders header, filter strip, summary bar, and grouped purchase order list without metric boxes', async () => {
+  it('renders header, filter strip, summary bar, and purchase order list without metric boxes', async () => {
     render(
       <MemoryRouter>
         <QueryClientProvider client={queryClient}>
@@ -111,7 +111,7 @@ describe('MobilePurchaseOrdersView Component', () => {
       expect(screen.getByText('Công ty Mỹ Phẩm Hàn Quốc')).toBeInTheDocument();
       expect(screen.getByText('PN002')).toBeInTheDocument();
       expect(screen.getByText('Nhà phân phối Tinh Dầu')).toBeInTheDocument();
-      expect(screen.getByText(/THÁNG 08\/2026/)).toBeInTheDocument();
+
     });
   });
 
@@ -128,7 +128,7 @@ describe('MobilePurchaseOrdersView Component', () => {
       expect(screen.getByText('PN001')).toBeInTheDocument();
     });
 
-    const card = screen.getByText('PN001').closest('.mobile-inventory-row-item');
+    const card = screen.getByText('PN001').closest('.m-list-row');
     fireEvent.click(card!);
 
     await waitFor(() => {

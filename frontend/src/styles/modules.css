@@ -318,8 +318,8 @@
 .auth-field input::placeholder { color: var(--ink-400); opacity: 1; }
 .auth-field button { width: 34px; height: 34px; border: 0; border-radius: 9px; background: transparent; }
 .auth-error { display: flex; align-items: center; gap: 8px; padding: 10px 12px; border-radius: 10px; color: var(--red); background: var(--red-soft); font-size: 12px; font-weight: 650; }
-.login-submit { display: flex; align-items: center; justify-content: center; gap: 9px; min-height: 50px; margin-top: 3px; padding: 0 18px; border: 0; border-radius: 10px; color: #fff; background: linear-gradient(105deg, var(--blue-600), var(--blue-700)); font-size: 16px; font-weight: 800; box-shadow: 0 8px 18px rgba(7,86,204,.18); transition: transform .15s ease, box-shadow .15s ease; }
-.login-submit:not(:disabled):hover { box-shadow: 0 10px 22px rgba(7,86,204,.24); transform: translateY(-1px); }
+.login-submit { display: flex; align-items: center; justify-content: center; gap: 9px; min-height: 50px; margin-top: 3px; padding: 0 18px; border: 0; border-radius: 10px; color: #fff; background: var(--blue-600); font-size: 16px; font-weight: 800; transition: background-color .15s ease; }
+.login-submit:not(:disabled):hover { background: var(--blue-700); }
 .login-submit:not(:disabled):active { transform: translateY(0); }
 .login-submit:disabled { opacity: .58; cursor: not-allowed; }
 .login-visual { position: relative; display: grid; grid-template-rows: auto 1fr; padding: 48px; color: #fff; background: var(--gradient-brand); }
@@ -570,27 +570,27 @@
   display: grid;
   grid-template-columns: minmax(0, 1fr) 110px 32px;
   align-items: center;
-  gap: 10px;
-  padding: 9px 10px;
-  border-radius: 10px;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  border-radius: var(--radius-inner);
   background: var(--surface);
 }
 
 .linked-items-list > div > span {
   display: grid;
-  gap: 2px;
+  gap: var(--space-1);
 }
 
 .linked-items-list strong,
 .scope-items > strong,
 .scope-item-grid strong {
-  font-size: 11px;
+  font-size: var(--text-sm);
 }
 
 .linked-items-list small,
 .scope-item-grid small {
   color: var(--ink-500);
-  font-size: 9px;
+  font-size: var(--text-xs);
 }
 
 .linked-items-list label {
@@ -599,12 +599,12 @@
   align-items: center;
   gap: 6px;
   color: var(--ink-600);
-  font-size: 10px;
+  font-size: var(--text-xs);
 }
 
 .linked-items-list input {
   width: 54px;
-  min-height: 30px;
+  min-height: var(--control-h);
   padding: 0 6px;
   border: 1px solid var(--line-strong);
   border-radius: 8px;
@@ -664,7 +664,7 @@
 
 .scope-items {
   display: grid;
-  gap: 5px;
+  gap: var(--space-2);
   margin-top: 14px;
 }
 
@@ -756,11 +756,6 @@
   .goods-image-frame {
     width: min(220px, 100%);
   }
-}
-.goods-type.account_card {
-  border-color: var(--orange-line);
-  color: var(--orange);
-  background: var(--orange-soft);
 }
 .customer-create-dialog {
   width: min(840px, 100%);
@@ -855,7 +850,24 @@
   }
 
   .linked-items-list > div {
-    grid-template-columns: minmax(0, 1fr) 92px 32px;
+    grid-template-columns: minmax(0, 1fr) 44px;
+  }
+
+  .linked-items-list > div > span {
+    grid-column: 1 / -1;
+  }
+
+  .linked-items-list label {
+    grid-template-columns: auto minmax(54px, 1fr);
+  }
+
+  .linked-items-list input {
+    width: 100%;
+  }
+
+  .linked-items-list button {
+    width: 44px;
+    height: 44px;
   }
 
 }

@@ -3,5 +3,3 @@ import { MobileCashbookView } from '@/features/mobile-cashbook/MobileCashbookVie
 export function Component() {
   return <MobileCashbookView />;
 }
-
-export default Component;

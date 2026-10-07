@@ -9,6 +9,21 @@
 }
 
 * { box-sizing: border-box; }
+
+/* Evon scrollbar shape, using AnnaChill's colour tokens. Hover never changes geometry. */
+* { --scrollbar-thumb: transparent; }
+*:hover { --scrollbar-thumb: color-mix(in srgb, var(--ink-950) 16%, transparent); }
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb); border-radius: var(--radius-pill); }
+::-webkit-scrollbar-thumb:hover { background: color-mix(in srgb, var(--ink-950) 40%, transparent); }
+@supports not selector(::-webkit-scrollbar) {
+  * { scrollbar-width: thin; scrollbar-color: transparent transparent; }
+  *:hover { scrollbar-color: color-mix(in srgb, var(--ink-950) 18%, transparent) transparent; }
+}
+@media (hover: none) {
+  * { --scrollbar-thumb: color-mix(in srgb, var(--ink-950) 28%, transparent); }
+}
 html { min-width: 320px; scroll-behavior: smooth; font-size: var(--text-md); }
 body { margin: 0; min-width: 320px; min-height: 100dvh; background: var(--canvas); color: var(--ink-950); font-size: var(--text-md); line-height: var(--leading); }
 button, a { -webkit-tap-highlight-color: transparent; }

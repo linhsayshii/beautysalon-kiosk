@@ -2,7 +2,7 @@ import { ErrorState, LoadingState } from '@/components/data-display/DataState';
 import { Pagination } from '@/components/data-display/Pagination';
 import { useFilterPagination } from '@/hooks/useFilterPagination';
 import { CustomerDebtPanel } from '@/features/debts/CustomerDebtPanel';
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useSearchParams } from 'react-router-dom';
 import { formatDateTime, formatDate, formatMoney, formatNumber, initials } from '@/lib/format';
@@ -91,12 +91,12 @@ export function MobileCustomersView() {
   const [sortValue, setSortValue] = useState<string>('name_asc');
 
   const sortOptions = [
-    { value: 'name_asc', label: 'Tên khách: A → Z' },
-    { value: 'name_desc', label: 'Tên khách: Z → A' },
-    { value: 'debt_desc', label: 'Công nợ: Cao → thấp' },
-    { value: 'debt_asc', label: 'Công nợ: Thấp → cao' },
-    { value: 'lastVisit_desc', label: 'Lần đến: Mới nhất' },
-    { value: 'lastVisit_asc', label: 'Lần đến: Cũ nhất' },
+    { value: 'name_asc', label: 'Tên A → Z' },
+    { value: 'name_desc', label: 'Tên Z → A' },
+    { value: 'debt_desc', label: 'Nợ cao nhất' },
+    { value: 'debt_asc', label: 'Nợ thấp nhất' },
+    { value: 'lastVisit_desc', label: 'Đến gần nhất' },
+    { value: 'lastVisit_asc', label: 'Đến lâu nhất' },
   ];
 
   // Draft filters for filter sheet
@@ -152,19 +152,6 @@ export function MobileCustomersView() {
 
   const activeCustomer = customerDetailData?.data as ApiRecord | undefined;
 
-  const sortedRows = rawRows;
-
-  // Group by customer group (or Alphabetical letter if group is same)
-  const groupedSections = useMemo(() => {
-    const map = new Map<string, ApiRecord[]>();
-    sortedRows.forEach((row) => {
-      const g = (row.group || 'CÁ NHÂN').toUpperCase();
-      const list = map.get(g) || [];
-      list.push(row);
-      map.set(g, list);
-    });
-    return Array.from(map.entries());
-  }, [sortedRows]);
 
   const totalDebtSum = customersData?.meta?.summary?.totalDebt;
 
@@ -189,7 +176,7 @@ export function MobileCustomersView() {
   };
 
   return (
-    <div className="mobile-operations-view">
+    <div className="m-page">
       <MobilePageHeader
         title="Khách hàng" backTo="/m/more"
         actions={(
@@ -197,7 +184,7 @@ export function MobileCustomersView() {
             <button
               type="button"
               className={`btn btn-ghost btn-icon m-header-action${isSearchVisible ? ' is-active' : ''}`}
-              onClick={() => setIsSearchVisible((prev) => !prev)}
+              onClick={() => { if (isSearchVisible) setSearch(''); setIsSearchVisible(!isSearchVisible); }}
               aria-label="Tìm kiếm"
             >
               <i className="ph ph-magnifying-glass" />
@@ -210,6 +197,7 @@ export function MobileCustomersView() {
             value={search}
             placeholder="Tìm mã, tên, số điện thoại..."
             onChange={setSearch}
+            autoFocus
           />
         )}
 
@@ -256,47 +244,44 @@ export function MobileCustomersView() {
           />
 
           <div className="m-summary-count">
-            {customersData?.meta?.pagination?.total ?? rawRows.length} khách hàng · Nợ: {totalDebtSum === undefined ? '—' : formatMoney(totalDebtSum) }
+            {customersData?.meta?.pagination?.total ?? rawRows.length} khách · Nợ <strong>{totalDebtSum === undefined ? '—' : formatMoney(totalDebtSum)}</strong>
           </div>
         </div>
       </MobilePageHeader>
 
       {/* 4. Grouped Section List */}
-      <div className="mobile-operations-sections-wrapper">
+      <div className="m-body">
         {error ? <ErrorState error={error} onRetry={() => refetch()} /> : isLoading ? (
           <LoadingState compact label="Đang tải dữ liệu khách hàng..." />
         ) : rawRows.length === 0 ? (
           <MobileEmptyState
               title="Không tìm thấy khách hàng nào"
-              description="Thử tìm kiếm với từ khóa khác hoặc thay đổi bộ lọc."
+              description={search ? 'Thử từ khóa khác hoặc đổi bộ lọc.' : undefined}
             />
         ) : (
-          groupedSections.map(([groupTitle, items]) => (
-            <div key={groupTitle} className="mobile-operations-section">
-              <div className="mobile-operations-section-title">{groupTitle}</div>
-              <div className="mobile-operations-section-card">
-                {items.map((row) => {
+          <div className="m-list">
+                {rawRows.map((row) => {
                   const hasDebt = Number(row.debtBalance || 0) > 0;
                   const isCompany = row.group === 'Công ty';
 
                   return (
                     <div
                       key={row.id}
-                      className="mobile-operations-row-item"
+                      className="m-list-row"
                       onClick={() => setSelectedCustomerId(row.id)}
                       role="button"
                       tabIndex={0}
-                      onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); setSelectedCustomerId(row.id); } }}
+                      onKeyDown={(event) => { if (event.target === event.currentTarget && (event.key === 'Enter' || event.key === ' ')) { event.preventDefault(); setSelectedCustomerId(row.id); } }}
                     >
                       {/* Round Avatar */}
-                      <div className={`mobile-customer-round-avatar ${isCompany ? 'is-company' : ''}`}>
+                      <div className={`m-list-avatar is-round ${isCompany ? 'is-company' : ''}`}>
                         {initials(row.name)}
                       </div>
 
                       {/* Info */}
-                      <div className="mobile-row-info">
-                        <div className="mobile-row-name">{row.name}</div>
-                        <div className="mobile-row-sub">
+                      <div className="m-list-copy">
+                        <div className="m-list-title">{row.name}</div>
+                        <div className="m-list-meta">
                           {row.phone ? (
                             <a
                               href={`tel:${row.phone}`}
@@ -310,15 +295,15 @@ export function MobileCustomersView() {
                             <span>{row.code}</span>
                           )}
                           {row.activePackages > 0 ? (
-                            <span>• {row.activePackages} gói</span>
+                            <span>· {row.activePackages} gói</span>
                           ) : row.lastVisit ? (
-                            <span>• {formatDate(row.lastVisit)}</span>
+                            <span>· {formatDate(row.lastVisit)}</span>
                           ) : null}
                         </div>
                       </div>
 
                       {/* Right: Debt amount */}
-                      <div className="mobile-row-right">
+                      <div className="m-list-value">
                         <span className={`mobile-row-debt-val ${hasDebt ? 'has-debt' : 'no-debt'}`}>
                           {formatMoney(row.debtBalance || 0)}
                         </span>
@@ -326,13 +311,11 @@ export function MobileCustomersView() {
                     </div>
                   );
                 })}
-              </div>
-            </div>
-          ))
+          </div>
         )}
       </div>
 
-      {customersData?.meta?.pagination && <Pagination pagination={customersData.meta.pagination} onChange={setPage} />}
+      {(customersData?.meta?.pagination?.totalPages ?? 1) > 1 && <Pagination pagination={customersData?.meta?.pagination} onChange={setPage} />}
 
       {/* 5. Floating Action Button (FAB) for Creating Customer */}
       <button

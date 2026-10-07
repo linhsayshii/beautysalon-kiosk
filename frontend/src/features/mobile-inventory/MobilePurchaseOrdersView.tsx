@@ -1,3 +1,4 @@
+import { PurchaseOrderActions } from '@/features/inventory/components/PurchaseOrderActions';
 import { ErrorState, LoadingState } from '@/components/data-display/DataState';
 import { Pagination } from '@/components/data-display/Pagination';
 import { useFilterPagination } from '@/hooks/useFilterPagination';
@@ -6,7 +7,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { StatusBadge } from '@/components/data-display/Badges';
 import { Select } from '@/components/ui/Select/Select';
-import { monthStartIso, todayIso, toIsoDate, COMMON_DATE_PRESETS } from '@/lib/date';
+import { monthStartIso, toIsoDate, COMMON_DATE_PRESETS } from '@/lib/date';
 import { formatDateTime, formatDate, formatMoney, formatNumber } from '@/lib/format';
 import { statusLabels, type ApiRecord } from '@/types/api';
 import { getPurchaseOrders, getPurchaseOrder } from '@/features/inventory/inventory.api';
@@ -20,18 +21,6 @@ import {
 import { MobilePageHeader } from '@/components/ui/MobilePageHeader/MobilePageHeader';
 
 const datePresets = COMMON_DATE_PRESETS;
-
-function formatMonthHeader(dateStr: string): string {
-  try {
-    const d = new Date(`${dateStr.length === 7 ? dateStr + '-01' : dateStr}T00:00:00`);
-    if (isNaN(d.getTime())) return dateStr;
-    const month = String(d.getMonth() + 1).padStart(2, '0');
-    const year = d.getFullYear();
-    return `THÁNG ${month}/${year}`;
-  } catch {
-    return dateStr;
-  }
-}
 
 export function MobilePurchaseOrdersView() {
 
@@ -52,12 +41,12 @@ export function MobilePurchaseOrdersView() {
   const [sortValue, setSortValue] = useState<string>('date_desc');
 
   const sortOptions = [
-    { value: 'date_desc', label: 'Thời gian: Mới nhất' },
-    { value: 'date_asc', label: 'Thời gian: Cũ nhất' },
-    { value: 'total_desc', label: 'Giá trị: Cao → thấp' },
-    { value: 'total_asc', label: 'Giá trị: Thấp → cao' },
-    { value: 'code_asc', label: 'Mã phiếu: A → Z' },
-    { value: 'code_desc', label: 'Mã phiếu: Z → A' },
+    { value: 'date_desc', label: 'Mới nhất' },
+    { value: 'date_asc', label: 'Cũ nhất' },
+    { value: 'total_desc', label: 'Giá trị cao' },
+    { value: 'total_asc', label: 'Giá trị thấp' },
+    { value: 'code_asc', label: 'Mã A → Z' },
+    { value: 'code_desc', label: 'Mã Z → A' },
   ];
 
   // Detail Sheet
@@ -116,23 +105,6 @@ export function MobilePurchaseOrdersView() {
 
   const activeOrder = orderDetailData?.data as ApiRecord | undefined;
 
-  const sortedRows = rawRows;
-
-  // Group purchase orders by month/date (e.g. YYYY-MM)
-  const groupedSections = useMemo(() => {
-    const map = new Map<string, ApiRecord[]>();
-
-    sortedRows.forEach((row) => {
-      const rawDate = row.receivedAt || row.createdAt || todayIso();
-      const d = new Date(rawDate);
-      const monthKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-      const list = map.get(monthKey) || [];
-      list.push(row);
-      map.set(monthKey, list);
-    });
-
-    return Array.from(map.entries());
-  }, [sortedRows]);
 
   // Total Amount Due calculation
   const totalAmountDueSum = purchaseOrdersData?.meta?.summary?.totalDue;
@@ -163,7 +135,7 @@ export function MobilePurchaseOrdersView() {
   };
 
   return (
-    <div className="mobile-inventory-view">
+    <div className="m-page">
       <MobilePageHeader
         title="Nhập hàng" backTo="/m/more"
         actions={(
@@ -171,7 +143,7 @@ export function MobilePurchaseOrdersView() {
             <button
               type="button"
               className={`btn btn-ghost btn-icon m-header-action${isSearchVisible ? ' is-active' : ''}`}
-              onClick={() => setIsSearchVisible((prev) => !prev)}
+              onClick={() => { if (isSearchVisible) setSearch(''); setIsSearchVisible(!isSearchVisible); }}
               aria-label="Tìm kiếm"
             >
               <i className="ph ph-magnifying-glass" />
@@ -184,6 +156,7 @@ export function MobilePurchaseOrdersView() {
             value={search}
             placeholder="Tìm theo mã phiếu, nhà cung cấp..."
             onChange={setSearch}
+            autoFocus
           />
         )}
 
@@ -226,28 +199,23 @@ export function MobilePurchaseOrdersView() {
           />
 
           <div className="m-summary-count">
-            {purchaseOrdersData?.meta?.pagination?.total ?? rawRows.length} phiếu nhập · Cần trả: {totalAmountDueSum === undefined ? '—' : formatMoney(totalAmountDueSum) }
+            {purchaseOrdersData?.meta?.pagination?.total ?? rawRows.length} phiếu · Cần trả <strong>{totalAmountDueSum === undefined ? '—' : formatMoney(totalAmountDueSum)}</strong>
           </div>
         </div>
       </MobilePageHeader>
 
-      {/* 4. Grouped Section List */}
-      <div className="mobile-inventory-sections-wrapper">
+      {/* Server order is retained across the complete list. */}
+      <div className="m-body">
         {error ? <ErrorState error={error} onRetry={() => refetch()} /> : isLoading ? (
           <LoadingState compact label="Đang tải danh sách phiếu nhập..." />
         ) : rawRows.length === 0 ? (
           <MobileEmptyState
               title="Không tìm thấy phiếu nhập nào"
-              description="Thử tìm kiếm với từ khóa khác hoặc điều chỉnh bộ lọc."
+              description={search ? 'Thử từ khóa khác hoặc đổi bộ lọc.' : undefined}
             />
         ) : (
-          groupedSections.map(([monthKey, items]) => (
-            <div key={monthKey} className="mobile-inventory-section">
-              <div className="mobile-inventory-section-title">
-                {formatMonthHeader(monthKey)} ({items.length})
-              </div>
-              <div className="mobile-inventory-section-card">
-                {items.map((row) => {
+          <div className="m-list">
+                {rawRows.map((row) => {
                   const supplierName = row.supplier?.name || 'Nhà cung cấp';
                   const supplierPhone = row.supplier?.phone || '';
                   const receivedDate = formatDate(row.receivedAt || row.createdAt);
@@ -256,19 +224,19 @@ export function MobilePurchaseOrdersView() {
                   return (
                     <div
                       key={row.id}
-                      className="mobile-inventory-row-item"
+                      className="m-list-row"
                       onClick={() => setSelectedOrderId(row.id)}
                       role="button"
                       tabIndex={0}
-                      onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); setSelectedOrderId(row.id); } }}
+                      onKeyDown={(event) => { if (event.target === event.currentTarget && (event.key === 'Enter' || event.key === ' ')) { event.preventDefault(); setSelectedOrderId(row.id); } }}
                     >
                       {/* Square Rounded Avatar */}
-                      <div className="mobile-row-avatar is-product">
+                      <div className="m-list-avatar is-product">
                         <i className="ph ph-truck" />
                       </div>
 
                       {/* PO Core Info */}
-                      <div className="mobile-row-info">
+                      <div className="m-list-copy">
                         <div className="mobile-po-row-top-line">
                           <span className="mobile-po-code-text">{row.code}</span>
                           <span className="mobile-po-date-text">{receivedDate}</span>
@@ -278,7 +246,7 @@ export function MobilePurchaseOrdersView() {
                           <span className="mobile-po-supplier-name">{supplierName}</span>
                           {supplierPhone && (
                             <span className="mobile-po-supplier-phone">
-                              • {supplierPhone}
+                              · {supplierPhone}
                             </span>
                           )}
                         </div>
@@ -289,7 +257,7 @@ export function MobilePurchaseOrdersView() {
                       </div>
 
                       {/* Right: Amount Due & Status Badge */}
-                      <div className="mobile-po-row-right">
+                      <div className="m-list-value">
                         <div className="mobile-po-total-due">
                           {formatMoney(row.amountDue)}
                         </div>
@@ -300,13 +268,11 @@ export function MobilePurchaseOrdersView() {
                     </div>
                   );
                 })}
-              </div>
-            </div>
-          ))
+          </div>
         )}
       </div>
 
-      {purchaseOrdersData?.meta?.pagination && <Pagination pagination={purchaseOrdersData.meta.pagination} onChange={setPage} />}
+      {(purchaseOrdersData?.meta?.pagination?.totalPages ?? 1) > 1 && <Pagination pagination={purchaseOrdersData?.meta?.pagination} onChange={setPage} />}
 
       {/* 5. Floating Action Button (FAB) for Creating Purchase Order */}
       <Link
@@ -358,6 +324,7 @@ export function MobilePurchaseOrdersView() {
         isOpen={selectedOrderId !== null}
         title="Chi tiết phiếu nhập"
         onClose={() => setSelectedOrderId(null)}
+        footerActions={activeOrder?.status === 'draft' ? <PurchaseOrderActions order={activeOrder} /> : undefined}
       >
         {detailError ? <ErrorState error={detailError} onRetry={() => refetchDetail()} /> : isDetailLoading ? (
           <LoadingState compact label="Đang tải thông tin phiếu nhập..." />
@@ -399,7 +366,7 @@ export function MobilePurchaseOrdersView() {
               {/* Lưới 2x2: Ngày nhập, Người tạo, Tổng số mặt hàng, Trạng thái thanh toán */}
               <div className="mobile-po-grid-2col">
                 <div className="mobile-po-grid-cell">
-                  <span className="mobile-po-grid-lbl">Ngày nhập</span>
+                  <span className="mobile-po-grid-lbl">{activeOrder.status === 'draft' ? 'Ngày tạo' : 'Ngày nhập'}</span>
                   <span className="mobile-po-grid-val">
                     {formatDateTime(activeOrder.receivedAt || activeOrder.createdAt)}
                   </span>
@@ -408,7 +375,7 @@ export function MobilePurchaseOrdersView() {
                 <div className="mobile-po-grid-cell">
                   <span className="mobile-po-grid-lbl">Người tạo</span>
                   <span className="mobile-po-grid-val">
-                    {activeOrder.createdBy || 'Quản lý'}
+                    {activeOrder.createdBy || 'Chưa ghi nhận'}
                   </span>
                 </div>
 
@@ -422,7 +389,7 @@ export function MobilePurchaseOrdersView() {
                 <div className="mobile-po-grid-cell">
                   <span className="mobile-po-grid-lbl">Trạng thái thanh toán</span>
                   <span className={`mobile-po-grid-val ${Number(activeOrder.amountPaid || 0) >= Number(activeOrder.amountDue || 0) ? 'text-success' : 'text-warning'}`}>
-                    {Number(activeOrder.amountPaid || 0) >= Number(activeOrder.amountDue || 0) ? 'Đã thanh toán đủ' : Number(activeOrder.amountPaid || 0) > 0 ? 'Thanh toán 1 phần' : 'Chưa thanh toán'}
+                    {activeOrder.status === 'draft' ? 'Dự kiến thanh toán' : Number(activeOrder.amountPaid || 0) >= Number(activeOrder.amountDue || 0) ? 'Đã thanh toán đủ' : Number(activeOrder.amountPaid || 0) > 0 ? 'Thanh toán 1 phần' : 'Chưa thanh toán'}
                   </span>
                 </div>
               </div>
@@ -451,7 +418,7 @@ export function MobilePurchaseOrdersView() {
                           <span className="mobile-po-item-calc">
                             {item.sku ? `${item.sku} · ` : ''}{formatNumber(item.quantity)} {item.unit || 'SP'} × {formatMoney(item.unitCost)}
                             {Number(item.discount) > 0 && (
-                              <span className="text-danger"> 
+                              <span className="text-danger">
                                 (Giảm {formatMoney(item.discount)})
                               </span>
                             )}
@@ -490,14 +457,14 @@ export function MobilePurchaseOrdersView() {
                 </div>
 
                 <div className="mobile-po-summary-line">
-                  <span>Đã trả NCC:</span>
+                  <span>{activeOrder.status === 'draft' ? 'Dự kiến trả NCC:' : 'Đã trả NCC:'}</span>
                   <span className="text-strong text-success">
                     {formatMoney(activeOrder.amountPaid || 0)}
                   </span>
                 </div>
 
                 <div className={`mobile-po-summary-line text-strong ${Number(activeOrder.amountDue || 0) - Number(activeOrder.amountPaid || 0) > 0 ? 'text-danger' : 'text-success'}`}>
-                  <span>Còn nợ NCC:</span>
+                  <span>{activeOrder.status === 'draft' ? 'Dự kiến còn phải trả:' : 'Còn nợ NCC:'}</span>
                   <span>
                     {formatMoney(
                       Math.max(

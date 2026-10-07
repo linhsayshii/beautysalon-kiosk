@@ -177,7 +177,7 @@ export function StaffPayrollDetailAccordion({ periodId, onOpenSheetView }: Staff
               Dữ liệu được cập nhật vào: {formatDateTime(period.updatedDataAt || period.createdAt)} <i className="ph ph-info" />
             </span>
             {period.status === 'draft' && (
-              <button type="button" className="btn btn-secondary btn-sm" disabled={recalcMutation.isPending} onClick={() => recalcMutation.mutate()}>
+              <button type="button" className="btn btn-secondary btn-sm" disabled={recalcMutation.isPending} onClick={() => { if (window.confirm('Tính lại lương cơ bản, hoa hồng và khấu trừ từ chấm công, kể cả dòng đã sửa tay? Phụ cấp, thưởng và tăng ca giữ nguyên.')) recalcMutation.mutate(); }}>
                 <i className={`ph ph-arrow-clockwise ${recalcMutation.isPending ? 'ph-spin' : ''}`} />
                 <span>{recalcMutation.isPending ? 'Đang tính lại...' : 'Tải lại dữ liệu'}</span>
               </button>

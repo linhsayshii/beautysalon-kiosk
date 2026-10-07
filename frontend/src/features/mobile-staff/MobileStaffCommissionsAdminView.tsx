@@ -15,6 +15,7 @@ import {
 import { monthStartIso, todayIso } from '@/lib/date';
 import { formatMoney, formatPercent, initials } from '@/lib/format';
 import { MobilePageHeader } from '@/components/ui/MobilePageHeader/MobilePageHeader';
+import { formatDateOnly } from '@/lib/date';
 
 export function MobileStaffCommissionsAdminView() {
   const [activeTab, setActiveTab] = useState<'by_staff' | 'details'>('by_staff');
@@ -82,7 +83,7 @@ export function MobileStaffCommissionsAdminView() {
   const groupedTransactions = useMemo(() => {
     const map = new Map<string, CommissionDetail[]>();
     filteredRows.forEach((r) => {
-      const dateKey = r.occurredOn || 'GẦN ĐÂY';
+      const dateKey = r.occurredOn ? formatDateOnly(r.occurredOn) : 'Chưa ghi nhận ngày';
       const list = map.get(dateKey) || [];
       list.push(r);
       map.set(dateKey, list);
@@ -95,7 +96,7 @@ export function MobileStaffCommissionsAdminView() {
   }, [filteredByStaff]);
 
   return (
-    <div className="mobile-staff-view">
+    <div className="m-page">
       <MobilePageHeader
         title="Bảng hoa hồng" backTo="/m/more"
         actions={(
@@ -103,7 +104,7 @@ export function MobileStaffCommissionsAdminView() {
             <button
               type="button"
               className="btn btn-ghost btn-icon m-header-action"
-              onClick={() => setIsSearchVisible((prev) => !prev)}
+              onClick={() => { if (isSearchVisible) setSearch(''); setIsSearchVisible(!isSearchVisible); }}
               aria-label="Tìm kiếm"
             >
               <i className="ph ph-magnifying-glass" />
@@ -115,6 +116,7 @@ export function MobileStaffCommissionsAdminView() {
           <MobileSearchBar
             value={search}
             onChange={setSearch}
+            autoFocus
             placeholder="Tìm theo nhân viên, dịch vụ, hóa đơn..."
           />
         )}
@@ -178,14 +180,14 @@ export function MobileStaffCommissionsAdminView() {
                       onClick={() => setSelectedStaffSummary(staff)}
                     >
                       <div className="mobile-staff-row-left">
-                        <div className="mobile-staff-avatar rose">
+                        <div className="mobile-staff-avatar">
                           {initials(staff.staff.name || 'NV')}
                         </div>
                         <div className="mobile-staff-row-info">
                           <span className="mobile-staff-row-name">{staff.staff.name}</span>
                           <span className="mobile-staff-row-sub">
                             <span>{staff.staff.code}</span>
-                            <span>•</span>
+                            <span>·</span>
                             <span>{staff.transactionCount} lượt làm</span>
                           </span>
                         </div>
@@ -245,7 +247,7 @@ export function MobileStaffCommissionsAdminView() {
                           <span className="mobile-staff-row-name">{tx.productName || tx.sourceName}</span>
                           <span className="mobile-staff-row-sub">
                             <span>{tx.staff.name}</span>
-                            <span>•</span>
+                            <span>·</span>
                             <span>{tx.invoiceCode}</span>
                           </span>
                         </div>
@@ -272,7 +274,7 @@ export function MobileStaffCommissionsAdminView() {
       <MobileDetailSheet
         isOpen={Boolean(selectedStaffSummary)}
         title="Tổng hợp hoa hồng nhân viên"
-        subtitle={selectedStaffSummary ? `${selectedStaffSummary.staff.name} • ${selectedStaffSummary.staff.code}` : ''}
+        subtitle={selectedStaffSummary ? `${selectedStaffSummary.staff.name} · ${selectedStaffSummary.staff.code}` : ''}
         onClose={() => setSelectedStaffSummary(null)}
       >
         {selectedStaffSummary && (
@@ -348,7 +350,7 @@ export function MobileStaffCommissionsAdminView() {
       <MobileDetailSheet
         isOpen={Boolean(selectedTxRecord)}
         title="Chi tiết giao dịch hoa hồng"
-        subtitle={selectedTxRecord ? `${selectedTxRecord.invoiceCode} • ${selectedTxRecord.occurredOn}` : ''}
+        subtitle={selectedTxRecord ? `${selectedTxRecord.invoiceCode} · ${formatDateOnly(selectedTxRecord.occurredOn)}` : ''}
         onClose={() => setSelectedTxRecord(null)}
       >
         {selectedTxRecord && (

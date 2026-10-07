@@ -62,50 +62,64 @@ describe('MobilePricebooksView Component', () => {
       </MemoryRouter>
     );
 
-  it('renders header, filter strip, grouped categories, and quick money input', async () => {
+  it('renders the shared list and keeps price editing inside a detail sheet', async () => {
     renderComponent();
 
     expect(screen.getByRole('heading', { level: 1, name: 'Thiết lập giá' })).toBeInTheDocument();
     expect(screen.getByText(/Bảng giá: Bảng giá chung/)).toBeInTheDocument();
 
     await waitFor(() => {
-      expect(screen.getByText('Mỹ phẩm (1)')).toBeInTheDocument();
-      expect(screen.getByText('Dịch vụ tóc (1)')).toBeInTheDocument();
+      expect(screen.getByText(/SP001 · Mỹ phẩm/)).toBeInTheDocument();
+      expect(screen.getByText(/DV001 · Dịch vụ tóc/)).toBeInTheDocument();
       expect(screen.getByText('Serum Dưỡng Trắng Da')).toBeInTheDocument();
       expect(screen.getByText('Gội Đầu Dưỡng Sinh 60p')).toBeInTheDocument();
-      expect(screen.getByLabelText('Giá bán Serum Dưỡng Trắng Da')).toBeInTheDocument();
+      expect(screen.queryByLabelText('Giá bán Serum Dưỡng Trắng Da')).not.toBeInTheDocument();
     });
   });
 
-  it('updates price when changing MoneyInput value', async () => {
+  it('preserves an unsaved book name when its detail refreshes', async () => {
+    const book = { id: 1, code: 'BG1', name: 'Bảng giá chung', isDefault: true, active: true, customers: [] };
+    vi.spyOn(inventoryApi, 'getPricebook').mockResolvedValue({ data: book } as any);
+    renderComponent();
+    await screen.findByText(/SP001 · Mỹ phẩm/);
+    fireEvent.click(screen.getByRole('button', { name: 'Sửa bảng giá đang chọn' }));
+    const name = await screen.findByRole('textbox', { name: /Tên bảng giá/ });
+    await waitFor(() => expect(name).toHaveValue('Bảng giá chung'));
+    fireEvent.change(name, { target: { value: 'Tên đang sửa' } });
+    vi.mocked(inventoryApi.getPricebook).mockResolvedValue({ data: { ...book, name: 'Tên từ phiên khác' } } as any);
+    await queryClient.refetchQueries({ queryKey: ['pricebook-detail', 1] });
+    expect(name).toHaveValue('Tên đang sửa');
+  });
+
+  it('saves a changed price only after an explicit save', async () => {
     renderComponent();
 
-    await waitFor(() => {
-      expect(screen.getByLabelText('Giá bán Serum Dưỡng Trắng Da')).toBeInTheDocument();
-    });
+    fireEvent.click(await screen.findByRole('button', { name: /Serum Dưỡng Trắng Da/ }));
 
     const priceInput = screen.getByLabelText('Giá bán Serum Dưỡng Trắng Da');
     fireEvent.change(priceInput, { target: { value: '480000' } });
     fireEvent.blur(priceInput);
+    expect(inventoryApi.updatePrice).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: 'Lưu giá' }));
 
     await waitFor(() => {
       expect(inventoryApi.updatePrice).toHaveBeenCalledWith(1, 'product', 1, 480000);
     });
   });
 
-  it('opens detail bottom sheet with price comparison and margin', async () => {
+  it('opens the price editor with cost and retail price', async () => {
     renderComponent();
 
     await waitFor(() => {
       expect(screen.getByText('Serum Dưỡng Trắng Da')).toBeInTheDocument();
     });
 
-    const rowTop = screen.getByText('Serum Dưỡng Trắng Da').closest('.mobile-pricebook-row-top');
+    const rowTop = screen.getByText('Serum Dưỡng Trắng Da').closest('.m-list-row');
     fireEvent.click(rowTop!);
 
     await waitFor(() => {
-      expect(screen.getByText('SO SÁNH BẢNG GIÁ')).toBeInTheDocument();
-      expect(screen.getByText('Biên lợi nhuận ước tính:')).toBeInTheDocument();
+      expect(screen.getByText('Giá vốn')).toBeInTheDocument();
+      expect(screen.getByText('Giá niêm yết')).toBeInTheDocument();
       expect(screen.queryByText('Xem chi tiết hàng hóa')).not.toBeInTheDocument();
     });
   });

@@ -4,7 +4,6 @@ import {
   createStaff,
   createShift,
   assignShift,
-  getPayroll,
   getPayrollPeriodDetail,
   listPayrollPeriods,
   recalculatePayrollPeriod,
@@ -22,7 +21,6 @@ import {
   getWorkScheduleSettings,
   updateWorkScheduleSettings,
   updateStaff,
-  updateSchedule,
   deleteSchedule,
 } from './staff.service.js';
 import { listAppointments, transitionAppointmentWorkStatus } from '../dashboard/dashboard.service.js';
@@ -224,22 +222,6 @@ router.get('/schedule', asyncRoute(async (request, response) => {
   const branchId = request.account.branchId;
   const startDate = parseIsoDate(request.query.startDate, 'startDate', '2026-08-03');
   response.json({ data: await getSchedule({ branchId, startDate }) });
-}));
-
-router.put('/schedule/:id', asyncRoute(async (request, response) => {
-  const branchId = request.account.branchId;
-  const scheduleId = parsePositiveInteger(request.params.id, 'id');
-  const startsAt = parseTime(request.body.startsAt, 'startsAt');
-  const endsAt = parseTime(request.body.endsAt, 'endsAt');
-  const shiftName = text(request.body.shiftName, 80);
-  const propagateToFuture = request.body.propagateToFuture === true;
-
-  if (!shiftName || endsAt <= startsAt) {
-    throw new HttpError(400, 'INVALID_SHIFT', 'Tên ca và khung giờ hợp lệ là bắt buộc');
-  }
-
-  const result = await updateSchedule(branchId, scheduleId, { startsAt, endsAt, shiftName }, propagateToFuture);
-  response.json({ success: true, ...result });
 }));
 
 router.delete('/schedule/:id', asyncRoute(async (request, response) => {

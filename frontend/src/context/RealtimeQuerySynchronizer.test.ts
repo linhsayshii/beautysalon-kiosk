@@ -71,3 +71,13 @@ it('refreshes the cashbook and profit report after vouchers and sales', () => {
   synchronizeRealtimeEvent(client, 'invoice:updated');
   expect(invalidatedKeys(spy)).toEqual(expect.arrayContaining([['cashbook'], ['profit-report']]));
 });
+
+it('refreshes goods, prices and purchase details after inventory changes and stock after a sale', () => {
+  const client = new QueryClient();
+  const spy = vi.spyOn(client, 'invalidateQueries').mockResolvedValue();
+  synchronizeRealtimeEvent(client, 'inventory:updated');
+  expect(invalidatedKeys(spy)).toEqual(expect.arrayContaining([['products'], ['mobile-products'], ['inventory-item'], ['pricebooks'], ['mobile-pricebooks'], ['pos-catalog'], ['purchase-order'], ['mobile-purchase-order-detail'], ['cashbook-summary']]));
+  spy.mockClear();
+  synchronizeRealtimeEvent(client, 'invoice:paid');
+  expect(invalidatedKeys(spy)).toContainEqual(['mobile-products']);
+});

@@ -91,18 +91,16 @@ describe('MobileAppointmentsListView Component', () => {
     expect(screen.getByRole('heading', { name: /Lịch dịch vụ/i })).toBeInTheDocument();
 
     // Tabs
-    expect(screen.getByRole('tab', { name: 'Danh sách' })).toBeInTheDocument();
-    expect(screen.getByRole('tab', { name: 'Lưới thời gian' })).toBeInTheDocument();
-    expect(screen.getByRole('tab', { name: 'Lưới nhân viên' })).toBeInTheDocument();
+    // The timeline and staff-grid views were never built, so no tabs pretend to offer them.
+    expect(screen.queryByRole('tab')).not.toBeInTheDocument();
 
     // Filter controls
     expect(screen.getByLabelText('Chọn ngày')).toBeInTheDocument();
     expect(screen.getByLabelText('Chọn nhân viên')).toBeInTheDocument();
 
-    // Floating action button
-    const fab = screen.getByRole('link', { name: /Tạo lịch hẹn mới/i });
-    expect(fab).toBeInTheDocument();
-    expect(fab).toHaveAttribute('href', '/m/appointments/new');
+    // Create action lives in the header: the tab bar already has its own "+".
+    expect(screen.getByRole('button', { name: /Tạo lịch hẹn mới/i })).toBeInTheDocument();
+    expect(document.querySelector('.m-fab')).toBeNull();
 
     // Appointment items
     await waitFor(() => {
@@ -138,12 +136,4 @@ describe('MobileAppointmentsListView Component', () => {
     expect(screen.queryByText('Phạm Thị Lan')).not.toBeInTheDocument();
   });
 
-  it('switches tabs smoothly', async () => {
-    renderComponent();
-
-    const timelineTab = screen.getByRole('tab', { name: 'Lưới thời gian' });
-    fireEvent.click(timelineTab);
-
-    expect(timelineTab).toHaveClass('is-active');
-  });
 });

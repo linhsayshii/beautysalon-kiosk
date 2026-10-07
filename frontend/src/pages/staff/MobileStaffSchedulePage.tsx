@@ -3,6 +3,3 @@ import { MobileStaffScheduleView } from '@/features/mobile-staff/MobileStaffSche
 export function Component() {
   return <MobileStaffScheduleView />;
 }
-
-export default Component;
-

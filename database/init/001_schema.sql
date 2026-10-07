@@ -184,6 +184,8 @@ CREATE TABLE payroll_records (
   status VARCHAR(20) NOT NULL DEFAULT 'draft'
     CHECK (status IN ('draft', 'approved', 'cancelled', 'paid')),
   note TEXT,
+  -- Set when a manager edits the amounts; automatic recalculation leaves such a row alone.
+  adjusted_at TIMESTAMPTZ,
   UNIQUE (payroll_period_id, staff_id)
 );
 

@@ -68,8 +68,8 @@ describe('MobileAccountView', () => {
     expect(screen.getByRole('heading', { level: 2, name: 'Đổi mật khẩu' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Đổi mật khẩu' })).toBeInTheDocument();
     // Manager tabs should NOT be visible
-    expect(screen.queryByRole('tab', { name: /Quản lý chi nhánh/i })).not.toBeInTheDocument();
-    expect(screen.queryByRole('tab', { name: /Tài khoản & phân quyền/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('tab', { name: /^Chi nhánh$/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('tab', { name: /Tài khoản & quyền/i })).not.toBeInTheDocument();
   });
 
   it('accepts new passwords from 8 characters, as the server does', () => {
@@ -125,9 +125,9 @@ describe('MobileAccountView', () => {
 
     renderComponent();
 
-    expect(screen.getByRole('tab', { name: /Thông tin cá nhân/i })).toBeInTheDocument();
-    const branchTab = screen.getByRole('tab', { name: /Quản lý chi nhánh/i });
-    const accountTab = screen.getByRole('tab', { name: /Tài khoản & phân quyền/i });
+    expect(screen.getByRole('tab', { name: /^Cá nhân$/i })).toBeInTheDocument();
+    const branchTab = screen.getByRole('tab', { name: /^Chi nhánh$/i });
+    const accountTab = screen.getByRole('tab', { name: /Tài khoản & quyền/i });
 
     expect(branchTab).toBeInTheDocument();
     expect(accountTab).toBeInTheDocument();

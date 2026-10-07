@@ -15,8 +15,8 @@ export function DashboardStats({ dashboard }: { dashboard: ApiRecord }) {
         <div className="card-title-row">
           <span className="title-icon blue"><i className="ph ph-calendar-check" /></span>
           <h2>Lịch hẹn</h2>
-          <span className={`trend ${appointments.changePercent < 0 ? 'negative' : 'positive'}`}>
-            <i className={`ph ${appointments.changePercent < 0 ? 'ph-arrow-down' : 'ph-arrow-up'}`} />
+          <span className={`trend ${appointments.changePercent < 0 ? 'negative' : appointments.changePercent > 0 ? 'positive' : 'neutral'}`}>
+            {appointments.changePercent !== 0 && <i className={`ph ${appointments.changePercent < 0 ? 'ph-arrow-down' : 'ph-arrow-up'}`} />}
             {formatRate(Math.abs(appointments.changePercent))}
           </span>
         </div>

@@ -71,10 +71,11 @@ describe('MobileProductsView Component', () => {
 
   beforeEach(() => {
     queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    vi.spyOn(inventoryApi, 'getInventoryItem').mockResolvedValue({ data: mockProductsResponse.data[0] } as any);
     vi.spyOn(inventoryApi, 'getProducts').mockResolvedValue(mockProductsResponse as any);
   });
 
-  it('renders title, summary, and product grouped row items', async () => {
+  it('renders title, summary, and product list rows', async () => {
     render(
       <MemoryRouter>
         <QueryClientProvider client={queryClient}>
@@ -136,17 +137,24 @@ describe('MobileProductsView Component', () => {
       expect(screen.getByText('Serum Dưỡng Trắng Da')).toBeInTheDocument();
     });
 
-    const itemRow = screen.getByText('Serum Dưỡng Trắng Da').closest('.mobile-inventory-row-item');
+    const itemRow = screen.getByText('Serum Dưỡng Trắng Da').closest('.m-list-row');
     fireEvent.click(itemRow!);
 
     await waitFor(() => {
-      expect(screen.getByText('Thông tin cơ bản')).toBeInTheDocument();
+      expect(screen.getByText('Thông tin hàng hóa')).toBeInTheDocument();
       expect(screen.getByText('SP001')).toBeInTheDocument();
-      expect(screen.getByText('Cho phép bán')).toBeInTheDocument();
-      expect(screen.getByText('Đang kinh doanh')).toBeInTheDocument();
-      expect(screen.getByText('Thời hạn')).toBeInTheDocument();
-      expect(screen.getByText('Phạm vi thanh toán')).toBeInTheDocument();
+      expect(screen.getAllByText('Đang kinh doanh').length).toBeGreaterThan(0);
+      expect(screen.queryByText('Thời hạn sử dụng')).not.toBeInTheDocument();
+      expect(screen.queryByText('Phạm vi thanh toán')).not.toBeInTheDocument();
     });
+  });
+
+  it('shows a failed request as an error instead of an empty inventory', async () => {
+    vi.mocked(inventoryApi.getProducts).mockRejectedValue(new Error('Mất kết nối'));
+    render(<MemoryRouter><QueryClientProvider client={queryClient}><MobileProductsView /></QueryClientProvider></MemoryRouter>);
+    expect(await screen.findByText('Mất kết nối')).toBeInTheDocument();
+    expect(screen.queryByText('Chưa có hàng hóa phù hợp')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Thử lại' })).toBeEnabled();
   });
 
   it('loads the next server page instead of stopping at 100 records', async () => {

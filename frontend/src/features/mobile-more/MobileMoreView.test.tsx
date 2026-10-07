@@ -112,7 +112,8 @@ describe('MobileMoreView', () => {
     expect(screen.getByText('Bảng chấm công').closest('a')?.getAttribute('href')).toBe('/m/staff/attendance');
     expect(screen.getByText('Bảng lương').closest('a')?.getAttribute('href')).toBe('/m/staff/payroll');
     expect(screen.getByText('Bảng hoa hồng').closest('a')?.getAttribute('href')).toBe('/m/staff/commissions');
-    expect(screen.getByText('Quét mã chấm công').closest('a')?.getAttribute('href')).toBe('/m/attendance');
+    // Managers have no attendance:self, so the scan page is not offered.
+    expect(screen.queryByText('Quét mã chấm công')).not.toBeInTheDocument();
     expect(screen.getByText('Mã QR chấm công cửa hàng').closest('a')?.getAttribute('href')).toBe('/m/attendance/qr');
   });
 

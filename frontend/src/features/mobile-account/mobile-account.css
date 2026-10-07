@@ -9,9 +9,6 @@
   box-sizing: border-box;
 }
 
-/* Sticky Top Header Cluster */
-/* 1. Header Top Navigation */
-/* 2. Dải Tabs phân quyền (Horizontal Segmented Strip) */
 /* 3. Content Body */
 .mobile-account-content-body {
   padding: 14px 14px 20px;

@@ -113,6 +113,10 @@
 .input[aria-invalid="true"],
 .textarea[aria-invalid="true"] {
   border-color: var(--red);
+}
+
+.input[aria-invalid="true"]:focus,
+.textarea[aria-invalid="true"]:focus {
   box-shadow: var(--focus-ring-danger);
 }
 
@@ -330,9 +334,14 @@
 }
 
 /* iOS zooms into inputs below 16px; keep touch forms readable. */
-body:has(.mobile-app-shell) :is(.input, .textarea, .input-group > input),
-.sheet :is(.input, .textarea, .input-group > input) {
+body:has(.mobile-app-shell) :is(.input, .textarea, .filter-control, .input-group > input, .input-suffix > input),
+.sheet :is(.input, .textarea, .filter-control, .input-group > input, .input-suffix > input) {
   font-size: var(--text-lg);
+}
+
+input[type="search"]::-webkit-search-cancel-button,
+input[type="search"]::-webkit-search-decoration {
+  -webkit-appearance: none;
 }
 
 /*

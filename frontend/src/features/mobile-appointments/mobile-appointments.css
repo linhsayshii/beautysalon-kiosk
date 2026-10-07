@@ -1,12 +1,4 @@
 /* mobile-appointments.css */
-/* Header */
-/* Main Body Form Content */
-/* Card General */
-/* Card 1: Customer & Time Rows */
-/* Card 2: Items Section */
-/* Item List in Non-Empty State */
-/* Card 3: Status Pills */
-/* Note Dialog / Popover */
 /* Catalog Selection Modal Sheet */
 .mobile-catalog-items-list {
   display: flex;
@@ -60,25 +52,10 @@
   color: var(--blue-600);
 }
 
-/* Fixed Bottom Action */
 /* =========================================================
    Mobile Appointments List View Styles (Matched Native UI)
    ========================================================= */
 
-.mobile-appointments-view {
-  display: flex;
-  flex-direction: column;
-  min-height: 100%;
-  background-color: var(--canvas);
-  padding-bottom: 24px;
-  box-sizing: border-box;
-  font-family: inherit;
-  color: var(--ink-950);
-}
-
-/* Sticky Top Header Cluster for Appointments List */
-/* 1. Header Toolbar */
-/* Inline Search Box */
 /* 2. Filter Strip */
 .mobile-appointments-chip-select-wrap {
   position: relative;
@@ -115,7 +92,6 @@
   color: var(--ink-500);
 }
 
-/* 3. Underline Tab Navigation */
 /* 4. Body and Cards */
 .mobile-appointments-content-body {
   padding: 14px 16px;
@@ -467,9 +443,6 @@
   font-size: 13px;
   color: var(--ink-500);
 }
-/* Card Customer & Service Info */
-/* Card Bottom Actions */
-/* Floating Create Action Button */
 /* Empty State */
 .mobile-apt-actions { display:flex; gap:8px; width:100%; padding-top:12px; }
 .mobile-apt-actions a,.mobile-apt-actions button { flex:1; min-height:44px; display:flex; align-items:center; justify-content:center; padding:8px; border:1px solid var(--line-strong); border-radius:10px; background:#fff; color:var(--ink-700); font:inherit; font-size:13px; font-weight:600; text-decoration:none; }

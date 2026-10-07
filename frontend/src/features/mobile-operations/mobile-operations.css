@@ -1,132 +1,6 @@
 /* Mobile Operations CSS - Customers & Customer Cards Views (Master Native Grouped & Inset Style) */
 
-.mobile-operations-view {
-  display: flex;
-  flex-direction: column;
-  min-height: 100%;
-  background-color: var(--canvas);
-  padding-bottom: 24px;
-  box-sizing: border-box;
-}
-
-/* Sticky Top Header Cluster for Operations Views */
-/* 1. Header Toolbar */
-/* Inline Search Input Bar when toggled */
-/* 2. Horizontal Filter Chips Strip */
-/* 3. Summary & Sorting Bar */
-/* 4. Native Grouped Sections */
-.mobile-operations-sections-wrapper {
-  display: flex;
-  flex-direction: column;
-}
-
-.mobile-operations-section {
-  margin-top: 8px;
-}
-
-.mobile-operations-section-title {
-  padding: 8px 16px 6px;
-  font-size: 12px;
-  font-weight: 750;
-  color: var(--ink-500);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
-
-.mobile-operations-section-card {
-  background: #ffffff;
-  border-top: 1px solid var(--line);
-  border-bottom: 1px solid var(--line);
-}
-
-.mobile-operations-row-item {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 12px 16px;
-  border-bottom: 1px solid var(--canvas);
-  background: #ffffff;
-  cursor: pointer;
-  transition: background-color 0.1s ease;
-}
-
-.mobile-operations-row-item:last-child {
-  border-bottom: none;
-}
-
-.mobile-operations-row-item:active {
-  background-color: var(--surface-muted);
-}
-
-/* Customer Round Avatar */
-.mobile-customer-round-avatar {
-  width: 44px;
-  height: 44px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, var(--blue-100) 0%, var(--blue-200) 100%);
-  color: var(--blue-700);
-  font-size: 15px;
-  font-weight: 800;
-  display: grid;
-  place-items: center;
-  flex-shrink: 0;
-}
-
-.mobile-customer-round-avatar.is-company {
-  background: linear-gradient(135deg, var(--orange-soft) 0%, var(--orange-line) 100%);
-  color: var(--orange);
-}
-
 /* Card / Package Square Avatar */
-.mobile-card-square-avatar {
-  width: 44px;
-  height: 44px;
-  border-radius: 12px;
-  background: var(--blue-50);
-  color: var(--violet);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 22px;
-  flex-shrink: 0;
-}
-
-.mobile-card-square-avatar.is-account_card {
-  background: var(--sky-soft);
-  color: var(--blue-600);
-}
-
-.mobile-row-info {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-  flex: 1;
-  min-width: 0;
-}
-
-.mobile-row-name {
-  font-size: 15px;
-  font-weight: 650;
-  color: var(--ink-950);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.mobile-row-sub {
-  font-size: 13px;
-  color: var(--ink-500);
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  flex-wrap: wrap;
-}
-
-.mobile-row-sub strong {
-  color: var(--ink-950);
-  font-weight: 600;
-}
-
 .mobile-customer-phone-link {
   display: inline-flex;
   align-items: center;
@@ -144,14 +18,6 @@
   text-decoration: underline;
 }
 
-.mobile-row-right {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 3px;
-  flex-shrink: 0;
-}
-
 .mobile-row-debt-val {
   font-size: 14.5px;
   font-weight: 750;
@@ -165,7 +31,6 @@
   color: var(--green);
 }
 
-/* 5. Floating Action Button (FAB) */
 /* 6. Filter Fields in MobileFilterSheet */
 .mobile-filter-field {
   display: flex;
@@ -316,20 +181,6 @@
   align-items: center;
   justify-content: space-between;
   padding: 4px 0;
-}
-
-.mobile-detail-blue-action {
-  font-size: 14px;
-  font-weight: 650;
-  color: var(--blue-600);
-  background: none;
-  border: none;
-  cursor: pointer;
-  min-height: 44px;
-  padding: 0;
-  display: inline-flex;
-  align-items: center;
-  text-align: left;
 }
 
 /* Activity Items List */

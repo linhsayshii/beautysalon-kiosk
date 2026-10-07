@@ -286,17 +286,6 @@
   transform: translateY(1px);
 }
 
-.has-notice::after {
-  content: "";
-  position: absolute;
-  width: 7px;
-  height: 7px;
-  margin: -26px -26px 0 0;
-  border: 2px solid var(--blue-600);
-  border-radius: 50%;
-  background: var(--red);
-}
-
 .mobile-menu-button {
   display: none;
 }
@@ -410,18 +399,6 @@
   overflow: hidden;
 }
 
-.stat-card::after {
-  content: "";
-  position: absolute;
-  right: -48px;
-  bottom: -58px;
-  width: 150px;
-  height: 150px;
-  border-radius: 50%;
-  background: radial-gradient(circle, rgba(7, 86, 204, 0.05), transparent 68%);
-  pointer-events: none;
-}
-
 .stat-copy {
   z-index: 1;
   min-width: 145px;
@@ -487,6 +464,11 @@
 .trend.positive {
   color: var(--green);
   background: var(--green-soft);
+}
+
+.trend.neutral {
+  color: var(--ink-600);
+  background: var(--surface-hover);
 }
 
 .stat-copy > p {
@@ -1059,14 +1041,17 @@
   border: 1px solid var(--line-strong);
   border-radius: 8px;
   color: var(--ink-700);
-  background: #fff;
+  background: var(--surface);
   font-size: 12px;
   font-weight: 750;
   white-space: nowrap;
 }
 
-.goods-type.product { border-color: var(--green-line); color: var(--green-strong); background: var(--green-soft); }
-.goods-type.package { border-color: var(--violet-line); color: var(--violet); background: var(--blue-50); }
+/* Same tones as .m-list-avatar.is-<type>: product blue, service green, package violet, card orange. */
+.goods-type.product { border-color: var(--blue-200); color: var(--blue-600); background: var(--sky-soft); }
+.goods-type.service { border-color: var(--green-line); color: var(--green-strong); background: var(--green-soft); }
+.goods-type.package { border-color: var(--violet-line); color: var(--violet); background: var(--violet-soft); }
+.goods-type.account_card { border-color: var(--orange-line); color: var(--orange); background: var(--orange-soft); }
 .purchase-table .status-badge.completed,
 .purchase-detail .status-badge.completed { color: var(--green); background: var(--green-soft); }
 .stock-low { color: var(--red); font-weight: 800; }
@@ -1473,8 +1458,7 @@
   .top-actions {
     gap: 6px;
   }
-.top-actions .cashier-button,
-.top-actions .has-notice {
+.top-actions .cashier-button {
     display: none;
   }
 .icon-button {

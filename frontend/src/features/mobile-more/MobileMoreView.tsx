@@ -248,14 +248,6 @@ export function MobileMoreView() {
         <div className="mobile-more-bento-card">
           <div className="more-category-title">Hệ thống & Tiện ích</div>
           <div className="more-item-list">
-            <Link to="/m/attendance" className="more-nav-item">
-              <span className="more-item-badge emerald"><i className="ph ph-qr-code" /></span>
-              <div className="more-item-info">
-                <span className="more-item-label">Quét mã chấm công</span>
-                <span className="more-item-desc">Chấm công GPS vào ca / ra ca</span>
-              </div>
-              <i className="ph ph-caret-right more-item-arrow" />
-            </Link>
             <Link to="/m/attendance/qr" className="more-nav-item">
               <span className="more-item-badge purple"><i className="ph ph-qr-code" /></span>
               <div className="more-item-info">
@@ -272,7 +264,7 @@ export function MobileMoreView() {
               </div>
               <i className="ph ph-caret-right more-item-arrow" />
             </button>
-            <button type="button" className="more-nav-item logout" onClick={handleLogout} data-testid="logout-btn">
+            <button type="button" className="more-nav-item" onClick={handleLogout} data-testid="logout-btn">
               <span className="more-item-badge rose"><i className="ph ph-sign-out" /></span>
               <div className="more-item-info">
                 <span className="more-item-label text-strong text-danger">Đăng xuất tài khoản</span>
@@ -303,7 +295,7 @@ export function MobileMoreView() {
               >
                 <div>
                   <div className="branch-option-title">{b.name}</div>
-                  <div className="branch-option-address">{b.address || 'Hồ Chí Minh'}</div>
+                  <div className="branch-option-address">{b.address || 'Chưa cập nhật địa chỉ'}</div>
                 </div>
                 {isSelected && (
                   <i className="ph ph-check-circle branch-option-check" />

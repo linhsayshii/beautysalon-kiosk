@@ -62,9 +62,10 @@ export function MobileStaffScheduleView() {
   };
 
   return (
-    <div className="mobile-staff-container">
+    <div className="m-page">
       <MobilePageHeader
-        title="Lịch làm việc của tôi"
+        title="Ca làm của tôi"
+        backTo="/m/my-schedule"
         actions={(
           <>
             <MobileHeaderAction icon="ph ph-caret-left" label="Tuần trước" onClick={() => changeWeek(-1)} />
@@ -88,7 +89,7 @@ export function MobileStaffScheduleView() {
       </MobilePageHeader>
 
       {/* Shifts on selected day */}
-      <div className="schedule-cards-list">
+      <div className="m-body">
         <h2 className="m-section-title">
           Ca làm ngày {formatDateOnly(selectedDateIso)}
         </h2>
@@ -101,12 +102,12 @@ export function MobileStaffScheduleView() {
           <EmptyState compact icon="ph ph-calendar-blank" title="Không có ca làm việc nào trong ngày này." message={null} />
         ) : (
           dayAssignments.map((assign, idx) => (
-            <div key={assign.id ?? idx} className={`shift-card ${idx % 2 === 0 ? 'morning' : 'evening'}`}>
+            <div key={assign.id ?? idx} className="shift-card">
               <div className="shift-card-main">
                 {assign.weekGroupId && <ScheduleBadge />}
                 <div>
-                  <div className="shift-time">{assign.startsAt || '08:30'} - {assign.endsAt || '17:30'}</div>
-                  <div className="shift-name">{assign.shiftName || 'Ca sáng chuẩn'}</div>
+                  <div className="shift-time">{assign.startsAt} - {assign.endsAt}</div>
+                  {assign.shiftName && <div className="shift-name">{assign.shiftName}</div>}
                 </div>
               </div>
               <span className={assign.status === 'confirmed' ? 'badge badge-success' : 'badge badge-info'}>

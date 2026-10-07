@@ -453,3 +453,5 @@
     grid-column: auto;
   }
 }
+
+.inventory-detail-image { width: 100%; max-height: 240px; object-fit: contain; border-radius: var(--radius-inner); background: var(--surface); }

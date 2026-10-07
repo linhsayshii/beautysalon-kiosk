@@ -23,7 +23,7 @@ describe('Mobile appointment editor', () => {
       <Route path="/m/appointments/:id/edit" element={<MobileAppointmentCreateView />} /><Route path="/m/appointments" element={<div>Đã về lịch dịch vụ</div>} />
     </Routes></MemoryRouter></ToastProvider></QueryClientProvider>);
     await screen.findByText('Hoàng Khánh Linh');
-    expect(screen.getByText('Chỉnh sửa lịch')).toBeInTheDocument();
+    expect(screen.getByText('Sửa lịch hẹn')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', {name:'Lưu thay đổi'}));
     await waitFor(() => expect(save).toHaveBeenCalledWith(11, expect.objectContaining({ customerId: 1, items: [
       expect.objectContaining({ appointmentId:11, serviceId:1, quantity:2, status:'confirmed', startsAt:'2026-09-15T10:00:00.000Z', endsAt:'2026-09-15T11:30:00.000Z' }),

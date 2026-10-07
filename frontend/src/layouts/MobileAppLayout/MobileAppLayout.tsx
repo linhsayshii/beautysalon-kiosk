@@ -7,22 +7,6 @@ import { MobileTopBar } from './MobileTopBar';
 import { MobileBottomNav } from './MobileBottomNav';
 import { isReturnToPage } from '@/lib/scroll-restoration';
 
-const FULL_BLEED_PREFIXES = [
-  '/m/orders',
-  '/m/products',
-  '/m/appointments',
-  '/m/invoices/new',
-  '/m/customers',
-  '/m/customer-cards',
-  '/m/purchase-orders',
-  '/m/pricebooks',
-  '/m/staff',
-  '/m/attendance/qr',
-  '/m/account',
-  '/m/cashbook',
-  '/m/reports',
-];
-
 /** Scroll offsets per history entry (Back/Forward) and per page (header back button). */
 const scrollByEntry = new Map<string, number>();
 const scrollByPath = new Map<string, number>();
@@ -96,15 +80,13 @@ export function MobileAppLayout() {
   if (!account) return <Navigate to="/login" replace state={{ from: location.pathname }} />;
   if (!canAccessPath(account.role, location.pathname)) return <Navigate to={homeForRole(account.role, true)} replace />;
 
-  const isFullBleed = FULL_BLEED_PREFIXES.some((prefix) => location.pathname.startsWith(prefix));
-
   return (
     <div className="mobile-app-shell">
       <MobileTopBar />
       <main
         ref={mainRef}
         onScroll={rememberScroll}
-        className={`mobile-main-content ${isFullBleed ? 'is-full-bleed' : ''}`}
+        className="mobile-main-content"
       >
         <Outlet />
       </main>

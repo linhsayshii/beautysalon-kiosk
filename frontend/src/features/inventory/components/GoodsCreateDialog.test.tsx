@@ -3,7 +3,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { describe, expect, it, vi } from 'vitest';
 import { ToastProvider } from '@/components/ui/Toast/ToastProvider';
 import { GoodsCreateDialog } from './GoodsCreateDialog';
-import { createInventoryItem } from '../inventory.api';
+import { createInventoryItem, getInventoryItem, updateInventoryItem } from '../inventory.api';
 
 vi.mock('../inventory.api', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../inventory.api')>()),
@@ -12,6 +12,8 @@ vi.mock('../inventory.api', async (importOriginal) => ({
     meta: { pagination: { page: 1, pageSize: 1, total: 0, totalPages: 1 }, categories: ['Chăm sóc da', 'Dầu gội'] },
   })),
   createInventoryItem: vi.fn(async () => ({ data: { itemId: 1 } })),
+  getInventoryItem: vi.fn(),
+  updateInventoryItem: vi.fn(async () => ({ data: { itemId: 1, code: 'SP1' } })),
 }));
 
 function renderDialog(type: 'product' | 'service') {
@@ -25,6 +27,22 @@ function renderDialog(type: 'product' | 'service') {
 }
 
 describe('GoodsCreateDialog', () => {
+  it('preserves unsaved edits on refresh and omits stock when the operator did not change it', async () => {
+    const saved = { itemId: 1, name: 'Dầu gội', code: 'SP1', active: true, initialStock: 10, stockQuantity: 10, minStock: 0 };
+    vi.mocked(getInventoryItem).mockResolvedValue({ data: saved } as Awaited<ReturnType<typeof getInventoryItem>>);
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    render(<QueryClientProvider client={client}><ToastProvider><GoodsCreateDialog type="product" itemId={1} initialData={saved} onClose={() => {}} /></ToastProvider></QueryClientProvider>);
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Lưu' })).toBeEnabled());
+    fireEvent.change(screen.getByRole('textbox', { name: /Tên hàng/ }), { target: { value: 'Tên đang sửa' } });
+    vi.mocked(getInventoryItem).mockResolvedValue({ data: { ...saved, name: 'Tên từ máy khác', initialStock: 8, stockQuantity: 8 } } as Awaited<ReturnType<typeof getInventoryItem>>);
+    await client.refetchQueries({ queryKey: ['inventory-item', 'product', 1] });
+    expect(screen.getByRole('textbox', { name: /Tên hàng/ })).toHaveValue('Tên đang sửa');
+    fireEvent.click(screen.getByRole('button', { name: 'Lưu' }));
+    await waitFor(() => expect(updateInventoryItem).toHaveBeenCalled());
+    const payload = vi.mocked(updateInventoryItem).mock.calls[0][2];
+    expect(payload.name).toBe('Tên đang sửa');
+    expect(payload).not.toHaveProperty('initialStock');
+  });
   it('keeps save enabled when creating a new product without an item detail request', () => {
     renderDialog('product');
 

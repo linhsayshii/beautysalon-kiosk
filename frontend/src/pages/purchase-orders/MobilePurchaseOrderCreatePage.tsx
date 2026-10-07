@@ -3,5 +3,3 @@ import { MobilePurchaseOrderCreateView } from '@/features/mobile-inventory/Mobil
 export function Component() {
   return <MobilePurchaseOrderCreateView />;
 }
-
-export default Component;

@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { ErrorState, LoadingState } from '@/components/data-display/DataState';
 import { Select } from '@/components/ui/Select/Select';
@@ -43,7 +42,6 @@ function SalaryLine({ title, subtitle, value, sign, tone }: SalaryLineProps) {
 }
 
 export function MobileStaffSalaryView() {
-  const navigate = useNavigate();
   const [selectedRecordId, setSelectedRecordId] = useState<number | null>(null);
   const { subscribe } = useWebSocket();
   const queryClient = useQueryClient();
@@ -71,27 +69,18 @@ export function MobileStaffSalaryView() {
   );
 
   return (
-    <div className="mobile-staff-view mobile-salary-view">
-      <MobilePageHeader
-        title="Lương của tôi" onBack={() => navigate(-1)} className="mobile-salary-sticky-shell"
-      >
+    <div className="m-page">
+      <MobilePageHeader title="Lương của tôi">
         {records.length > 0 && (
-          <div className="m-chip-strip mobile-salary-month-menu">
-            <div className="chip mobile-salary-month-control">
-              <i className="ph ph-calendar" />
-              <span className="mobile-salary-month-label">Kỳ lương</span>
-              <Select<number>
-                id="my-payroll-month"
-                value={activeRecord?.id}
-                onChange={setSelectedRecordId}
-                aria-label="Chọn tháng lương"
-                variant="ghost"
-                size="sm"
-                className="mobile-salary-period-select"
-                triggerClassName="mobile-salary-period-trigger"
-                options={records.map((record) => ({ value: record.id, label: monthLabel(record.period.startsOn) }))}
-              />
-            </div>
+          <div className="m-chip-strip">
+            <Select<number>
+              id="my-payroll-month"
+              value={activeRecord?.id}
+              onChange={setSelectedRecordId}
+              aria-label="Chọn kỳ lương"
+              variant="pill"
+              options={records.map((record) => ({ value: record.id, label: `Kỳ lương: ${monthLabel(record.period.startsOn)}` }))}
+            />
           </div>
         )}
       </MobilePageHeader>

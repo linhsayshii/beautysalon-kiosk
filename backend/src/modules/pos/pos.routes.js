@@ -43,7 +43,8 @@ router.post('/price-quote', asyncRoute(async (request, response) => {
 router.get('/customers', asyncRoute(async (request, response) => {
   const result = await listCustomers({
     branchId: request.account.branchId, search: text(request.query.search), group: '', debtStatus: '',
-    page: 1, pageSize: 6, offset: 0,
+    // Desktop POS shows 6 suggestions; the mobile picker lists up to 50.
+    page: 1, pageSize: Math.min(50, Math.max(1, Number.parseInt(request.query.pageSize, 10) || 6)), offset: 0,
   });
   response.json({ data: result.rows, meta: { pagination: result.pagination } });
 }));

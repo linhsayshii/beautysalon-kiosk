@@ -5,6 +5,8 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { MobileNotificationsView } from './MobileNotificationsView';
 import * as notificationsApi from './notifications.api';
 
+vi.mock('@/features/auth/AuthProvider', () => ({ useAuth: () => ({ account: { role: 'manager' } }) }));
+
 describe('MobileNotificationsView Component', () => {
   beforeEach(() => {
     vi.spyOn(notificationsApi, 'getNotifications').mockResolvedValue({

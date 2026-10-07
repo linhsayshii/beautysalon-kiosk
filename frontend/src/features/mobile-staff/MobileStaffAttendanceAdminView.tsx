@@ -208,7 +208,7 @@ export function MobileStaffAttendanceAdminView() {
   const activeStaffStats = selectedStaff ? getStaffStats(selectedStaff) : null;
 
   return (
-    <div className="mobile-staff-view">
+    <div className="m-page">
       <MobilePageHeader
         title="Bảng chấm công" backTo="/m/more"
         actions={(
@@ -216,7 +216,7 @@ export function MobileStaffAttendanceAdminView() {
             <button
               type="button"
               className="btn btn-ghost btn-icon m-header-action"
-              onClick={() => setIsSearchVisible((prev) => !prev)}
+              onClick={() => { if (isSearchVisible) setSearch(''); setIsSearchVisible(!isSearchVisible); }}
               aria-label="Tìm kiếm"
             >
               <i className="ph ph-magnifying-glass" />
@@ -228,6 +228,7 @@ export function MobileStaffAttendanceAdminView() {
           <MobileSearchBar
             value={search}
             onChange={setSearch}
+            autoFocus
             placeholder="Tìm nhân viên theo tên, mã..."
           />
         )}
@@ -299,7 +300,7 @@ export function MobileStaffAttendanceAdminView() {
           <MobileEmptyState
             icon="ph ph-clock-user"
             title="Không tìm thấy nhân viên"
-            description="Thử tìm kiếm với từ khóa khác."
+            description={search ? 'Thử từ khóa khác hoặc đổi bộ lọc.' : undefined}
           />
         ) : (
           groupedStaff.map(([roleGroup, members]) => (
@@ -328,12 +329,12 @@ export function MobileStaffAttendanceAdminView() {
                             <span>{stats.completedShifts}/{stats.totalAssignedShifts} ca</span>
                             {stats.lateCount > 0 && (
                               <span className="text-strong text-warning">
-                                • Muộn {stats.lateCount} lần
+                                · Muộn {stats.lateCount} lần
                               </span>
                             )}
                             {stats.earlyCount > 0 && (
                               <span className="text-strong text-violet">
-                                • Sớm {stats.earlyCount} lần
+                                · Sớm {stats.earlyCount} lần
                               </span>
                             )}
                           </span>
@@ -361,7 +362,7 @@ export function MobileStaffAttendanceAdminView() {
       <MobileDetailSheet
         isOpen={Boolean(selectedStaff)}
         title="Nhật ký chấm công GPS"
-        subtitle={selectedStaff ? `${selectedStaff.name} • ${periodLabel}` : ''}
+        subtitle={selectedStaff ? `${selectedStaff.name} · ${periodLabel}` : ''}
         onClose={() => setSelectedStaff(null)}
       >
         {selectedStaff && activeStaffStats && (
@@ -423,8 +424,8 @@ export function MobileStaffAttendanceAdminView() {
                         </div>
                         <div className="mobile-gps-log-desc">
                           {rec.workedMinutes ? `${formatDecimal(rec.workedMinutes / 60)} giờ` : 'Đang làm việc'}
-                          {rec.lateMinutes > 0 && ` • Muộn ${rec.lateMinutes}p`}
-                          {rec.earlyMinutes > 0 && ` • Sớm ${rec.earlyMinutes}p`}
+                          {rec.lateMinutes > 0 && ` · Muộn ${rec.lateMinutes}p`}
+                          {rec.earlyMinutes > 0 && ` · Sớm ${rec.earlyMinutes}p`}
                         </div>
                       </div>
                       <span className={`mobile-gps-status ${rec.checkOut ? 'out' : 'in'}`}>

@@ -8,6 +8,7 @@ import { recordCashEntry } from '../cashbook/cashbook.ledger.js';
 import { config } from '../../config.js';
 import { newInvoiceCode } from './invoice-code.js';
 import { buildCommissionEntries } from './commission-entries.js';
+import { allocateWalletPayment, walletLines } from './wallet-allocation.js';
 
 const number = (value) => Number(value ?? 0);
 const vndFormatter = new Intl.NumberFormat('vi-VN', { maximumFractionDigits: 0 });
@@ -20,29 +21,38 @@ const formatVnd = (value) => `${vndFormatter.format(number(value))}đ`;
  * @param {Object} params - { customerId, packageId, serviceId, invoiceId, units }
  * @returns {Promise<void>}
  */
-async function processPackageRedemption(client, { customerId, packageId, serviceId, invoiceId, units = 1 }) {
+async function processPackageRedemption(client, { branchId, customerId, packageId, serviceId, invoiceId, units = 1 }) {
   // Verify package belongs to customer và còn lượt
   const pkgCheck = await client.query(
     `SELECT id, package_id, used_units, total_units, status, expires_at
      FROM customer_packages
-     WHERE id = $1 AND customer_id = $2 AND status = 'active'
+     WHERE id = $1 AND customer_id = $2 AND branch_id = $4 AND status = 'active'
        AND used_units + $3 <= total_units
        AND (expires_at IS NULL OR expires_at > NOW())
      FOR UPDATE`,
-    [packageId, customerId, units],
+    [packageId, customerId, units, branchId],
   );
   if (!pkgCheck.rows[0]) {
     throw new HttpError(400, 'PACKAGE_NOT_AVAILABLE', 'Gói dịch vụ không khả dụng hoặc đã hết lượt');
   }
 
-  // Verify service thuộc về package
+  // The service must be in the package, with sessions left for that service
+  // (the same per-service limit the appointment flow enforces). Earlier lines
+  // of this checkout are already in package_usages, so they count too.
   const serviceCheck = await client.query(
-    `SELECT spi.id FROM service_package_items spi
+    `SELECT spi.units,
+            (SELECT COALESCE(SUM(pu.units_used), 0) FROM package_usages pu
+             WHERE pu.customer_package_id = $3 AND pu.service_id = $2) AS used
+     FROM service_package_items spi
      WHERE spi.package_id = $1 AND spi.service_id = $2`,
-    [pkgCheck.rows[0].package_id, serviceId],
+    [pkgCheck.rows[0].package_id, serviceId, packageId],
   );
   if (!serviceCheck.rows[0]) {
     throw new HttpError(400, 'SERVICE_NOT_IN_PACKAGE', 'Dịch vụ không nằm trong gói này');
+  }
+  const left = number(serviceCheck.rows[0].units) - number(serviceCheck.rows[0].used);
+  if (units > left) {
+    throw new HttpError(400, 'PACKAGE_SERVICE_LIMIT', `Dịch vụ này trong gói chỉ còn ${Math.max(0, left)} buổi`);
   }
 
   // Update used_units
@@ -305,14 +315,17 @@ export async function checkoutPosInvoice({
         code = row.sku;
         unit = row.unit || 'sản phẩm';
 
-        // Deduct inventory balance
-        await client.query(
-          `INSERT INTO inventory_balances (branch_id, product_id, quantity, updated_at)
-           VALUES ($1, $2, 0, NOW())
-           ON CONFLICT (branch_id, product_id)
-           DO UPDATE SET quantity = inventory_balances.quantity - $3, updated_at = NOW()`,
+        // Deduct atomically: the stock read above can be stale when another
+        // sale of the same product commits first, so the update re-checks it.
+        const deducted = await client.query(
+          `UPDATE inventory_balances SET quantity = quantity - $3, updated_at = NOW()
+           WHERE branch_id = $1 AND product_id = $2 AND quantity >= $3
+           RETURNING quantity`,
           [branchId, itemId, quantity],
         );
+        if (!deducted.rowCount) {
+          throw new HttpError(400, 'INSUFFICIENT_STOCK', `Sản phẩm "${row.name}" vừa hết tồn kho, vui lòng tải lại và thử lại`);
+        }
 
         validatedItems.push({
           itemType: 'product',
@@ -423,31 +436,54 @@ export async function checkoutPosInvoice({
     const payment = settlement(total, amountPaid, paymentMethod, allowDebt);
     const customerDebtBalance = roundMoney(number(custResult.rows[0].debt_balance) + payment.debt);
 
-    // 4. Validate wallet payment has sufficient balance
-    let cardBalance = 0;
+    // 4. A wallet payment must be covered line by line by cards whose payment
+    // scope (item types and listed goods) includes that line.
+    let walletDeductions = new Map();
     if (paymentMethod === 'wallet') {
       if (!customerId) {
         throw new HttpError(400, 'WALLET_REQUIRES_CUSTOMER', 'Thanh toán bằng thẻ tài khoản yêu cầu chọn khách hàng');
       }
 
-      const balanceResult = await client.query(
-        `SELECT COALESCE(SUM(cac.current_balance), 0) AS card_balance
+      const cardRows = await client.query(
+        `SELECT cac.id, cac.current_balance, ac.allow_products, ac.allow_services, ac.allow_packages,
+                COALESCE(ARRAY(
+                  SELECT s.item_type || ':' || s.item_id FROM account_card_scope_items s WHERE s.account_card_id = ac.id
+                ), '{}') AS scope
          FROM customer_account_cards cac
+         JOIN account_cards ac ON ac.id = cac.account_card_id
          WHERE cac.customer_id = $1
            AND cac.branch_id = $2
            AND cac.status = 'active'
-           AND (cac.expires_at IS NULL OR cac.expires_at > NOW())`,
+           AND cac.current_balance > 0
+           AND (cac.expires_at IS NULL OR cac.expires_at > NOW())
+         ORDER BY cac.expires_at ASC NULLS LAST, cac.id
+         FOR UPDATE OF cac`,
         [customerId, branchId],
       );
-      cardBalance = number(balanceResult.rows[0]?.card_balance || 0);
-
-      if (cardBalance < total) {
+      const cards = cardRows.rows.map((row) => ({
+        id: number(row.id),
+        balance: number(row.current_balance),
+        allowProducts: row.allow_products,
+        allowServices: row.allow_services,
+        allowPackages: row.allow_packages,
+        scope: row.scope ?? [],
+      }));
+      const lines = walletLines(validatedItems.map((item) => ({
+        itemType: item.itemType,
+        itemId: item.serviceId ?? item.productId ?? item.packageId ?? item.accountCardId,
+        name: item.name,
+        lineTotal: item.lineTotal,
+      })), discountAmount);
+      const allocation = allocateWalletPayment(lines, cards);
+      if (allocation.uncovered.length) {
+        const balance = cards.reduce((sum, card) => sum + card.balance, 0);
         throw new HttpError(
           400,
           'INSUFFICIENT_BALANCE',
-          `Số dư thẻ không đủ (Số dư: ${cardBalance.toLocaleString('vi-VN')}đ, Cần: ${total.toLocaleString('vi-VN')}đ)`,
+          `Thẻ tài khoản không đủ số dư hoặc không áp dụng cho: ${allocation.uncovered.join(', ')} (Số dư thẻ: ${balance.toLocaleString('vi-VN')}đ)`,
         );
       }
+      walletDeductions = allocation.deductions;
     }
 
     // 5. A linked draft is paid in place. Checkout never updates a service
@@ -544,6 +580,7 @@ export async function checkoutPosInvoice({
     // together with the invoice if any validation fails.
     for (const redemption of packageRedemptions) {
       await processPackageRedemption(client, {
+        branchId,
         customerId,
         invoiceId,
         ...redemption,
@@ -637,35 +674,16 @@ export async function checkoutPosInvoice({
     }
 
     // 7b. Deduct from wallet/card balance for wallet payments
-    if (paymentMethod === 'wallet' && total > 0 && cardBalance > 0) {
-      let remaining = total;
-
-      // Get all active cards with balance, ordered by expiry (nearest first)
-      const cardsWithBalance = await client.query(
-        `SELECT id, current_balance
-         FROM customer_account_cards
-         WHERE customer_id = $1
-           AND branch_id = $2
-           AND status = 'active'
-           AND current_balance > 0
-           AND (expires_at IS NULL OR expires_at > NOW())
-         ORDER BY expires_at ASC NULLS LAST`,
-        [customerId, branchId],
-      );
-
-      for (const card of cardsWithBalance.rows) {
-        if (remaining <= 0) break;
-
-        const deduction = Math.min(card.current_balance, remaining);
+    if (walletDeductions.size) {
+      for (const [cardId, deduction] of walletDeductions) {
         await client.query(
           `UPDATE customer_account_cards
            SET current_balance = current_balance - $1,
                updated_at = NOW()
            WHERE id = $2`,
-          [deduction, card.id],
+          [deduction, cardId],
         );
-        changedCustomerAccountCardIds.add(number(card.id));
-        remaining -= deduction;
+        changedCustomerAccountCardIds.add(cardId);
       }
 
       // Mark cards as depleted if balance reaches 0
@@ -785,10 +803,10 @@ export async function checkoutPosInvoice({
       type: 'invoice',
       title: payment.debt > 0 ? 'Hóa đơn đã ghi nợ' : 'Hóa đơn đã thanh toán',
       detail: `${receipt.code} · ${formatVnd(receipt.total)} · ${receipt.customer.name}`,
-      targetPath: '/m/orders',
     };
+    // Only managers have the order list (orders:read) to open from the notification.
     void Promise.all([
-      publishNotification({ ...invoiceNotification, role: 'manager' }),
+      publishNotification({ ...invoiceNotification, role: 'manager', targetPath: '/m/orders' }),
       publishNotification({ ...invoiceNotification, role: 'cashier' }),
     ]);
     for (const customerPackageId of createdCustomerPackageIds) {

@@ -3,6 +3,3 @@ import { MobileStaffSalaryView } from '@/features/mobile-staff/MobileStaffSalary
 export function Component() {
   return <MobileStaffSalaryView />;
 }
-
-export default Component;
-

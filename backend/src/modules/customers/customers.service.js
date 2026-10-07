@@ -270,11 +270,12 @@ export async function createCustomer({ branchId, name, code, phone, dob, gender,
 
     let finalCode = code?.trim();
     if (!finalCode) {
+      // Customer codes are unique across branches (schema), so the sequence is too.
+      await client.query("SELECT pg_advisory_xact_lock(hashtext('customer-code'))");
       const sequence = await client.query(
         // Hand-typed codes (phone numbers, legacy ids) must not drive the sequence.
         `SELECT COALESCE(MAX(substring(code FROM '^KH(\\d{1,15})$')::bigint), 0) + 1 AS next_number
-         FROM customers WHERE branch_id = $1 AND code ~ '^KH\\d{1,15}$'`,
-        [branchId],
+         FROM customers WHERE code ~ '^KH\\d{1,15}$'`,
       );
       finalCode = `KH${String(number(sequence.rows[0].next_number)).padStart(6, '0')}`;
     }

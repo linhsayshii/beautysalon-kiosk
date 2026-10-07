@@ -524,18 +524,6 @@ export async function createAppointments({ branchId, customerId, items, status, 
   }
 }
 
-export async function createAppointment(input) {
-  const result = await createAppointments({
-    branchId: input.branchId,
-    customerId: input.customerId,
-    status: input.status,
-    note: input.note,
-    actorAccountId: input.actorAccountId,
-    items: [{ serviceId: input.serviceId, staffId: input.staffId, startsAt: input.startsAt, endsAt: input.endsAt }],
-  });
-  return result.appointments[0];
-}
-
 export async function transitionAppointmentWorkStatus({ branchId, staffId, id, status, actorAccountId = null }) {
   const expectedCurrentStatuses = status === 'in_service' ? ['confirmed', 'waiting'] : ['in_service'];
   if (!['in_service', 'completed'].includes(status)) {

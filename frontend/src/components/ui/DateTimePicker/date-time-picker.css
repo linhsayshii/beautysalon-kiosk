@@ -23,8 +23,7 @@
 .app-date-time-trigger:focus-visible { border-color: var(--blue-500); box-shadow: var(--focus-ring); outline: 0; }
 .app-date-time-trigger:disabled { cursor: not-allowed; opacity: .65; }
 .app-date-time-trigger.filter-control,
-.app-date-time-trigger.input,
-.app-date-time-trigger.mobile-form-card-input { width: 100%; padding: 0 12px; }
+.app-date-time-trigger.input { width: 100%; padding: 0 12px; }
 .app-date-time-trigger.mobile-appointments-filter-chip { min-height: var(--chip-h); padding: 0 12px; border-radius: var(--radius-pill); }
 .app-date-time-trigger.mobile-my-schedule-date-chip { min-height: 36px; padding: 0 14px; }
 

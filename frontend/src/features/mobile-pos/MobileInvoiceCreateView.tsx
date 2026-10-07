@@ -32,7 +32,7 @@ import {
 } from '@/features/mobile-common/MobileServiceItemDetailSheet';
 import { MobileHeaderAction, MobilePageHeader } from '@/components/ui/MobilePageHeader/MobilePageHeader';
 import { BottomSheet } from '@/components/ui/Sheet/BottomSheet';
-import { EmptyState } from '@/components/data-display/DataState';
+import { EmptyState, ErrorState, LoadingState } from '@/components/data-display/DataState';
 import { PAYMENT_METHOD_LABELS } from '@/lib/payment-methods';
 import { ProductImageViewButton } from '@/features/inventory/components/ProductImageViewButton';
 
@@ -76,10 +76,11 @@ export function MobileInvoiceCreateView() {
   const [activeCatalogTab, setActiveCatalogTab] = useState<string>('');
 
   // Fetch Catalog & Staff queries
-  const { data: catalogResponse } = useQuery({
+  const catalogQuery = useQuery({
     queryKey: ['pos-catalog', catalogSearch, activeCatalogTab, customer?.id ?? null],
     queryFn: () => getPosCatalog(catalogSearch, activeCatalogTab, customer?.id),
   });
+  const catalogResponse = catalogQuery.data;
 
   const servicePackagesQuery = useQuery({
     queryKey: ['pos-customer-service-packages', customer?.id ?? null],
@@ -194,7 +195,6 @@ export function MobileInvoiceCreateView() {
       startsAt: catItem.itemType === 'service' ? new Date() : null,
       staffId: null,
       staffName: null,
-      position: null,
     };
     setActiveEditingItem(newItem);
     setEditingIndex(null); // Adding new
@@ -237,7 +237,6 @@ export function MobileInvoiceCreateView() {
         startsAt: new Date(),
         staffId: null,
         staffName: null,
-        position: null,
         usePackageId: customerPackageId,
         usePackageServiceId: selectedService.serviceId,
         packageName: selectedPackage.packageName,
@@ -313,7 +312,8 @@ export function MobileInvoiceCreateView() {
 
     const payload: PosCheckoutPayload = {
       customerId: customer.id,
-      staffId: configuredItems[0]?.staffId || null,
+      // Each line names its own staff; a header staff would be credited for unassigned lines.
+      staffId: null,
       discount: discountAmount,
       paymentMethod,
       amountPaid,
@@ -365,7 +365,7 @@ export function MobileInvoiceCreateView() {
             onClick={() => setIsCustomerSheetOpen(true)}
             role="button"
             tabIndex={0}
-            onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); setIsCustomerSheetOpen(true); } }}
+            onKeyDown={(event) => { if (event.target === event.currentTarget && (event.key === 'Enter' || event.key === ' ')) { event.preventDefault(); setIsCustomerSheetOpen(true); } }}
           >
             <div className="mobile-form-row-left">
               <div className="mobile-form-row-icon is-customer">
@@ -379,7 +379,7 @@ export function MobileInvoiceCreateView() {
                       {customer.phone || 'Chưa lưu số điện thoại'}
                       {customer.remainingPackageUnits !== undefined &&
                         customer.remainingPackageUnits > 0 && (
-                          <span> • Còn {customer.remainingPackageUnits} buổi DV</span>
+                          <span> · Còn {customer.remainingPackageUnits} buổi DV</span>
                         )}
                     </span>
                   </>
@@ -493,13 +493,6 @@ export function MobileInvoiceCreateView() {
                           <span className="mobile-form-tag is-staff">
                             <i className="ph ph-handshake" />
                             Tư vấn: {item.consultantStaffName}
-                          </span>
-                        )}
-
-                        {item.position && (
-                          <span className="mobile-form-tag is-pos">
-                            <i className="ph ph-map-pin" />
-                            {item.position}
                           </span>
                         )}
 
@@ -722,7 +715,11 @@ export function MobileInvoiceCreateView() {
         )}
       >
         <div className="mobile-catalog-items-list">
-        {catalogItems.length === 0 ? (
+        {catalogQuery.isPending ? (
+          <LoadingState compact />
+        ) : catalogQuery.error ? (
+          <ErrorState compact error={catalogQuery.error} onRetry={() => catalogQuery.refetch()} />
+        ) : catalogItems.length === 0 ? (
           <EmptyState compact title="Không tìm thấy mặt hàng nào" message={null} />
         ) : (
           catalogItems.map((cat) => (
@@ -735,7 +732,7 @@ export function MobileInvoiceCreateView() {
                 <div className="mobile-catalog-item-info">
                   <span className="mobile-catalog-item-name">{cat.name}</span>
                   <span className="mobile-catalog-item-cat">
-                    {cat.category || 'Dịch vụ'} {cat.code ? `• ${cat.code}` : ''}
+                    {[cat.code, cat.category].filter(Boolean).join(' · ')}
                   </span>
                 </div>
                 <span className="mobile-catalog-item-price">
@@ -761,6 +758,7 @@ export function MobileInvoiceCreateView() {
         isOpen={isDetailSheetOpen}
         item={activeEditingItem}
         staffList={staffList}
+        schedule={false}
         onClose={() => {
           setIsDetailSheetOpen(false);
           setActiveEditingItem(null);

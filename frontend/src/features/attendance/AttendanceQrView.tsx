@@ -4,7 +4,7 @@ import QRCode from 'qrcode';
 import { PageHeader } from '@/components/ui/PageHeader/PageHeader';
 import { ErrorState, LoadingState } from '@/components/data-display/DataState';
 import { useToast } from '@/components/ui/Toast/ToastProvider';
-import { getAttendanceChallenge, getAttendanceLocation, updateAttendanceLocation } from './attendance.api';
+import { challengeRefetchInterval, getAttendanceChallenge, getAttendanceLocation, updateAttendanceLocation } from './attendance.api';
 import { LocationMapPicker } from '@/components/map/LocationMapPicker';
 import { clientErrorMessage, errorMessage } from '@/services/api-client';
 import { resolveHexToken } from '@/lib/color-token';
@@ -16,7 +16,7 @@ export function AttendanceQrView() {
   const [now, setNow] = useState(Date.now());
   const [radius, setRadius] = useState(100);
   const [coordinates, setCoordinates] = useState<{ latitude: number | null; longitude: number | null }>({ latitude: null, longitude: null });
-  const challenge = useQuery({ queryKey: ['attendance-challenge'], queryFn: getAttendanceChallenge, refetchInterval: 1_000 });
+  const challenge = useQuery({ queryKey: ['attendance-challenge'], queryFn: getAttendanceChallenge, refetchInterval: challengeRefetchInterval });
   const location = useQuery({ queryKey: ['attendance-location'], queryFn: getAttendanceLocation });
   const secondsLeft = challenge.data ? Math.max(0, Math.ceil((new Date(challenge.data.data.expiresAt).getTime() - now) / 1000)) : 0;
 

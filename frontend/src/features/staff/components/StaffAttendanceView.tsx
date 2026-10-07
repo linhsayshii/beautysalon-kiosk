@@ -2,7 +2,6 @@ import { useState, useMemo, Fragment } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ErrorState, LoadingState } from '@/components/data-display/DataState';
 import { useToast } from '@/components/ui/Toast/ToastProvider';
-import { useComingSoon } from '@/components/ui/Toast/useComingSoon';
 import { PageHeader } from '@/components/ui/PageHeader/PageHeader';
 import { Select } from '@/components/ui/Select/Select';
 import { errorMessage } from '@/services/api-client';
@@ -27,7 +26,6 @@ const weekdayLabels = ['Thứ hai', 'Thứ ba', 'Thứ tư', 'Thứ năm', 'Th�
 export function StaffAttendanceView() {
   const queryClient = useQueryClient();
   const { notify } = useToast();
-  const comingSoon = useComingSoon();
   const [currentMonday, setCurrentMonday] = useState(weekStartIso());
   const [viewMode, setViewMode] = useState<'by-shift' | 'by-staff'>('by-shift');
   const [searchTerm, setSearchTerm] = useState('');
@@ -184,16 +182,7 @@ export function StaffAttendanceView() {
         <PageHeader
           title="Bảng chấm công"
           subtitle="Theo dõi giờ vào, giờ ra của nhân viên theo từng ca."
-          extraActions={<>
-            <button type="button" className="btn btn-secondary btn-icon" aria-label="Tuỳ chọn khác" title="Tuỳ chọn khác" onClick={comingSoon}>
-              <i className="ph ph-dots-three" />
-            </button>
-            <button type="button" className="btn btn-secondary" onClick={comingSoon}>
-              <i className="ph ph-calendar-check" />
-              <span>Duyệt chấm công</span>
-            </button>
-          </>}
-        />
+                  />
 
         <div className="attendance-toolbar-card">
           <div className="attendance-toolbar-left">

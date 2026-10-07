@@ -1,6 +1,8 @@
 import { useEffect } from 'react';
 import { useQueryClient, type QueryClient } from '@tanstack/react-query';
 import { useWebSocket } from '@/hooks/useWebSocket';
+import { invalidatePurchaseQueries } from '@/features/inventory/invalidatePurchaseQueries';
+import { inventoryQueryKeys } from '@/features/inventory/invalidateInventoryQueries';
 
 const appointmentEvents = new Set([
   'appointment:created',
@@ -48,6 +50,7 @@ const cashbookQueryKeys = [
 ] as const;
 
 const invoiceQueryKeys = [
+  ...inventoryQueryKeys.map(key => [key]),
   ...cashbookQueryKeys,
   ['customer-debt'],
   ['customer-activity'],
@@ -95,6 +98,10 @@ function invalidate(queryClient: QueryClient, keys: readonly (readonly unknown[]
  * HTTP data, keeping the WebSocket transport out of the source-of-truth path.
  */
 export function synchronizeRealtimeEvent(queryClient: QueryClient, event: string) {
+  if (event === 'inventory:updated') {
+    void invalidatePurchaseQueries(queryClient);
+    return;
+  }
   if (appointmentEvents.has(event)) {
     invalidate(queryClient, appointmentQueryKeys);
     return;
@@ -117,7 +124,7 @@ export function synchronizeRealtimeEvent(queryClient: QueryClient, event: string
 }
 
 export function resynchronizeRealtimeQueries(queryClient: QueryClient) {
-  invalidate(queryClient, [...appointmentQueryKeys, ...invoiceQueryKeys, ...customerValueQueryKeys, ['notifications']]);
+  invalidate(queryClient, [...appointmentQueryKeys, ...invoiceQueryKeys, ...customerValueQueryKeys, ['notifications'], ['purchase-orders'], ['mobile-purchase-orders'], ['purchase-order'], ['mobile-purchase-order-detail']]);
 }
 
 /**

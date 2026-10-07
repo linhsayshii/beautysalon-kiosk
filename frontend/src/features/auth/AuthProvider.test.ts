@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { canAccessPath, hasPermission, homeForRole, permissionForPath } from './authorization';
+import { canAccessPath, hasPermission, homeForRole, permissionForPath, postLoginPath } from './authorization';
 
 describe('role home routing', () => {
   it('routes each account to its only/default workspace', () => {
@@ -23,4 +23,12 @@ describe('route authorization', () => {
     expect(canAccessPath('staff', '/attendance')).toBe(true);
     expect(canAccessPath('staff', '/attendance/qr')).toBe(false);
   });
+});
+
+it('returns to an authorized mobile page after login and rejects external or forbidden destinations', () => {
+  expect(postLoginPath('manager', '/m/products')).toBe('/m/products');
+  expect(postLoginPath('cashier', '/m/products')).toBe('/m/pos');
+  expect(postLoginPath('manager', '//example.com')).toBe('/dashboard');
+  expect(postLoginPath('manager', '/\\example.com')).toBe('/dashboard');
+  expect(postLoginPath('staff', '/login')).toBe('/attendance');
 });

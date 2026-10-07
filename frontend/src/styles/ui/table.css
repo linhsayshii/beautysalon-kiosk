@@ -244,12 +244,6 @@
   font-size: var(--text-sm);
 }
 
-.table-footer-size {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
 .pagination {
   display: flex;
   align-items: center;

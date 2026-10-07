@@ -3,6 +3,3 @@ import { MobileStaffManagementView } from '@/features/mobile-staff/MobileStaffMa
 export function Component() {
   return <MobileStaffManagementView />;
 }
-
-export default Component;
-

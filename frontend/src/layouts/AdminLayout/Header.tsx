@@ -6,6 +6,7 @@ import { hasPermission } from '@/features/auth/authorization';
 import { useStoreName } from '@/services/metadata';
 import { setPreferredUiMode } from '@/pwa/device-detect';
 import { useWebSocket } from '@/hooks/useWebSocket';
+import { initials } from '@/lib/format';
 
 export function Header() {
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -98,7 +99,7 @@ export function Header() {
           <span>Thu ngân</span>
         </NavLink>}
         <div className={`account-menu ${accountOpen ? 'is-open' : ''}`}>
-          <button className="account-trigger" type="button" aria-expanded={accountOpen} onClick={() => setAccountOpen((value) => !value)}><span>{account?.displayName?.charAt(0).toUpperCase()}</span><i className="ph ph-caret-down" /></button>
+          <button className="account-trigger" type="button" aria-expanded={accountOpen} onClick={() => setAccountOpen((value) => !value)}><span>{initials(account?.displayName)}</span><i className="ph ph-caret-down" /></button>
           <div className="account-popover">
             <div><strong>{account?.displayName}</strong><span>{account?.role === 'manager' ? 'Quản lý' : account?.role === 'cashier' ? 'Thu ngân' : 'Nhân viên'} · {account?.branchName}</span></div>
             <button type="button" className="switch-mobile-menu-item" onClick={handleSwitchToMobile}>

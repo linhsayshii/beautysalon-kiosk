@@ -149,17 +149,6 @@
   padding: 0;
   max-height: var(--app-select-menu-max-height, 420px);
   overflow-y: auto;
-  scrollbar-width: thin;
-  scrollbar-color: var(--line-strong) transparent;
-}
-
-.app-select-menu::-webkit-scrollbar {
-  width: 5px;
-}
-
-.app-select-menu::-webkit-scrollbar-thumb {
-  background-color: var(--line-strong);
-  border-radius: 4px;
 }
 
 /* Menu Item */
@@ -294,7 +283,6 @@
   border-radius: 10px;
 }
 
-/* Pill and ghost come last so they win over the size modifiers. */
 /* Pill variant: a filter chip that opens a menu (mobile chip strips, sort). Matches .chip. */
 .app-select-container.variant-pill .app-select-trigger {
   min-height: var(--chip-h);

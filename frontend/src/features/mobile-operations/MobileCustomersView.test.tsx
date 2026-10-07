@@ -93,7 +93,7 @@ describe('MobileCustomersView Component', () => {
     vi.spyOn(opsApi, 'getCustomerActivity').mockResolvedValue(mockOrdersActivity as any);
   });
 
-  it('renders header title, search/sort triggers, summary bar and grouped customer rows without metric boxes', async () => {
+  it('renders header title, search/sort triggers, summary bar and customer rows without metric boxes', async () => {
     render(
       <MemoryRouter>
         <QueryClientProvider client={queryClient}>
@@ -117,16 +117,25 @@ describe('MobileCustomersView Component', () => {
     expect(screen.getByLabelText('Thêm khách hàng')).toBeInTheDocument();
 
     await waitFor(() => {
-      expect(screen.getByText(/2 khách hàng/)).toBeInTheDocument();
+      expect(screen.getByText(/2 khách/)).toBeInTheDocument();
       // Customer items
       expect(screen.getByText('Nguyễn Văn A')).toBeInTheDocument();
       expect(screen.getByText('Công ty TNHH B')).toBeInTheDocument();
-      expect(screen.getByText('CÁ NHÂN')).toBeInTheDocument();
-      expect(screen.getByText('CÔNG TY')).toBeInTheDocument();
+
+
     });
   });
 
-  it('opens and applies filter sheet', async () => {
+  it('retains server sorting across customer groups', async () => {
+    vi.mocked(opsApi.getCustomers).mockResolvedValue({ ...mockCustomersResponse, data: [
+      mockCustomersResponse.data[0], mockCustomersResponse.data[1], { ...mockCustomersResponse.data[0], id: 3, name: 'Khách thứ ba' },
+    ] } as any);
+    const { container } = render(<MemoryRouter><QueryClientProvider client={queryClient}><WebSocketProvider><AuthProvider><MobileCustomersView /></AuthProvider></WebSocketProvider></QueryClientProvider></MemoryRouter>);
+    await screen.findByText('Khách thứ ba');
+    expect(Array.from(container.querySelectorAll('.m-list-title')).map(row => row.textContent)).toEqual(['Nguyễn Văn A', 'Công ty TNHH B', 'Khách thứ ba']);
+  });
+
+  it('opens and applies filter sheet' , async () => {
     render(
       <MemoryRouter>
         <QueryClientProvider client={queryClient}>
@@ -172,7 +181,7 @@ describe('MobileCustomersView Component', () => {
       expect(screen.getByText('Nguyễn Văn A')).toBeInTheDocument();
     });
 
-    const customerRow = screen.getByText('Nguyễn Văn A').closest('.mobile-operations-row-item');
+    const customerRow = screen.getByText('Nguyễn Văn A').closest('.m-list-row');
     fireEvent.click(customerRow!);
 
     await waitFor(() => {
@@ -202,7 +211,7 @@ describe('MobileCustomersView Component', () => {
         </QueryClientProvider>
       </MemoryRouter>
     );
-    fireEvent.click((await screen.findByText('Nguyễn Văn A')).closest('.mobile-operations-row-item')!);
+    fireEvent.click((await screen.findByText('Nguyễn Văn A')).closest('.m-list-row')!);
     fireEvent.click(await screen.findByRole('button', { name: 'Sửa' }));
     vi.mocked(opsApi.getCustomer).mockResolvedValue({ data: { ...mockCustomerDetail.data, phone: '0934000111' } } as any);
     fireEvent.change(screen.getByPlaceholderText('Nhập số điện thoại'), { target: { value: '0934000111' } });

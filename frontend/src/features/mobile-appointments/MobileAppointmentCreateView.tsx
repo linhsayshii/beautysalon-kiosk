@@ -89,10 +89,11 @@ export function MobileAppointmentCreateView() {
   const [catalogSearch, setCatalogSearch] = useState('');
 
   // Fetch Catalog & Staff queries
-  const { data: catalogResponse } = useQuery({
+  const catalogQuery = useQuery({
     queryKey: ['pos-catalog', catalogSearch, 'service', customer?.id ?? null],
     queryFn: () => getPosCatalog(catalogSearch, 'service', customer?.id),
   });
+  const catalogResponse = catalogQuery.data;
 
   const servicePackagesQuery = useQuery({
     queryKey: ['pos-customer-service-packages', customer?.id ?? null],
@@ -180,7 +181,6 @@ export function MobileAppointmentCreateView() {
       startsAt: startTime,
       staffId: null,
       staffName: null,
-      position: null,
     };
     setActiveEditingItem(newItem);
     setEditingIndex(null); // Adding new
@@ -216,7 +216,6 @@ export function MobileAppointmentCreateView() {
         startsAt: startTime,
         staffId: null,
         staffName: null,
-        position: null,
         usePackageId: customerPackageId,
         usePackageServiceId: selectedService.serviceId,
         packageName: selectedPackage.packageName,
@@ -309,7 +308,7 @@ export function MobileAppointmentCreateView() {
   if (editingId && (editorQuery.isPending || editorQuery.isError || editorQuery.data?.data?.invoiceStatus !== 'draft')) {
     return (
       <div className="mobile-form-view-container">
-        <MobilePageHeader title="Chỉnh sửa lịch" backTo="/m/appointments" />
+        <MobilePageHeader title="Sửa lịch hẹn" backTo="/m/appointments" />
         {editorQuery.isPending ? (
           <LoadingState compact label="Đang tải lịch hẹn…" />
         ) : editorQuery.isError ? (
@@ -330,7 +329,7 @@ export function MobileAppointmentCreateView() {
   return (
     <div className="m-page mobile-form-view-container">
       <MobilePageHeader
-        title={editingId ? 'Chỉnh sửa lịch' : 'Tạo lịch'}
+        title={editingId ? 'Sửa lịch hẹn' : 'Tạo lịch hẹn'}
         onBack={() => navigate(-1)}
         actions={(
           <MobileHeaderAction
@@ -355,7 +354,7 @@ export function MobileAppointmentCreateView() {
             onClick={() => setIsCustomerSheetOpen(true)}
             role="button"
             tabIndex={0}
-            onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); setIsCustomerSheetOpen(true); } }}
+            onKeyDown={(event) => { if (event.target === event.currentTarget && (event.key === 'Enter' || event.key === ' ')) { event.preventDefault(); setIsCustomerSheetOpen(true); } }}
           >
             <div className="mobile-form-row-left">
               <div className="mobile-form-row-icon is-customer">
@@ -368,15 +367,15 @@ export function MobileAppointmentCreateView() {
                     <span className="mobile-form-row-subtitle">
                       {customer.phone || 'Chưa lưu số điện thoại'}
                       {customer.remainingPackageUnits !== undefined && customer.remainingPackageUnits > 0 && (
-                        <span> • Còn {customer.remainingPackageUnits} buổi DV</span>
+                        <span> · Còn {customer.remainingPackageUnits} buổi DV</span>
                       )}
                     </span>
                   </>
                 ) : (
                   <>
-                    <span className="mobile-form-row-title">Thêm khách hàng</span>
+                    <span className="mobile-form-row-title">Chọn khách hàng</span>
                     <span className="mobile-form-row-subtitle">
-                      Chọn hoặc tạo khách hàng mới
+                      Chạm để tìm hoặc thêm khách hàng
                     </span>
                   </>
                 )}
@@ -505,13 +504,6 @@ export function MobileAppointmentCreateView() {
                           </span>
                         )}
 
-                        {item.position && (
-                          <span className="mobile-form-tag is-pos">
-                            <i className="ph ph-map-pin" />
-                            {item.position}
-                          </span>
-                        )}
-
                         {item.usePackageId && (
                           <span
                             className="mobile-form-tag is-package"
@@ -554,8 +546,8 @@ export function MobileAppointmentCreateView() {
         </section>
 
         {/* Card 3: Status Selection Pills */}
-        <section className="mobile-form-card mobile-form-status-card">
-          <div className="mobile-form-section-label">Trạng thái lịch hẹn</div>
+        <section className="mobile-form-card mobile-form-status-card m-section">
+          <span className="m-section-title">Trạng thái lịch hẹn</span>
           <div className="mobile-form-status-grid">
             {APPOINTMENT_STATUSES.map((st) => {
               const isActive = status === st.value;
@@ -646,7 +638,11 @@ export function MobileAppointmentCreateView() {
         )}
       >
         <div className="mobile-catalog-items-list">
-        {catalogItems.length === 0 ? (
+        {catalogQuery.isPending ? (
+          <LoadingState compact />
+        ) : catalogQuery.error ? (
+          <ErrorState compact error={catalogQuery.error} onRetry={() => catalogQuery.refetch()} />
+        ) : catalogItems.length === 0 ? (
           <EmptyState compact title="Không tìm thấy mặt hàng nào" message={null} />
         ) : (
           catalogItems.map((cat) => (
@@ -659,7 +655,7 @@ export function MobileAppointmentCreateView() {
               <div className="mobile-catalog-item-info">
                 <span className="mobile-catalog-item-name">{cat.name}</span>
                 <span className="mobile-catalog-item-cat">
-                  {cat.category || 'Dịch vụ'} {cat.code ? `• ${cat.code}` : ''}
+                  {[cat.code, cat.category].filter(Boolean).join(' · ')}
                 </span>
               </div>
               <span className="mobile-catalog-item-price">

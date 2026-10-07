@@ -43,8 +43,8 @@ export const getPosPriceQuote = (customerId: number | null | undefined, items: A
     body: JSON.stringify({ customerId: customerId ?? null, items }),
   });
 
-export const searchPosCustomers = (search: string) => apiRequest<ApiEnvelope<ApiRecord[]>>(
-  `/pos/customers?search=${encodeURIComponent(search)}`,
+export const searchPosCustomers = (search: string, pageSize?: number) => apiRequest<ApiEnvelope<ApiRecord[]>>(
+  `/pos/customers?search=${encodeURIComponent(search)}${pageSize ? `&pageSize=${pageSize}` : ''}`,
 );
 
 export const createPosCustomer = (body: {

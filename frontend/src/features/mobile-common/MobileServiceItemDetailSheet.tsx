@@ -22,7 +22,6 @@ export interface ConfiguredServiceItem {
   /** Earns the service's original commission; the performer (staffId) earns its tour commission. */
   consultantStaffId?: number | null;
   consultantStaffName?: string | null;
-  position?: string | null;
   note?: string;
   usePackageId?: number | null;
   usePackageServiceId?: number | null;
@@ -35,23 +34,11 @@ export interface MobileServiceItemDetailSheetProps {
   item: ConfiguredServiceItem | null;
   staffList?: Array<{ id: number; name: string; role: string; avatarTone?: string }>;
   timeZone?: string;
+  /** Appointments book a time slot; an invoice line has none, so false hides the pickers. */
+  schedule?: boolean;
   onClose: () => void;
   onSaveItem: (item: ConfiguredServiceItem) => void;
 }
-
-const PRESET_POSITIONS = [
-  'Giường 1',
-  'Giường 2',
-  'Giường 3',
-  'Giường 4',
-  'Phòng VIP 1',
-  'Phòng VIP 2',
-  'Phòng VIP 3',
-  'Ghế Spa 1',
-  'Ghế Spa 2',
-  'Bàn Nail 1',
-  'Bàn Nail 2',
-];
 
 const WEEKDAY_NAMES = ['CN', 'Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7'];
 
@@ -73,6 +60,7 @@ export function MobileServiceItemDetailSheet({
   item,
   staffList: propStaffList,
   timeZone = DEFAULT_BRANCH_TIME_ZONE,
+  schedule = true,
   onClose,
   onSaveItem,
 }: MobileServiceItemDetailSheetProps) {
@@ -99,7 +87,6 @@ export function MobileServiceItemDetailSheet({
   const [startsAt, setStartsAt] = useState<Date>(new Date());
   const [selectedStaffId, setSelectedStaffId] = useState<number | null>(null);
   const [selectedStaffName, setSelectedStaffName] = useState<string | null>(null);
-  const [position, setPosition] = useState<string | null>(null);
   const [consultantOpen, setConsultantOpen] = useState(false);
   const [consultantId, setConsultantId] = useState<number | null>(null);
   const [consultantName, setConsultantName] = useState<string | null>(null);
@@ -107,10 +94,8 @@ export function MobileServiceItemDetailSheet({
   // Sub-sheet pickers
   const [isStaffPickerOpen, setIsStaffPickerOpen] = useState(false);
   const [staffPickerTarget, setStaffPickerTarget] = useState<'performer' | 'consultant'>('performer');
-  const [isPositionPickerOpen, setIsPositionPickerOpen] = useState(false);
   const [isTimePickerOpen, setIsTimePickerOpen] = useState(false);
   const [staffSearch, setStaffSearch] = useState('');
-  const [customPosition, setCustomPosition] = useState('');
   const staffSearchRef = useRef<HTMLInputElement>(null);
 
   // Sync state with incoming item
@@ -122,8 +107,6 @@ export function MobileServiceItemDetailSheet({
       setStartsAt(isNaN(initialDate.getTime()) ? new Date() : initialDate);
       setSelectedStaffId(item.staffId ?? null);
       setSelectedStaffName(item.staffName ?? null);
-      setPosition(item.position ?? null);
-      setCustomPosition(item.position ?? '');
       setConsultantId(item.consultantStaffId ?? null);
       setConsultantName(item.consultantStaffName ?? null);
       setConsultantOpen(Boolean(item.consultantStaffId));
@@ -152,20 +135,20 @@ export function MobileServiceItemDetailSheet({
 
   if (!isOpen || !item) return null;
 
-  // Only services are scheduled: products, packages and cards have no time slot or location.
+  // Only services are scheduled: products, packages and cards have no time slot.
   const isService = item.itemType === 'service';
+  const isScheduled = isService && schedule;
 
   const handleSave = () => {
     onSaveItem({
       ...item,
       quantity: Math.min(quantity, item.maxQuantity ?? Number.POSITIVE_INFINITY),
-      durationMinutes: isService ? durationMinutes : undefined,
-      startsAt: isService ? startsAt : null,
+      durationMinutes: isScheduled ? durationMinutes : undefined,
+      startsAt: isScheduled ? startsAt : null,
       staffId: selectedStaffId,
       staffName: selectedStaffName,
       consultantStaffId: isService && consultantOpen ? consultantId : null,
       consultantStaffName: isService && consultantOpen ? consultantName : null,
-      position: isService ? position : null,
     });
     onClose();
   };
@@ -198,7 +181,7 @@ export function MobileServiceItemDetailSheet({
       <BottomSheet
         open
         onClose={onClose}
-        title={isService ? 'Chi tiết lịch dịch vụ' : 'Chi tiết hàng hóa'}
+        title={isScheduled ? 'Chi tiết lịch dịch vụ' : isService ? 'Chi tiết dịch vụ' : 'Chi tiết hàng hóa'}
         height="full"
         tone="muted"
         footer={<button type="button" className="btn btn-primary btn-lg" onClick={handleSave}>Xong</button>}
@@ -262,9 +245,9 @@ export function MobileServiceItemDetailSheet({
 
         {/* Section: LỊCH LÀM DỊCH VỤ (services) or NHÂN VIÊN BÁN (other items) */}
         <div className="mobile-item-section">
-          <h4 className="mobile-item-section-title">{isService ? 'LỊCH LÀM DỊCH VỤ' : 'NHÂN VIÊN BÁN'}</h4>
+          <h4 className="mobile-item-section-title">{isScheduled ? 'LỊCH LÀM DỊCH VỤ' : isService ? 'NHÂN VIÊN THỰC HIỆN' : 'NHÂN VIÊN BÁN'}</h4>
 
-          {isService && (
+          {isScheduled && (
             <>
               {/* Date & Time Range Pills */}
               <div className="mobile-item-pills-row">
@@ -312,32 +295,6 @@ export function MobileServiceItemDetailSheet({
             </div>
           </button>
 
-          {isService && (
-            <>
-              {/* Row: Chọn vị trí */}
-              <button
-                type="button"
-                className="mobile-item-picker-row"
-                onClick={() => setIsPositionPickerOpen(true)}
-              >
-                <div className="mobile-picker-row-left">
-                  <i className="ph ph-map-pin mobile-picker-row-icon" />
-                  <div className="mobile-picker-row-text">
-                    <span className="mobile-picker-row-label">Chọn vị trí</span>
-                    {position && (
-                      <span className="mobile-picker-row-sub">Vị trí phòng / giường</span>
-                    )}
-                  </div>
-                </div>
-                <div className="mobile-picker-row-right">
-                  <span className="mobile-picker-row-val">
-                    {position || 'Chưa chọn'}
-                  </span>
-                  <i className="ph ph-caret-right" />
-                </div>
-              </button>
-            </>
-          )}
         </div>
 
         {isService && (consultantOpen ? (
@@ -461,57 +418,6 @@ export function MobileServiceItemDetailSheet({
                 {isSelected && (
                   <i className="ph ph-check-circle mobile-staff-check" />
                 )}
-              </button>
-            );
-          })}
-        </div>
-      </BottomSheet>
-
-      <BottomSheet
-        open={isPositionPickerOpen}
-        onClose={() => setIsPositionPickerOpen(false)}
-        title="Chọn vị trí làm dịch vụ"
-        nested
-      >
-        <div className="mobile-position-custom-row">
-          <input
-            className="input"
-            type="text"
-            aria-label="Tên phòng hoặc giường"
-            placeholder="Nhập tên phòng / giường..."
-            value={customPosition}
-            onChange={(e) => setCustomPosition(e.target.value)}
-          />
-          <button
-            type="button"
-            className="btn btn-primary"
-            onClick={() => {
-              setPosition(customPosition.trim() || null);
-              setIsPositionPickerOpen(false);
-            }}
-          >
-            Áp dụng
-          </button>
-        </div>
-
-        <div className="mobile-position-presets-grid">
-          {PRESET_POSITIONS.map((pos) => {
-            const isSelected = position === pos;
-            return (
-              <button
-                key={pos}
-                type="button"
-                className={`mobile-position-pill ${
-                  isSelected ? 'is-selected' : ''
-                }`}
-                onClick={() => {
-                  setPosition(pos);
-                  setCustomPosition(pos);
-                  setIsPositionPickerOpen(false);
-                }}
-              >
-                <i className="ph ph-map-pin" />
-                <span>{pos}</span>
               </button>
             );
           })}

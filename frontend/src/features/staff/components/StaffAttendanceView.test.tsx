@@ -106,7 +106,6 @@ describe('StaffAttendanceView', () => {
       </QueryClientProvider>,
     );
 
-    fireEvent.click(screen.getByRole('button', { name: /Duyệt chấm công/ }));
-    expect(screen.getByText('Tính năng đang triển khai')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Duyệt chấm công/ })).not.toBeInTheDocument();
   });
 });

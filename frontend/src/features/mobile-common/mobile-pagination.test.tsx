@@ -12,10 +12,10 @@ vi.mock('@/features/auth/AuthProvider', () => ({ useAuth: () => ({ account: { ro
 vi.mock('@/components/ui/Toast/ToastProvider', () => ({ useToast: () => ({ notify: vi.fn() }) }));
 afterEach(() => { cleanup(); vi.restoreAllMocks(); });
 const cases = [
-  { View: MobileOrdersView, api: operations, method: 'getOrders', summary: { paidRevenue: 123456789 }, expected: '123.456.789đ', sort: 'Giá trị: Cao → thấp', sortKey: 'total_desc' },
-  { View: MobileCustomersView, api: operations, method: 'getCustomers', summary: { totalDebt: 123456789 }, expected: '123.456.789đ', sort: 'Công nợ: Cao → thấp', sortKey: 'debt_desc' },
-  { View: MobileCustomerCardsView, api: operations, method: 'getCustomerCards', summary: {}, expected: '101 gói, thẻ đã bán', sort: 'Giá bán: Cao → thấp', sortKey: 'price_desc' },
-  { View: MobilePurchaseOrdersView, api: inventory, method: 'getPurchaseOrders', summary: { totalDue: 123456789 }, expected: '123.456.789đ', sort: 'Giá trị: Cao → thấp', sortKey: 'total_desc' },
+  { View: MobileOrdersView, api: operations, method: 'getOrders', summary: { paidRevenue: 123456789 }, expected: '123.456.789đ', sort: 'Giá trị cao', sortKey: 'total_desc' },
+  { View: MobileCustomersView, api: operations, method: 'getCustomers', summary: { totalDebt: 123456789 }, expected: '123.456.789đ', sort: 'Nợ cao nhất', sortKey: 'debt_desc' },
+  { View: MobileCustomerCardsView, api: operations, method: 'getCustomerCards', summary: {}, expected: '101 gói/thẻ', sort: 'Giá bán cao', sortKey: 'price_desc' },
+  { View: MobilePurchaseOrdersView, api: inventory, method: 'getPurchaseOrders', summary: { totalDue: 123456789 }, expected: '123.456.789đ', sort: 'Giá trị cao', sortKey: 'total_desc' },
 ] as const;
 describe('mobile list pagination', () => {
   it.each(cases)('$method loads page 2, retains global totals, and resets page on sorting', async ({ View, api, method, summary, expected, sort, sortKey }) => {
@@ -58,7 +58,7 @@ it.each([cases[0], cases[3]])('$method requests exactly seven inclusive calendar
   } finally { vi.useRealTimers(); }
 });
 it.each([
-  { View: MobileOrdersView, api: operations, list: 'getOrders', detail: 'getOrder', label: 'ROW-1' },
+  { View: MobileOrdersView, api: operations, list: 'getOrders', detail: 'getOrder', label: /ROW-1/ },
   { View: MobileCustomersView, api: operations, list: 'getCustomers', detail: 'getCustomer', label: 'Customer-1' },
   { View: MobileCustomerCardsView, api: operations, list: 'getCustomerCards', detail: 'getCustomerCard', label: 'Card-1' },
   { View: MobilePurchaseOrdersView, api: inventory, list: 'getPurchaseOrders', detail: 'getPurchaseOrder', label: 'ROW-1' },

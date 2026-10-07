@@ -3,6 +3,3 @@ import { MobileDashboardView } from '@/features/mobile-dashboard/MobileDashboard
 export function Component() {
   return <MobileDashboardView />;
 }
-
-export default Component;
-

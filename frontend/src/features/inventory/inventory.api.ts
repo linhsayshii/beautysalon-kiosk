@@ -1,6 +1,7 @@
 import { apiRequest, toQueryString } from '@/services/api-client';
 import type { ApiEnvelope } from '@/services/api-client';
 import type { ApiRecord, Pagination } from '@/types/api';
+import { appConfig } from '@/app/config';
 
 export interface InventoryMeta { pagination: Pagination; summary?: ApiRecord; pricebook?: ApiRecord | null; pricebooks?: ApiRecord[]; categories?: string[] }
 
@@ -53,6 +54,15 @@ export interface CreateInventoryItemInput extends ApiRecord {
 }
 
 export const getProducts = (filters: ApiRecord, options: RequestInit = {}) => apiRequest<ApiEnvelope<ApiRecord[], InventoryMeta>>(`/inventory/products?${toQueryString(filters)}`, options);
+/** Form pickers must include goods beyond the first page; a partial catalogue hides valid choices. */
+export async function getInventoryCatalog(filters: ApiRecord) {
+  const first = await getProducts({ ...filters, page: 1, pageSize: appConfig.purchaseCatalogPageSize });
+  const pages = first.meta.pagination.totalPages;
+  if (pages <= 1) return first;
+  const rest = await Promise.all(Array.from({ length: pages - 1 }, (_, index) =>
+    getProducts({ ...filters, page: index + 2, pageSize: appConfig.purchaseCatalogPageSize })));
+  return { ...first, data: [first, ...rest].flatMap((page) => page.data) };
+}
 export const getInventoryItem = (itemType: string, itemId: number) => apiRequest<ApiEnvelope<ApiRecord>>(`/inventory/items/${itemType}/${itemId}`);
 export const createInventoryItem = (body: CreateInventoryItemInput) => apiRequest<ApiEnvelope<ApiRecord>>('/inventory/items', { method: 'POST', body: JSON.stringify(body) });
 /** Uploads an already-compressed photo (see `compressImage`) and returns its URL for `imageUrl`. */
@@ -72,5 +82,6 @@ export const deletePricebook = (pricebookId: number) => apiRequest<ApiEnvelope<{
 export const updatePrice = (pricebookId: number, itemType: string, itemId: number, salePrice: number) => apiRequest(`/inventory/pricebooks/${pricebookId}/items/${itemType}/${itemId}`, { method: 'PATCH', body: JSON.stringify({ salePrice }) });
 export const getPurchaseOrders = (filters: ApiRecord) => apiRequest<ApiEnvelope<ApiRecord[], InventoryMeta>>(`/inventory/purchase-orders?${toQueryString(filters)}`);
 export const getPurchaseOrder = (id: number) => apiRequest<ApiEnvelope<ApiRecord>>(`/inventory/purchase-orders/${id}`);
+export const completePurchaseOrder = (id: number) => apiRequest<ApiEnvelope<ApiRecord>>(`/inventory/purchase-orders/${id}/complete`, { method: 'POST' });
 export const getSuppliers = () => apiRequest<ApiEnvelope<ApiRecord[]>>('/inventory/suppliers');
 export const createPurchaseOrder = (body: ApiRecord) => apiRequest<ApiEnvelope<ApiRecord>>('/inventory/purchase-orders', { method: 'POST', body: JSON.stringify(body) });

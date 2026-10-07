@@ -6,7 +6,6 @@ import { ToastProvider } from '@/components/ui/Toast/ToastProvider';
 import { WebSocketProvider } from '@/context/WebSocketContext';
 import { MobileInvoiceCreateView } from './MobileInvoiceCreateView';
 import * as posApi from '@/features/pos/pos.api';
-import * as opsApi from '@/features/operations/operations.api';
 
 // Mock useNavigate
 const mockNavigate = vi.fn();
@@ -139,7 +138,7 @@ describe('MobileInvoiceCreateView Component', () => {
       defaultOptions: { queries: { retry: false } },
     });
 
-    vi.spyOn(opsApi, 'getCustomers').mockResolvedValue({
+    vi.spyOn(posApi, 'searchPosCustomers').mockResolvedValue({
       data: mockCustomers as any,
       meta: { pagination: { total: 1, page: 1, pageSize: 50, totalPages: 1 }, summary: {} } as any,
     });
@@ -243,7 +242,7 @@ describe('MobileInvoiceCreateView Component', () => {
     fireEvent.click(screen.getByText('Chăm sóc da chuyên sâu'));
     fireEvent.click(screen.getByRole('button', { name: 'Dùng gói' }));
 
-    await waitFor(() => expect(screen.getByText('Chi tiết lịch dịch vụ')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText('Chi tiết dịch vụ')).toBeInTheDocument());
     fireEvent.click(screen.getByRole('button', { name: 'Xong' }));
 
     await waitFor(() => {
@@ -281,7 +280,7 @@ describe('MobileInvoiceCreateView Component', () => {
     await waitFor(() => expect(screen.getByText('Chăm sóc da chuyên sâu')).toBeInTheDocument());
     fireEvent.click(screen.getByText('Chăm sóc da chuyên sâu'));
     fireEvent.click(screen.getByRole('button', { name: 'Dùng gói' }));
-    await waitFor(() => expect(screen.getByText('Chi tiết lịch dịch vụ')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText('Chi tiết dịch vụ')).toBeInTheDocument());
     fireEvent.click(screen.getByRole('button', { name: 'Xong' }));
     await waitFor(() => expect(screen.getByText('Trừ gói: Gói chăm sóc da 5 buổi')).toBeInTheDocument());
 
@@ -311,7 +310,7 @@ describe('MobileInvoiceCreateView Component', () => {
 
     // Detail sheet opens
     await waitFor(() => {
-      expect(screen.getByText('Chi tiết lịch dịch vụ')).toBeInTheDocument();
+      expect(screen.getByText('Chi tiết dịch vụ')).toBeInTheDocument();
     });
 
     // Tap Select Staff
@@ -374,7 +373,7 @@ describe('MobileInvoiceCreateView Component', () => {
     await waitFor(() => expect(screen.getByText('Chăm sóc da chuyên sâu')).toBeInTheDocument());
     fireEvent.click(screen.getByText('Chăm sóc da chuyên sâu'));
 
-    await waitFor(() => expect(screen.getByText('Chi tiết lịch dịch vụ')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText('Chi tiết dịch vụ')).toBeInTheDocument());
     fireEvent.click(screen.getByText('Chọn nhân viên'));
     await waitFor(() => expect(screen.getByText('Nguyễn Kỹ Thuật Viên 1')).toBeInTheDocument());
     fireEvent.click(screen.getByText('Nguyễn Kỹ Thuật Viên 1'));
@@ -395,6 +394,8 @@ describe('MobileInvoiceCreateView Component', () => {
       expect(posApi.checkoutPosInvoice).toHaveBeenCalledWith(
         expect.objectContaining({
           customerId: 201,
+          // No header staff: the backend would credit it to every unassigned line.
+          staffId: null,
           discount: 50000,
           paymentMethod: 'bank_transfer',
           amountPaid: 250000,

@@ -168,7 +168,7 @@ export async function recordAttendance({ branchId, staffId, token, latitude, lon
       type: 'attendance',
       title: action === 'check_in' ? 'Nhân viên đã vào ca' : 'Nhân viên đã tan ca',
       detail: `Mã nhân viên ${staffId} đã ${action === 'check_in' ? 'chấm công vào' : 'chấm công ra'}.`,
-      targetPath: '/m/attendance',
+      targetPath: '/m/staff/attendance',
     });
     return { action, distanceMeters: Math.round(distance), attendance };
   } catch (error) {

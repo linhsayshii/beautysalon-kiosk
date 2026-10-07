@@ -61,13 +61,6 @@
 .status-badge.leave { color: var(--violet); background: var(--violet-soft); }
 
 .badge-neutral { color: var(--ink-600); background: var(--surface-hover); }
-.badge-sky { color: var(--sky); background: var(--sky-soft); }
-.badge-pink { color: var(--pink); background: var(--pink-soft); }
-
-.badge-outline {
-  border: 1px solid currentColor;
-  background: transparent;
-}
 
 .chip {
   display: inline-flex;

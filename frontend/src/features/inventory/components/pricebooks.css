@@ -1,5 +1,4 @@
 /* Keep this dialog isolated from generic modal styles used by other screens. */
-/* Form styles */
 /* Pricebook Toolbar */
 .pricebook-toolbar {
   display: flex;

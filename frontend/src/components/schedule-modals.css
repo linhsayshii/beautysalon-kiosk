@@ -1,5 +1,5 @@
 /* Layout details for the schedule dialogs (ApplyWeeksModal, DeleteScheduleModal,
- * PropagateModal). The dialog shell and option cards come from styles/ui. */
+ * ApplyWeeksModal). The dialog shell and option cards come from styles/ui. */
 .apply-weeks-range {
   display: grid;
   gap: 8px;

@@ -61,3 +61,9 @@ export function canAccessPath(role: AccountRole, pathname: string) {
   const permission = permissionForPath(pathname);
   return permission === null || hasPermission(role, permission);
 }
+
+/** Return to the protected page that requested login, within the account's permissions. */
+export function postLoginPath(role: AccountRole, from: unknown) {
+  if (typeof from === 'string' && /^\/(?!\/)[a-z0-9/-]*$/i.test(from) && from !== '/login' && canAccessPath(role, from)) return from;
+  return homeForRole(role, typeof from === 'string' && from.startsWith('/m/'));
+}

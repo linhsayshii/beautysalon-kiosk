@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useRef, useState } from 'react';
+import { Fragment, useEffect, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { AvatarName } from '@/components/data-display/AvatarName';
 import { EmptyState, ErrorState, LoadingState } from '@/components/data-display/DataState';
@@ -22,23 +22,12 @@ export function StaffListView() {
   const [isCreating, setIsCreating] = useState(false);
   const [editingStaff, setEditingStaff] = useState<{ staff: ApiRecord; initialTab: 'info' | 'salary' } | null>(null);
   const [expanded, setExpanded] = useState<string | null>(null);
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set());
-  const selectAllRef = useRef<HTMLInputElement>(null);
   const queryClient = useQueryClient();
   const { subscribe } = useWebSocket();
   const query = useQuery({ queryKey: ['staff', appliedSearch], queryFn: () => getStaff({ search: appliedSearch }) });
   const rows = query.data?.data ?? [];
   const revenue = rows.reduce((sum, row) => sum + Number(row.monthRevenue), 0);
   const orders = rows.reduce((sum, row) => sum + Number(row.monthOrders), 0);
-  const visibleIds = rows.map((row) => String(row.id));
-  const selectedVisibleCount = visibleIds.filter((id) => selectedIds.has(id)).length;
-  const allVisibleSelected = visibleIds.length > 0 && selectedVisibleCount === visibleIds.length;
-
-  useEffect(() => {
-    if (selectAllRef.current) {
-      selectAllRef.current.indeterminate = selectedVisibleCount > 0 && !allVisibleSelected;
-    }
-  }, [allVisibleSelected, selectedVisibleCount]);
 
   useEffect(() => {
     const unsub = subscribe(['staff:created', 'staff:updated'], () => {
@@ -47,24 +36,6 @@ export function StaffListView() {
     });
     return unsub;
   }, [subscribe, queryClient]);
-
-  const toggleAllVisible = () => {
-    setSelectedIds((current) => {
-      const next = new Set(current);
-      if (allVisibleSelected) visibleIds.forEach((id) => next.delete(id));
-      else visibleIds.forEach((id) => next.add(id));
-      return next;
-    });
-  };
-
-  const toggleRowSelection = (id: string) => {
-    setSelectedIds((current) => {
-      const next = new Set(current);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  };
 
   const applySearch = () => {
     setAppliedSearch(search);
@@ -91,22 +62,19 @@ export function StaffListView() {
         {query.isPending ? <LoadingState /> : query.error ? <ErrorState error={query.error} onRetry={() => query.refetch()} /> : !rows.length ? <EmptyState /> : <>
           <div className="table-scroll"><table className="data-table staff-list-table">
             <thead><tr>
-              <th className="mobile-hide"><input ref={selectAllRef} className="table-checkbox" type="checkbox" checked={allVisibleSelected} onChange={toggleAllVisible} aria-label="Chọn tất cả nhân viên" /></th>
               <th>Mã nhân viên</th><th>Nhân viên</th><th>Vai trò</th><th>Hình thức lương</th><th>Đơn tháng này</th><th>Doanh thu tháng</th><th>Trạng thái</th>
             </tr></thead>
             <tbody>{rows.map((row) => {
               const rowId = String(row.id);
-              const isSelected = selectedIds.has(rowId);
               const isExpanded = expanded === rowId;
               const detailId = `staff-detail-${rowId}`;
               return <Fragment key={row.id}>
                 <tr
-                  className={`staff-data-row expandable-data-row ${isSelected ? 'is-selected' : ''} ${isExpanded ? 'is-expanded' : ''}`}
+                  className={`staff-data-row expandable-data-row ${isExpanded ? 'is-expanded' : ''}`}
                   onClick={() => setExpanded((current) => current === rowId ? null : rowId)}
                   aria-expanded={isExpanded}
                   aria-controls={detailId}
                 >
-                  <td className="mobile-hide"><input className="table-checkbox" type="checkbox" checked={isSelected} onChange={() => toggleRowSelection(rowId)} onClick={(event) => event.stopPropagation()} aria-label={`Chọn ${row.name}`} /></td>
                   <td data-label="Mã nhân viên"><span className="cell-main link">{row.code}</span></td>
                   <td data-label="Nhân viên"><AvatarName name={row.name} subtitle={row.role} tone={row.avatarTone} /></td>
                   <td data-label="Vai trò">{row.role}</td>
@@ -115,7 +83,7 @@ export function StaffListView() {
                   <td data-label="Doanh thu" className="money-cell">{formatMoney(row.monthRevenue)}</td>
                   <td data-label="Trạng thái"><StatusBadge status={row.active ? 'active' : 'cancelled'} /></td>
                 </tr>
-                {isExpanded && <tr id={detailId} className="staff-detail-row expandable-detail-row"><td colSpan={8}><StaffDetail staff={row} onEdit={(initialTab) => setEditingStaff({ staff: row, initialTab })} /></td></tr>}
+                {isExpanded && <tr id={detailId} className="staff-detail-row expandable-detail-row"><td colSpan={7}><StaffDetail staff={row} onEdit={(initialTab) => setEditingStaff({ staff: row, initialTab })} /></td></tr>}
               </Fragment>;
             })}</tbody>
           </table></div>

@@ -73,6 +73,13 @@ test('cashbook routes enforce manager and cashier boundaries', async (t) => {
       assert.ok(new Date(voucher.occurredAt).getTime() > Date.now() - 60_000);
     });
 
+    await t.test('a cashier opens only a voucher from today', async () => {
+      // Voucher 1 is the opening balance from January; voucher 2 was written just now.
+      assert.equal((await call('cashier', '/vouchers/1')).status, 404);
+      assert.equal((await call('cashier', '/vouchers/2')).status, 200);
+      assert.equal((await call('manager', '/vouchers/1')).status, 200);
+    });
+
     await t.test('managers can read the summary and validation errors are 400s', async () => {
       assert.equal((await call('manager', '/summary?dateFrom=2026-09-01&dateTo=2026-09-30')).status, 200);
       assert.equal((await call('manager', '/summary?dateFrom=2026-09-30&dateTo=2026-09-01')).status, 400);

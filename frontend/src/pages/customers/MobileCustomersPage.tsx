@@ -3,5 +3,3 @@ import { MobileCustomersView } from '@/features/mobile-operations/MobileCustomer
 export function Component() {
   return <MobileCustomersView />;
 }
-
-export default Component;

@@ -4,7 +4,7 @@
 
 Xây dựng bộ giao diện quản trị salon lấy cảm hứng từ bố cục KiotViet trong ảnh tham chiếu, nhưng sử dụng nhận diện AnnaChill. Sản phẩm cần dễ đọc trong ca làm việc, thao tác nhanh, thân thiện và có thể mở rộng thành đầy đủ các phân hệ quản lý salon.
 
-Phạm vi giai đoạn đầu: trang Dashboard - Tổng quan.
+Phạm vi hiện tại: toàn bộ giao diện quản trị và mobile. Template triển khai dùng chung nằm trong [Mobile UI: header, trang và sheet](docs/mobile-ui-header-template.md); các khối Dashboard bên dưới mô tả định hướng ban đầu.
 
 ## 2. Design read
 
@@ -22,9 +22,9 @@ Phạm vi giai đoạn đầu: trang Dashboard - Tổng quan.
 - Card lớn: bo góc `16px`.
 - Card con và item danh sách: bo góc `12px`.
 - Badge và chip: dạng pill, bo góc tối đa.
-- Button, input và select: bo góc `10px` (`--radius-control`) để nằm cạnh nhau trên toolbar có cùng hình khối.
+- Button, input và select: bo góc `12px` (`--radius-control`), cao 40px trên desktop và 44px trên mobile/sheet.
 - Viền card: `1px` với màu xanh xám rất nhạt.
-- Shadow: mềm, nhuộm xanh, chỉ dùng để tách lớp cho nav, dropdown và card nổi.
+- Card trong trang dùng viền mảnh, không bóng; bóng chỉ tách các lớp nổi như dropdown, modal và sheet.
 - Không dùng góc vuông, glow neon hoặc glassmorphism.
 
 ### 3.2 Màu sắc
@@ -61,6 +61,7 @@ Không viết mã màu hex ngoài `tokens.css`; test contract sẽ báo lỗi.
 ### 3.3 Typography
 
 - Font: hệ thống sans-serif ưu tiên `SF Pro Display`, `SF Pro Text`, `Segoe UI`, `Arial`.
+- Tiêu đề trang dùng token 22px/weight 600 trên desktop; control nhập trên mobile luôn ít nhất 16px để tránh iOS tự zoom.
 - Tiêu đề card: 16-18px, weight 700.
 - KPI chính: 28-34px, weight 750.
 - Body: 14px, line-height 1.5.
@@ -69,7 +70,7 @@ Không viết mã màu hex ngoài `tokens.css`; test contract sẽ báo lỗi.
 
 ### 3.4 Khoảng cách
 
-- Khoảng cách trang: 14px ở desktop, 12px ở tablet, 10px ở mobile.
+- Khoảng cách trang: 14px ở desktop, 12px ở tablet; mobile shell dùng 16px.
 - Padding card: 13-15px ở desktop, 12-15px ở mobile.
 - Gap giữa card: 9-10px.
 - Chiều cao thanh điều hướng: 56px ở desktop và 52px ở mobile.

@@ -157,35 +157,20 @@ describe('MobileServiceItemDetailSheet', () => {
     expect(screen.getByText('Nguyễn Thu Trang')).toBeInTheDocument();
   });
 
-  it('opens position selector sheet and selects a bed / room', async () => {
-    const onClose = vi.fn();
-    const onSaveItem = vi.fn();
-
+  it('offers no room or bed picker, because nothing stores it', () => {
     renderWithClient(
-      <MobileServiceItemDetailSheet
-        isOpen={true}
-        item={sampleItem}
-        staffList={mockStaffList}
-        onClose={onClose}
-        onSaveItem={onSaveItem}
-      />
+      <MobileServiceItemDetailSheet isOpen={true} item={sampleItem} staffList={mockStaffList} onClose={vi.fn()} onSaveItem={vi.fn()} />
     );
+    expect(screen.queryByText('Chọn vị trí')).not.toBeInTheDocument();
+  });
 
-    // Click on "Chọn vị trí"
-    const positionRow = screen.getByText('Chọn vị trí');
-    fireEvent.click(positionRow);
-
-    // Preset positions should appear (e.g. Giường 1, Phòng VIP 1)
-    await waitFor(() => {
-      expect(screen.getByText('Giường 1')).toBeInTheDocument();
-      expect(screen.getByText('Phòng VIP 1')).toBeInTheDocument();
-    });
-
-    // Click Giường 1
-    fireEvent.click(screen.getByText('Giường 1'));
-
-    // Position is updated
-    expect(screen.getByText('Giường 1')).toBeInTheDocument();
+  it('hides the schedule pickers on an invoice line, which has no time slot', () => {
+    const onSaveItem = vi.fn();
+    renderWithClient(
+      <MobileServiceItemDetailSheet isOpen={true} item={sampleItem} staffList={mockStaffList} schedule={false} onClose={vi.fn()} onSaveItem={onSaveItem} />
+    );
+    expect(screen.getByText('NHÂN VIÊN THỰC HIỆN')).toBeInTheDocument();
+    expect(screen.queryByText('LỊCH LÀM DỊCH VỤ')).not.toBeInTheDocument();
   });
 
   it('saves configured service item and calls onClose when clicking [ Xong ]', () => {

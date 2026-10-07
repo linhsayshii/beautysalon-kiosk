@@ -1,14 +1,16 @@
 import { useState } from 'react';
 import type { FormEvent } from 'react';
-import { Navigate, useNavigate } from 'react-router-dom';
+import { Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { errorMessage } from '@/services/api-client';
 import { useStoreName } from '@/services/metadata';
-import { homeForRole, useAuth } from './AuthProvider';
+import { useAuth } from './AuthProvider';
+import { postLoginPath } from './authorization';
 
 export function LoginView() {
   const { account, loading, login } = useAuth();
   const storeName = useStoreName();
   const navigate = useNavigate();
+  const location = useLocation();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -16,14 +18,14 @@ export function LoginView() {
   const [error, setError] = useState('');
 
   if (loading) return <AuthLoading />;
-  if (account) return <Navigate to={homeForRole(account.role)} replace />;
+  if (account) return <Navigate to={postLoginPath(account.role, location.state?.from)} replace />;
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
     setSubmitting(true); setError('');
     try {
       const signedIn = await login(username.trim(), password);
-      navigate(homeForRole(signedIn.role), { replace: true });
+      navigate(postLoginPath(signedIn.role, location.state?.from), { replace: true });
     } catch (cause) {
       setError(errorMessage(cause, 'Không thể đăng nhập lúc này'));
     } finally { setSubmitting(false); }

@@ -1,11 +1,12 @@
 import { useEffect, useState, useMemo } from 'react';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
-import { getCustomers } from '@/features/operations/operations.api';
+import { createPosCustomer, searchPosCustomers } from '@/features/pos/pos.api';
 import { CustomerCreateDialog } from '@/features/operations/components/CustomerCreateDialog';
 import { formatMoney, formatNumber, initials } from '@/lib/format';
 import type { ApiRecord } from '@/types/api';
 import { BottomSheet } from '@/components/ui/Sheet/BottomSheet';
-import { EmptyState, LoadingState } from '@/components/data-display/DataState';
+import { EmptyState, ErrorState, LoadingState } from '@/components/data-display/DataState';
+import { MobileSearchBar } from './MobileSearchBar';
 
 export interface MobileCustomer {
   id: number;
@@ -40,9 +41,10 @@ export function MobileCustomerSelectSheet({
     return () => window.clearTimeout(timer);
   }, [search]);
 
-  const { data: customerResponse, isLoading, refetch } = useQuery({
+  const { data: customerResponse, isLoading, error, refetch } = useQuery({
     queryKey: ['mobile-customer-select', debouncedSearch],
-    queryFn: ({ signal }) => getCustomers({ search: debouncedSearch, page: 1, pageSize: 50 }, { signal }),
+    // POS endpoints: every role that sells or books (pos:use) may search and add customers.
+    queryFn: () => searchPosCustomers(debouncedSearch, 50),
     enabled: isOpen,
     placeholderData: keepPreviousData,
   });
@@ -79,24 +81,16 @@ export function MobileCustomerSelectSheet({
       )}
       headerExtra={(
         <div className="sheet-toolbar">
-          <label className="input-group">
-            <i className="ph ph-magnifying-glass" aria-hidden="true" />
-            <input
-              type="search"
-              placeholder="Tìm khách hàng"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              aria-label="Tìm khách hàng"
-              autoFocus
-            />
-          </label>
+          <MobileSearchBar placeholder="Tìm khách hàng" value={search} onChange={setSearch} autoFocus />
         </div>
       )}
     >
       {/* Customer List */}
-      <div className="mobile-customer-list">
+      <div className="m-list">
         {isLoading ? (
           <LoadingState compact label="Đang tải danh sách khách hàng..." />
+        ) : error ? (
+          <ErrorState compact error={error} onRetry={() => refetch()} />
         ) : customers.length === 0 ? (
           <EmptyState compact icon="ph ph-users" title="Không tìm thấy khách hàng nào" message={null} />
         ) : (
@@ -109,38 +103,32 @@ export function MobileCustomerSelectSheet({
               <button
                 type="button"
                 key={c.id}
-                className={`mobile-customer-card ${isSelected ? 'is-selected' : ''}`}
+                className="m-list-row"
+                aria-pressed={isSelected}
                 onClick={() => {
                   onSelectCustomer(c);
                   onClose();
                 }}
               >
-                <div className="mobile-customer-avatar">
+                <div className="m-list-avatar is-round" aria-hidden="true">
                   {initials(c.name) || 'KH'}
                 </div>
-                <div className="mobile-customer-info">
-                  <div className="mobile-customer-name-row">
-                    <span className="mobile-customer-name">{c.name}</span>
-                    {c.code && (
-                      <span className="mobile-customer-code">{c.code}</span>
-                    )}
-                  </div>
+                <div className="m-list-copy">
+                  <strong>{c.name}</strong>
+                  {c.code && <small>{c.code}</small>}
                   {c.phone && (
-                    <div className="mobile-customer-phone">
-                      <i className="ph ph-phone" />
-                      <span>{c.phone}</span>
-                    </div>
+                    <small>{c.phone}</small>
                   )}
                   {(remainingUnits > 0 || debt > 0) && (
-                    <div className="mobile-customer-badges">
+                    <div className="m-list-meta">
                       {remainingUnits > 0 && (
-                        <span className="mobile-customer-pkg-badge">
+                        <span className="badge badge-violet">
                           <i className="ph ph-ticket" />
                           Còn: {formatNumber(remainingUnits)} Buổi DV
                         </span>
                       )}
                       {debt > 0 && (
-                        <span className="mobile-customer-debt-badge">
+                        <span className="badge badge-danger">
                           <i className="ph ph-warning-circle" />
                           Nợ: {formatMoney(debt)}
                         </span>
@@ -148,7 +136,7 @@ export function MobileCustomerSelectSheet({
                     </div>
                   )}
                 </div>
-                <div className="mobile-customer-card-action">
+                <div className="m-list-value" aria-hidden="true">
                   <i className={`ph ${isSelected ? 'ph-check-circle' : 'ph-caret-right'}`} />
                 </div>
               </button>
@@ -162,6 +150,7 @@ export function MobileCustomerSelectSheet({
       {/* Customer Create Modal */}
       {isAddCustomerOpen && (
         <CustomerCreateDialog
+          customMutationFn={createPosCustomer}
           onClose={() => setIsAddCustomerOpen(false)}
           onSuccess={handleCustomerCreated}
         />

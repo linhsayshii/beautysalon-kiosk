@@ -192,17 +192,6 @@ export const updateMyWorkItemStatus = (id: number, status: 'in_service' | 'compl
 export const getAttendance = (dateFrom: string, dateTo: string) => apiRequest<ApiEnvelope<ApiRecord[]>>(`/staff/attendance?${toQueryString({ dateFrom, dateTo })}`);
 export const getCommissions = (dateFrom: string, dateTo: string) => apiRequest<ApiEnvelope<CommissionsPayload>>(`/staff/commissions?${toQueryString({ dateFrom, dateTo })}`);
 
-// Schedule CRUD for recurring schedule support
-export const updateStaffSchedule = (id: number, body: {
-  startsAt?: string;
-  endsAt?: string;
-  shiftName?: string;
-  propagateToFuture?: boolean;
-}) => apiRequest<ApiEnvelope<ApiRecord>>(`/staff/schedule/${id}`, {
-  method: 'PUT',
-  body: JSON.stringify(body),
-});
-
 export const deleteStaffSchedule = (id: number, deleteAllRecurring: boolean = false) => apiRequest<ApiEnvelope<ApiRecord>>(
   `/staff/schedule/${id}`,
   { method: 'DELETE', body: JSON.stringify({ deleteAllRecurring }) },

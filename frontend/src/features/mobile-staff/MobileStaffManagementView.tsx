@@ -17,7 +17,7 @@ import {
 } from '@/features/mobile-common';
 import type { ApiRecord } from '@/types/api';
 import { MobilePageHeader } from '@/components/ui/MobilePageHeader/MobilePageHeader';
-import { LoadingState } from '@/components/data-display/DataState';
+import { ErrorState, LoadingState } from '@/components/data-display/DataState';
 
 export function MobileStaffManagementView() {
   const navigate = useNavigate();
@@ -42,10 +42,10 @@ export function MobileStaffManagementView() {
   const [sortValue, setSortValue] = useState<string>('name_asc');
 
   const sortOptions = [
-    { value: 'name_asc', label: 'Tên nhân viên: A → Z' },
-    { value: 'name_desc', label: 'Tên nhân viên: Z → A' },
-    { value: 'role_asc', label: 'Theo vai trò: A → Z' },
-    { value: 'role_desc', label: 'Theo vai trò: Z → A' },
+    { value: 'name_asc', label: 'Tên A → Z' },
+    { value: 'name_desc', label: 'Tên Z → A' },
+    { value: 'role_asc', label: 'Vai trò A → Z' },
+    { value: 'role_desc', label: 'Vai trò Z → A' },
   ];
 
   // Detail Sheet & Create Sheet
@@ -57,12 +57,12 @@ export function MobileStaffManagementView() {
   const [newPhone, setNewPhone] = useState('');
 
   // Queries
-  const { data: staffData, isLoading: isStaffLoading } = useQuery({
+  const { data: staffData, isLoading: isStaffLoading, error: staffError, refetch: refetchStaff } = useQuery({
     queryKey: ['mobile-staff-list'],
     queryFn: () => getStaff({}),
   });
 
-  const { data: attendanceData } = useQuery({
+  const { data: attendanceData, error: attendanceError, refetch: refetchAttendance } = useQuery({
     queryKey: ['mobile-staff-today-attendance', today],
     queryFn: () => getAttendance(today, today),
   });
@@ -199,7 +199,7 @@ export function MobileStaffManagementView() {
   };
 
   return (
-    <div className="mobile-staff-view">
+    <div className="m-page">
       <MobilePageHeader
         title="Nhân viên & Ca làm" backTo="/m/more"
         actions={(
@@ -207,7 +207,7 @@ export function MobileStaffManagementView() {
             <button
               type="button"
               className={`btn btn-ghost btn-icon m-header-action${isSearchVisible ? ' is-active' : ''}`}
-              onClick={() => setIsSearchVisible((prev) => !prev)}
+              onClick={() => { if (isSearchVisible) setSearch(''); setIsSearchVisible(!isSearchVisible); }}
               aria-label="Tìm kiếm"
             >
               <i className="ph ph-magnifying-glass" />
@@ -219,6 +219,7 @@ export function MobileStaffManagementView() {
           <MobileSearchBar
             value={search}
             onChange={setSearch}
+            autoFocus
             placeholder="Tìm tên nhân viên, mã, SĐT..."
           />
         )}
@@ -266,19 +267,20 @@ export function MobileStaffManagementView() {
           />
 
           <span className="m-summary-count">
-            {sortedStaff.length} nhân viên · {workingCount} đang làm việc
+            {sortedStaff.length} nhân viên · {attendanceError ? 'Chưa tải chấm công' : `${workingCount} đang làm`}
           </span>
         </div>
       </MobilePageHeader>
 
+      {attendanceError && <ErrorState compact title="Không thể xác định nhân viên đang làm việc" error={attendanceError} onRetry={() => refetchAttendance()} />}
       {/* 4. Grouped Sections */}
-      {isStaffLoading ? (
+      {staffError ? <ErrorState compact error={staffError} onRetry={() => refetchStaff()} /> : isStaffLoading ? (
         <LoadingState compact label="Đang tải danh sách nhân viên..." />
       ) : sortedStaff.length === 0 ? (
         <MobileEmptyState
           icon="ph ph-users"
           title="Không tìm thấy nhân viên"
-          description="Thử tìm kiếm với từ khóa khác hoặc điều chỉnh bộ lọc."
+          description={search ? 'Thử từ khóa khác hoặc đổi bộ lọc.' : undefined}
         />
       ) : (
         <div className="mobile-grouped-list-container">
@@ -307,7 +309,7 @@ export function MobileStaffManagementView() {
                             <span>{staff.role || 'Kỹ thuật viên'}</span>
                             {staff.phone && (
                               <>
-                                <span>•</span>
+                                <span>·</span>
                                 <a
                                   href={`tel:${staff.phone}`}
                                   className="mobile-staff-tel-link"

@@ -250,16 +250,6 @@
   margin-top: 2px;
 }
 
-@keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
-@keyframes slideUp {
-  from { transform: translateY(100%); }
-  to { transform: translateY(0); }
-}
-
 .branch-option-check {
   color: var(--blue-600);
   font-size: 20px;

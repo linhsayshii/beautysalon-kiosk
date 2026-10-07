@@ -1,23 +1,24 @@
 import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import QRCode from 'qrcode';
-import { getAttendanceChallenge, getAttendanceLocation } from '@/features/attendance/attendance.api';
-import { useToast } from '@/components/ui/Toast/ToastProvider';
+import { challengeRefetchInterval, getAttendanceChallenge, getAttendanceLocation } from '@/features/attendance/attendance.api';
+import { Link } from 'react-router-dom';
 import { MobilePageHeader } from '@/components/ui/MobilePageHeader/MobilePageHeader';
-import { LoadingState } from '@/components/data-display/DataState';
+import { ErrorState, LoadingState } from '@/components/data-display/DataState';
 import { useStoreName } from '@/services/metadata';
 import { resolveHexToken } from '@/lib/color-token';
 
 export function MobileAttendanceQrAdminView() {
-  const { notify } = useToast();
   const storeName = useStoreName();
   const [qrImage, setQrImage] = useState('');
+  const [qrError, setQrError] = useState<Error | null>(null);
+  const [retryGeneration, setRetryGeneration] = useState(0);
   const [now, setNow] = useState(Date.now());
 
   const challenge = useQuery({
     queryKey: ['attendance-challenge'],
     queryFn: getAttendanceChallenge,
-    refetchInterval: 1_000,
+    refetchInterval: challengeRefetchInterval,
   });
 
   const location = useQuery({
@@ -40,6 +41,9 @@ export function MobileAttendanceQrAdminView() {
   useEffect(() => {
     const token = challenge.data?.data.token;
     if (!token) return;
+    let active = true;
+    setQrImage('');
+    setQrError(null);
     QRCode.toDataURL(token, {
       width: 420,
       margin: 2,
@@ -48,53 +52,33 @@ export function MobileAttendanceQrAdminView() {
       // its loading state after the promise rejected.
       color: { dark: resolveHexToken('--ink-950', '#000000'), light: '#ffffff' },
       errorCorrectionLevel: 'M',
-    }).then(setQrImage);
-  }, [challenge.data?.data.token]);
-
-  const handleShareOrDownload = () => {
-    if (!qrImage) return;
-    const link = document.createElement('a');
-    link.href = qrImage;
-    link.download = `QR-ChamCong-${location.data?.data?.name || 'ChiNhanh'}.png`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    notify('Đã tải ảnh QR', 'Ảnh mã QR chấm công đã được lưu về thiết bị.');
-  };
+    }).then(image => { if (active) setQrImage(image); }).catch(error => { if (active) setQrError(error); });
+    return () => { active = false; };
+  }, [challenge.data?.data.token, retryGeneration]);
 
   const branchData = location.data?.data;
+  const hasGps = branchData?.latitude != null && branchData?.longitude != null;
 
   return (
-    <div className="mobile-staff-view">
+    <div className="m-page">
       <MobilePageHeader
         title="Mã QR Chấm công"
         backTo="/m/more"
-        actions={(
-          <button
-            type="button"
-            className="btn btn-ghost btn-icon m-header-action"
-            onClick={handleShareOrDownload}
-            aria-label="Chia sẻ / Tải ảnh"
-            title="Tải ảnh QR"
-          >
-            <i className="ph ph-share-network" />
-          </button>
-        )}
       />
 
       {/* Main Inset Screen Card */}
       <div className="mobile-qr-screen-card">
         <div className="mobile-qr-status-pill">
           <span className="live-dot" />
-          <span>MÃ ĐANG HOẠT ĐỘNG ({secondsLeft}s)</span>
+          <span>{challenge.error || qrError ? 'KHÔNG THỂ TẢI MÃ' : secondsLeft > 0 && hasGps ? `MÃ ĐANG HOẠT ĐỘNG (${secondsLeft}s)` : !hasGps ? 'CHƯA THIẾT LẬP GPS' : 'ĐANG ĐỔI MÃ'}</span>
         </div>
 
         {/* Large QR Display */}
         <div className="mobile-qr-image-wrapper">
-          {qrImage ? (
+          {challenge.error || qrError ? <ErrorState compact error={(challenge.error || qrError)!} onRetry={() => { setRetryGeneration(value => value + 1); challenge.refetch(); }} /> : qrImage && secondsLeft > 0 && hasGps ? (
             <img src={qrImage} alt="Mã QR chấm công cửa hàng" />
           ) : (
-            <LoadingState compact label="Đang tạo mã QR..." />
+            !location.isPending && !hasGps ? <p className="field-hint">Cần tọa độ chi nhánh để sử dụng mã chấm công.</p> : <LoadingState compact label="Đang tạo mã QR..." />
           )}
         </div>
 
@@ -103,16 +87,8 @@ export function MobileAttendanceQrAdminView() {
           Mã QR bảo mật tự động đổi mỗi 15 giây. Kỹ thuật viên & nhân viên mở app quét mã khi vào và ra ca.
         </div>
 
-        {/* Action Button */}
-        <button
-          type="button"
-          className="btn btn-primary mobile-qr-action"
-          onClick={handleShareOrDownload}
-          disabled={!qrImage}
-        >
-          <i className="ph ph-download-simple" />
-          Tải ảnh QR để in / chia sẻ
-        </button>
+        <p className="field-hint">Giữ màn hình này mở tại salon. Mã hết hạn sau 15 giây, không dùng ảnh chụp hoặc bản in để chấm công.</p>
+        {!location.isPending && !location.error && !hasGps && <Link className="btn btn-primary" to="/m/account">Thiết lập GPS chi nhánh</Link>}
 
         {/* Location Info Box */}
         <div className="mobile-qr-location-box">
@@ -121,7 +97,7 @@ export function MobileAttendanceQrAdminView() {
             <span>{branchData?.name || storeName}</span>
           </div>
           <div className="mobile-qr-location-coords">
-            Tọa độ: {branchData?.latitude?.toFixed(5) || '10.7768'}, {branchData?.longitude?.toFixed(5) || '106.7009'} • Bán kính GPS: {branchData?.radiusMeters || 100}m
+            {location.error ? <ErrorState compact error={location.error} onRetry={() => location.refetch()} /> : location.isPending ? 'Đang tải vị trí…' : hasGps ? `Tọa độ: ${Number(branchData.latitude).toFixed(5)}, ${Number(branchData.longitude).toFixed(5)} · Bán kính GPS: ${branchData.radiusMeters}m` : 'Chưa thiết lập tọa độ GPS'}
           </div>
         </div>
       </div>

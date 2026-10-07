@@ -111,13 +111,13 @@ describe('MobileOrdersView Component', () => {
 
     // Summary bar
     await waitFor(() => {
-      expect(screen.getByText(/2 đơn hàng/i)).toBeInTheDocument();
+      expect(screen.getByText(/2 đơn/i)).toBeInTheDocument();
     });
 
     // Orders in list
-    expect(screen.getByText('HD007176')).toBeInTheDocument();
+    expect(screen.getByText(/HD007176/)).toBeInTheDocument();
     expect(screen.getByText('Nguyễn Thị Hoa')).toBeInTheDocument();
-    expect(screen.getByText('HD007175')).toBeInTheDocument();
+    expect(screen.getByText(/HD007175/)).toBeInTheDocument();
     expect(screen.getByText('Lê Văn Nam')).toBeInTheDocument();
 
     // Floating action button for new invoice
@@ -130,7 +130,7 @@ describe('MobileOrdersView Component', () => {
     renderComponent();
 
     await waitFor(() => {
-      expect(screen.getByText('HD007176')).toBeInTheDocument();
+      expect(screen.getByText(/HD007176/)).toBeInTheDocument();
     });
 
     // Open search
@@ -152,10 +152,10 @@ describe('MobileOrdersView Component', () => {
     renderComponent();
 
     await waitFor(() => {
-      expect(screen.getByText('HD007176')).toBeInTheDocument();
+      expect(screen.getByText(/HD007176/)).toBeInTheDocument();
     });
 
-    const orderRow = screen.getByText('HD007176').closest('.mobile-orders-row-item');
+    const orderRow = screen.getByText(/HD007176/).closest('.m-list-row');
     expect(orderRow).toBeTruthy();
     fireEvent.click(orderRow!);
 

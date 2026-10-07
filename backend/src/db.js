@@ -130,7 +130,8 @@ export async function runMigrations() {
         ADD COLUMN IF NOT EXISTS work_units NUMERIC(10, 2) NOT NULL DEFAULT 0,
         ADD COLUMN IF NOT EXISTS standard_work_days NUMERIC(10, 2) NOT NULL DEFAULT 26,
         ADD COLUMN IF NOT EXISTS hourly_rate NUMERIC(14, 2) NOT NULL DEFAULT 0,
-        ADD COLUMN IF NOT EXISTS note TEXT;
+        ADD COLUMN IF NOT EXISTS note TEXT,
+        ADD COLUMN IF NOT EXISTS adjusted_at TIMESTAMPTZ;
 
       ALTER TABLE payroll_records DROP CONSTRAINT IF EXISTS payroll_records_status_check;
       ALTER TABLE payroll_records ADD CONSTRAINT payroll_records_status_check

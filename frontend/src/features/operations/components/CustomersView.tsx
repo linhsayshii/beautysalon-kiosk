@@ -69,7 +69,6 @@ export function CustomersView() {
                     <table className="data-table customers-table">
                       <thead>
                         <tr>
-                          <th><input className="table-checkbox" type="checkbox" aria-label="Chọn tất cả" /></th>
                           <th>Mã khách</th>
                           <th>Khách hàng</th>
                           <th>Nhóm khách</th>
@@ -83,7 +82,6 @@ export function CustomersView() {
                         {rows.map((row) => (
                           <Fragment key={row.id}>
                             <tr className={`customer-row expandable-data-row ${expanded === row.id ? 'is-expanded' : ''}`} onClick={() => setExpanded((current) => current === row.id ? null : row.id)}>
-                              <td className="mobile-hide"><input className="table-checkbox" type="checkbox" aria-label={`Chọn ${row.code}`} onClick={(event) => event.stopPropagation()} /></td>
                               <td data-label="Mã khách"><span className="cell-main link">{row.code}</span></td>
                               <td data-label="Khách hàng"><AvatarName name={row.name} subtitle={row.phone} tone="blue" /></td>
                               <td data-label="Nhóm khách"><span className="status-badge scheduled">{row.group}</span></td>
@@ -94,7 +92,7 @@ export function CustomersView() {
                             </tr>
                             {expanded === row.id && (
                               <tr className="customer-detail-row expandable-detail-row">
-                                <td colSpan={8}><CustomerDetail id={row.id} onEdit={setEditingCustomer} /></td>
+                                <td colSpan={7}><CustomerDetail id={row.id} onEdit={setEditingCustomer} /></td>
                               </tr>
                             )}
                           </Fragment>

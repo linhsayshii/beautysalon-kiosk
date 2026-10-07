@@ -80,7 +80,8 @@ test('cashbook migration backfills legacy rows and ledger numbers vouchers per b
       const base = { branchId: 1, supplierId: 1, receivedAt: null, discount: 0, otherCost: 0, paymentMethod: 'bank_transfer', note: '', items: [{ productId: 1, quantity: 2, unitCost: 120 }] };
       await createPurchaseOrder({ ...base, status: 'draft', amountPaid: 240 });
       assert.equal(Number((await query("SELECT COUNT(*) AS n FROM cash_transactions WHERE category_key='supplier_payment'")).rows[0].n), 0);
-      const order = await createPurchaseOrder({ ...base, status: 'completed', amountPaid: 500 });
+      await recordCashEntry({ query }, { branchId: 1, type: 'income', categoryKey: 'other_income', amount: 300, fund: 'bank' });
+      const order = await createPurchaseOrder({ ...base, status: 'completed', amountPaid: 240 });
       const { rows } = await query("SELECT * FROM cash_transactions WHERE category_key='supplier_payment'");
       assert.equal(rows.length, 1);
       assert.equal(Number(rows[0].amount), 240);

@@ -4,7 +4,6 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { EmptyState, ErrorState, LoadingState } from '@/components/data-display/DataState';
 import { useToast } from '@/components/ui/Toast/ToastProvider';
-import { useComingSoon } from '@/components/ui/Toast/useComingSoon';
 import { Select } from '@/components/ui/Select/Select';
 import { DateTimePickerField } from '@/components/ui/DateTimePicker';
 import { useAuth } from '@/features/auth/AuthProvider';
@@ -130,7 +129,6 @@ export function PosView() {
   const nextId = useRef(Math.max(...invoices.map((invoice) => invoice.id)) + 1);
   const deferredCatalogSearch = useDeferredValue(catalogSearch.trim());
   const { notify } = useToast();
-  const comingSoon = useComingSoon();
   const queryClient = useQueryClient();
 
   const activeInvoice = invoices.find((invoice) => invoice.id === activeId) ?? invoices[0];
@@ -541,7 +539,7 @@ export function PosView() {
           </div>
 
           <footer className="pos-bill-footer">
-            <div className="pos-bill-note"><button type="button" onClick={comingSoon}><i className="ph ph-note-pencil" />Ghi chú</button><span>{activeInvoice.customer?.name ?? 'Chưa chọn khách hàng'}</span></div>
+            <div className="pos-bill-note"><span>{activeInvoice.customer?.name ?? 'Chưa chọn khách hàng'}</span></div>
             <div className="pos-total-row"><span>Tổng thanh toán</span><strong>{formatMoney(subtotal)}</strong></div>
             <button className="btn btn-primary btn-lg pos-pay-button" type="button" disabled={!activeInvoice.lines.length} onClick={() => {
               if (!activeInvoice.customer) {

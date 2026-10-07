@@ -1,139 +1,4 @@
 /* Mobile Common Components Styles (Customer Select Sheet, Slot Pickers, Sheets) */
-/* Header with Search and Cancel */
-/* Customer List */
-.mobile-customer-card {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 12px 14px;
-  background: var(--surface);
-  border-radius: 16px;
-  border: 1px solid var(--line);
-  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.03);
-  cursor: pointer;
-  user-select: none;
-  -webkit-tap-highlight-color: transparent;
-  transition: transform 0.15s ease, background-color 0.15s ease, border-color 0.15s ease;
-  width: 100%;
-  color: inherit;
-  font: inherit;
-  text-align: left;
-}
-
-.mobile-customer-card:active {
-  transform: scale(0.985);
-  background: var(--surface-muted);
-}
-
-.mobile-customer-card.is-selected {
-  border-color: var(--blue-500);
-  background: var(--blue-50);
-}
-
-.mobile-customer-avatar {
-  display: grid;
-  place-items: center;
-  width: 46px;
-  height: 46px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, var(--blue-100) 0%, var(--blue-200) 100%);
-  color: var(--blue-700);
-  font-weight: 750;
-  font-size: 15px;
-  flex: 0 0 46px;
-}
-
-.mobile-customer-info {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-}
-
-.mobile-customer-name-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.mobile-customer-name {
-  font-size: 14.5px;
-  font-weight: 750;
-  color: var(--ink-950);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.mobile-customer-code {
-  font-size: 11.5px;
-  color: var(--ink-500);
-  background: var(--canvas);
-  padding: 1px 6px;
-  border-radius: 6px;
-  font-weight: 600;
-}
-
-.mobile-customer-phone {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 12.5px;
-  color: var(--ink-600);
-}
-
-.mobile-customer-badges {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 6px;
-  margin-top: 2px;
-}
-
-.mobile-customer-pkg-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 11px;
-  font-weight: 700;
-  color: var(--violet);
-  background: var(--violet-soft);
-  padding: 3px 8px;
-  border-radius: 8px;
-}
-
-.mobile-customer-debt-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 11px;
-  font-weight: 700;
-  color: var(--red);
-  background: var(--red-soft);
-  padding: 3px 8px;
-  border-radius: 8px;
-}
-
-.mobile-customer-card-action {
-  color: var(--ink-400);
-  font-size: 18px;
-  display: grid;
-  place-items: center;
-}
-
-.mobile-customer-card.is-selected .mobile-customer-card-action {
-  color: var(--blue-600);
-}
-
-/* Floating Action Button (Add Customer) */
-/* Empty & Loading states */
-/* Horizontal 14-Day Date Strip */
-/* Custom Exact Time Trigger */
-/* Time Slots Body */
-/* Footer Summary & Action */
-/* Exact Time Roller Modal */
 /* =========================================================
    Mobile Service Item Detail Sheet (Matching Reference UI 5)
    ========================================================= */
@@ -393,7 +258,6 @@
   color: var(--ink-400);
 }
 
-/* Footer Submit Button */
 /* Sub-sheet (Staff & Position Pickers) */
 .mobile-staff-picker-item {
   display: flex;
@@ -460,46 +324,6 @@
   color: var(--blue-600);
 }
 
-/* Position Picker Sheet Styles */
-.mobile-position-custom-row {
-  display: flex;
-  gap: 8px;
-}
-.mobile-position-presets-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 8px;
-}
-
-.mobile-position-pill {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 12px 14px;
-  border-radius: 12px;
-  border: 1px solid var(--line);
-  background: var(--surface-muted);
-  color: var(--ink-800);
-  font-size: 13.5px;
-  font-weight: 700;
-  cursor: pointer;
-  transition: all 0.15s ease;
-}
-
-.mobile-position-pill:active {
-  background: var(--canvas);
-}
-
-.mobile-position-pill.is-selected {
-  background: var(--blue-50);
-  border-color: var(--blue-600);
-  color: var(--blue-600);
-}
-
-.mobile-position-pill i {
-  font-size: 16px;
-}
-
 /* =========================================================
    Mobile Shared Primitives Styles
    ========================================================= */
@@ -514,6 +338,7 @@
 
 .mobile-search-bar-input-box {
   flex: 1;
+  min-width: 0;
   position: relative;
   display: flex;
   align-items: center;
@@ -529,9 +354,10 @@
 
 .mobile-search-bar-input {
   width: 100%;
-  height: 42px;
-  padding: 0 38px 0 38px;
-  border-radius: 20px;
+  min-width: 0;
+  height: 44px;
+  padding: 0 44px 0 38px;
+  border-radius: var(--radius-control);
   border: 1px solid var(--line);
   background: var(--surface);
   font-size: 14px;
@@ -548,11 +374,11 @@
 
 .mobile-search-bar-clear-btn {
   position: absolute;
-  right: 10px;
+  right: 0;
   display: grid;
   place-items: center;
-  width: 24px;
-  height: 24px;
+  width: 44px;
+  height: 44px;
   border: none;
   background: transparent;
   color: var(--ink-400);
@@ -570,11 +396,11 @@
   position: relative;
   display: grid;
   place-items: center;
-  min-width: 42px;
-  min-height: 42px;
-  width: 42px;
-  height: 42px;
-  border-radius: 12px;
+  min-width: 44px;
+  min-height: 44px;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-control);
   border: 1px solid var(--line);
   background: var(--surface);
   color: var(--ink-600);
@@ -630,40 +456,11 @@
   display: flex;
   flex-direction: column;
   gap: 4px;
-  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.03);
-  position: relative;
-  overflow: hidden;
 }
 
-.mobile-metric-card::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 3px;
-  height: 100%;
-  background: var(--blue-500);
-  opacity: 0.8;
-}
-
-.mobile-metric-card.tone-blue::before {
-  background: var(--blue-600);
-}
-
-.mobile-metric-card.tone-green::before {
-  background: var(--green);
-}
-
-.mobile-metric-card.tone-orange::before {
-  background: var(--orange);
-}
-
-.mobile-metric-card.tone-red::before {
-  background: var(--red);
-}
-
-.mobile-metric-card.tone-violet::before {
-  background: var(--violet);
+/* An odd last card takes the full row instead of leaving a hole. */
+.mobile-metric-card:last-child:nth-child(odd) {
+  grid-column: 1 / -1;
 }
 
 .mobile-metric-label {
@@ -845,206 +642,6 @@
   margin-top: 2px;
 }
 
-/* =========================================================
-   Mobile Form Sheet & Standard Card Input System
-   (Matches the Modern Super-App iOS Form Specification)
-   ========================================================= */
-/* 1. Sticky Top Navigation Header */
-/* 2. Scrollable Form Body */
-/* 3. Card-based Input Field */
-.mobile-form-card-field {
-  background: #ffffff;
-  border: 1px solid var(--line);
-  border-radius: 14px;
-  padding: 10px 14px;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.02);
-  transition: border-color 0.15s ease, box-shadow 0.15s ease;
-}
-
-.mobile-form-card-field:focus-within {
-  border-color: var(--blue-600);
-  box-shadow: var(--focus-ring);
-}
-
-.mobile-form-card-field.has-error {
-  padding: 12px 14px;
-  border-color: var(--red);
-  background: var(--surface);
-}
-
-.mobile-form-card-label {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--ink-500);
-  display: flex;
-  align-items: center;
-  gap: 3px;
-}
-
-.mobile-form-card-label .required-star {
-  color: var(--red);
-  font-weight: 700;
-}
-
-.mobile-form-card-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  min-height: 28px;
-}
-
-.mobile-form-card-input {
-  width: 100%;
-  border: none;
-  background: transparent;
-  outline: none;
-  font-size: 16px;
-  font-family: inherit;
-  font-weight: 600;
-  color: var(--ink-950);
-  padding: 2px 0;
-  box-sizing: border-box;
-}
-
-.mobile-form-card-input::placeholder {
-  color: var(--ink-300);
-  font-weight: 400;
-}
-
-.mobile-form-card-money-input {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: center;
-  width: 100%;
-  border: 0;
-  border-radius: 0;
-  background: transparent;
-  box-shadow: none;
-}
-
-.mobile-form-card-money-input > input {
-  min-width: 0;
-  border: 0;
-  outline: 0;
-  box-shadow: none;
-}
-
-.mobile-form-card-money-input > span {
-  padding-right: 0;
-}
-
-.mobile-form-card-select {
-  width: 100%;
-  border: none;
-  background: transparent;
-  outline: none;
-  font-size: 15.5px;
-  font-family: inherit;
-  font-weight: 600;
-  color: var(--ink-950);
-  padding: 2px 0;
-  cursor: pointer;
-}
-
-.mobile-form-card-accessory {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  color: var(--ink-500);
-  font-size: 14.5px;
-  font-weight: 600;
-  flex-shrink: 0;
-}
-
-.mobile-form-card-accessory i {
-  font-size: 20px;
-  color: var(--ink-500);
-}
-
-.mobile-form-card-error {
-  font-size: 11.5px;
-  font-weight: 600;
-  color: var(--red);
-  margin-top: 2px;
-}
-
-/* Grid 2 Columns */
-.mobile-form-card-grid-2 {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
-}
-
-/* Switch Toggle Card */
-.mobile-form-card-switch {
-  background: #ffffff;
-  border: 1px solid var(--line);
-  border-radius: 14px;
-  padding: 14px 16px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.02);
-}
-
-.mobile-form-switch-label {
-  font-size: 15.5px;
-  font-weight: 600;
-  color: var(--ink-950);
-}
-
-/* iOS-style toggle switch */
-.mobile-form-toggle-switch {
-  position: relative;
-  display: inline-block;
-  width: 50px;
-  height: 28px;
-  flex-shrink: 0;
-}
-
-.mobile-form-toggle-switch input {
-  opacity: 0;
-  width: 0;
-  height: 0;
-}
-
-.mobile-form-toggle-slider {
-  position: absolute;
-  cursor: pointer;
-  inset: 0;
-  background-color: var(--line-strong);
-  transition: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  border-radius: 28px;
-}
-
-.mobile-form-toggle-slider::before {
-  position: absolute;
-  content: '';
-  height: 22px;
-  width: 22px;
-  left: 3px;
-  bottom: 3px;
-  background-color: white;
-  transition: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  border-radius: 50%;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-}
-
-.mobile-form-toggle-switch input:checked + .mobile-form-toggle-slider {
-  background-color: var(--blue-600);
-}
-
-.mobile-form-toggle-switch input:checked + .mobile-form-toggle-slider::before {
-  transform: translateX(22px);
-}
-
-/* 4. Sticky Bottom Footer with Save Action Button */
-/* Mobile Segmented Control */
 .mobile-segmented-control {
   display: flex;
   background: var(--line);
@@ -1096,20 +693,8 @@
   color: var(--blue-600);
 }
 
-/* Mobile Empty State */
-
-.mobile-customer-list {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
 .mobile-sub-sheet-list {
   display: flex;
   flex-direction: column;
   gap: 8px;
-}
-
-.mobile-position-custom-row .input {
-  flex: 1;
 }

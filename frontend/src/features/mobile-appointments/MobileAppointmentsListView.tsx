@@ -1,18 +1,17 @@
 import { useEffect, useState, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { getPosAppointments, updatePosAppointment, prepareAppointmentCheckout } from '@/features/pos/pos.api';
-import { getStaff } from '@/features/staff/staff.api';
+import { getPosAppointments, getPosStaff, updatePosAppointment, prepareAppointmentCheckout } from '@/features/pos/pos.api';
+import { canAccessPath } from '@/features/auth/authorization';
 import { useAuth } from '@/features/auth/AuthProvider';
 import { MobileDetailSheet, MobileSearchBar } from '@/features/mobile-common';
 import { useToast } from '@/components/ui/Toast/ToastProvider';
-import { useComingSoon } from '@/components/ui/Toast/useComingSoon';
 import { Select } from '@/components/ui/Select/Select';
 import { DatePickerField } from '@/components/ui/DateTimePicker';
-import { DEFAULT_BRANCH_TIME_ZONE, formatBranchTime, formatDayHeader, localDateTimeFromInstant } from '@/lib/date';
+import { DEFAULT_BRANCH_TIME_ZONE, formatBranchTime, formatDateOnly, formatDayHeader, localDateTimeFromInstant } from '@/lib/date';
 import type { ApiRecord } from '@/types/api';
-import { MobilePageHeader } from '@/components/ui/MobilePageHeader/MobilePageHeader';
-import { LoadingState } from '@/components/data-display/DataState';
+import { MobileHeaderAction, MobilePageHeader } from '@/components/ui/MobilePageHeader/MobilePageHeader';
+import { ErrorState, LoadingState } from '@/components/data-display/DataState';
 import { APPOINTMENT_STATUS_LABELS } from '@/lib/appointment-status';
 
 interface AppointmentData {
@@ -48,23 +47,22 @@ export function MobileAppointmentsListView() {
       setSelectedDate(today);
     }
   }, [today]); // eslint-disable-line react-hooks/exhaustive-deps
-  const [activeTab, setActiveTab] = useState<'list' | 'timeline' | 'staff_grid'>('list');
   const [staffFilter, setStaffFilter] = useState<string>('all');
   const [search, setSearch] = useState('');
   const [isSearchVisible, setIsSearchVisible] = useState(false);
   const [selectedApt, setSelectedApt] = useState<AppointmentData | null>(null);
   const { notify } = useToast();
-  const comingSoon = useComingSoon();
   const queryClient = useQueryClient();
 
-  const { data: appointmentsResponse, isLoading } = useQuery({
+  const { data: appointmentsResponse, isLoading, error, refetch } = useQuery({
     queryKey: ['pos-appointments', selectedDate],
     queryFn: () => getPosAppointments(selectedDate, selectedDate),
   });
 
+  // POS staff list: cashiers and staff may book but cannot read the staff module.
   const { data: staffResponse } = useQuery({
-    queryKey: ['staff-list'],
-    queryFn: () => getStaff({}),
+    queryKey: ['pos-staff'],
+    queryFn: getPosStaff,
   });
 
   const statusMutation = useMutation({
@@ -96,7 +94,7 @@ export function MobileAppointmentsListView() {
   const renderActions = (apt: AppointmentData) => <div className="mobile-apt-actions" onClick={event => event.stopPropagation()} onKeyDown={event => event.stopPropagation()}>
     {apt.invoiceStatus === 'draft' && apt.paymentStatus !== 'paid' && apt.paymentStatus !== 'partial' && <Link to={`/m/appointments/${apt.id}/edit`}>Chỉnh sửa lịch</Link>}
     {apt.invoiceStatus && apt.invoiceStatus !== 'draft'
-      ? <Link className="primary" to={`/m/orders?invoice=${apt.invoiceId}`}>Xem hóa đơn</Link>
+      ? (account && canAccessPath(account.role, '/m/orders') && <Link className="primary" to={`/m/orders?invoice=${apt.invoiceId}`}>Xem hóa đơn</Link>)
       : <button className="primary" disabled={checkoutMutation.isPending} onClick={() => checkoutMutation.mutate(apt.id)}>{checkoutMutation.isPending && checkoutMutation.variables === apt.id ? 'Đang mở…' : 'Thanh toán'}</button>}
   </div>;
 
@@ -138,18 +136,15 @@ export function MobileAppointmentsListView() {
   }, [appointments, staffFilter, search]);
 
   return (
-    <div className="mobile-appointments-view">
+    <div className="m-page">
       <MobilePageHeader
         title="Lịch dịch vụ"
         actions={(
-          <button
-            type="button"
-            className={`btn btn-ghost btn-icon m-header-action${isSearchVisible ? ' is-active' : ''}`}
-            onClick={() => setIsSearchVisible((prev) => !prev)}
-            aria-label="Tìm kiếm"
-          >
-            <i className="ph ph-magnifying-glass" />
-          </button>
+          <>
+            <MobileHeaderAction icon="ph ph-magnifying-glass" label="Tìm kiếm" active={isSearchVisible} onClick={() => { if (isSearchVisible) setSearch(''); setIsSearchVisible(!isSearchVisible); }} />
+            {/* A tab page already has the bottom-nav "+", so the page's own create action sits in the header. */}
+            <MobileHeaderAction icon="ph ph-plus" label="Tạo lịch hẹn mới" tone="soft" onClick={() => navigate('/m/appointments/new')} />
+          </>
         )}
       >
         {isSearchVisible && (
@@ -157,6 +152,7 @@ export function MobileAppointmentsListView() {
             value={search}
             placeholder="Tìm khách hàng, số điện thoại, thợ..."
             onChange={setSearch}
+            autoFocus
           />
         )}
 
@@ -184,35 +180,6 @@ export function MobileAppointmentsListView() {
           </div>
         </div>
 
-        <div className="tabs" role="tablist">
-          <button
-            type="button"
-            role="tab"
-            aria-selected={activeTab === 'list'}
-            className={`tab${activeTab === 'list' ? ' is-active' : ''}`}
-            onClick={() => setActiveTab('list')}
-          >
-            Danh sách
-          </button>
-          <button
-            type="button"
-            role="tab"
-            aria-selected={activeTab === 'timeline'}
-            className={`tab${activeTab === 'timeline' ? ' is-active' : ''}`}
-            onClick={() => setActiveTab('timeline')}
-          >
-            Lưới thời gian
-          </button>
-          <button
-            type="button"
-            role="tab"
-            aria-selected={activeTab === 'staff_grid'}
-            className={`tab${activeTab === 'staff_grid' ? ' is-active' : ''}`}
-            onClick={() => setActiveTab('staff_grid')}
-          >
-            Lưới nhân viên
-          </button>
-        </div>
       </MobilePageHeader>
 
       {/* 4. Grouped Cards Container */}
@@ -221,7 +188,7 @@ export function MobileAppointmentsListView() {
           {formatDayHeader(selectedDate, today)} ({filteredAppointments.length})
         </div>
 
-        {isLoading ? (
+        {error ? <ErrorState compact error={error} onRetry={() => refetch()} /> : isLoading ? (
           <LoadingState compact label="Đang tải dữ liệu lịch hẹn..." />
         ) : filteredAppointments.length === 0 ? (
           <div className="mobile-appointments-empty-box">
@@ -302,16 +269,6 @@ export function MobileAppointmentsListView() {
         )}
       </div>
 
-      {/* 5. Floating Action Button (FAB) */}
-      <Link
-        to="/m/appointments/new"
-        className="m-fab"
-        aria-label="Tạo lịch hẹn mới"
-        title="Đặt lịch"
-      >
-        <i className="ph ph-plus" />
-      </Link>
-
       {/* 6. Inset Detail View Bottom Sheet (Screenshot 3 style) */}
       <MobileDetailSheet
         isOpen={selectedApt !== null}
@@ -327,7 +284,7 @@ export function MobileAppointmentsListView() {
             <div className="mobile-apt-detail-card">
               <div className="mobile-apt-detail-code-row">
                 <h2 className="mobile-apt-detail-code">
-                  {selectedApt.code || `B00${selectedApt.id || '7979'}`}
+                  {selectedApt.code || `Lịch hẹn #${selectedApt.id}`}
                 </h2>
                 <div className="mobile-apt-status-control">
                   <Select
@@ -365,27 +322,25 @@ export function MobileAppointmentsListView() {
                   <i className="ph ph-calendar" />
                 </div>
                 <div className="mobile-apt-detail-time-text">
-                  Bắt đầu làm {formatBranchTime(selectedApt.startsAt, timeZone)} - {formatDayHeader(selectedApt.startsAt.slice(0, 10), today)}
+                  Bắt đầu làm {formatBranchTime(selectedApt.startsAt, timeZone)} - {formatDayHeader(localDateTimeFromInstant(selectedApt.startsAt, timeZone).slice(0, 10), today)}
                 </div>
               </div>
             </div>
 
             {/* Thêm hình ảnh action card */}
             <div className="mobile-apt-detail-card is-compact">
-              <button type="button" className="mobile-detail-blue-action" onClick={comingSoon}>
-                + Thêm hình ảnh
-              </button>
+
             </div>
 
             {/* LỊCH DỊCH VỤ, SẢN PHẨM card */}
             <div className="mobile-apt-detail-card">
               <span className="mobile-apt-service-card-title">LỊCH DỊCH VỤ, SẢN PHẨM</span>
               <div className="mobile-apt-service-item-name">
-                {selectedApt.service?.name || 'Gội đầu mang dầu (45\')'} x1
+                {selectedApt.service?.name || 'Chưa chọn dịch vụ'} x1
               </div>
 
               <div className="mobile-apt-service-time-range">
-                {formatBranchTime(selectedApt.startsAt, timeZone)} - {formatBranchTime(selectedApt.endsAt, timeZone)}, {selectedApt.startsAt.split('T')[0].split('-').reverse().slice(0, 2).join('/')}
+                {formatBranchTime(selectedApt.startsAt, timeZone)} - {formatBranchTime(selectedApt.endsAt, timeZone)}, {formatDateOnly(localDateTimeFromInstant(selectedApt.startsAt, timeZone).slice(0, 10), { day: '2-digit', month: '2-digit' })}
               </div>
               {selectedApt.staff?.name && (
                 <div className="mobile-apt-staff-pill">

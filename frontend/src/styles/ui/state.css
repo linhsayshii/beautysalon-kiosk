@@ -28,7 +28,6 @@
   padding: 40px 20px;
 }
 
-.state-box,
 .state-inner {
   display: grid;
   justify-items: center;
@@ -36,8 +35,7 @@
   max-width: 320px;
 }
 
-.state-icon,
-.state-box > i {
+.state-icon {
   display: inline-grid;
   place-items: center;
   width: 48px;
@@ -48,21 +46,18 @@
   font-size: 24px;
 }
 
-.state-error .state-icon,
-.table-error .state-box > i {
+.state-error .state-icon {
   color: var(--red);
   background: var(--red-soft);
 }
 
-.state-title,
-.state-box strong {
+.state-title {
   color: var(--ink-950);
   font-size: 15px;
   font-weight: var(--weight-bold);
 }
 
-.state-text,
-.state-box p {
+.state-text {
   color: var(--ink-600);
   font-size: var(--text-sm);
   line-height: var(--leading);

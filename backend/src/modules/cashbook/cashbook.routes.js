@@ -17,10 +17,14 @@ const { funds, voucherTypes, statuses, categories } = domainOptions.cashbook;
 const categoryKeys = categories.map((category) => category.key);
 const requireFinance = requirePermissions(permissions.readFinance);
 
-function today() {
+function localDate(value) {
   return new Intl.DateTimeFormat('en-CA', {
     timeZone: 'Asia/Ho_Chi_Minh', year: 'numeric', month: '2-digit', day: '2-digit',
-  }).format(new Date());
+  }).format(new Date(value));
+}
+
+function today() {
+  return localDate(new Date());
 }
 
 function monthStart() {
@@ -65,7 +69,12 @@ router.get('/vouchers', asyncRoute(async (request, response) => {
 }));
 
 router.get('/vouchers/:id', asyncRoute(async (request, response) => {
-  response.json({ data: await getVoucher({ branchId: request.account.branchId, id: parsePositiveInteger(request.params.id, 'id') }) });
+  const voucher = await getVoucher({ branchId: request.account.branchId, id: parsePositiveInteger(request.params.id, 'id') });
+  // Like the list, a cashier only reaches the current day's vouchers.
+  if (!canReadFinance(request) && localDate(voucher.occurredAt) !== today()) {
+    throw new HttpError(404, 'VOUCHER_NOT_FOUND', 'Không tìm thấy phiếu thu chi');
+  }
+  response.json({ data: voucher });
 }));
 
 router.post('/vouchers', asyncRoute(async (request, response) => {

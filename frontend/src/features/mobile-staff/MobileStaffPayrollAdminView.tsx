@@ -6,7 +6,6 @@ import {
   MobileEmptyState,
 } from '@/features/mobile-common';
 import { formatMoney, initials } from '@/lib/format';
-import { useToast } from '@/components/ui/Toast/ToastProvider';
 import { Select } from '@/components/ui/Select/Select';
 import {
   getPayrollList,
@@ -15,11 +14,10 @@ import {
   type PayrollRecordItem,
 } from '@/features/staff/staff.api';
 import { StatusBadge } from '@/components/data-display/Badges';
-import { MobilePageHeader } from '@/components/ui/MobilePageHeader/MobilePageHeader';
-import { LoadingState } from '@/components/data-display/DataState';
+import { MobileHeaderAction, MobilePageHeader } from '@/components/ui/MobilePageHeader/MobilePageHeader';
+import { ErrorState, LoadingState } from '@/components/data-display/DataState';
 
 export function MobileStaffPayrollAdminView() {
-  const { notify } = useToast();
   const [periodType, setPeriodType] = useState<string>('monthly');
   const [search, setSearch] = useState('');
   const [isSearchVisible, setIsSearchVisible] = useState(false);
@@ -47,11 +45,11 @@ export function MobileStaffPayrollAdminView() {
   }, [rawPeriods, selectedPeriodId]);
 
   // Query for payroll detail when a period is active
-  const activePeriodId = activePeriod?.id ?? 1;
+  const activePeriodId = activePeriod?.id ?? null;
   const payrollDetailQuery = useQuery({
     queryKey: ['admin-mobile-payroll-detail', activePeriodId],
-    queryFn: () => getPayrollDetail(activePeriodId),
-    enabled: Boolean(activePeriodId),
+    queryFn: () => getPayrollDetail(activePeriodId!),
+    enabled: activePeriodId !== null,
   });
 
   const detailData = payrollDetailQuery.data?.data;
@@ -88,40 +86,17 @@ export function MobileStaffPayrollAdminView() {
     return filteredRecords.reduce((sum, r) => sum + Number(r.netSalary || 0), 0);
   }, [filteredRecords]);
 
-  const handleExport = () => {
-    notify('Xuất bảng lương', 'Đã tải xuống file bảng lương nhân viên (.xlsx).');
-  };
-
   return (
-    <div className="mobile-staff-view">
+    <div className="m-page">
       <MobilePageHeader
         title="Bảng lương" backTo="/m/more"
-        actions={(
-          <>
-            <button
-              type="button"
-              className="btn btn-ghost btn-icon m-header-action"
-              onClick={() => setIsSearchVisible((prev) => !prev)}
-              aria-label="Tìm kiếm"
-            >
-              <i className="ph ph-magnifying-glass" />
-            </button>
-            <button
-              type="button"
-              className="btn btn-ghost btn-icon m-header-action"
-              onClick={handleExport}
-              aria-label="Xuất file"
-              title="Xuất file bảng lương"
-            >
-              <i className="ph ph-export" />
-            </button>
-          </>
-        )}
+        actions={<MobileHeaderAction icon="ph ph-magnifying-glass" label="Tìm kiếm" active={isSearchVisible} onClick={() => { if (isSearchVisible) setSearch(''); setIsSearchVisible(!isSearchVisible); }} />}
       >
         {isSearchVisible && (
           <MobileSearchBar
             value={search}
             onChange={setSearch}
+            autoFocus
             placeholder="Tìm phiếu lương theo tên, mã thợ..."
           />
         )}
@@ -165,8 +140,14 @@ export function MobileStaffPayrollAdminView() {
 
       {/* Grouped Section List */}
       <div className="mobile-grouped-list-container">
-        {payrollDetailQuery.isLoading ? (
+        {payrollListQuery.isPending || payrollDetailQuery.isLoading ? (
           <LoadingState compact label="Đang tải dữ liệu bảng lương..." />
+        ) : payrollListQuery.error || payrollDetailQuery.error ? (
+          <ErrorState
+            compact
+            error={(payrollListQuery.error ?? payrollDetailQuery.error)!}
+            onRetry={() => (payrollListQuery.error ? payrollListQuery.refetch() : payrollDetailQuery.refetch())}
+          />
         ) : filteredRecords.length === 0 ? (
           <MobileEmptyState
             icon="ph ph-money"
@@ -189,14 +170,14 @@ export function MobileStaffPayrollAdminView() {
                       onClick={() => setSelectedStaffRecord(record)}
                     >
                       <div className="mobile-staff-row-left">
-                        <div className="mobile-staff-avatar purple">
+                        <div className="mobile-staff-avatar">
                           {initials(record.staff.name || 'NV')}
                         </div>
                         <div className="mobile-staff-row-info">
                           <span className="mobile-staff-row-name">{record.staff.name}</span>
                           <span className="mobile-staff-row-sub">
                             <span>{record.staff.code}</span>
-                            <span>•</span>
+                            <span>·</span>
                             <span>{record.staff.role}</span>
                           </span>
                         </div>
@@ -223,7 +204,7 @@ export function MobileStaffPayrollAdminView() {
         title="Chi tiết phiếu lương"
         subtitle={
           selectedStaffRecord
-            ? `${selectedStaffRecord.staff.name} • ${selectedStaffRecord.code}`
+            ? `${selectedStaffRecord.staff.name} · ${selectedStaffRecord.code}`
             : ''
         }
         onClose={() => setSelectedStaffRecord(null)}

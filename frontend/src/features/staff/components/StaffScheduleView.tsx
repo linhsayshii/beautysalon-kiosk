@@ -3,7 +3,6 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useWebSocket } from '@/hooks/useWebSocket';
 import { LoadingState } from '@/components/data-display/DataState';
 import { useToast } from '@/components/ui/Toast/ToastProvider';
-import { useComingSoon } from '@/components/ui/Toast/useComingSoon';
 import { PageHeader } from '@/components/ui/PageHeader/PageHeader';
 import { Select } from '@/components/ui/Select/Select';
 import { DatePickerField } from '@/components/ui/DateTimePicker';
@@ -38,7 +37,6 @@ function getShiftThemeClass(shiftName: string): string {
 export function StaffScheduleView() {
   const queryClient = useQueryClient();
   const { notify } = useToast();
-  const comingSoon = useComingSoon();
   const { subscribe } = useWebSocket();
   const [currentMonday, setCurrentMonday] = useState(weekStartIso());
   const [searchTerm, setSearchTerm] = useState('');
@@ -363,22 +361,8 @@ export function StaffScheduleView() {
           title="Lịch làm việc"
           subtitle="Xếp ca cho nhân viên theo tuần và theo dõi lương dự kiến."
           extraActions={<>
-            <button
-              type="button"
-              onClick={comingSoon}
-              className="btn btn-secondary"
-            >
-              <i className="ph ph-file-arrow-up" />
-              <span>Import</span>
-            </button>
-            <button
-              type="button"
-              onClick={comingSoon}
-              className="btn btn-secondary"
-            >
-              <i className="ph ph-export" />
-              <span>Xuất file</span>
-            </button>
+
+
             <button
               type="button"
               onClick={() => setIsSettingDaysOpen(true)}
@@ -910,7 +894,7 @@ export function StaffScheduleView() {
               {workSettingsMutation.isPending ? 'Đang lưu...' : 'Lưu cài đặt'}
             </button>
           </div>
-          
+
         </Modal>
       )}
 
@@ -923,7 +907,7 @@ export function StaffScheduleView() {
           size="sm"
           nested
         >
-        
+
           <div className="modal-body">
             <div className="field-row">
               <label className="field-label">
@@ -1001,7 +985,7 @@ export function StaffScheduleView() {
               Thêm
             </button>
           </div>
-          
+
         </Modal>
       )}
 

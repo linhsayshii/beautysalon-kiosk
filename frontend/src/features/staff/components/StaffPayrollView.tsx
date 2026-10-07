@@ -183,7 +183,6 @@ export function StaffPayrollView() {
                 <table className="data-table payroll-table">
                   <thead>
                     <tr>
-                      <th className="mobile-hide"><input className="table-checkbox" type="checkbox" aria-label="Chọn tất cả" /></th>
                       <th>Mã</th>
                       <th>Tên</th>
                       <th>Kỳ hạn trả</th>
@@ -194,7 +193,7 @@ export function StaffPayrollView() {
                       <th>Trạng thái</th>
                     </tr>
                     <tr className="table-summary-row">
-                      <td colSpan={5} />
+                      <td colSpan={4} />
                       <td className="is-num">{formatMoney(grandSummary.totalNetSalary)}</td>
                       <td className="is-num text-success">{formatMoney(grandSummary.totalPaidAmount)}</td>
                       <td className={`is-num ${owedTone(grandSummary.totalRemainingAmount)}`}>{formatMoney(grandSummary.totalRemainingAmount)}</td>
@@ -210,9 +209,6 @@ export function StaffPayrollView() {
                             className={`payroll-row expandable-data-row ${isExpanded ? 'is-expanded' : ''}`}
                             onClick={() => setExpandedPeriodId(isExpanded ? null : row.id)}
                           >
-                            <td className="mobile-hide" onClick={(e) => e.stopPropagation()}>
-                              <input className="table-checkbox" type="checkbox" aria-label={`Chọn ${row.code}`} />
-                            </td>
                             <td data-label="Mã"><span className="cell-main link">{row.code}</span></td>
                             <td data-label="Tên" className="payroll-name"><span className="cell-main">{row.name}</span></td>
                             <td data-label="Kỳ hạn trả" className="text-muted payroll-period-type">{payrollPeriodTypeLabel(row.periodType)}</td>
@@ -226,7 +222,7 @@ export function StaffPayrollView() {
                           </tr>
                           {isExpanded && (
                             <tr className="expandable-detail-row">
-                              <td colSpan={9}>
+                              <td colSpan={8}>
                                 <StaffPayrollDetailAccordion
                                   periodId={row.id}
                                   onOpenSheetView={(id) => setViewingSheetPeriodId(id)}

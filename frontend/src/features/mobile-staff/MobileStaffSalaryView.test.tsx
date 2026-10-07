@@ -48,10 +48,9 @@ describe('MobileStaffSalaryView', () => {
     );
 
     await waitFor(() => expect(document.querySelector('.salary-amount')).toHaveTextContent('7.700.000đ'));
-    expect(document.querySelector('.mobile-salary-sticky-shell')).toBeInTheDocument();
-    expect(document.querySelector('.mobile-salary-month-menu')).toBeInTheDocument();
-    fireEvent.click(screen.getByLabelText('Chọn tháng lương'));
-    fireEvent.click(screen.getByRole('option', { name: `Tháng ${previousMonth.slice(5, 7)}/${previousMonth.slice(0, 4)}` }));
+    expect(document.querySelector('.m-header .m-chip-strip')).toBeInTheDocument();
+    fireEvent.click(screen.getByLabelText('Chọn kỳ lương'));
+    fireEvent.click(screen.getByRole('option', { name: `Kỳ lương: Tháng ${previousMonth.slice(5, 7)}/${previousMonth.slice(0, 4)}` }));
     expect(document.querySelector('.salary-amount')).toHaveTextContent('6.800.000đ');
   });
 });

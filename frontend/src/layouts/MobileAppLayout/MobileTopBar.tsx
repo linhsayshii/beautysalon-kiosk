@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/features/auth/AuthProvider';
 import { useStoreName } from '@/services/metadata';
@@ -7,52 +7,14 @@ import { useWebSocket } from '@/hooks/useWebSocket';
 import { getBranches } from '@/features/branches/branches.api';
 import type { ApiRecord } from '@/types/api';
 import { FloatingLayer } from '@/components/ui/FloatingLayer/FloatingLayer';
+import { initials } from '@/lib/format';
 
-// Sub-page titles. Pages with hideTopBar render their own MobilePageHeader. Every
-// mobile route is either a root tab or listed here, so an unlisted path is the
-// not-found page.
-const SUBPAGE_CONFIG: Record<string, { title: string; backTo?: string; hideTopBar?: boolean }> = {
-  '/m/orders': { title: 'Đơn hàng', hideTopBar: true },
-  '/m/products': { title: 'Hàng hóa', backTo: '/m/more', hideTopBar: true },
-  '/m/appointments': { title: 'Lịch dịch vụ', hideTopBar: true },
-  '/m/customers': { title: 'Khách hàng', backTo: '/m/more', hideTopBar: true },
-  '/m/customer-cards': { title: 'Gói & Thẻ khách hàng', backTo: '/m/more', hideTopBar: true },
-  '/m/pricebooks': { title: 'Bảng giá', backTo: '/m/more', hideTopBar: true },
-  '/m/purchase-orders': { title: 'Nhập hàng', backTo: '/m/more', hideTopBar: true },
-  '/m/purchase-orders/new': { title: 'Tạo phiếu nhập', backTo: '/m/purchase-orders', hideTopBar: true },
-  '/m/staff': { title: 'Nhân viên & Ca làm', backTo: '/m/more', hideTopBar: true },
-  '/m/staff/schedule': { title: 'Lịch làm việc', backTo: '/m/more', hideTopBar: true },
-  '/m/staff/attendance': { title: 'Bảng chấm công', backTo: '/m/more', hideTopBar: true },
-  '/m/staff/payroll': { title: 'Bảng lương', backTo: '/m/more', hideTopBar: true },
-  '/m/staff/commissions': { title: 'Hoa hồng nhân viên', backTo: '/m/more', hideTopBar: true },
-  '/m/attendance/qr': { title: 'Mã QR Chấm công', backTo: '/m/more', hideTopBar: true },
-  '/m/invoices/new': { title: 'Tạo hóa đơn', backTo: '/m/pos', hideTopBar: true },
-  '/m/appointments/new': { title: 'Đặt lịch hẹn', backTo: '/m/appointments', hideTopBar: true },
-  '/m/account': { title: 'Cài đặt tài khoản', backTo: '/m/more', hideTopBar: true },
-  '/m/cashbook': { title: 'Sổ quỹ', backTo: '/m/more', hideTopBar: true },
-  '/m/reports': { title: 'Báo cáo lãi lỗ', backTo: '/m/more', hideTopBar: true },
-};
-
-// Map of top-level tab routes
-const ROOT_TAB_ROUTES = new Set([
-  '/m',
-  '/m/dashboard',
-  '/m/appointments',
-  '/m/notifications',
-  '/m/more',
-  '/m/pos',
-  '/m/orders',
-  '/m/customers',
-  '/m/schedule',
-  '/m/salary',
-  '/m/my-schedule',
-  '/m/attendance',
-  '/m/account',
-]);
-
+/**
+ * Brand bar for the root tabs (Tổng quan, Nhiều hơn, POS…). A page that renders
+ * its own MobilePageHeader hides it through CSS (mobile.css), so no route list
+ * has to be kept in sync here.
+ */
 export function MobileTopBar() {
-  const location = useLocation();
-  const navigate = useNavigate();
   const { account, switchBranch } = useAuth();
   const storeName = useStoreName();
   const { isConnected } = useWebSocket();
@@ -60,17 +22,10 @@ export function MobileTopBar() {
   const dropdownRef = useRef<HTMLDivElement>(null);
   const dropdownMenuRef = useRef<HTMLDivElement>(null);
 
-  const pathname = location.pathname.replace(/\/$/, '') || '/m';
-  const isSubPage = !ROOT_TAB_ROUTES.has(pathname);
-  const subPageInfo = /^\/m\/appointments\/\d+\/edit$/.test(pathname)
-    ? { title: 'Chỉnh sửa lịch', backTo: '/m/appointments', hideTopBar: true }
-    : SUBPAGE_CONFIG[pathname];
-  const subPageTitle = subPageInfo?.title || 'Không tìm thấy trang';
-
   const { data: branchesData } = useQuery({
     queryKey: ['branches-list'],
     queryFn: getBranches,
-    enabled: isDropdownOpen && !subPageInfo?.hideTopBar && pathname !== '/m/appointments',
+    enabled: isDropdownOpen,
   });
 
   const branches = (branchesData?.data ?? []) as ApiRecord[];
@@ -91,48 +46,17 @@ export function MobileTopBar() {
     };
   }, [isDropdownOpen]);
 
-  if (subPageInfo?.hideTopBar || pathname === '/m/appointments') {
-    return null;
-  }
-
   const handleSelectBranch = async (branchId: number) => {
     await switchBranch(branchId);
     setIsDropdownOpen(false);
   };
 
-  const handleBack = () => {
-    if (subPageInfo?.backTo) {
-      navigate(subPageInfo.backTo);
-    } else if (window.history.length > 2) {
-      navigate(-1);
-    } else {
-      navigate('/m/more');
-    }
-  };
-
   return (
     <header className="mobile-topbar">
-      {isSubPage ? (
-        <div className="mobile-topbar-subpage-left">
-          <button
-            type="button"
-            className="m-header-back"
-            onClick={handleBack}
-            aria-label="Quay lại"
-            data-testid="mobile-topbar-back-btn"
-          >
-            <i className="ph ph-caret-left" aria-hidden="true" />
-          </button>
-          <h1 className="m-header-title" data-testid="mobile-topbar-title">
-            {subPageTitle}
-          </h1>
-        </div>
-      ) : (
-        <Link to="/m" className="mobile-brand">
-          <span className="brand-mark"><span /><span /></span>
-          <span className="mobile-store-title">{storeName}</span>
-        </Link>
-      )}
+      <Link to="/m" className="mobile-brand">
+        <span className="brand-mark"><span /><span /></span>
+        <span className="mobile-store-title">{storeName}</span>
+      </Link>
 
       <div className="mobile-top-right">
         <span className={`mobile-status-dot ${isConnected ? 'online' : 'offline'}`} title={isConnected ? 'Realtime Online' : 'Offline'} />
@@ -191,7 +115,7 @@ export function MobileTopBar() {
         </div>
 
         <Link to="/m/account" className="mobile-avatar-pill">
-          {account?.displayName?.charAt(0).toUpperCase()}
+          {initials(account?.displayName)}
         </Link>
       </div>
     </header>

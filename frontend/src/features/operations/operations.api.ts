@@ -17,13 +17,6 @@ export interface OrderFilters {
   paymentMethod?: string;
 }
 
-export interface OrderListResponse {
-  rows: ApiRecord[];
-  total: number;
-  page: number;
-  pageSize: number;
-}
-
 export function getOrders(filters?: OrderFilters) {
   return apiRequest<ApiEnvelope<ApiRecord[], PagedMeta>>(`/orders?${toQueryString(filters ?? {})}`);
 }

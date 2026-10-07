@@ -5,7 +5,6 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { ToastProvider } from '@/components/ui/Toast/ToastProvider';
 import { MobileAppointmentCreateView } from './MobileAppointmentCreateView';
 import * as posApi from '@/features/pos/pos.api';
-import * as opsApi from '@/features/operations/operations.api';
 import * as AuthProvider from '@/features/auth/AuthProvider';
 
 // Mock useNavigate
@@ -77,7 +76,7 @@ describe('MobileAppointmentCreateView Component', () => {
       updateLocalAccount: vi.fn(),
     });
 
-    vi.spyOn(opsApi, 'getCustomers').mockResolvedValue({
+    vi.spyOn(posApi, 'searchPosCustomers').mockResolvedValue({
       data: mockCustomers as any,
       meta: { pagination: { total: 1, page: 1, pageSize: 50, totalPages: 1 }, summary: {} } as any,
     });
@@ -118,10 +117,10 @@ describe('MobileAppointmentCreateView Component', () => {
     renderComponent();
 
     // Header
-    expect(screen.getByText('Tạo lịch')).toBeInTheDocument();
+    expect(screen.getByText('Tạo lịch hẹn')).toBeInTheDocument();
 
     // Card 1 rows
-    expect(screen.getByText('Thêm khách hàng')).toBeInTheDocument();
+    expect(screen.getByText('Chọn khách hàng')).toBeInTheDocument();
     expect(screen.getByText(/Bắt đầu làm/i)).toBeInTheDocument();
 
     // Card 2: Empty items state
@@ -142,7 +141,7 @@ describe('MobileAppointmentCreateView Component', () => {
   it('opens customer selection sheet, selects a customer, and updates customer display', async () => {
     renderComponent();
 
-    const customerRow = screen.getByText('Thêm khách hàng');
+    const customerRow = screen.getByText('Chọn khách hàng');
     fireEvent.click(customerRow);
 
     // Customer sheet opens
@@ -202,7 +201,7 @@ describe('MobileAppointmentCreateView Component', () => {
     renderComponent();
 
     // 1. Select Customer
-    fireEvent.click(screen.getByText('Thêm khách hàng'));
+    fireEvent.click(screen.getByText('Chọn khách hàng'));
     await waitFor(() => expect(screen.getByText('Nguyễn Thị Hoa')).toBeInTheDocument());
     fireEvent.click(screen.getByText('Nguyễn Thị Hoa'));
 
@@ -232,7 +231,7 @@ describe('MobileAppointmentCreateView Component', () => {
   it('submits every configured service into the same appointment batch', async () => {
     renderComponent();
 
-    fireEvent.click(screen.getByText('Thêm khách hàng'));
+    fireEvent.click(screen.getByText('Chọn khách hàng'));
     await waitFor(() => expect(screen.getByText('Nguyễn Thị Hoa')).toBeInTheDocument());
     fireEvent.click(screen.getByText('Nguyễn Thị Hoa'));
 
@@ -286,7 +285,7 @@ describe('MobileAppointmentCreateView Component', () => {
     });
     renderComponent();
 
-    fireEvent.click(screen.getByText('Thêm khách hàng'));
+    fireEvent.click(screen.getByText('Chọn khách hàng'));
     await waitFor(() => expect(screen.getByText('Nguyễn Thị Hoa')).toBeInTheDocument());
     fireEvent.click(screen.getByText('Nguyễn Thị Hoa'));
 

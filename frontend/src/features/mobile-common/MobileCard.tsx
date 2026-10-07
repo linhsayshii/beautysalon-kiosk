@@ -31,6 +31,13 @@ export function MobileCard({
     <div
       className={`mobile-card ${onClick ? 'is-clickable' : ''}`}
       onClick={onClick}
+      role={onClick ? 'button' : undefined}
+      tabIndex={onClick ? 0 : undefined}
+      aria-label={onClick ? title : undefined}
+      onKeyDown={onClick ? (event) => {
+        if (event.target !== event.currentTarget) return;
+        if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); onClick(); }
+      } : undefined}
     >
       <div className="mobile-card-header">
         <div className="mobile-card-header-left">

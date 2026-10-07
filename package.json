@@ -1,8 +1,8 @@
 {
   "name": "annachillbeauty-suite",
   "version": "1.0.0",
-  "description": "Anna Chill Beauty - KiotViet Salon clone system",
+  "description": "Anna Chill Beauty - Hệ thống quản lý salon",
   "scripts": {
-    "start-local": "python3 -m http.server 8080"
+    "start-local": "npm --prefix frontend run dev"
   }
 }

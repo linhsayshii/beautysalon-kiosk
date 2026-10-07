@@ -51,9 +51,11 @@ Mở:
 - `cashier` — Thu ngân.
 - `staff`, `trangvu`, `hau`, `emhue` — Nhân viên.
 
-Đổi mật khẩu tại `/account/settings` sau lần đăng nhập đầu. Quản lý tạo hoặc khóa tài khoản tại `/staff/accounts`. Mật khẩu trong database đang chạy có thể đã được đổi; seed không được dùng để reset mật khẩu. API ở `NODE_ENV=production` từ chối khởi động nếu còn hash mật khẩu mặc định của **bất kỳ** tài khoản nào; cần thay mật khẩu trước khi chuyển sang production. Camera và GPS cần HTTPS khi chạy ngoài `localhost`.
+Đổi mật khẩu tại `/account/settings` sau lần đăng nhập đầu. Quản lý tạo hoặc khóa tài khoản tại `/account/settings`. Mật khẩu trong database đang chạy có thể đã được đổi; seed không được dùng để reset mật khẩu. API ở `NODE_ENV=production` từ chối khởi động nếu còn hash mật khẩu mặc định của **bất kỳ** tài khoản nào; cần thay mật khẩu trước khi chuyển sang production. Camera và GPS cần HTTPS khi chạy ngoài `localhost`.
 
 Frontend chỉ hiển thị dữ liệu do API trả về và không có mock/fallback data.
+
+Template giao diện dùng chung: [hướng dẫn mobile](docs/mobile-ui-header-template.md), mẫu sống `/ui-kit` và `/ui-kit/mobile` trong chế độ DEV. Xem [biên bản kiểm tra giao diện và logic](docs/audits/2026-10-07-ui-logic-cleanup.md).
 
 Các trang đã có:
 
@@ -71,9 +73,7 @@ Các trang đã có:
 - `/staff/payroll` - Bảng lương.
 - `/staff/commissions` - Bảng hoa hồng.
 - `/staff/settings` - Thiết lập nhân viên.
-- `/staff/accounts` - Tài khoản và phân quyền.
-- `/branches` - Thêm, chỉnh sửa, chuyển đổi và ngừng hoạt động chi nhánh; chọn GPS trực tiếp trên bản đồ.
-- `/account/settings` - Cập nhật hồ sơ và đổi mật khẩu cho mọi loại tài khoản.
+- `/account/settings` - Hồ sơ, đổi mật khẩu; quản lý có thêm tài khoản, phân quyền và chi nhánh. `/staff/accounts` và `/branches` chuyển hướng về đây.
 - `/attendance/qr` - Mã QR chấm công dành cho quản lý, tự đổi mỗi 15 giây.
 - `/attendance` - Quét QR và xác minh GPS dành cho nhân viên.
 

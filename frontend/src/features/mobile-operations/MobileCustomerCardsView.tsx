@@ -1,11 +1,11 @@
 import { ErrorState, LoadingState } from '@/components/data-display/DataState';
 import { Pagination } from '@/components/data-display/Pagination';
 import { useFilterPagination } from '@/hooks/useFilterPagination';
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { formatDate, formatDateTime, formatMoney, formatNumber } from '@/lib/format';
 import { getCustomerCards, getCustomerCard } from '@/features/operations/operations.api';
-import { StatusBadge } from '@/components/data-display/Badges';
+import { StatusBadge, GoodsTypeBadge } from '@/components/data-display/Badges';
 import { Select } from '@/components/ui/Select/Select';
 import {
   MobileSearchBar,
@@ -25,12 +25,12 @@ export function MobileCustomerCardsView() {
   const [sortValue, setSortValue] = useState<string>('soldAt_desc');
 
   const sortOptions = [
-    { value: 'soldAt_desc', label: 'Bán: Mới nhất' },
-    { value: 'soldAt_asc', label: 'Bán: Cũ nhất' },
-    { value: 'name_asc', label: 'Tên gói/thẻ: A → Z' },
-    { value: 'name_desc', label: 'Tên gói/thẻ: Z → A' },
-    { value: 'price_desc', label: 'Giá bán: Cao → thấp' },
-    { value: 'price_asc', label: 'Giá bán: Thấp → cao' },
+    { value: 'soldAt_desc', label: 'Bán mới nhất' },
+    { value: 'soldAt_asc', label: 'Bán cũ nhất' },
+    { value: 'name_asc', label: 'Tên A → Z' },
+    { value: 'name_desc', label: 'Tên Z → A' },
+    { value: 'price_desc', label: 'Giá bán cao' },
+    { value: 'price_asc', label: 'Giá bán thấp' },
   ];
 
   // Draft filters for filter sheet
@@ -66,19 +66,6 @@ export function MobileCustomerCardsView() {
 
   const activeCard = cardDetailData?.data as ApiRecord | undefined;
 
-  const sortedRows = rawRows;
-
-  // Group by item type: GÓI DỊCH VỤ and THẺ TÀI KHOẢN
-  const groupedSections = useMemo(() => {
-    const map = new Map<string, ApiRecord[]>();
-    sortedRows.forEach((row) => {
-      const sectionName = row.itemType === 'package' ? 'GÓI DỊCH VỤ' : 'THẺ TÀI KHOẢN';
-      const list = map.get(sectionName) || [];
-      list.push(row);
-      map.set(sectionName, list);
-    });
-    return Array.from(map.entries());
-  }, [sortedRows]);
 
   const handleApplyFilter = () => {
     setItemTypeFilter(draftItemType);
@@ -101,7 +88,7 @@ export function MobileCustomerCardsView() {
   };
 
   return (
-    <div className="mobile-operations-view">
+    <div className="m-page">
       <MobilePageHeader
         title="Gói & Thẻ đã bán" backTo="/m/more"
         actions={(
@@ -109,7 +96,7 @@ export function MobileCustomerCardsView() {
             <button
               type="button"
               className={`btn btn-ghost btn-icon m-header-action${isSearchVisible ? ' is-active' : ''}`}
-              onClick={() => setIsSearchVisible((prev) => !prev)}
+              onClick={() => { if (isSearchVisible) setSearch(''); setIsSearchVisible(!isSearchVisible); }}
               aria-label="Tìm kiếm"
             >
               <i className="ph ph-magnifying-glass" />
@@ -122,6 +109,7 @@ export function MobileCustomerCardsView() {
             value={search}
             placeholder="Tìm mã, tên gói/thẻ, khách hàng..."
             onChange={setSearch}
+            autoFocus
           />
         )}
 
@@ -176,26 +164,23 @@ export function MobileCustomerCardsView() {
           />
 
           <div className="m-summary-count">
-            {cardsData?.meta?.pagination?.total ?? rawRows.length} gói, thẻ đã bán
+            {cardsData?.meta?.pagination?.total ?? rawRows.length} gói/thẻ
           </div>
         </div>
       </MobilePageHeader>
 
       {/* 4. Grouped Section List */}
-      <div className="mobile-operations-sections-wrapper">
+      <div className="m-body">
         {error ? <ErrorState error={error} onRetry={() => refetch()} /> : isLoading ? (
           <LoadingState compact label="Đang tải danh sách gói thẻ..." />
         ) : rawRows.length === 0 ? (
           <MobileEmptyState
               title="Chưa có gói dịch vụ hoặc thẻ tài khoản nào"
-              description="Thử tìm kiếm với từ khóa khác hoặc thay đổi bộ lọc."
+              description={search ? 'Thử từ khóa khác hoặc đổi bộ lọc.' : undefined}
             />
         ) : (
-          groupedSections.map(([sectionName, items]) => (
-            <div key={sectionName} className="mobile-operations-section">
-              <div className="mobile-operations-section-title">{sectionName}</div>
-              <div className="mobile-operations-section-card">
-                {items.map((row) => {
+          <div className="m-list">
+                {rawRows.map((row) => {
                   const isPkg = row.itemType === 'package';
                   const usedUnits = Number(row.usedUnits || 0);
                   const totalUnits = Number(row.totalUnits || 1);
@@ -204,24 +189,25 @@ export function MobileCustomerCardsView() {
                   return (
                     <div
                       key={`${row.itemType}-${row.id}`}
-                      className="mobile-operations-row-item"
+                      className="m-list-row"
                       onClick={() => {
                         setSelectedCardId(row.id);
                         setSelectedCardType(row.itemType);
                       }}
                       role="button"
                       tabIndex={0}
-                      onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); setSelectedCardId(row.id); setSelectedCardType(row.itemType); } }}
+                      onKeyDown={(event) => { if (event.target === event.currentTarget && (event.key === 'Enter' || event.key === ' ')) { event.preventDefault(); setSelectedCardId(row.id); setSelectedCardType(row.itemType); } }}
                     >
                       {/* Square rounded avatar */}
-                      <div className={`mobile-card-square-avatar is-${row.itemType}`}>
+                      <div className={`m-list-avatar is-${row.itemType}`}>
                         <i className={isPkg ? 'ph ph-stack' : 'ph ph-credit-card'} />
                       </div>
 
                       {/* Info */}
-                      <div className="mobile-row-info">
-                        <div className="mobile-row-name">{row.itemName}</div>
-                        <div className="mobile-row-sub">
+                      <div className="m-list-copy">
+                        <div className="m-list-title">{row.itemName}</div>
+                        <GoodsTypeBadge type={row.itemType} />
+                        <div className="m-list-meta">
                           <span>{row.customer?.name}</span>
                           {row.customer?.phone && (
                             <a
@@ -229,7 +215,7 @@ export function MobileCustomerCardsView() {
                               className="mobile-customer-phone-link"
                               onClick={(e) => e.stopPropagation()}
                             >
-                              • {row.customer.phone}
+                              · {row.customer.phone}
                             </a>
                           )}
                         </div>
@@ -260,7 +246,7 @@ export function MobileCustomerCardsView() {
                       </div>
 
                       {/* Right: Status badge & Price */}
-                      <div className="mobile-row-right">
+                      <div className="m-list-value">
                         <StatusBadge status={row.status} />
                         <span className="text-strong">
                           {formatMoney(row.salePrice || 0)}
@@ -269,13 +255,11 @@ export function MobileCustomerCardsView() {
                     </div>
                   );
                 })}
-              </div>
-            </div>
-          ))
+          </div>
         )}
       </div>
 
-      {cardsData?.meta?.pagination && <Pagination pagination={cardsData.meta.pagination} onChange={setPage} />}
+      {(cardsData?.meta?.pagination?.totalPages ?? 1) > 1 && <Pagination pagination={cardsData?.meta?.pagination} onChange={setPage} />}
 
       {/* Filter Bottom Sheet */}
       <MobileFilterSheet

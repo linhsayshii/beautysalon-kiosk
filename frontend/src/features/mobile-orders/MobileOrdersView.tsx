@@ -6,7 +6,7 @@ import { useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { formatDateTime, formatMoney, formatNumber } from '@/lib/format';
-import { toIsoDate, todayIso, monthStartIso, COMMON_DATE_PRESETS, formatDayHeader } from '@/lib/date';
+import { toIsoDate, monthStartIso, COMMON_DATE_PRESETS } from '@/lib/date';
 import { Select } from '@/components/ui/Select/Select';
 import { LoadingState, ErrorState } from '@/components/data-display/DataState';
 import { statusLabels, type ApiRecord } from '@/types/api';
@@ -55,12 +55,12 @@ export function MobileOrdersView() {
   const [sortValue, setSortValue] = useState<string>('date_desc');
 
   const sortOptions = [
-    { value: 'date_desc', label: 'Thời gian: Mới nhất' },
-    { value: 'date_asc', label: 'Thời gian: Cũ nhất' },
-    { value: 'total_desc', label: 'Giá trị: Cao → thấp' },
-    { value: 'total_asc', label: 'Giá trị: Thấp → cao' },
-    { value: 'code_asc', label: 'Mã đơn: A → Z' },
-    { value: 'code_desc', label: 'Mã đơn: Z → A' },
+    { value: 'date_desc', label: 'Mới nhất' },
+    { value: 'date_asc', label: 'Cũ nhất' },
+    { value: 'total_desc', label: 'Giá trị cao' },
+    { value: 'total_asc', label: 'Giá trị thấp' },
+    { value: 'code_asc', label: 'Mã A → Z' },
+    { value: 'code_desc', label: 'Mã Z → A' },
   ];
 
   // Detail Sheet
@@ -130,22 +130,6 @@ export function MobileOrdersView() {
 
   const activeOrder = detailData?.data as ApiRecord | undefined;
 
-  const sortedRows = rawRows;
-
-  // Group orders by date (e.g. YYYY-MM-DD)
-  const groupedSections = useMemo(() => {
-    const map = new Map<string, ApiRecord[]>();
-
-    sortedRows.forEach((row) => {
-      const rawDate = row.issuedAt || row.createdAt || todayIso();
-      const dateKey = toIsoDate(new Date(rawDate));
-      const list = map.get(dateKey) || [];
-      list.push(row);
-      map.set(dateKey, list);
-    });
-
-    return Array.from(map.entries());
-  }, [sortedRows]);
 
   // Total Revenue calculation
   const totalRevenueSum = ordersQuery.data?.meta?.summary?.paidRevenue;
@@ -184,7 +168,7 @@ export function MobileOrdersView() {
   };
 
   return (
-    <div className="mobile-orders-view">
+    <div className="m-page">
       <MobilePageHeader
         title="Đơn hàng" backTo="/m/more"
         actions={(
@@ -192,7 +176,7 @@ export function MobileOrdersView() {
             <button
               type="button"
               className={`btn btn-ghost btn-icon m-header-action${isSearchVisible ? ' is-active' : ''}`}
-              onClick={() => setIsSearchVisible((prev) => !prev)}
+              onClick={() => { if (isSearchVisible) setSearch(''); setIsSearchVisible(!isSearchVisible); }}
               aria-label="Tìm kiếm"
             >
               <i className="ph ph-magnifying-glass" />
@@ -205,13 +189,14 @@ export function MobileOrdersView() {
             value={search}
             placeholder="Tìm theo mã đơn, khách hàng, số điện thoại..."
             onChange={setSearch}
+            autoFocus
           />
         )}
 
         <div className="m-chip-strip">
           <button
             type="button"
-            className="mobile-orders-filter-icon-btn"
+            className="chip chip-icon"
             onClick={openFilterSheet}
             aria-label="Mở bộ lọc"
           >
@@ -221,7 +206,7 @@ export function MobileOrdersView() {
           {/* Date Preset Chip */}
           <button
             type="button"
-            className={`mobile-orders-filter-chip ${datePreset !== 'all' ? 'is-active' : ''}`}
+            className={`chip ${datePreset !== 'all' ? 'is-active' : ''}`}
             onClick={openFilterSheet}
           >
             <span>Khoảng ngày: {getDatePresetLabel(datePreset)}</span>
@@ -231,7 +216,7 @@ export function MobileOrdersView() {
           {/* Status Filter Chip */}
           <button
             type="button"
-            className={`mobile-orders-filter-chip ${statusFilter ? 'is-active' : ''}`}
+            className={`chip ${statusFilter ? 'is-active' : ''}`}
             onClick={openFilterSheet}
           >
             <span>Trạng thái: {statusLabels[statusFilter] || 'Tất cả'}</span>
@@ -241,7 +226,7 @@ export function MobileOrdersView() {
           {/* Sales Channel Filter Chip */}
           <button
             type="button"
-            className={`mobile-orders-filter-chip ${channelFilter ? 'is-active' : ''}`}
+            className={`chip ${channelFilter ? 'is-active' : ''}`}
             onClick={openFilterSheet}
           >
             <span>Kênh bán: {salesChannelLabels[channelFilter] || 'Tất cả'}</span>
@@ -257,13 +242,13 @@ export function MobileOrdersView() {
           />
 
           <div className="m-summary-count">
-            {ordersQuery.data?.meta?.pagination?.total ?? rawRows.length} đơn hàng · Doanh thu: {totalRevenueSum === undefined ? '—' : formatMoney(totalRevenueSum) }
+            {ordersQuery.data?.meta?.pagination?.total ?? rawRows.length} đơn · Doanh thu <strong>{totalRevenueSum === undefined ? '—' : formatMoney(totalRevenueSum)}</strong>
           </div>
         </div>
       </MobilePageHeader>
 
-      {/* 4. Grouped Section List */}
-      <div className="mobile-orders-sections-wrapper">
+      {/* Server order is retained across the complete list. */}
+      <div className="m-body">
         {ordersQuery.isPending ? (
           <LoadingState compact />
         ) : ordersQuery.error ? (
@@ -271,83 +256,36 @@ export function MobileOrdersView() {
         ) : rawRows.length === 0 ? (
           <MobileEmptyState
               title="Không tìm thấy đơn hàng nào"
-              description="Thử tìm kiếm với từ khóa khác hoặc thay đổi bộ lọc."
+              description={search ? 'Thử từ khóa khác hoặc đổi bộ lọc.' : undefined}
             />
         ) : (
-          groupedSections.map(([dateKey, items]) => (
-            <div key={dateKey} className="mobile-orders-section">
-              <div className="mobile-orders-section-title">
-                {formatDayHeader(dateKey)} ({items.length})
-              </div>
-              <div className="mobile-orders-section-card">
-                {items.map((order) => {
+          <div className="m-list">
+                {rawRows.map((order) => {
                   const custName = order.customer?.name || order.customerName || 'Khách lẻ';
-                  const custPhone = order.customer?.phone || order.customerPhone || '';
                   const rawTime = order.issuedAt || order.createdAt;
-                  const orderTime = rawTime ? new Date(rawTime).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) : '--:--';
+                  const orderTime = rawTime ? formatDateTime(rawTime) : 'Chưa ghi nhận thời gian';
                   const isPaid = order.status === 'paid' && (!order.paymentStatus || order.paymentStatus === 'paid');
 
                   return (
-                    <div
-                      key={order.id}
-                      className="mobile-orders-row-item"
-                      onClick={() => setSelectedOrderId(order.id)}
-                      role="button"
-                      tabIndex={0}
-                      onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); setSelectedOrderId(order.id); } }}
-                    >
-                      {/* Square Rounded Avatar */}
-                      <div className={`mobile-orders-square-avatar ${isPaid ? 'is-paid' : ''}`}>
-                        <i className="ph ph-receipt" />
-                      </div>
-
-                      {/* Order Core Info */}
-                      <div className="mobile-orders-row-info">
-                        <div className="mobile-orders-row-top-line">
-                          <span className="mobile-orders-code-text">{order.code}</span>
-                          <span className="mobile-orders-time-text">{orderTime}</span>
-                        </div>
-
-                        <div className="mobile-orders-cust-line">
-                          <span className="mobile-orders-cust-name">{custName}</span>
-                          {custPhone && (
-                            <a
-                              href={`tel:${custPhone}`}
-                              className="mobile-orders-phone-link"
-                              onClick={(e) => e.stopPropagation()}
-                            >
-                              • {custPhone}
-                            </a>
-                          )}
-                        </div>
-
-                        <div className="mobile-orders-meta-line">
-                          <span>
-                            <i className="ph ph-user" /> {order.staff?.name || order.staffName || 'Thu ngân'}
-                          </span>
-                          <span>• {salesChannelLabels[order.salesChannel] || 'Tại salon'}</span>
-                        </div>
-                      </div>
-
-                      {/* Right: Total Amount & Status Badge */}
-                      <div className="mobile-orders-row-right">
-                        <div className="mobile-orders-total-amount">
-                          {formatMoney(order.total || 0)}
-                        </div>
-                        <div className="mobile-orders-status-badge-wrap">
-                          <InvoiceStatusBadge status={order.status} paymentStatus={order.paymentStatus} />
-                        </div>
-                      </div>
-                    </div>
+                    <button key={order.id} type="button" className="m-list-row" onClick={() => setSelectedOrderId(order.id)}>
+                      <span className={`m-list-avatar ${isPaid ? 'is-paid' : ''}`}><i className="ph ph-receipt" /></span>
+                      <span className="m-list-copy">
+                        <strong>{custName}</strong>
+                        <small>{order.code} · {orderTime}</small>
+                        <small>{order.staff?.name || order.staffName || 'Thu ngân'} · {salesChannelLabels[order.salesChannel] || 'Tại salon'}</small>
+                      </span>
+                      <span className="m-list-value">
+                        {formatMoney(order.total || 0)}
+                        <InvoiceStatusBadge status={order.status} paymentStatus={order.paymentStatus} />
+                      </span>
+                    </button>
                   );
                 })}
-              </div>
-            </div>
-          ))
+          </div>
         )}
       </div>
 
-      {ordersQuery.data?.meta?.pagination && <Pagination pagination={ordersQuery.data.meta.pagination} onChange={setPage} />}
+      {(ordersQuery.data?.meta?.pagination?.totalPages ?? 1) > 1 && <Pagination pagination={ordersQuery.data?.meta?.pagination} onChange={setPage} />}
 
       {/* 5. Floating Action Button (FAB) */}
       <Link
@@ -537,7 +475,7 @@ export function MobileOrdersView() {
                           <span className="mobile-orders-item-calc">
                             {formatNumber(item.quantity)} {item.unit || ''} x {formatMoney(item.unitPrice)}
                             {Number(item.discount) > 0 && (
-                              <span className="text-danger"> 
+                              <span className="text-danger">
                                 (Giảm {formatMoney(item.discount)})
                               </span>
                             )}

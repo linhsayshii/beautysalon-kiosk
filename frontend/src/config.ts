@@ -5,6 +5,3 @@
 
 // Attendance
 export const ATTENDANCE_GRACE_MINUTES = 10;
-
-// Payroll
-export const PAYROLL_LATE_DEDUCTION_RATE = 10000; // VND per minute

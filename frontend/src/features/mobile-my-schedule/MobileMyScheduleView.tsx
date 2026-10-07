@@ -1,13 +1,17 @@
 import { useEffect, useState, useMemo } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/features/auth/AuthProvider';
 import { getMyWorkItems, updateMyWorkItemStatus } from '@/features/staff/staff.api';
 import { useToast } from '@/components/ui/Toast/ToastProvider';
 import { DatePickerField } from '@/components/ui/DateTimePicker';
 import { DEFAULT_BRANCH_TIME_ZONE, formatBranchTime, localDateTimeFromInstant } from '@/lib/date';
-import { MobilePageHeader } from '@/components/ui/MobilePageHeader/MobilePageHeader';
+import { MobileHeaderAction, MobilePageHeader } from '@/components/ui/MobilePageHeader/MobilePageHeader';
+import { canAccessPath } from '@/features/auth/authorization';
+import { useNavigate } from 'react-router-dom';
 import { APPOINTMENT_STATUS_LABELS } from '@/lib/appointment-status';
+import { ErrorState, LoadingState } from '@/components/data-display/DataState';
+import { MobileEmptyState } from '@/features/mobile-common';
+import { useIsTabRoot } from '@/layouts/MobileAppLayout/MobileBottomNav';
 
 interface ScheduleItem {
   type: 'appointment' | 'invoice';
@@ -30,10 +34,10 @@ export function Component() {
   return <MobileMyScheduleView />;
 }
 
-export default Component;
 
 export function MobileMyScheduleView() {
   const { account } = useAuth();
+  const isTabRoot = useIsTabRoot();
   const navigate = useNavigate();
   const timeZone = account?.branchTimezone ?? DEFAULT_BRANCH_TIME_ZONE;
   const queryClient = useQueryClient();
@@ -136,7 +140,10 @@ export function MobileMyScheduleView() {
     <div className="mobile-my-schedule-view">
       <MobilePageHeader
         title="Lịch của tôi"
-        onBack={() => navigate(-1)}
+        backTo={isTabRoot ? undefined : '/m/more'}
+        actions={account && canAccessPath(account.role, '/m/schedule') ? (
+          <MobileHeaderAction icon="ph ph-calendar-dots" label="Ca làm của tôi" onClick={() => navigate('/m/schedule')} />
+        ) : undefined}
       >
         <div className="m-chip-strip">
           <div className="mobile-my-schedule-date-wrap">
@@ -153,19 +160,13 @@ export function MobileMyScheduleView() {
 
       {/* Content */}
       <div className="mobile-my-schedule-body">
-        {isLoading && (
-          <div className="mobile-my-schedule-loading">Đang tải...</div>
+        {!account?.staffId && (
+          <MobileEmptyState icon="ph ph-user-circle-dashed" title="Tài khoản chưa gắn với nhân viên" description="Lịch làm việc chỉ có ở tài khoản gắn hồ sơ nhân viên." />
         )}
-        {error && (
-          <div className="mobile-my-schedule-error">Không tải được lịch</div>
-        )}
-        {!isLoading && !error && items.length === 0 && (
-          <div className="mobile-my-schedule-empty">
-            <div className="mobile-my-schedule-empty-icon">
-              <i className="ph ph-calendar-blank" />
-            </div>
-            <p className="mobile-my-schedule-empty-msg">Không có lịch hẹn nào hôm nay</p>
-          </div>
+        {account?.staffId && isLoading && <LoadingState compact />}
+        {account?.staffId && error && <ErrorState compact error={error} onRetry={() => workItemsQuery.refetch()} />}
+        {account?.staffId && !isLoading && !error && items.length === 0 && (
+          <MobileEmptyState icon="ph ph-calendar-blank" title={selectedDate === today ? 'Hôm nay chưa có lịch' : 'Ngày này chưa có lịch'} />
         )}
         {!isLoading && !error && items.length > 0 && (
           <>

@@ -1,3 +1,5 @@
+import { Modal } from '@/components/ui/Modal/Modal';
+import { InventoryItemDetails } from './InventoryItemDetails';
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { appConfig } from '@/app/config';
@@ -21,6 +23,7 @@ const initialFilters = { search: '', type: '', category: '', stockStatus: '', st
 
 export function ProductsView() {
   const metadata = useMetadata();
+  const [detailItem, setDetailItem] = useState<{ type: InventoryItemType; itemId: number; data: Record<string, unknown> } | null>(null);
   const [draft, setDraft] = useState(initialFilters);
   const [filters, setFilters] = useState(initialFilters);
   const [page, setPage] = useState(1);
@@ -45,11 +48,15 @@ export function ProductsView() {
       <SelectFilter label="Tồn kho" value={draft.stockStatus} onChange={(stockStatus) => setDraft({ ...draft, stockStatus })} options={[{ value: '', label: 'Tất cả' }, ...toOptions(metadata.data?.data.filters.products.stockStatuses ?? [], statusLabels)]} />
       <SelectFilter label="Trạng thái" value={draft.status} onChange={(status) => setDraft({ ...draft, status })} options={[...toOptions(metadata.data?.data.filters.products.statuses ?? [], statusLabels), { value: '', label: 'Tất cả' }]} />
     </FilterPanel><section className="data-panel"><SearchToolbar value={draft.search} placeholder="Tìm theo mã, mã vạch, tên hàng hoặc thương hiệu" onChange={(search) => setDraft({ ...draft, search })} onSearch={apply} onRefresh={() => query.refetch()} />
-      {query.isPending ? <LoadingState /> : query.error ? <ErrorState error={query.error} onRetry={() => query.refetch()} /> : !rows.length ? <EmptyState /> : <><div className="table-scroll"><table className="data-table goods-table"><thead><tr><th><input className="table-checkbox" type="checkbox" aria-label="Chọn tất cả" /></th><th>Mã hàng hóa</th><th>Tên hàng</th><th>Loại hàng</th><th>Nhóm hàng</th><th>Giá bán</th><th>Giá vốn</th><th>Tồn kho</th></tr></thead><tbody>{rows.map((row) => <tr key={`${row.itemType}-${row.itemId}`}><td className="mobile-hide"><input className="table-checkbox" type="checkbox" aria-label={`Chọn ${row.code}`} /></td><td data-label="Mã hàng"><span className="cell-main link">{row.code}</span><small className="cell-sub">{row.brand ?? ''}</small></td><td data-label="Tên hàng"><span className="cell-main">{row.name}</span><small className="cell-sub">{row.unit}</small></td><td data-label="Loại hàng"><GoodsTypeBadge type={row.itemType} /></td><td data-label="Nhóm">{row.category}</td><td data-label="Giá bán" className="money-cell">{formatMoney(row.salePrice)}</td><td data-label="Giá vốn" className="money-cell">{row.itemType === 'product' ? formatMoney(row.costPrice) : '-'}</td><td data-label="Tồn kho" className={`numeric-cell ${row.itemType === 'product' && row.stockQuantity < row.minStock ? 'stock-low' : ''}`}>
+      {query.isPending ? <LoadingState /> : query.error ? <ErrorState error={query.error} onRetry={() => query.refetch()} /> : !rows.length ? <EmptyState /> : <><div className="table-scroll"><table className="data-table goods-table"><thead><tr><th>Mã hàng hóa</th><th>Tên hàng</th><th>Loại hàng</th><th>Nhóm hàng</th><th>Giá bán</th><th>Giá vốn</th><th>Tồn kho</th></tr></thead><tbody>{rows.map((row) => <tr key={`${row.itemType}-${row.itemId}`}><td data-label="Mã hàng"><button type="button" className="btn btn-link" onClick={() => setDetailItem({ type: row.itemType as InventoryItemType, itemId: Number(row.itemId), data: row })}>{row.code}</button><small className="cell-sub">{row.brand ?? ''}</small></td><td data-label="Tên hàng"><span className="cell-main">{row.name}</span><small className="cell-sub">{row.unit}</small></td><td data-label="Loại hàng"><GoodsTypeBadge type={row.itemType} /></td><td data-label="Nhóm">{row.category}</td><td data-label="Giá bán" className="money-cell">{formatMoney(row.salePrice)}</td><td data-label="Giá vốn" className="money-cell">{row.itemType !== 'account_card' ? formatMoney(row.costPrice) : '-'}</td><td data-label="Tồn kho" className={`numeric-cell ${row.itemType === 'product' && row.stockQuantity < row.minStock ? 'stock-low' : ''}`}>
               <span className="cell-inline-value">{row.stockQuantity === null ? '---' : formatNumber(row.stockQuantity)}</span>
               <button className="row-edit-button" type="button" aria-label={`Chỉnh sửa ${row.name}`} onClick={() => setEditItem({ type: row.itemType as InventoryItemType, itemId: Number(row.itemId), data: row })}><i className="ph ph-pencil-simple" /></button>
             </td></tr>)}</tbody></table></div><Pagination pagination={query.data?.meta.pagination} onChange={setPage} /></>}
     </section></div>
+    {detailItem && <Modal open title="Thông tin hàng hóa" onClose={() => setDetailItem(null)} size="lg">
+      <div className="modal-body"><InventoryItemDetails type={detailItem.type} itemId={detailItem.itemId} /></div>
+      <footer className="modal-footer"><button type="button" className="btn btn-primary" onClick={() => setEditItem(detailItem)}><i className="ph ph-pencil-simple" aria-hidden="true" />Chỉnh sửa</button></footer>
+    </Modal>}
     {editItem && <GoodsCreateDialog type={editItem.type} itemId={editItem.itemId} initialData={editItem.data} onClose={() => setEditItem(null)} />}
   </div></main>;
 }

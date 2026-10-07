@@ -68,7 +68,6 @@ export interface CashVoucherFilters {
 
 export const fundLabels: Record<CashFund, string> = { cash: 'Tiền mặt', bank: 'Ngân hàng' };
 export const voucherTypeLabels: Record<CashVoucherType, string> = { income: 'Phiếu thu', expense: 'Phiếu chi' };
-export const voucherStatusLabels: Record<CashVoucher['status'], string> = { active: 'Đã ghi sổ', cancelled: 'Đã hủy' };
 export const voucherSourceLabels: Record<CashVoucher['sourceType'], string> = {
   manual: 'Lập tại sổ quỹ',
   invoice: 'Hóa đơn bán hàng',

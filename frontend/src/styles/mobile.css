@@ -5,10 +5,6 @@
   --mobile-safe-bottom: env(safe-area-inset-bottom, 0px);
   --mobile-safe-top: env(safe-area-inset-top, 0px);
   --mobile-control-min: 44px;
-  --mobile-layer-sticky: 30;
-  --mobile-layer-navigation: 40;
-  --mobile-layer-overlay: 100;
-  --mobile-layer-overlay-nested: 110;
   --mobile-layer-toast: 200;
 }
 
@@ -20,8 +16,7 @@ body:has(.mobile-app-shell) .toast {
 }
 
 body.mobile-overlay-open .mobile-bottom-nav,
-body:has(.modal-backdrop) .mobile-bottom-nav,
-body:has(.mobile-form-sheet-backdrop) .mobile-bottom-nav {
+body:has(.modal-backdrop) .mobile-bottom-nav {
   visibility: hidden;
   pointer-events: none;
 }
@@ -37,8 +32,7 @@ body.mobile-overlay-open .m-footer {
 }
 
 body.mobile-overlay-open .m-fab,
-body:has(.modal-backdrop) .m-fab,
-body:has(.mobile-form-sheet-backdrop) .m-fab {
+body:has(.modal-backdrop) .m-fab {
   visibility: hidden;
   pointer-events: none;
 }
@@ -79,14 +73,39 @@ html:has(.mobile-app-shell) body {
   position: relative;
 }
 
-.mobile-main-content.is-full-bleed {
+/* A page with its own MobilePageHeader replaces the brand bar and runs edge
+ * to edge; the header itself clears the status bar (page.css). */
+.mobile-app-shell:has(.m-header) .mobile-topbar {
+  display: none;
+}
+
+.mobile-main-content:has(.m-header) {
   padding: 0 0 calc(var(--mobile-bottomnav-h) + var(--mobile-safe-bottom) + 16px);
+}
+
+/* A header with a back button marks a drill-down page: the tab bar steps
+ * aside, so FABs, footers and toasts measure from the screen edge. */
+:root:has(.mobile-app-shell .m-header-back) {
+  --mobile-bottomnav-h: 0px;
+}
+
+.mobile-app-shell:has(.m-header-back) .mobile-bottom-nav {
+  display: none;
 }
 
 /* A page with a sticky .m-footer ends flush with the bottom navigation; the
  * extra 16px breathing room would otherwise leave a gap under the footer. */
 .mobile-main-content:has(.m-footer) {
   padding-bottom: calc(var(--mobile-bottomnav-h) + var(--mobile-safe-bottom));
+}
+
+/* Without a tab bar the footer itself covers the home-indicator area. */
+.mobile-app-shell:has(.m-header-back) .mobile-main-content:has(.m-footer) {
+  padding-bottom: 0;
+}
+
+.mobile-app-shell:has(.m-header-back) .m-footer {
+  padding-bottom: calc(12px + var(--mobile-safe-bottom));
 }
 
 /* Mobile Topbar */
@@ -109,35 +128,6 @@ html:has(.mobile-app-shell) body {
   flex-shrink: 0;
 }
 
-.mobile-topbar-subpage-left {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  min-width: 0;
-  flex: 1;
-}
-
-.mobile-topbar-back-btn {
-  display: grid;
-  place-items: center;
-  width: 44px;
-  height: 44px;
-  border-radius: 10px;
-  border: 1px solid var(--line);
-  background: var(--surface);
-  color: var(--ink-700);
-  font-size: 19px;
-  cursor: pointer;
-  padding: 0;
-  flex-shrink: 0;
-  transition: all 0.15s ease;
-}
-
-.mobile-topbar-back-btn:active {
-  background: var(--blue-50);
-  border-color: var(--blue-300);
-  color: var(--blue-600);
-}
 .mobile-brand {
   display: flex;
   align-items: center;
@@ -404,10 +394,9 @@ html:has(.mobile-app-shell) body {
 }
 
 .mobile-form-card {
-  background: #ffffff;
-  border-radius: 12px;
+  background: var(--surface);
+  border-radius: var(--radius-card);
   border: 1px solid var(--line);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
   overflow: hidden;
 }
 
@@ -673,12 +662,6 @@ html:has(.mobile-app-shell) body {
   color: var(--green);
 }
 
-.mobile-form-tag.is-pos {
-  background: var(--orange-soft);
-  border-color: var(--orange-line);
-  color: var(--orange);
-}
-
 .mobile-form-tag.is-package {
   flex: 1 1 140px;
   min-width: 0;
@@ -722,15 +705,6 @@ html:has(.mobile-app-shell) body {
 
 .mobile-form-status-card {
   padding: 16px;
-}
-
-.mobile-form-section-label {
-  font-size: 13px;
-  font-weight: 700;
-  color: var(--ink-500);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  margin-bottom: 12px;
 }
 
 .mobile-form-status-grid {
@@ -886,7 +860,6 @@ html:has(.mobile-app-shell) body {
   padding: 12px 18px calc(24px + var(--mobile-safe-bottom));
   border-top: 1px solid var(--line);
 }
-/* Touch target minimum sizes for accessibility */
 /* Standardized border-radius scale for mobile */
 .mobile-quick-action-list {
   display: flex;
@@ -1079,7 +1052,6 @@ html:has(.mobile-app-shell) body {
   flex-shrink: 0;
 }
 
-/* Touch-optimized button and sheet utilities */
 /* Sub-page Responsive & Table Helpers inside Mobile Shell */
 .mobile-main-content .page {
   padding: 0;
@@ -1183,7 +1155,6 @@ html:has(.mobile-app-shell) body {
   width: 100%;
 }
 
-
 .mobile-main-content .attendance-table-card {
   width: 100%;
   overflow-x: auto;
@@ -1203,27 +1174,15 @@ html:has(.mobile-app-shell) body {
   min-height: 38px;
 }
 
-/* QR Code and Single Card Subpages */
 /* Bottom Sheet Overlay & Drawer */
-@keyframes mobileFadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
-@keyframes mobileSlideUp {
-  from { transform: translateY(100%); }
-  to { transform: translateY(0); }
-}
 
 /* Tabular Numbers & Consistent Numeric Formatting across Mobile */
-.mobile-row-price,
 .mobile-pos-card-price,
 .mobile-cart-item-unitprice,
 .mobile-cart-qty-val,
 .mobile-orders-total-amount,
 .mobile-orders-item-total,
 .mobile-po-total-due,
-.mobile-pricebook-cost-line,
 .salary-amount,
 .mobile-detail-hero-amount,
 .mobile-detail-grid-value,

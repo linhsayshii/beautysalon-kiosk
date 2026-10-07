@@ -14,10 +14,6 @@
   box-shadow: var(--shadow-card);
 }
 
-.card-flat {
-  box-shadow: none;
-}
-
 .card-header {
   display: flex;
   align-items: center;

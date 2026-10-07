@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ToastProvider } from '@/components/ui/Toast/ToastProvider';
-import { getCustomers } from '@/features/operations/operations.api';
+import { searchPosCustomers } from '@/features/pos/pos.api';
 import { MobileCustomerSelectSheet, type MobileCustomer } from './MobileCustomerSelectSheet';
 
 const mockCustomers: MobileCustomer[] = [
@@ -24,8 +24,8 @@ const mockCustomers: MobileCustomer[] = [
   },
 ];
 
-vi.mock('@/features/operations/operations.api', () => ({
-  getCustomers: vi.fn().mockImplementation(() =>
+vi.mock('@/features/pos/pos.api', () => ({
+  searchPosCustomers: vi.fn().mockImplementation(() =>
     Promise.resolve({
       data: mockCustomers,
       meta: {
@@ -33,7 +33,7 @@ vi.mock('@/features/operations/operations.api', () => ({
       },
     })
   ),
-  createCustomer: vi.fn().mockResolvedValue({
+  createPosCustomer: vi.fn().mockResolvedValue({
     data: { id: 3, code: 'KH000003', name: 'Lê Thuỳ Dung', phone: '0988776655' },
   }),
 }));
@@ -107,7 +107,7 @@ describe('MobileCustomerSelectSheet', () => {
       data: MobileCustomer[];
       meta: { pagination: { page: number; pageSize: number; total: number; totalPages: number } };
     }) => void) | undefined;
-    const mockedGetCustomers = vi.mocked(getCustomers);
+    const mockedGetCustomers = vi.mocked(searchPosCustomers);
 
     renderWithClient(
       <MobileCustomerSelectSheet isOpen={true} onClose={vi.fn()} onSelectCustomer={vi.fn()} />
@@ -129,7 +129,7 @@ describe('MobileCustomerSelectSheet', () => {
     expect(screen.queryByText('Đang tải danh sách khách hàng...')).not.toBeInTheDocument();
 
     await waitFor(() => expect(mockedGetCustomers).toHaveBeenCalledTimes(callsBeforeSearch + 1), { timeout: 1000 });
-    expect(mockedGetCustomers.mock.calls.at(-1)?.[0]).toMatchObject({ search: 'nguyen' });
+    expect(mockedGetCustomers.mock.calls.at(-1)?.[0]).toBe('nguyen');
     expect(screen.getByText('Nguyễn Thị Hoa')).toBeInTheDocument();
     expect(screen.queryByText('Đang tải danh sách khách hàng...')).not.toBeInTheDocument();
 

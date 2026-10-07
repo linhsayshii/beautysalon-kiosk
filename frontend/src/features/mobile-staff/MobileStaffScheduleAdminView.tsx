@@ -244,7 +244,7 @@ export function MobileStaffScheduleAdminView() {
   }, [filteredStaff, selectedDateIso, rawAssignments]);
 
   return (
-    <div className="mobile-staff-view">
+    <div className="m-page">
       <MobilePageHeader
         title="Lịch làm việc" backTo="/m/more"
         actions={(
@@ -252,7 +252,7 @@ export function MobileStaffScheduleAdminView() {
             <button
               type="button"
               className="btn btn-ghost btn-icon m-header-action"
-              onClick={() => setIsSearchVisible((prev) => !prev)}
+              onClick={() => { if (isSearchVisible) setSearch(''); setIsSearchVisible(!isSearchVisible); }}
               aria-label="Tìm kiếm"
             >
               <i className="ph ph-magnifying-glass" />
@@ -275,6 +275,7 @@ export function MobileStaffScheduleAdminView() {
           <MobileSearchBar
             value={search}
             onChange={setSearch}
+            autoFocus
             placeholder="Tìm nhân viên theo tên, mã..."
           />
         )}
@@ -353,7 +354,7 @@ export function MobileStaffScheduleAdminView() {
             <span>{selectedDayInfo.fullLabel}</span>
           </span>
           <span className="m-summary-count">
-            {assignedCount}/{filteredStaff.length} xếp • {attendedCount}/{assignedCount} đã chấm
+            {assignedCount}/{filteredStaff.length} xếp · {attendedCount}/{assignedCount} đã chấm
           </span>
         </div>
       </MobilePageHeader>
@@ -367,7 +368,7 @@ export function MobileStaffScheduleAdminView() {
             <MobileEmptyState
               icon="ph ph-users"
               title="Không tìm thấy nhân viên"
-              description="Thử tìm kiếm với từ khóa khác."
+              description={search ? 'Thử từ khóa khác hoặc đổi bộ lọc.' : undefined}
             />
           ) : (
             groupedStaff.map(([roleGroup, members]) => (
@@ -393,7 +394,7 @@ export function MobileStaffScheduleAdminView() {
                             <span className="mobile-staff-row-name">{staff.name}</span>
                             <span className="mobile-staff-row-sub">
                               <span>{staff.code || ''}</span>
-                              {staff.role && <span>• {staff.role}</span>}
+                              {staff.role && <span>· {staff.role}</span>}
                             </span>
                           </div>
                         </div>
@@ -522,7 +523,7 @@ export function MobileStaffScheduleAdminView() {
         title="Xếp ca làm việc"
         subtitle={
           assigningStaff
-            ? `${assigningStaff.name} • ${selectedDayInfo.fullLabel}, ${formatDateOnly(selectedDateIso)}`
+            ? `${assigningStaff.name} · ${selectedDayInfo.fullLabel}, ${formatDateOnly(selectedDateIso)}`
             : ''
         }
         onClose={() => setAssigningStaff(null)}
@@ -530,14 +531,14 @@ export function MobileStaffScheduleAdminView() {
           <div className="mobile-schedule-sheet-actions">
             <button
               type="button"
-              className="mobile-staff-action-btn mobile-schedule-sheet-cancel"
+              className="btn btn-secondary"
               onClick={() => setAssigningStaff(null)}
             >
               Hủy
             </button>
             <button
               type="button"
-              className="mobile-staff-action-btn primary mobile-schedule-sheet-confirm"
+              className="btn btn-primary"
               onClick={handleConfirmAssign}
               disabled={assignMutation.isPending}
             >

@@ -50,12 +50,11 @@ export function OrdersView() {
       </FilterPanel>
       <section className="data-panel">
         <SearchToolbar value={draft.search} placeholder="Tìm mã đơn, khách hàng, số điện thoại" onChange={(search) => setDraft({ ...draft, search })} onSearch={apply} onRefresh={() => query.refetch()} />
-        {query.isPending ? <LoadingState /> : query.error ? <ErrorState error={query.error} onRetry={() => query.refetch()} /> : !rows.length ? <EmptyState /> : <><div className="table-scroll orders-table-scroll"><table className="data-table orders-table"><thead><tr><th><input className="table-checkbox" type="checkbox" aria-label="Chọn tất cả" /></th><th>Mã đơn</th><th>Khách hàng</th><th>Nhân viên</th><th>Thời gian</th><th>Thanh toán</th><th>Tổng tiền</th><th>Trạng thái</th></tr></thead><tbody>{rows.map((row) => {
+        {query.isPending ? <LoadingState /> : query.error ? <ErrorState error={query.error} onRetry={() => query.refetch()} /> : !rows.length ? <EmptyState /> : <><div className="table-scroll orders-table-scroll"><table className="data-table orders-table"><thead><tr><th>Mã đơn</th><th>Khách hàng</th><th>Nhân viên</th><th>Thời gian</th><th>Thanh toán</th><th>Tổng tiền</th><th>Trạng thái</th></tr></thead><tbody>{rows.map((row) => {
           const isExpanded = expanded === row.id;
           const detailId = `order-detail-${row.id}`;
           return <Fragment key={row.id}>
             <tr className={`order-row expandable-data-row ${isExpanded ? 'is-expanded' : ''}`} onClick={() => toggleOrder(row.id)}>
-              <td className="mobile-hide"><input className="table-checkbox" type="checkbox" aria-label={`Chọn ${row.code}`} onClick={(event) => event.stopPropagation()} /></td>
               <td data-label="Mã đơn"><span className="cell-main link">{row.code}</span><small className="cell-sub">{row.salesChannel === 'online' ? 'Bán online' : row.salesChannel === 'phone' ? 'Qua điện thoại' : 'Tại salon'}</small></td>
               <td data-label="Khách hàng"><AvatarName name={row.customer.name} subtitle={row.customer.phone ?? row.customer.code ?? ''} /></td>
               <td data-label="Nhân viên">{row.staffName ?? '-'}</td>
@@ -64,7 +63,7 @@ export function OrdersView() {
               <td data-label="Tổng tiền" className="money-cell">{formatMoney(row.total)}</td>
               <td data-label="Trạng thái"><InvoiceStatusBadge status={row.status} paymentStatus={row.paymentStatus} /></td>
             </tr>
-            {isExpanded && <tr className="order-detail-row expandable-detail-row" id={detailId}><td colSpan={8}><OrderDetail id={row.id} /></td></tr>}
+            {isExpanded && <tr className="order-detail-row expandable-detail-row" id={detailId}><td colSpan={7}><OrderDetail id={row.id} /></td></tr>}
           </Fragment>;
         })}</tbody></table></div><Pagination pagination={query.data?.meta.pagination} onChange={(nextPage) => { setExpanded(null); setPage(nextPage); }} /></>}
       </section>

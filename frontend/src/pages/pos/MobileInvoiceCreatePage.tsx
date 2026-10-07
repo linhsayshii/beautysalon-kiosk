@@ -3,6 +3,3 @@ import { MobileInvoiceCreateView } from '@/features/mobile-pos/MobileInvoiceCrea
 export function Component() {
   return <MobileInvoiceCreateView />;
 }
-
-export default Component;
-

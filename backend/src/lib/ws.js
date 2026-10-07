@@ -22,6 +22,7 @@ export const realtimeEvents = Object.freeze({
   customerAccountCardUpdated: 'customer-account-card:updated',
   notificationCreated: 'notification:created',
   cashbookUpdated: 'cashbook:updated',
+  inventoryUpdated: 'inventory:updated',
 });
 
 function rejectUpgrade(socket, statusCode, message) {

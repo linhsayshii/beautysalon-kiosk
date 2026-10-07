@@ -67,7 +67,7 @@ describe('MobileMyScheduleView', () => {
 
     renderComponent();
     await waitFor(() => {
-      expect(screen.getByText('Không có lịch hẹn nào hôm nay')).toBeInTheDocument();
+      expect(screen.getByText('Hôm nay chưa có lịch')).toBeInTheDocument();
     });
   });
 

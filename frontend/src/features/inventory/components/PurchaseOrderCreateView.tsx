@@ -1,53 +1,22 @@
-import { invalidatePurchaseQueries } from '@/features/inventory/invalidatePurchaseQueries';
-import { useState } from 'react';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { usePurchaseProductSearch } from '@/features/inventory/usePurchaseProductSearch';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { PageHeader } from '@/components/ui/PageHeader/PageHeader';
+import { usePurchaseOrderForm } from '@/features/inventory/usePurchaseOrderForm';
+import { statusLabels } from '@/types/api';
 import { EmptyState, ErrorState, LoadingState } from '@/components/data-display/DataState';
 import { MoneyInput } from '@/components/forms/MoneyInput';
 import { Select } from '@/components/ui/Select/Select';
-import { useToast } from '@/components/ui/Toast/ToastProvider';
 import { formatDateTime, formatMoney, formatNumber } from '@/lib/format';
-import { toOptions, useMetadata } from '@/services/metadata';
-import { statusLabels, type ApiRecord } from '@/types/api';
-import { createPurchaseOrder, getSuppliers } from '../inventory.api';
-
-interface DraftItem extends ApiRecord { quantity: number; unitCost: number }
+import { toOptions } from '@/services/metadata';
 
 export function PurchaseOrderCreateView() {
-  const navigate = useNavigate();
-  const queryClient = useQueryClient();
-  const location = useLocation();
-  const isMobileRoute = location.pathname.startsWith('/m/');
-  const listPath = isMobileRoute ? '/m/purchase-orders' : '/purchase-orders';
-  const { notify } = useToast();
-  const [search, setSearch] = useState('');
-  const [items, setItems] = useState<DraftItem[]>([]);
-  const [supplierId, setSupplierId] = useState('');
-  const [discount, setDiscount] = useState(0);
-  const [otherCost, setOtherCost] = useState(0);
-  const [amountPaid, setAmountPaid] = useState(0);
-  const [paymentMethod, setPaymentMethod] = useState('cash');
-  const [note, setNote] = useState('');
-  const metadata = useMetadata();
-  const products = usePurchaseProductSearch(search);
-  const suppliers = useQuery({ queryKey: ['suppliers'], queryFn: getSuppliers });
-  const mutation = useMutation({ mutationFn: createPurchaseOrder, onSuccess: async (payload) => { await invalidatePurchaseQueries(queryClient); notify('Lưu phiếu thành công', `${payload.data.code} đã được lưu.`); navigate(listPath); }, onError: (error) => notify('Không thể lưu phiếu', error.message) });
-  const results = products.data?.data ?? [];
-  const subtotal = items.reduce((sum, item) => sum + item.quantity * item.unitCost, 0);
-  const due = Math.max(0, subtotal - discount + otherCost);
-  const updateItem = (id: number, patch: Partial<DraftItem>) => setItems((current) => current.map((item) => item.itemId === id ? { ...item, ...patch } : item));
-  const addItem = (item: ApiRecord) => { setItems((current) => current.some((row) => row.itemId === item.itemId) ? current : [...current, { ...item, quantity: 1, unitCost: item.lastPurchasePrice || item.costPrice }]); setSearch(''); };
-  const save = (status: string) => {
-    if (!supplierId) return notify('Thiếu nhà cung cấp', 'Hãy chọn nhà cung cấp trước khi lưu phiếu.');
-    if (!items.length) return notify('Phiếu nhập trống', 'Hãy thêm ít nhất một sản phẩm.');
-    mutation.mutate({ supplierId: Number(supplierId), status, discount, otherCost, amountPaid, paymentMethod, note, items: items.map((item) => ({ productId: item.itemId, quantity: item.quantity, unitCost: item.unitCost, discount: 0 })) });
-  };
+  const { search, setSearch, items, supplierId, setSupplierId, discount, setDiscount, otherCost, setOtherCost,
+    amountPaid, setAmountPaid, paymentMethod, setPaymentMethod, note, setNote,
+    products, suppliers, metadata, mutation, subtotal, due, addItem, updateItem, removeItem, save, results,
+  } = usePurchaseOrderForm('/purchase-orders');
 
   if (suppliers.isPending) return <main className="page"><LoadingState /></main>;
   if (suppliers.error) return <main className="page"><ErrorState error={suppliers.error} onRetry={() => { suppliers.refetch(); }} /></main>;
 
-  return <main className="page"><div className="purchase-create-shell"><section className="purchase-create-main"><div className="purchase-create-heading"><Link className="btn btn-ghost btn-icon" to="/purchase-orders" aria-label="Quay lại"><i className="ph ph-arrow-left" /></Link><h1>Nhập hàng</h1><div className="purchase-product-search-wrap"><label className="search-control purchase-product-search"><i className="ph ph-magnifying-glass" /><input type="search" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Tìm sản phẩm theo mã hoặc tên" /></label>{search && <div className="purchase-search-results">{products.isFetching ? <p>Đang tìm sản phẩm…</p> : products.error ? <ErrorState error={products.error} onRetry={() => products.refetch()} /> : results.length ? results.map((item) => <button type="button" key={item.itemId} onClick={() => addItem(item)}><span><strong>{item.name}</strong><small>{item.code} · Tồn {formatNumber(item.stockQuantity)}</small></span><strong>{formatMoney(item.lastPurchasePrice || item.costPrice)}</strong><i className="ph ph-plus-circle" /></button>) : <p>Không tìm thấy sản phẩm.</p>}</div>}</div></div><div className="purchase-items-panel">{items.length ? <div className="table-scroll"><table className="data-table purchase-edit-table"><thead><tr><th>Sản phẩm</th><th>Tồn kho</th><th>Số lượng</th><th>Giá nhập</th><th>Thành tiền</th><th /></tr></thead><tbody>{items.map((item) => <tr key={item.itemId}><td><span className="cell-main">{item.name}</span><small className="cell-sub">{item.code} · {item.unit}</small></td><td className="numeric-cell">{formatNumber(item.stockQuantity)}</td><td><input className="line-input" type="number" min="0.01" step="1" value={item.quantity} onChange={(event) => updateItem(item.itemId, { quantity: Math.max(0.01, Number(event.target.value) || 1) })} /></td><td><MoneyInput className="line-input money" value={item.unitCost} onChange={(unitCost) => updateItem(item.itemId, { unitCost })} /></td><td className="money-cell">{formatMoney(item.quantity * item.unitCost)}</td><td><button className="row-action" type="button" aria-label="Xóa" onClick={() => setItems((current) => current.filter((row) => row.itemId !== item.itemId))}><i className="ph ph-trash" /></button></td></tr>)}</tbody></table></div> : <EmptyState message="Tìm và chọn sản phẩm để bắt đầu phiếu nhập." />}</div></section><aside className="purchase-summary-panel"><div className="purchase-meta"><span>Phiếu nhập mới</span><strong>{formatDateTime(new Date())}</strong></div>        <div className="field">
+  return <main className="page"><div className="page-stack"><PageHeader title="Tạo phiếu nhập" subtitle="Chọn sản phẩm, kiểm tra giá nhập và ghi nhận tiền trả nhà cung cấp." backTo="/purchase-orders" /><div className="purchase-create-shell"><section className="purchase-create-main"><div className="purchase-create-heading"><div className="purchase-product-search-wrap"><label className="search-control purchase-product-search"><i className="ph ph-magnifying-glass" /><input type="search" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Tìm sản phẩm theo mã hoặc tên" /></label>{search && <div className="purchase-search-results">{products.isFetching ? <p>Đang tìm sản phẩm…</p> : products.error ? <ErrorState error={products.error} onRetry={() => products.refetch()} /> : results.length ? results.map((item) => <button type="button" key={item.itemId} onClick={() => addItem(item)}><span><strong>{item.name}</strong><small>{item.code} · Tồn {formatNumber(item.stockQuantity)}</small></span><strong>{formatMoney(item.lastPurchasePrice ?? item.costPrice)}</strong><i className="ph ph-plus-circle" /></button>) : <p>Không tìm thấy sản phẩm.</p>}</div>}</div></div><div className="purchase-items-panel">{items.length ? <div className="table-scroll"><table className="data-table purchase-edit-table"><thead><tr><th>Sản phẩm</th><th>Tồn kho</th><th>Số lượng</th><th>Giá nhập</th><th>Thành tiền</th><th /></tr></thead><tbody>{items.map((item) => <tr key={item.itemId}><td><span className="cell-main">{item.name}</span><small className="cell-sub">{item.code} · {item.unit}</small></td><td className="numeric-cell">{formatNumber(item.stockQuantity)}</td><td><input className="line-input" type="number" min="0.01" step="any" inputMode="decimal" value={item.quantity} onChange={(event) => updateItem(item.itemId, { quantity: Number(event.target.value) })} /></td><td><MoneyInput className="line-input money" value={item.unitCost} onChange={(unitCost) => updateItem(item.itemId, { unitCost })} /></td><td className="money-cell">{formatMoney(item.quantity * item.unitCost)}</td><td><button className="row-action" type="button" aria-label="Xóa" onClick={() => removeItem(item.itemId)}><i className="ph ph-trash" /></button></td></tr>)}</tbody></table></div> : <EmptyState message="Tìm và chọn sản phẩm để bắt đầu phiếu nhập." />}</div></section><aside className="purchase-summary-panel"><div className="purchase-meta"><span>Phiếu nhập mới</span><strong>{formatDateTime(new Date())}</strong></div>        <div className="field">
           <label>Nhà cung cấp</label>
           <Select
             value={supplierId}
@@ -83,5 +52,5 @@ export function PurchaseOrderCreateView() {
             />
           </div>
           <label className="field"><span>Ghi chú</span><textarea value={note} onChange={(event) => setNote(event.target.value)} placeholder="Ghi chú cho phiếu nhập" /></label>
-        </div><div className="purchase-submit-actions"><button className="btn btn-secondary" type="button" disabled={mutation.isPending} onClick={() => save('draft')}>Lưu tạm</button><button className="btn btn-primary" type="button" disabled={mutation.isPending} onClick={() => save('completed')}>Hoàn thành</button></div></aside></div></main>;
+        </div><div className="purchase-submit-actions"><button className="btn btn-secondary" type="button" disabled={mutation.isPending} onClick={() => save('draft')}>Lưu tạm</button><button className="btn btn-primary" type="button" disabled={mutation.isPending} onClick={() => save('completed')}>Hoàn thành</button></div></aside></div></div></main>;
 }

@@ -1,9 +1,11 @@
+import { ErrorState, LoadingState } from '@/components/data-display/DataState';
 import { useState, useMemo, useEffect } from 'react';
 import type { FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/components/ui/Toast/ToastProvider';
-import { useAuth } from '@/features/auth/AuthProvider';
+import { homeForRole, useAuth } from '@/features/auth/AuthProvider';
+import { useIsTabRoot } from '@/layouts/MobileAppLayout/MobileBottomNav';
 import { useWebSocket } from '@/hooks/useWebSocket';
 import { clientErrorMessage, errorMessage } from '@/services/api-client';
 import { changeMyPassword, updateMyProfile } from '@/features/account-settings/account-settings.api';
@@ -12,7 +14,7 @@ import { getAccounts, updateAccount } from '@/features/accounts/accounts.api';
 import { AccountDialog, roleDescriptions, roleLabels } from '@/features/accounts/StaffAccountsView';
 import { LocationMapPicker } from '@/components/map/LocationMapPicker';
 import { MobileSearchBar, MobileEmptyState } from '@/features/mobile-common';
-import { formatDateTime } from '@/lib/format';
+import { formatDateTime, initials } from '@/lib/format';
 import type { ApiRecord } from '@/types/api';
 import { MobileHeaderAction, MobilePageHeader } from '@/components/ui/MobilePageHeader/MobilePageHeader';
 import { Modal } from '@/components/ui/Modal/Modal';
@@ -160,12 +162,10 @@ export function MobileAccountView() {
     });
   };
 
+  const isTabRoot = useIsTabRoot();
   const handleBack = () => {
-    if (window.history.length > 2) {
-      navigate(-1);
-    } else {
-      navigate('/m/more');
-    }
+    if (window.history.length > 2) navigate(-1);
+    else navigate(account ? homeForRole(account.role, true) : '/m');
   };
 
   const handleLogout = async () => {
@@ -193,18 +193,13 @@ export function MobileAccountView() {
     <div className="mobile-account-view">
       <MobilePageHeader
         title="Cài đặt tài khoản"
-        subtitle={!isManager || activeTab === 'profile'
-          ? 'Thông tin cá nhân & bảo mật'
-          : activeTab === 'branches'
-            ? 'Thông tin chi nhánh & GPS'
-            : 'Phân quyền & quản lý tài khoản'}
-        onBack={handleBack}
+        onBack={isTabRoot ? undefined : handleBack}
         actions={isManager && activeTab === 'accounts' ? (
           <MobileHeaderAction
             icon="ph ph-magnifying-glass"
             label="Tìm kiếm tài khoản"
             active={isSearchVisible}
-            onClick={() => setIsSearchVisible((prev) => !prev)}
+            onClick={() => { if (isSearchVisible) setAccountSearch(''); setIsSearchVisible(!isSearchVisible); }}
           />
         ) : undefined}
       >
@@ -213,6 +208,7 @@ export function MobileAccountView() {
             value={accountSearch}
             placeholder="Tìm theo tên, @username hoặc vai trò..."
             onChange={setAccountSearch}
+            autoFocus
           />
         )}
 
@@ -225,8 +221,7 @@ export function MobileAccountView() {
               className={`tab${activeTab === 'profile' ? ' is-active' : ''}`}
               onClick={() => { setActiveTab('profile'); setProfileSubTab('info'); }}
             >
-              <i className="ph ph-user-circle" />
-              <span>Thông tin cá nhân</span>
+              Cá nhân
             </button>
             <button
               type="button"
@@ -235,8 +230,7 @@ export function MobileAccountView() {
               className={`tab${activeTab === 'branches' ? ' is-active' : ''}`}
               onClick={() => setActiveTab('branches')}
             >
-              <i className="ph ph-storefront" />
-              <span>Quản lý chi nhánh</span>
+              Chi nhánh
             </button>
             <button
               type="button"
@@ -245,8 +239,7 @@ export function MobileAccountView() {
               className={`tab${activeTab === 'accounts' ? ' is-active' : ''}`}
               onClick={() => setActiveTab('accounts')}
             >
-              <i className="ph ph-shield-check" />
-              <span>Tài khoản & phân quyền</span>
+              Tài khoản & quyền
             </button>
           </div>
         )}
@@ -260,7 +253,7 @@ export function MobileAccountView() {
             {/* User Overview Pill */}
             <div className="mobile-profile-overview-card">
               <div className="profile-overview-avatar">
-                {account?.displayName?.charAt(0).toUpperCase() || 'U'}
+                {initials(account?.displayName)}
               </div>
               <div className="profile-overview-info">
                 <strong className="profile-overview-name">
@@ -268,7 +261,7 @@ export function MobileAccountView() {
                 </strong>
                 <span className="profile-overview-badge">
                   <i className="ph ph-identification-badge" />
-                  {account?.role === 'manager' ? 'Quản lý salon' : account?.role === 'cashier' ? 'Thu ngân' : 'Kỹ thuật viên'} • @{account?.username}
+                  {account?.role === 'manager' ? 'Quản lý salon' : account?.role === 'cashier' ? 'Thu ngân' : 'Kỹ thuật viên'} · @{account?.username}
                 </span>
                 <span className="profile-overview-branch">
                   <i className="ph ph-storefront" /> {account?.branchName || 'Chi nhánh mặc định'}
@@ -465,8 +458,8 @@ export function MobileAccountView() {
         {/* TAB 2: QUẢN LÝ CHI NHÁNH */}
         {isManager && activeTab === 'branches' && (
           <div className="mobile-branches-native-list">
-            {branchesQuery.isLoading ? (
-              <div className="mobile-account-loading">Đang tải danh sách chi nhánh...</div>
+            {branchesQuery.error ? <ErrorState compact error={branchesQuery.error} onRetry={() => branchesQuery.refetch()} /> : branchesQuery.isLoading ? (
+              <LoadingState compact label="Đang tải danh sách chi nhánh…" />
             ) : !branches.length ? (
               <MobileEmptyState
                 icon="ph ph-storefront"
@@ -612,7 +605,7 @@ export function MobileAccountView() {
 
             {/* Account Native Cards List */}
             <div className="mobile-accounts-card-list">
-              {accountsQuery.isLoading ? (
+              {accountsQuery.error ? <ErrorState compact error={accountsQuery.error} onRetry={() => accountsQuery.refetch()} /> : accountsQuery.isLoading ? (
                 <div className="mobile-account-loading">Đang tải danh sách tài khoản...</div>
               ) : !filteredAccounts.length ? (
                 <MobileEmptyState
@@ -627,7 +620,7 @@ export function MobileAccountView() {
                     <div className={`mobile-account-item-card ${!acc.active ? 'is-locked' : ''}`} key={acc.id}>
                       <div className="mobile-acc-card-main">
                         <div className={`mobile-acc-avatar is-${roleKey}`}>
-                          {acc.displayName?.charAt(0).toUpperCase() || 'U'}
+                          {initials(acc.displayName)}
                         </div>
                         <div className="mobile-acc-info">
                           <div className="acc-name-line">
@@ -638,13 +631,13 @@ export function MobileAccountView() {
                           </div>
                           <div className="acc-meta-line">
                             <span className="acc-username">@{acc.username}</span>
-                            {acc.staffCode && <span className="acc-staff-code">• {acc.staffCode}</span>}
+                            {acc.staffCode && <span className="acc-staff-code">· {acc.staffCode}</span>}
                           </div>
                           <div className="acc-submeta-line">
                             <span>{roleDescriptions[roleKey] || 'Truy cập cơ bản'}</span>
                             {acc.lastLoginAt && (
                               <span className="acc-last-login">
-                                • {formatDateTime(acc.lastLoginAt)}
+                                · {formatDateTime(acc.lastLoginAt)}
                               </span>
                             )}
                           </div>

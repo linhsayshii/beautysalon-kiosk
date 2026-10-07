@@ -5,6 +5,8 @@ import { relativeTime } from '@/lib/format';
 import { getNotifications, markAllNotificationsRead, markNotificationRead } from './notifications.api';
 import { MobilePageHeader } from '@/components/ui/MobilePageHeader/MobilePageHeader';
 import { EmptyState, ErrorState, LoadingState } from '@/components/data-display/DataState';
+import { useAuth } from '@/features/auth/AuthProvider';
+import { canAccessPath } from '@/features/auth/authorization';
 
 export interface MobileNotificationItem {
   id: string;
@@ -20,6 +22,7 @@ type FilterTab = 'all' | 'appointment' | 'system';
 
 export function MobileNotificationsView() {
   const navigate = useNavigate();
+  const { account } = useAuth();
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<FilterTab>('all');
   const notificationsQuery = useQuery({
@@ -136,7 +139,8 @@ export function MobileNotificationsView() {
               onClick={() => {
                 if (!item.isRead) readMutation.mutate(Number(item.id));
                 const targetPath = notificationsQuery.data?.data.find((record) => String(record.id) === item.id)?.targetPath;
-                if (targetPath) navigate(targetPath);
+                // Older notifications may point at a page this role cannot open.
+                if (targetPath && account && canAccessPath(account.role, targetPath)) navigate(targetPath);
               }}
               onKeyDown={(event) => {
                 if (event.key === 'Enter' || event.key === ' ') event.currentTarget.click();

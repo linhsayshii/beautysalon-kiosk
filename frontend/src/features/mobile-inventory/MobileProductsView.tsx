@@ -1,6 +1,5 @@
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
 import { useInfiniteQuery } from '@tanstack/react-query';
-import { formatMoney, formatNumber } from '@/lib/format';
 import { GoodsCreateDialog } from '@/features/inventory/components/GoodsCreateDialog';
 import { Select } from '@/components/ui/Select/Select';
 import { getProducts, type InventoryItemType } from '@/features/inventory/inventory.api';
@@ -13,38 +12,28 @@ import {
 } from '@/features/mobile-common';
 import type { ApiRecord } from '@/types/api';
 import { MobilePageHeader } from '@/components/ui/MobilePageHeader/MobilePageHeader';
-import { LoadingState } from '@/components/data-display/DataState';
-
-function getItemIcon(itemType: string) {
-  switch (itemType) {
-    case 'product':
-      return 'ph ph-package';
-    case 'service':
-      return 'ph ph-sparkle';
-    case 'package':
-      return 'ph ph-stack';
-    case 'account_card':
-      return 'ph ph-credit-card';
-    default:
-      return 'ph ph-tag';
-  }
-}
+import { ErrorState, LoadingState } from '@/components/data-display/DataState';
+import { InventoryItemDetails } from '@/features/inventory/components/InventoryItemDetails';
+import { InventoryListRow } from '@/features/inventory/components/InventoryListRow';
+import { inventoryTypes, inventoryTypeOptions } from '@/features/inventory/inventory-ui';
 
 export function MobileProductsView() {
   const [search, setSearch] = useState('');
   const [isSearchVisible, setIsSearchVisible] = useState(false);
   const [typeFilter, setTypeFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState('active');
+  const [draftStatus, setDraftStatus] = useState('active');
   const [categoryFilter, setCategoryFilter] = useState('');
   const [stockStatusFilter, setStockStatusFilter] = useState('');
   const [sortValue, setSortValue] = useState<string>('price_desc');
 
   const sortOptions = [
-    { value: 'price_desc', label: 'Giá bán: Cao → thấp' },
-    { value: 'price_asc', label: 'Giá bán: Thấp → cao' },
-    { value: 'name_asc', label: 'Tên hàng: A → Z' },
-    { value: 'name_desc', label: 'Tên hàng: Z → A' },
-    { value: 'stock_desc', label: 'Tồn kho: Nhiều → ít' },
-    { value: 'stock_asc', label: 'Tồn kho: Ít → nhiều' },
+    { value: 'price_desc', label: 'Giá bán cao' },
+    { value: 'price_asc', label: 'Giá bán thấp' },
+    { value: 'name_asc', label: 'Tên A → Z' },
+    { value: 'name_desc', label: 'Tên Z → A' },
+    { value: 'stock_desc', label: 'Tồn nhiều nhất' },
+    { value: 'stock_asc', label: 'Tồn ít nhất' },
   ];
 
   // Draft filters for bottom sheet
@@ -61,20 +50,20 @@ export function MobileProductsView() {
 
   const {
     data: productsData,
-    isLoading,
+    isLoading, error, refetch,
     hasNextPage,
     fetchNextPage,
     isFetchingNextPage,
   } = useInfiniteQuery({
-    queryKey: ['mobile-products', search, typeFilter, categoryFilter, stockStatusFilter],
+    queryKey: ['mobile-products', search, typeFilter, categoryFilter, stockStatusFilter, statusFilter, sortValue],
     initialPageParam: 1,
     queryFn: ({ pageParam }) =>
       getProducts({
-        search,
+        search, sort: sortValue,
         type: typeFilter,
         category: categoryFilter,
         stockStatus: stockStatusFilter,
-        status: 'active',
+        status: statusFilter,
         page: pageParam,
         pageSize: 100,
       }),
@@ -89,48 +78,9 @@ export function MobileProductsView() {
   const totalRows = meta?.pagination?.total ?? rawRows.length;
   const categories = meta?.categories ?? [];
 
-  // Sort and group by category
-  const sortedRows = useMemo(() => {
-    return [...rawRows].sort((a, b) => {
-      if (sortValue === 'price_desc') {
-        return Number(b.salePrice || 0) - Number(a.salePrice || 0);
-      }
-      if (sortValue === 'price_asc') {
-        return Number(a.salePrice || 0) - Number(b.salePrice || 0);
-      }
-      if (sortValue === 'name_asc') {
-        return String(a.name || '').localeCompare(String(b.name || ''));
-      }
-      if (sortValue === 'name_desc') {
-        return String(b.name || '').localeCompare(String(a.name || ''));
-      }
-      if (sortValue === 'stock_desc') {
-        return Number(b.stockQuantity ?? -1) - Number(a.stockQuantity ?? -1);
-      }
-      if (sortValue === 'stock_asc') {
-        return Number(a.stockQuantity ?? -1) - Number(b.stockQuantity ?? -1);
-      }
-      return 0;
-    });
-  }, [rawRows, sortValue]);
-
-  const groupedCategories = useMemo(() => {
-    const map = new Map<string, ApiRecord[]>();
-    sortedRows.forEach((row) => {
-      const cat = row.category || (row.itemType === 'package' ? 'GÓI DỊCH VỤ' : 'KHÁC');
-      const list = map.get(cat) || [];
-      list.push(row);
-      map.set(cat, list);
-    });
-    return Array.from(map.entries());
-  }, [sortedRows]);
-
-  const totalStockCount = useMemo(() => {
-    return rawRows.reduce((sum, r) => sum + (Number(r.stockQuantity) > 0 ? Number(r.stockQuantity) : 0), 0);
-  }, [rawRows]);
-
   const handleApplyFilter = () => {
     setTypeFilter(draftType);
+    setStatusFilter(draftStatus);
     setCategoryFilter(draftCategory);
     setStockStatusFilter(draftStockStatus);
     setIsFilterOpen(false);
@@ -138,6 +88,8 @@ export function MobileProductsView() {
 
   const handleResetFilter = () => {
     setDraftType('');
+    setDraftStatus('active');
+    setStatusFilter('active');
     setDraftCategory('');
     setDraftStockStatus('');
     setTypeFilter('');
@@ -148,13 +100,14 @@ export function MobileProductsView() {
 
   const openFilterSheet = () => {
     setDraftType(typeFilter);
+    setDraftStatus(statusFilter);
     setDraftCategory(categoryFilter);
     setDraftStockStatus(stockStatusFilter);
     setIsFilterOpen(true);
   };
 
   return (
-    <div className="mobile-inventory-view">
+    <div className="m-page">
       <MobilePageHeader
         title="Hàng hóa" backTo="/m/more"
         actions={(
@@ -162,7 +115,7 @@ export function MobileProductsView() {
             <button
               type="button"
               className={`btn btn-ghost btn-icon m-header-action${isSearchVisible ? ' is-active' : ''}`}
-              onClick={() => setIsSearchVisible((prev) => !prev)}
+              onClick={() => { if (isSearchVisible) setSearch(''); setIsSearchVisible(!isSearchVisible); }}
               aria-label="Tìm kiếm"
             >
               <i className="ph ph-magnifying-glass" />
@@ -175,6 +128,7 @@ export function MobileProductsView() {
             value={search}
             placeholder="Tìm theo tên, mã hàng..."
             onChange={setSearch}
+            autoFocus
           />
         )}
 
@@ -188,6 +142,7 @@ export function MobileProductsView() {
             <i className="ph ph-faders" />
           </button>
 
+          <button type="button" className={`chip ${statusFilter !== 'active' ? 'is-active' : ''}`} onClick={openFilterSheet}>{statusFilter === 'active' ? 'Đang kinh doanh' : statusFilter === 'inactive' ? 'Ngừng kinh doanh' : 'Mọi trạng thái'}</button>
           <button
             type="button"
             className={`chip ${categoryFilter ? 'is-active' : ''}`}
@@ -221,7 +176,7 @@ export function MobileProductsView() {
             className={`chip ${stockStatusFilter ? 'is-active' : ''}`}
             onClick={openFilterSheet}
           >
-            <span>{stockStatusFilter === 'in_stock' ? 'Còn tồn kho' : stockStatusFilter === 'below_min' ? 'Dưới định mức' : 'Tồn kho'}</span>
+            <span>{stockStatusFilter === 'in_stock' ? 'Còn tồn kho' : stockStatusFilter === 'low' ? 'Dưới định mức' : stockStatusFilter === 'out' ? 'Hết hàng' : 'Tồn kho'}</span>
             <i className="ph ph-caret-down" />
           </button>
         </div>
@@ -234,82 +189,20 @@ export function MobileProductsView() {
           />
 
           <div className="m-summary-count">
-            {totalRows} hàng hóa{totalRows > rawRows.length ? ` · Đã tải ${rawRows.length}` : ''} · Tồn đã tải: {formatNumber(totalStockCount)}
+            {totalRows} hàng hóa{totalRows > rawRows.length ? ` · đã tải ${rawRows.length}` : ''}
           </div>
         </div>
       </MobilePageHeader>
 
-      {/* 4. Grouped Section List */}
-      <div className="mobile-inventory-sections-wrapper">
-        {isLoading ? (
-          <LoadingState compact label="Đang tải dữ liệu hàng hóa..." />
-        ) : rawRows.length === 0 ? (
-          <MobileEmptyState
-              title="Chưa có hàng hóa phù hợp"
-              description="Thử tìm kiếm với từ khóa khác hoặc điều chỉnh bộ lọc."
-            />
-        ) : (
-          <>
-            {groupedCategories.map(([categoryName, items]) => (
-              <div key={categoryName} className="mobile-inventory-section">
-              <div className="mobile-inventory-section-title">{categoryName}</div>
-              <div className="mobile-inventory-section-card">
-                {items.map((row) => {
-                  const isPackage = row.itemType === 'package';
-                  const isAccountCard = row.itemType === 'account_card';
-                  const isService = row.itemType === 'service';
-
-                  return (
-                    <div
-                      key={`${row.itemType}-${row.itemId}`}
-                      className="mobile-inventory-row-item"
-                      onClick={() => setSelectedItem(row)}
-                      role="button"
-                      tabIndex={0}
-                      onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); setSelectedItem(row); } }}
-                    >
-                      <div className={`mobile-row-avatar is-${row.itemType}`}>
-                        <i className={getItemIcon(row.itemType)} />
-                      </div>
-
-                      <div className="mobile-row-info">
-                        <div className="mobile-row-name">{row.name}</div>
-                        <div className="mobile-row-sub">
-                          {isService && row.durationMinutes ? (
-                            <>Thời lượng: <strong>{row.durationMinutes} phút</strong></>
-                          ) : isAccountCard && row.cardValue ? (
-                            <>Mệnh giá: {formatMoney(row.cardValue)}</>
-                          ) : isPackage && row.packageDetails ? (
-                            <>Gói dịch vụ, liệu trình</>
-                          ) : row.itemType === 'product' && row.stockQuantity !== null ? (
-                            <>Tồn: <strong>{formatNumber(row.stockQuantity)}</strong> {row.unit || ''}</>
-                          ) : (
-                            row.code || 'Gói dịch vụ, liệu trình'
-                          )}
-                        </div>
-                      </div>
-
-                      <div className="mobile-row-price">
-                        {formatMoney(row.salePrice)}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-              </div>
-            ))}
-            {hasNextPage && (
-              <button
-                type="button"
-                className="mobile-inventory-load-more"
-                onClick={() => fetchNextPage()}
-                disabled={isFetchingNextPage}
-              >
-                {isFetchingNextPage ? 'Đang tải thêm…' : 'Tải thêm hàng hóa'}
-              </button>
-            )}
-          </>
-        )}
+      <div className="m-body">
+        {isLoading ? <LoadingState compact label="Đang tải dữ liệu hàng hóa…" />
+          : error && !rawRows.length ? <ErrorState compact error={error} onRetry={() => refetch()} />
+          : !rawRows.length ? <MobileEmptyState title="Chưa có hàng hóa phù hợp" description={search ? 'Thử từ khóa khác hoặc đổi bộ lọc.' : undefined} />
+          : <>
+            <div className="m-list">{rawRows.map(item => <InventoryListRow key={`${item.itemType}:${item.itemId}`} item={item} onClick={() => setSelectedItem(item)} />)}</div>
+            {error && <ErrorState compact error={error} onRetry={() => fetchNextPage()} />}
+            {hasNextPage && <button type="button" className="btn btn-secondary btn-block" onClick={() => fetchNextPage()} disabled={isFetchingNextPage}>{isFetchingNextPage ? 'Đang tải thêm…' : 'Tải thêm hàng hóa'}</button>}
+          </>}
       </div>
 
       {/* 5. Floating Action Button (FAB) for Creating Goods */}
@@ -329,25 +222,12 @@ export function MobileProductsView() {
         subtitle="Loại đã chọn quyết định các trường thông tin cần nhập"
         onClose={() => setIsCreateMenuOpen(false)}
       >
-        <div className="mobile-create-type-list">
-          {([
-            ['product', 'ph ph-package', 'Sản phẩm', 'Có tồn kho, giá vốn và đơn vị tính'],
-            ['service', 'ph ph-sparkle', 'Dịch vụ', 'Có thời lượng, hoa hồng tua và tư vấn bán'],
-            ['package', 'ph ph-stack', 'Gói dịch vụ', 'Gồm nhiều dịch vụ hoặc liệu trình'],
-            ['account_card', 'ph ph-credit-card', 'Thẻ tài khoản', 'Có mệnh giá và phạm vi thanh toán'],
-          ] as const).map(([type, icon, label, description]) => (
-            <button
-              key={type}
-              type="button"
-              className="mobile-create-type-option"
-              onClick={() => {
-                setIsCreateMenuOpen(false);
-                setIsCreatingType(type);
-              }}
-            >
-              <span className={`mobile-create-type-icon is-${type}`}><i className={icon} /></span>
-              <span className="mobile-create-type-copy"><strong>{label}</strong><small>{description}</small></span>
-              <i className="ph ph-caret-right" aria-hidden="true" />
+        <div className="m-list">
+          {Object.entries(inventoryTypes).map(([type, item]) => (
+            <button key={type} type="button" className="m-list-row" onClick={() => { setIsCreateMenuOpen(false); setIsCreatingType(type as InventoryItemType); }}>
+              <span className={`m-list-avatar is-${type}`}><i className={`ph ${item.icon}`} aria-hidden="true" /></span>
+              <span className="m-list-copy"><strong>{item.label}</strong><small>{item.description}</small></span>
+              <span className="m-list-value"><i className="ph ph-caret-right" aria-hidden="true" /></span>
             </button>
           ))}
         </div>
@@ -362,6 +242,11 @@ export function MobileProductsView() {
         onApply={handleApplyFilter}
       >
         <div className="mobile-filter-field">
+          <label htmlFor="mobile-product-status-filter" className="mobile-filter-field-label">Trạng thái kinh doanh</label>
+          <Select id="mobile-product-status-filter" fullWidth value={draftStatus} onChange={setDraftStatus}
+            options={[{ value: 'active', label: 'Đang kinh doanh' }, { value: 'inactive', label: 'Ngừng kinh doanh' }, { value: '', label: 'Tất cả' }]} />
+        </div>
+        <div className="mobile-filter-field">
           <label htmlFor="mobile-product-type-filter" className="mobile-filter-field-label">Loại hàng</label>
           <Select
             id="mobile-product-type-filter"
@@ -370,7 +255,7 @@ export function MobileProductsView() {
             fullWidth
             value={draftType}
             onChange={setDraftType}
-            options={[{ value: '', label: 'Tất cả loại hàng' }, { value: 'product', label: 'Sản phẩm' }, { value: 'service', label: 'Dịch vụ' }, { value: 'package', label: 'Gói dịch vụ, liệu trình' }, { value: 'account_card', label: 'Thẻ tài khoản' }]}
+            options={[{ value: '', label: 'Tất cả loại hàng' }, ...inventoryTypeOptions]}
           />
         </div>
 
@@ -396,144 +281,19 @@ export function MobileProductsView() {
             fullWidth
             value={draftStockStatus}
             onChange={setDraftStockStatus}
-            options={[{ value: '', label: 'Tất cả trạng thái tồn' }, { value: 'in_stock', label: 'Còn tồn kho (> 0)' }, { value: 'out_of_stock', label: 'Hết hàng (tồn ≤ 0)' }, { value: 'below_min', label: 'Dưới định mức tồn' }]}
+            options={[{ value: '', label: 'Tất cả trạng thái tồn' }, { value: 'in_stock', label: 'Còn tồn kho (> 0)' }, { value: 'out', label: 'Hết hàng (tồn ≤ 0)' }, { value: 'low', label: 'Dưới định mức tồn' }]}
           />
         </div>
       </MobileFilterSheet>
 
-      {/* 6. Inset Detail View Bottom Sheet (Screenshots 1 style) */}
       <MobileDetailSheet
-        isOpen={selectedItem !== null}
-        title="Thông tin chi tiết"
-        onClose={() => setSelectedItem(null)}
+        isOpen={selectedItem !== null} title="Thông tin hàng hóa" onClose={() => setSelectedItem(null)}
+        footerActions={<>
+          <button type="button" className="btn btn-secondary" onClick={() => { setEditInitialTab('details'); setEditingItem(selectedItem); }}>Ảnh, mô tả</button>
+          <button type="button" className="btn btn-primary" onClick={() => { setEditInitialTab('information'); setEditingItem(selectedItem); }}><i className="ph ph-pencil-simple" aria-hidden="true" />Chỉnh sửa</button>
+        </>}
       >
-        {selectedItem && (
-          <div className="mobile-detail-page-container">
-            {/* THÔNG TIN CƠ BẢN Card */}
-            <div className="mobile-detail-section-card">
-              <div className="mobile-detail-card-header">
-                <span className="mobile-detail-card-title">Thông tin cơ bản</span>
-                <button
-                  type="button"
-                  className="mobile-detail-edit-link"
-                  onClick={() => {
-                    setEditInitialTab('information');
-                    setEditingItem(selectedItem);
-                  }}
-                >
-                  Sửa
-                </button>
-              </div>
-
-              <h2 className="mobile-detail-main-name">{selectedItem.name}</h2>
-
-              <div className="mobile-detail-status-pills">
-                <span className="mobile-detail-pill is-gray">Cho phép bán</span>
-                <span className="mobile-detail-pill is-green">Đang kinh doanh</span>
-              </div>
-
-              <div className="mobile-detail-grid-2col">
-                <div className="mobile-detail-grid-item">
-                  <span className="mobile-detail-grid-label">Mã hàng</span>
-                  <span className="mobile-detail-grid-value">{selectedItem.code}</span>
-                </div>
-
-                <div className="mobile-detail-grid-item">
-                  {/* Empty right cell if needed */}
-                </div>
-
-                <div className="mobile-detail-grid-item">
-                  <span className="mobile-detail-grid-label">Loại hàng</span>
-                  <span className="mobile-detail-grid-value">
-                    {selectedItem.itemType === 'product'
-                      ? 'Sản phẩm'
-                      : selectedItem.itemType === 'service'
-                      ? 'Dịch vụ'
-                      : selectedItem.itemType === 'package'
-                      ? 'Gói dịch vụ'
-                      : 'Thẻ tài khoản'}
-                  </span>
-                </div>
-
-                <div className="mobile-detail-grid-item">
-                  <span className="mobile-detail-grid-label">Nhóm hàng</span>
-                  <span className="mobile-detail-grid-value">{selectedItem.category || 'gói dịch vụ'}</span>
-                </div>
-
-                <div className="mobile-detail-grid-item">
-                  <span className="mobile-detail-grid-label">Giá bán</span>
-                  <span className="mobile-detail-grid-value">{formatMoney(selectedItem.salePrice)}</span>
-                </div>
-
-                <div className="mobile-detail-grid-item">
-                  <span className="mobile-detail-grid-label">
-                    {selectedItem.itemType === 'account_card' ? 'Mệnh giá' : 'Giá vốn'}
-                  </span>
-                  <span className="mobile-detail-grid-value">
-                    {selectedItem.itemType === 'account_card'
-                      ? formatMoney(selectedItem.cardValue || selectedItem.salePrice)
-                      : selectedItem.itemType === 'product'
-                      ? formatMoney(selectedItem.costPrice)
-                      : '---'}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            {/* THẺ KHO / QUẢN LÝ TỒN */}
-            {selectedItem.itemType === 'product' && (
-              <div className="mobile-detail-section-card is-compact">
-                <div className="mobile-detail-nav-row is-static is-flush">
-                  <span>Quản lý tồn kho</span>
-                  <strong>{formatNumber(selectedItem.stockQuantity || 0)} {selectedItem.unit || ''}</strong>
-                </div>
-              </div>
-            )}
-
-            {/* THÊM HÌNH ẢNH */}
-            <div className="mobile-detail-section-card is-compact">
-              <button type="button" className="mobile-detail-blue-action" onClick={() => {
-                setEditInitialTab('details');
-                setEditingItem(selectedItem);
-              }}>
-                + Thêm hình ảnh
-              </button>
-            </div>
-
-            {/* THỜI HẠN */}
-            <div className="mobile-detail-section-card">
-              <div className="mobile-detail-card-header">
-                <span className="mobile-detail-card-title">Thời hạn</span>
-                <button type="button" className="mobile-detail-edit-link" onClick={() => {
-                  setEditInitialTab('information');
-                  setEditingItem(selectedItem);
-                }}>Sửa</button>
-              </div>
-
-              <div className="mobile-detail-nav-row is-flush">
-                <span className="text-strong">Hạn sử dụng</span>
-                <span className="text-strong">Vô thời hạn</span>
-              </div>
-            </div>
-
-            {/* PHẠM VI THANH TOÁN */}
-            <div className="mobile-detail-section-card">
-              <div className="mobile-detail-card-header">
-                <span className="mobile-detail-card-title">Phạm vi thanh toán</span>
-                <button type="button" className="mobile-detail-edit-link" onClick={() => {
-                  setEditInitialTab('information');
-                  setEditingItem(selectedItem);
-                }}>Sửa</button>
-              </div>
-
-              <div className="text-strong">
-                Tất cả loại hàng
-              </div>
-
-              <div className="mobile-detail-supporting-text">Áp dụng cho tất cả loại hàng.</div>
-            </div>
-          </div>
-        )}
+        {selectedItem && <InventoryItemDetails type={selectedItem.itemType as InventoryItemType} itemId={Number(selectedItem.itemId)} />}
       </MobileDetailSheet>
 
       {/* Creation Modal */}

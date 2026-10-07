@@ -3,5 +3,3 @@ import { MobileProfitReportView } from '@/features/mobile-reports/MobileProfitRe
 export function Component() {
   return <MobileProfitReportView />;
 }
-
-export default Component;

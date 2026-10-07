@@ -3,5 +3,3 @@ import { MobilePricebooksView } from '@/features/mobile-inventory/MobilePriceboo
 export function Component() {
   return <MobilePricebooksView />;
 }
-
-export default Component;

@@ -22,8 +22,21 @@
   --mobile-safe-bottom: 0px;
 }
 
-.software-keyboard-open .m-footer,
-.software-keyboard-open .mobile-po-create-actions {
+.software-keyboard-open .m-footer {
+  position: static;
+}
+
+/* Typing a search leaves the screen to the field and its results: secondary
+ * rows (sort/count, group filter), the POS cart bar and the brand bar return
+ * when the keyboard closes. Filter chips stay because they scope the search. */
+.software-keyboard-open .m-header:focus-within .m-summary-bar,
+.software-keyboard-open .mobile-pos-sticky-top-controls:focus-within .mobile-pos-filter-row,
+.software-keyboard-open .mobile-pos-container:has(.mobile-pos-sticky-top-controls:focus-within) .mobile-cart,
+.software-keyboard-open .mobile-app-shell:has(.mobile-pos-sticky-top-controls:focus-within) .mobile-topbar {
+  display: none;
+}
+
+.compact-keyboard-viewport .m-header {
   position: static;
 }
 

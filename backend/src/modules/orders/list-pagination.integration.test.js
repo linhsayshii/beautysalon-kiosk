@@ -21,8 +21,8 @@ test('mobile lists sort the complete result before pagination and retain global 
         SELECT 1,'C'||n,'Customer '||n,n FROM generate_series(1,101) n;
       INSERT INTO invoices(branch_id,code,status,subtotal,total,issued_at)
         SELECT 1,'I'||n,'paid',n,n,NOW() FROM generate_series(1,101) n;
-      INSERT INTO purchase_orders(branch_id,code,amount_due)
-        SELECT 1,'P'||n,n FROM generate_series(1,101) n;
+      INSERT INTO purchase_orders(branch_id,code,amount_due,status)
+        SELECT 1,'P'||n,n,'completed' FROM generate_series(1,101) n;
       INSERT INTO service_packages(branch_id,code,name,total_units,list_price) VALUES(1,'SP','Package',10,100);
       INSERT INTO customer_packages(branch_id,package_code,package_id,customer_id,sale_price,total_units,sold_at)
         SELECT 1,'CP'||n,1,1,n,10,NOW() FROM generate_series(1,101) n;

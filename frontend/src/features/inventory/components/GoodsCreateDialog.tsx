@@ -1,16 +1,17 @@
+import { invalidateInventoryQueries } from '../invalidateInventoryQueries';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { appConfig } from '@/app/config';
 import { MoneyInput } from '@/components/forms/MoneyInput';
 import { Select } from '@/components/ui/Select/Select';
 import { Combobox } from '@/components/ui/Combobox/Combobox';
 import { useToast } from '@/components/ui/Toast/ToastProvider';
 import { formatMoney } from '@/lib/format';
-import { createInventoryItem, getInventoryItem, getProducts, updateInventoryItem } from '../inventory.api';
+import { createInventoryItem, getInventoryCatalog, getInventoryItem, getProducts, updateInventoryItem } from '../inventory.api';
 import type { CreateInventoryItemInput, InventoryItemType } from '../inventory.api';
 import type { ApiRecord } from '@/types/api';
 import { Modal } from '@/components/ui/Modal/Modal';
+import { ErrorState } from '@/components/data-display/DataState';
 import { BarcodeInput } from '@/components/ui/BarcodeScanner/BarcodeScannerModal';
 import { ProductImageField } from './ProductImageField';
 
@@ -165,6 +166,7 @@ export function GoodsCreateDialog({ type, onClose, itemId, initialData, initialT
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [packageItems, setPackageItems] = useState<PackageItem[]>([]);
   const [serviceToAdd, setServiceToAdd] = useState('');
+  const [catalogSearch, setCatalogSearch] = useState('');
   const [allowedTypes, setAllowedTypes] = useState<string[]>(['product', 'service', 'package']);
   const [scopeItems, setScopeItems] = useState<string[]>([]);
   const [commissionType, setCommissionType] = useState<CommissionType>(
@@ -179,6 +181,7 @@ export function GoodsCreateDialog({ type, onClose, itemId, initialData, initialT
   const [tourCommissionRate, setTourCommissionRate] = useState(
     initialData ? buildCommissionFromItem(initialData).tourCommissionRate : 0,
   );
+  const loadedItemRef = useRef<ApiRecord | null>(null);
   const nameRef = useRef<HTMLInputElement>(null);
   const queryClient = useQueryClient();
   const { notify } = useToast();
@@ -186,7 +189,7 @@ export function GoodsCreateDialog({ type, onClose, itemId, initialData, initialT
   const needsCatalog = type === 'package' || type === 'account_card';
   const catalog = useQuery({
     queryKey: ['goods-create-catalog', type],
-    queryFn: () => getProducts({ type: type === 'package' ? 'service' : '', status: 'active', page: 1, pageSize: appConfig.purchaseCatalogPageSize }),
+    queryFn: () => getInventoryCatalog({ type: type === 'package' ? 'service' : '', status: 'active' }),
     enabled: needsCatalog,
   });
   // The products endpoint returns every category of the branch whatever the filters, so one row is enough.
@@ -202,14 +205,17 @@ export function GoodsCreateDialog({ type, onClose, itemId, initialData, initialT
   });
   const availableItems = catalog.data?.data ?? [];
   const availableServices = type === 'package' ? availableItems : [];
+  const matchingCatalog = availableItems.filter((item) => `${item.name} ${item.code}`.toLocaleLowerCase('vi').includes(catalogSearch.trim().toLocaleLowerCase('vi')));
+  const matchingScope = matchingCatalog.filter((item) => allowedTypes.includes(item.itemType));
   const selectedServices = useMemo(() => packageItems.map((item) => ({
     ...item,
     service: availableServices.find((service) => String(service.itemId) === item.serviceId),
   })), [availableServices, packageItems]);
 
   useEffect(() => {
-    const source = itemQuery.data?.data ?? initialData;
-    if (source) {
+    const source = isEdit ? itemQuery.data?.data : initialData;
+    if (source && !loadedItemRef.current) {
+      loadedItemRef.current = source;
       setForm(buildFormFromItem(source));
       const commission = buildCommissionFromItem(source);
       setCommissionType(commission.commissionType);
@@ -229,7 +235,7 @@ export function GoodsCreateDialog({ type, onClose, itemId, initialData, initialT
         setScopeItems(source.scopeItems.map((item: { itemType: string; itemId: number }) => `${item.itemType}:${item.itemId}`));
       }
     }
-  }, [initialData, itemQuery.data]);
+  }, [initialData, itemQuery.data, isEdit]);
 
   const mutation = useMutation({
     mutationFn: (payload: CreateInventoryItemInput) => {
@@ -239,15 +245,11 @@ export function GoodsCreateDialog({ type, onClose, itemId, initialData, initialT
       return createInventoryItem(payload);
     },
     onSuccess: (payload) => {
-      queryClient.invalidateQueries({ queryKey: ['products'] });
-      queryClient.invalidateQueries({ queryKey: ['pricebooks'] });
-      queryClient.invalidateQueries({ queryKey: ['purchase-catalog'] });
-      queryClient.invalidateQueries({ queryKey: ['goods-create-catalog'] });
+      void invalidateInventoryQueries(queryClient);
       queryClient.invalidateQueries({ queryKey: ['customer-packages'] });
-      queryClient.invalidateQueries({ queryKey: ['pos-catalog'] });
       notify(
         isEdit ? `Đã cập nhật ${copy.noun}` : `Đã tạo ${copy.noun}`,
-        `${payload.data.code} đã được ${isEdit ? 'cập nhật' : 'lưu'} vào database.`,
+        `${payload.data.code} đã được ${isEdit ? 'cập nhật' : 'lưu'}.`,
       );
       onClose();
     },
@@ -288,7 +290,7 @@ export function GoodsCreateDialog({ type, onClose, itemId, initialData, initialT
 
   const submit = (event: FormEvent) => {
     event.preventDefault();
-    if (imageUploading || !validate()) return;
+    if (imageUploading || mutation.isPending || (isEdit && (!loadedItemRef.current || itemQuery.error)) || !validate()) return;
     const payload: CreateInventoryItemInput = {
       type,
       name: form.name.trim(),
@@ -303,7 +305,8 @@ export function GoodsCreateDialog({ type, onClose, itemId, initialData, initialT
       note: form.note.trim(),
       barcode: form.barcode.trim(),
       unit: form.unit.trim(),
-      initialStock: numeric(form.initialStock),
+      ...(!isEdit || numeric(form.initialStock) !== Number(loadedItemRef.current?.initialStock ?? loadedItemRef.current?.stockQuantity ?? 0)
+        ? { initialStock: numeric(form.initialStock) } : {}),
       minStock: numeric(form.minStock),
       maxStock: form.maxStock ? numeric(form.maxStock) : null,
       durationMinutes: numeric(form.durationMinutes),
@@ -313,8 +316,8 @@ export function GoodsCreateDialog({ type, onClose, itemId, initialData, initialT
       packageItems: packageItems.map((item) => ({ serviceId: Number(item.serviceId), units: item.units })),
       allowedTypes,
       scopeItems: scopeItems.map((key) => { const [itemType, itemId] = key.split(':'); return { itemType, itemId: Number(itemId) }; }),
-      commissionType: commissionType,
-      commissionRate: commissionType === 'percent' ? commissionRate / 100 : commissionRate,
+      commissionType: type === 'service' || type === 'product' ? commissionType : null,
+      commissionRate: type !== 'service' && type !== 'product' ? 0 : commissionType === 'percent' ? commissionRate / 100 : commissionRate,
       tourCommissionType: type === 'service' ? tourCommissionType : null,
       tourCommissionRate: type !== 'service' ? 0 : tourCommissionType === 'percent' ? tourCommissionRate / 100 : tourCommissionRate,
     };
@@ -355,9 +358,10 @@ export function GoodsCreateDialog({ type, onClose, itemId, initialData, initialT
               {type === 'account_card' ? <div className="field"><label className="field-label" htmlFor="goods-face-value">Mệnh giá sử dụng</label><MoneyInput id="goods-face-value" suffix="đ" value={numeric(form.faceValue)} onChange={(val) => update('faceValue', String(val))} />{errors.faceValue && <small className="field-error">{errors.faceValue}</small>}</div> : <div className="field"><label className="field-label" htmlFor="goods-cost-price">Giá vốn</label><MoneyInput id="goods-cost-price" suffix="đ" value={numeric(form.costPrice)} onChange={(val) => update('costPrice', String(val))} />{errors.costPrice && <small className="field-error">{errors.costPrice}</small>}</div>}
             </div></section>
 
-            <CommissionSection
+            {/* Checkout pays commission on services and products only. */}
+            {(type === 'service' || type === 'product') && <CommissionSection
               id="goods-commission"
-              title={type === 'service' ? 'Hoa hồng tư vấn bán' : type === 'product' ? 'Hoa hồng bán' : 'Hoa hồng'}
+              title={type === 'service' ? 'Hoa hồng tư vấn bán' : 'Hoa hồng bán'}
               description={type === 'service'
                 ? 'Trả cho nhân viên tư vấn bán được chọn trên từng dòng dịch vụ.'
                 : `Thiết lập hoa hồng cho nhân viên khi bán ${copy.noun}.`}
@@ -367,7 +371,7 @@ export function GoodsCreateDialog({ type, onClose, itemId, initialData, initialT
               onRateChange={setCommissionRate}
               salePrice={numeric(form.salePrice)}
               noun={copy.noun}
-            />
+            />}
 
             {type === 'service' && <CommissionSection
               id="goods-tour-commission"
@@ -383,9 +387,9 @@ export function GoodsCreateDialog({ type, onClose, itemId, initialData, initialT
 
             {type === 'product' && <section className="form-section is-card"><div className="form-section-head"><div><h3 className="form-section-title">Tồn kho</h3><p className="form-section-text">{isEdit ? 'Điều chỉnh số lượng tồn hiện tại và cảnh báo tồn.' : 'Thiết lập số lượng ban đầu và cảnh báo tồn.'}</p></div></div><div className="form-grid form-grid-3"><div className="field"><label className="field-label" htmlFor="goods-stock">{isEdit ? 'Tồn hiện tại' : 'Tồn ban đầu'}</label><input className="input" id="goods-stock" type="number" min="0" value={form.initialStock} onChange={(event) => update('initialStock', event.target.value)} /></div><div className="field"><label className="field-label" htmlFor="goods-min-stock">Tồn tối thiểu</label><input className="input" id="goods-min-stock" type="number" min="0" value={form.minStock} onChange={(event) => update('minStock', event.target.value)} /></div><div className="field"><label className="field-label" htmlFor="goods-max-stock">Tồn tối đa</label><input className="input" id="goods-max-stock" type="number" min="1" value={form.maxStock} onChange={(event) => update('maxStock', event.target.value)} placeholder="Không giới hạn" aria-invalid={Boolean(errors.maxStock)} />{errors.maxStock && <small className="field-error">{errors.maxStock}</small>}</div></div><div className="field field-compact"><label className="field-label" htmlFor="goods-unit">Đơn vị tính</label><input className="input" id="goods-unit" value={form.unit} onChange={(event) => update('unit', event.target.value)} /></div></section>}
 
-            {type === 'package' && <section className="form-section is-card"><div className="form-section-head"><div><h3 className="form-section-title">Dịch vụ trong gói</h3><p className="form-section-text">Gói được liên kết trực tiếp với các dịch vụ đã tạo.</p></div></div>{catalog.isPending ? <div className="goods-inline-state">Đang tải danh sách dịch vụ...</div> : catalog.error ? <div className="goods-inline-state error">{catalog.error.message}</div> : <><div className="goods-link-picker"><Select value={serviceToAdd} onChange={setServiceToAdd} placeholder="Chọn dịch vụ" fullWidth className="goods-service-select" options={[{ value: '', label: 'Chọn dịch vụ' }, ...availableServices.filter((service) => !packageItems.some((item) => item.serviceId === String(service.itemId))).map((service) => ({ value: String(service.itemId), label: `${service.name} (${formatMoney(service.salePrice)})` }))]} /><button className="btn btn-secondary" type="button" onClick={addService} disabled={!serviceToAdd}><i className="ph ph-plus" />Thêm dịch vụ</button></div>{selectedServices.length ? <div className="linked-items-list">{selectedServices.map((item) => <div key={item.serviceId}><span><strong>{item.service?.name ?? `Dịch vụ #${item.serviceId}`}</strong><small>{item.service?.code}</small></span><label>Số buổi<input type="number" min="1" value={item.units} onChange={(event) => setPackageItems((current) => current.map((row) => row.serviceId === item.serviceId ? { ...row, units: Math.max(1, Number(event.target.value) || 1) } : row))} /></label><button type="button" aria-label="Xóa dịch vụ khỏi gói" onClick={() => setPackageItems((current) => current.filter((row) => row.serviceId !== item.serviceId))}><i className="ph ph-trash" /></button></div>)}</div> : <div className="goods-inline-state">Chưa có dịch vụ trong gói. Hãy tạo dịch vụ trước nếu danh sách đang trống.</div>}</>}{errors.packageItems && <small className="field-error section-error">{errors.packageItems}</small>}<div className="field field-compact"><label className="field-label" htmlFor="goods-schedule">Lịch sử dụng</label><Select id="goods-schedule" value={form.usageSchedule} onChange={(val) => update('usageSchedule', val)} fullWidth options={[{ value: 'flexible', label: 'Tự do' }, { value: 'scheduled', label: 'Theo lịch' }]} /></div></section>}
+            {type === 'package' && <section className="form-section is-card"><div className="form-section-head"><div><h3 className="form-section-title">Dịch vụ trong gói</h3><p className="form-section-text">Gói được liên kết trực tiếp với các dịch vụ đã tạo.</p></div></div>{catalog.isPending ? <div className="goods-inline-state">Đang tải danh sách dịch vụ...</div> : catalog.error ? <ErrorState compact error={catalog.error} onRetry={() => catalog.refetch()} /> : <><div className="field"><label className="field-label" htmlFor="goods-catalog-search">Tìm dịch vụ</label><input className="input" id="goods-catalog-search" value={catalogSearch} onChange={(event) => { setCatalogSearch(event.target.value); setServiceToAdd(''); }} placeholder="Nhập tên hoặc mã dịch vụ" /></div><div className="goods-link-picker"><Select value={serviceToAdd} onChange={setServiceToAdd} placeholder="Chọn dịch vụ" fullWidth className="goods-service-select" options={[{ value: '', label: 'Chọn dịch vụ' }, ...matchingCatalog.filter((service) => !packageItems.some((item) => item.serviceId === String(service.itemId))).map((service) => ({ value: String(service.itemId), label: `${service.name} (${formatMoney(service.salePrice)})` }))]} /><button className="btn btn-secondary" type="button" onClick={addService} disabled={!serviceToAdd}><i className="ph ph-plus" />Thêm dịch vụ</button></div>{selectedServices.length ? <div className="linked-items-list">{selectedServices.map((item) => <div key={item.serviceId}><span><strong>{item.service?.name ?? `Dịch vụ #${item.serviceId}`}</strong><small>{item.service?.code}</small></span><label>Số buổi<input className="input" type="number" inputMode="numeric" min="1" value={item.units} onChange={(event) => setPackageItems((current) => current.map((row) => row.serviceId === item.serviceId ? { ...row, units: Math.max(1, Number(event.target.value) || 1) } : row))} /></label><button type="button" aria-label="Xóa dịch vụ khỏi gói" onClick={() => setPackageItems((current) => current.filter((row) => row.serviceId !== item.serviceId))}><i className="ph ph-trash" /></button></div>)}</div> : <div className="goods-inline-state">Chưa có dịch vụ trong gói. Hãy tạo dịch vụ trước nếu danh sách đang trống.</div>}</>}{errors.packageItems && <small className="field-error section-error">{errors.packageItems}</small>}<div className="field field-compact"><label className="field-label" htmlFor="goods-schedule">Lịch sử dụng</label><Select id="goods-schedule" value={form.usageSchedule} onChange={(val) => update('usageSchedule', val)} fullWidth options={[{ value: 'flexible', label: 'Tự do' }, { value: 'scheduled', label: 'Theo lịch' }]} /></div></section>}
 
-            {type === 'account_card' && <section className="form-section is-card"><div className="form-section-head"><div><h3 className="form-section-title">Phạm vi thanh toán</h3><p className="form-section-text">Chọn loại hàng và hàng hóa được phép thanh toán bằng thẻ.</p></div></div><div className="scope-type-options">{[['product', 'Sản phẩm'], ['service', 'Dịch vụ'], ['package', 'Gói dịch vụ, liệu trình']].map(([value, label]) => <label key={value}><input type="checkbox" checked={allowedTypes.includes(value)} onChange={() => toggleAllowedType(value)} />{label}</label>)}</div>{errors.allowedTypes && <small className="field-error section-error">{errors.allowedTypes}</small>}<div className="scope-items"><strong>Giới hạn theo hàng hóa cụ thể</strong><small>Không chọn mục nào nghĩa là áp dụng cho toàn bộ loại hàng đã chọn.</small>{catalog.isPending ? <div className="goods-inline-state">Đang tải hàng hóa...</div> : availableItems.filter((item) => allowedTypes.includes(item.itemType)).length ? <div className="scope-item-grid">{availableItems.filter((item) => allowedTypes.includes(item.itemType)).map((item) => { const key = `${item.itemType}:${item.itemId}`; return <label key={key}><input type="checkbox" checked={scopeItems.includes(key)} onChange={() => setScopeItems((current) => current.includes(key) ? current.filter((value) => value !== key) : [...current, key])} /><span><strong>{item.name}</strong><small>{item.code}</small></span></label>; })}</div> : <div className="goods-inline-state">Chưa có hàng hóa để giới hạn phạm vi.</div>}</div></section>}
+            {type === 'account_card' && <section className="form-section is-card"><div className="form-section-head"><div><h3 className="form-section-title">Phạm vi thanh toán</h3><p className="form-section-text">Chọn loại hàng và hàng hóa được phép thanh toán bằng thẻ.</p></div></div><div className="scope-type-options">{[['product', 'Sản phẩm'], ['service', 'Dịch vụ'], ['package', 'Gói dịch vụ, liệu trình']].map(([value, label]) => <label key={value}><input type="checkbox" checked={allowedTypes.includes(value)} onChange={() => toggleAllowedType(value)} />{label}</label>)}</div>{errors.allowedTypes && <small className="field-error section-error">{errors.allowedTypes}</small>}<div className="scope-items"><strong>Giới hạn theo hàng hóa cụ thể</strong><small>Loại hàng nào không chọn mục cụ thể thì thẻ áp dụng cho toàn bộ loại đó.</small><div className="field"><label className="field-label" htmlFor="goods-catalog-search">Tìm hàng hóa trong phạm vi</label><input className="input" id="goods-catalog-search" value={catalogSearch} onChange={(event) => setCatalogSearch(event.target.value)} placeholder="Nhập tên hoặc mã hàng" /></div>{catalog.isPending ? <div className="goods-inline-state">Đang tải hàng hóa...</div> : catalog.error ? <ErrorState compact error={catalog.error} onRetry={() => catalog.refetch()} /> : matchingScope.length ? <div className="scope-item-grid">{matchingScope.map((item) => { const key = `${item.itemType}:${item.itemId}`; return <label key={key}><input type="checkbox" checked={scopeItems.includes(key)} onChange={() => setScopeItems((current) => current.includes(key) ? current.filter((value) => value !== key) : [...current, key])} /><span><strong>{item.name}</strong><small>{item.code}</small></span></label>; })}</div> : <div className="goods-inline-state">{catalogSearch ? 'Không có hàng hóa khớp tìm kiếm.' : 'Chưa có hàng hóa để giới hạn phạm vi.'}</div>}</div></section>}
           </> : <div className="goods-details-tab">
             <ProductImageField value={form.imageUrl} onChange={(url) => update('imageUrl', url)} onUploadingChange={setImageUploading} disabled={mutation.isPending} />
             <div className="field"><label className="field-label" htmlFor="goods-description">Mô tả</label><textarea className="textarea" id="goods-description" rows={6} value={form.description} onChange={(event) => update('description', event.target.value)} placeholder={`Mô tả ${copy.noun}`} /></div>

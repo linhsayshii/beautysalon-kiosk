@@ -7,12 +7,15 @@ import { Select } from '@/components/ui/Select/Select';
 import { getPosCatalog, getPosInvoice, getPosPaymentRequests, getPosPriceQuote, getPosStaff, getPosCustomerServicePackages, type PosReceiptData, type ServicePackageOption } from '@/features/pos/pos.api';
 import { PosReceiptPrint } from '@/features/pos/components/PosReceiptPrint';
 import { UsePackageModal } from '@/features/pos/components/UsePackageModal';
-import { MobileCartBottomSheet } from './MobileCartBottomSheet';
+import { MobileCartBottomSheet, posLineKey } from './MobileCartBottomSheet';
 import { expectedLineCommission } from '@/features/pos/commission';
 import { MobileSearchBar } from '@/features/mobile-common';
 import { BarcodeScannerModal } from '@/components/ui/BarcodeScanner/BarcodeScannerModal';
 import { useToast } from '@/components/ui/Toast/ToastProvider';
 import { usePosBarcodeLookup } from '@/features/pos/usePosBarcodeLookup';
+import { inventoryTypes } from '@/features/inventory/inventory-ui';
+import { useAuth } from '@/features/auth/AuthProvider';
+import { canAccessPath } from '@/features/auth/authorization';
 
 type CatalogFilter = '' | 'service' | 'package' | 'account_card' | 'product';
 
@@ -60,6 +63,7 @@ const lineCommission = (line: PosLine) => expectedLineCommission({
 });
 
 export function MobilePosView() {
+  const { account } = useAuth();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const invoiceIdParam = searchParams.get('invoice');
@@ -237,16 +241,12 @@ export function MobilePosView() {
     return cartLines.reduce((sum, line) => sum + lineCommission(line).total, 0);
   }, [cartLines]);
 
-  // Add or increment item
+  // Add or increment the paid line; a package session for the same service stays separate.
   const handleAddItem = (item: CatalogItem) => {
     setCartLines((prev) => {
-      const existing = prev.find((l) => l.itemId === item.itemId && l.itemType === item.itemType);
-      if (existing) {
-        return prev.map((l) =>
-          l.itemId === item.itemId && l.itemType === item.itemType
-            ? { ...l, quantity: l.quantity + 1 }
-            : l
-        );
+      const key = posLineKey(item);
+      if (prev.some((l) => posLineKey(l) === key)) {
+        return prev.map((l) => posLineKey(l) === key ? { ...l, quantity: l.quantity + 1 } : l);
       }
       // Preserve commission data from catalog item
       return [...prev, { ...item, quantity: 1, staffId: null }];
@@ -269,32 +269,20 @@ export function MobilePosView() {
   });
 
   // Update staff for a line
-  const handleUpdateLineStaff = (itemId: number, itemType: string, staffId: number | null) => {
-    setCartLines((prev) =>
-      prev.map((l) =>
-        l.itemId === itemId && l.itemType === itemType
-          ? { ...l, staffId }
-          : l
-      )
-    );
+  const handleUpdateLineStaff = (lineKey: string, staffId: number | null) => {
+    setCartLines((prev) => prev.map((l) => posLineKey(l) === lineKey ? { ...l, staffId } : l));
   };
 
-  const handleUpdateLineConsultant = (itemId: number, itemType: string, consultantStaffId: number | null) => {
-    setCartLines((prev) =>
-      prev.map((l) =>
-        l.itemId === itemId && l.itemType === itemType
-          ? { ...l, consultantStaffId }
-          : l
-      )
-    );
+  const handleUpdateLineConsultant = (lineKey: string, consultantStaffId: number | null) => {
+    setCartLines((prev) => prev.map((l) => posLineKey(l) === lineKey ? { ...l, consultantStaffId } : l));
   };
 
   // Update quantity or remove
-  const handleUpdateQuantity = (itemId: number, itemType: string, delta: number) => {
+  const handleUpdateQuantity = (lineKey: string, delta: number) => {
     setCartLines((prev) => {
       return prev
         .map((l) => {
-          if (l.itemId === itemId && l.itemType === itemType) {
+          if (posLineKey(l) === lineKey) {
             const newQty = l.quantity + delta;
             return newQty > 0 ? { ...l, quantity: newQty } : null;
           }
@@ -327,26 +315,13 @@ export function MobilePosView() {
         usePackageServiceId: serviceId,
       };
 
-      setCartLines(prev => [...prev, newLine]);
+      setCartLines((prev) => prev.some((l) => posLineKey(l) === posLineKey(newLine))
+        ? prev.map((l) => posLineKey(l) === posLineKey(newLine) ? { ...l, quantity: l.quantity + 1 } : l)
+        : [...prev, newLine]);
     }
 
     setShowPackageModal(false);
     setServicePackages([]);
-  };
-
-  const getItemIcon = (type: string) => {
-    switch (type) {
-      case 'service':
-        return 'ph-sparkle';
-      case 'package':
-        return 'ph-sparkle';
-      case 'account_card':
-        return 'ph-credit-card';
-      case 'product':
-        return 'ph-package';
-      default:
-        return 'ph-sparkle';
-    }
   };
 
   return (
@@ -432,38 +407,20 @@ export function MobilePosView() {
           {Object.entries(groupedItems).map(([groupName, items]) => (
             <div key={groupName} className="mobile-pos-group">
               <div className="mobile-pos-group-title">{groupName}</div>
-              <div className="mobile-pos-group-items">
+              <div className="m-list">
                 {items.map((item) => {
-                  const inCart = cartLines.find(
-                    (l) => l.itemId === item.itemId && l.itemType === item.itemType
-                  );
+                  const inCart = cartLines.find((l) => posLineKey(l) === posLineKey(item));
                   return (
-                    <button
-                      type="button"
-                      key={`${item.itemType}-${item.itemId}`}
-                      className="mobile-pos-card"
-                      onClick={() => handleAddItem(item)}
-                    >
-                      <div className="mobile-pos-card-left">
-                        <div className={`mobile-pos-card-icon is-${item.itemType}`}>
-                          <i className={`ph ${getItemIcon(item.itemType)}`} />
-                        </div>
-                        <div className="mobile-pos-card-info">
-                          <div className="mobile-pos-card-name">{item.name}</div>
-                          <div className="mobile-pos-card-subtitle">
-                            {item.category || item.unit || 'Dịch vụ'} {item.code ? `• ${item.code}` : ''}
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="mobile-pos-card-right">
-                        <div className="mobile-pos-card-price">{formatMoney(item.salePrice)}</div>
-                        {inCart && (
-                          <div className="mobile-pos-card-badge">
-                            {inCart.quantity}
-                          </div>
-                        )}
-                      </div>
+                    <button type="button" key={posLineKey(item)} className="m-list-row" onClick={() => handleAddItem(item)}>
+                      <span className={`m-list-avatar is-${item.itemType}`}><i className={`ph ${inventoryTypes[item.itemType].icon}`} aria-hidden="true" /></span>
+                      <span className="m-list-copy">
+                        <strong>{item.name}</strong>
+                        <small>{[item.code, item.category || inventoryTypes[item.itemType].label].filter(Boolean).join(' · ')}</small>
+                      </span>
+                      <span className="m-list-value">
+                        {formatMoney(item.salePrice)}
+                        {inCart && <span className="badge badge-info" aria-label={`Đã có ${inCart.quantity} trong giỏ`}>×{inCart.quantity}</span>}
+                      </span>
                     </button>
                   );
                 })}
@@ -484,18 +441,16 @@ export function MobilePosView() {
             <i className="ph ph-shopping-cart-simple" />
             {invoiceId ? <span className="cart-invoice-identity"><strong>Đang thanh toán · {invoiceQuery.data?.data?.code || 'Đang tải…'}</strong><small>{customer?.name || 'Đang tải khách hàng…'} · {totalCartCount} mục</small></span> : <>Giỏ hàng ({totalCartCount})</>}
           </span>
-          <span className="cart-toggle">
-            {isCartExpanded ? '▼' : '▲'}
-          </span>
+          <i className={`ph ${isCartExpanded ? 'ph-caret-down' : 'ph-caret-up'} cart-toggle`} aria-hidden="true" />
         </button>
 
         {invoiceId && <button type="button" className="cart-close-invoice" onClick={() => { setIsCartOpen(false); setCartLines([]); setCustomer(null); navigate('/m/pos'); }}>Đóng hóa đơn</button>}
         {invoiceId && invoiceQuery.isError && <p role="alert">Không thể tải hóa đơn. <button onClick={() => invoiceQuery.refetch()}>Thử lại</button></p>}
-        {invoiceId && invoiceQuery.data?.data && invoiceQuery.data.data.status !== 'draft' && <p role="status">Hóa đơn đã ghi nhận thanh toán. <button onClick={() => navigate(`/m/orders?invoice=${invoiceId}`)}>Xem hóa đơn / Thu nợ</button></p>}
+        {invoiceId && invoiceQuery.data?.data && invoiceQuery.data.data.status !== 'draft' && <p role="status">Hóa đơn đã ghi nhận thanh toán.{account && canAccessPath(account.role, '/m/orders') && <> <button type="button" onClick={() => navigate(`/m/orders?invoice=${invoiceId}`)}>Xem hóa đơn</button></>}</p>}
         {isCartExpanded && (
           <div className="cart-items">
             {cartLines.map((line) => (
-              <div key={`${line.itemType}-${line.itemId}`} className="cart-item">
+              <div key={posLineKey(line)} className="cart-item">
                 <div className="item-main">
                   <div className="item-info">
                     <span className="item-name">{line.name}</span>
@@ -509,7 +464,7 @@ export function MobilePosView() {
                     <Select<number | string>
                       aria-label={`Nhân viên thực hiện ${line.name}`}
                       value={line.staffId ?? ''}
-                      onChange={(staffId) => handleUpdateLineStaff(line.itemId, line.itemType, staffId === '' ? null : Number(staffId))}
+                      onChange={(staffId) => handleUpdateLineStaff(posLineKey(line), staffId === '' ? null : Number(staffId))}
                       size="sm"
                       triggerClassName="mobile-pos-staff-trigger"
                       options={[{ value: '', label: '-- Chọn --' }, ...staffList.map((staff) => ({ value: staff.id, label: staff.name }))]}
@@ -522,7 +477,7 @@ export function MobilePosView() {
                       <Select<number | string>
                         aria-label={`Nhân viên tư vấn ${line.name}`}
                         value={line.consultantStaffId ?? ''}
-                        onChange={(staffId) => handleUpdateLineConsultant(line.itemId, line.itemType, staffId === '' ? null : Number(staffId))}
+                        onChange={(staffId) => handleUpdateLineConsultant(posLineKey(line), staffId === '' ? null : Number(staffId))}
                         size="sm"
                         triggerClassName="mobile-pos-staff-trigger"
                         options={[{ value: '', label: '-- Không --' }, ...staffList.map((staff) => ({ value: staff.id, label: staff.name }))]}
@@ -546,7 +501,7 @@ export function MobilePosView() {
             <span className="amount">{formatMoney(totalCartAmount)}</span>
           </div>
           <div className="summary-row commission">
-            <span>HH dự kiến:</span>
+            <span>Hoa hồng dự kiến:</span>
             <span className="amount">{formatMoney(totalCommission)}</span>
           </div>
         </div>

@@ -18,7 +18,7 @@ export function MobileMetricCards({ items }: MobileMetricCardsProps) {
       {items.map((item, idx) => (
         <div
           key={idx}
-          className={`mobile-metric-card ${item.tone ? `tone-${item.tone}` : 'tone-blue'}`}
+          className={`mobile-metric-card${item.tone ? ` tone-${item.tone}` : ''}`}
         >
           <span className="mobile-metric-label">{item.label}</span>
           <span className="mobile-metric-value">{item.value}</span>

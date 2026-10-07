@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+import { invalidateInventoryQueries } from '../invalidateInventoryQueries';
+import { useState, useEffect, useRef } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { appConfig } from '@/app/config';
 import { GoodsTypeBadge } from '@/components/data-display/Badges';
@@ -25,7 +26,7 @@ interface PricebookDialogProps {
   onSuccess: () => void;
 }
 
-function PricebookDialog({ open, pricebook, onClose, onSuccess }: PricebookDialogProps) {
+export function PricebookDialog({ open, pricebook, onClose, onSuccess }: PricebookDialogProps) {
   const [form, setForm] = useState<CreatePricebookInput>({
     code: '',
     name: '',
@@ -36,6 +37,7 @@ function PricebookDialog({ open, pricebook, onClose, onSuccess }: PricebookDialo
     copyFromDefault: true,
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const initialized = useRef(false);
   const { notify } = useToast();
   const queryClient = useQueryClient();
   const detailsQuery = useQuery({
@@ -45,7 +47,10 @@ function PricebookDialog({ open, pricebook, onClose, onSuccess }: PricebookDialo
   });
 
   useEffect(() => {
+    if (!open) { initialized.current = false; return; }
+    if (initialized.current || (pricebook?.id && !detailsQuery.data)) return;
     if (open) {
+      initialized.current = true;
       const detail = detailsQuery.data?.data;
       setForm({
         code: detail?.code ?? pricebook?.code ?? '',
@@ -64,7 +69,7 @@ function PricebookDialog({ open, pricebook, onClose, onSuccess }: PricebookDialo
 
   const createMutation = useMutation({
     mutationFn: (data: CreatePricebookInput) => createPricebook(data),
-    onSuccess: () => { notify('Đã tạo bảng giá', 'Bảng giá mới đã được thêm.'); queryClient.invalidateQueries({ queryKey: ['pricebooks'] }); onSuccess(); },
+    onSuccess: () => { notify('Đã tạo bảng giá', 'Bảng giá mới đã được thêm.'); void invalidateInventoryQueries(queryClient); onSuccess(); },
     onError: (error: Error) => notify('Không thể tạo bảng giá', error.message),
   });
 
@@ -73,7 +78,7 @@ function PricebookDialog({ open, pricebook, onClose, onSuccess }: PricebookDialo
       if (!pricebook?.id) throw new Error('Missing pricebook ID');
       return updatePricebook(pricebook.id, data);
     },
-    onSuccess: () => { notify('Đã cập nhật bảng giá', 'Thông tin bảng giá đã được lưu.'); queryClient.invalidateQueries({ queryKey: ['pricebooks'] }); onSuccess(); },
+    onSuccess: () => { notify('Đã cập nhật bảng giá', 'Thông tin bảng giá đã được lưu.'); void invalidateInventoryQueries(queryClient); onSuccess(); },
     onError: (error: Error) => notify('Không thể cập nhật', error.message),
   });
 
@@ -82,7 +87,7 @@ function PricebookDialog({ open, pricebook, onClose, onSuccess }: PricebookDialo
       if (!pricebook?.id) throw new Error('Missing pricebook ID');
       return deletePricebook(pricebook.id);
     },
-    onSuccess: () => { notify('Đã xóa bảng giá', 'Bảng giá đã được xóa.'); queryClient.invalidateQueries({ queryKey: ['pricebooks'] }); onSuccess(); },
+    onSuccess: () => { notify('Đã xóa bảng giá', 'Bảng giá đã được xóa.'); void invalidateInventoryQueries(queryClient); onSuccess(); },
     onError: (error: Error) => notify('Không thể xóa bảng giá', error.message),
   });
 
@@ -102,7 +107,7 @@ function PricebookDialog({ open, pricebook, onClose, onSuccess }: PricebookDialo
   };
 
   const handleSubmit = () => {
-    if (!validate()) return;
+    if (isPending || (isEditing && (detailsQuery.isPending || detailsQuery.error)) || !validate()) return;
     if (isEditing) {
       updateMutation.mutate({ name: form.name, active: form.active, effectiveFrom: form.effectiveFrom, effectiveTo: form.effectiveTo, customerIds: form.customerIds });
     } else {
@@ -121,30 +126,33 @@ function PricebookDialog({ open, pricebook, onClose, onSuccess }: PricebookDialo
   return (
     <Modal
       open={open}
-      onClose={onClose}
+      onClose={() => { if (!isPending) onClose(); }}
+      className="modal-fill"
       title={isEditing ? 'Sửa bảng giá' : 'Thêm bảng giá mới'}
       size="lg"
       closeOnBackdrop={!isPending}
     >
       <div className="modal-body">
+        {isEditing && detailsQuery.error && <ErrorState compact error={detailsQuery.error} onRetry={() => detailsQuery.refetch()} />}
+        {isEditing && detailsQuery.isPending && <LoadingState compact />}
         <div className="form-grid">
           <div className="field">
-            <label className="field-label">Mã bảng giá <span className="field-required">*</span></label>
-            <input type="text" className="input" aria-invalid={Boolean(errors.code)} value={form.code} onChange={(e) => setForm({ ...form, code: e.target.value.toUpperCase() })} placeholder="BG-002" disabled={isEditing} />
+            <label className="field-label" htmlFor="pricebook-code">Mã bảng giá <span className="field-required">*</span></label>
+            <input type="text" className="input" aria-invalid={Boolean(errors.code)} value={form.code} onChange={(e) => setForm({ ...form, code: e.target.value.toUpperCase() })} id="pricebook-code" placeholder="BG-002" disabled={isEditing} />
             {errors.code && <span className="field-error">{errors.code}</span>}
           </div>
           <div className="field">
-            <label className="field-label">Tên bảng giá <span className="field-required">*</span></label>
-            <input type="text" className="input" aria-invalid={Boolean(errors.name)} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Bảng giá khuyến mãi" />
+            <label className="field-label" htmlFor="pricebook-name">Tên bảng giá <span className="field-required">*</span></label>
+            <input type="text" className="input" aria-invalid={Boolean(errors.name)} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} id="pricebook-name" placeholder="Bảng giá khuyến mãi" />
             {errors.name && <span className="field-error">{errors.name}</span>}
           </div>
           {!pricebook?.isDefault && <div className="field">
-            <label className="field-label">Ngày bắt đầu</label>
-            <DatePickerField className="input" value={form.effectiveFrom ?? ''} onChange={(effectiveFrom) => setForm({ ...form, effectiveFrom: effectiveFrom || null })} />
+            <label className="field-label" htmlFor="pricebook-from">Ngày bắt đầu</label>
+            <DatePickerField id="pricebook-from" className="input" value={form.effectiveFrom ?? ''} onChange={(effectiveFrom) => setForm({ ...form, effectiveFrom: effectiveFrom || null })} />
           </div>}
           {!pricebook?.isDefault && <div className="field">
-            <label className="field-label">Ngày kết thúc</label>
-            <DatePickerField className="input" aria-invalid={Boolean(errors.effectiveTo)} value={form.effectiveTo ?? ''} onChange={(effectiveTo) => setForm({ ...form, effectiveTo: effectiveTo || null })} />
+            <label className="field-label" htmlFor="pricebook-to">Ngày kết thúc</label>
+            <DatePickerField id="pricebook-to" className="input" aria-invalid={Boolean(errors.effectiveTo)} value={form.effectiveTo ?? ''} onChange={(effectiveTo) => setForm({ ...form, effectiveTo: effectiveTo || null })} />
             {errors.effectiveTo && <span className="field-error">{errors.effectiveTo}</span>}
           </div>}
           {!pricebook?.isDefault && <div className="field form-grid-full">
@@ -174,7 +182,7 @@ function PricebookDialog({ open, pricebook, onClose, onSuccess }: PricebookDialo
           <button type="button" className="btn btn-danger-soft modal-footer-start" onClick={handleDelete} disabled={isPending}>Xóa</button>
         )}
         <button type="button" className="btn btn-secondary" onClick={onClose} disabled={isPending}>Hủy</button>
-        <button type="button" className="btn btn-primary" onClick={handleSubmit} disabled={isPending}>
+        <button type="button" className="btn btn-primary" onClick={handleSubmit} disabled={isPending || (isEditing && (detailsQuery.isPending || Boolean(detailsQuery.error)))}>
           {isEditing ? 'Lưu' : 'Tạo mới'}
         </button>
       </footer>
@@ -194,7 +202,7 @@ export function PricebooksView() {
   const query = useQuery({ queryKey: ['pricebooks', filters, page], queryFn: () => getPricebooks({ page, pageSize: appConfig.defaultPageSize, ...filters }) });
   const mutation = useMutation({
     mutationFn: ({ pricebookId, itemType, itemId, salePrice }: { pricebookId: number; itemType: string; itemId: number; salePrice: number }) => updatePrice(pricebookId, itemType, itemId, salePrice),
-    onSuccess: () => { notify('Đã lưu giá', 'Bảng giá đã được cập nhật.'); client.invalidateQueries({ queryKey: ['pricebooks'] }); },
+    onSuccess: () => { notify('Đã lưu giá', 'Bảng giá đã được cập nhật.'); void invalidateInventoryQueries(client); },
     onError: (error: Error) => notify('Không thể lưu giá', error.message),
   });
 
@@ -205,7 +213,7 @@ export function PricebooksView() {
   // explicit in the control avoids accidentally displaying an old inactive
   // book with the same name as the default.
   const pricebookOptions = [
-    { value: '', label: book.name || 'Bảng giá chung' },
+    { value: '', label: allBooks.find(item => item.isDefault)?.name || 'Bảng giá chung' },
     ...allBooks
       .filter((item) => !item.isDefault)
       .map((item) => ({ value: String(item.id), label: `${item.name}${item.active ? '' : ' (Ngừng)'}` })),
@@ -288,7 +296,7 @@ export function PricebooksView() {
                           <td data-label="Giá vốn" className="money-cell">{formatMoney(row.costPrice)}</td>
                           <td data-label="Giá nhập cuối" className="money-cell">{formatMoney(row.lastPurchasePrice)}</td>
                           <td data-label={book?.name}>
-                            <MoneyInput wrapperClassName="price-input" suffix="đ" defaultValue={row.bookPrice} disabled={mutation.isPending} aria-label={`Giá bán ${row.name}`} onBlur={(event) => { const salePrice = Math.max(0, Number(event.target.value.replace(/\D/g, '')) || 0); if (salePrice !== Number(row.bookPrice)) mutation.mutate({ pricebookId: book.id, itemType: row.itemType, itemId: row.itemId, salePrice }); }} />
+                            <MoneyInput wrapperClassName="price-input" suffix="đ" defaultValue={row.bookPrice} disabled={mutation.isPending || row.active === false} aria-label={`Giá bán ${row.name}`} onBlur={(event) => { const salePrice = Math.max(0, Number(event.target.value.replace(/\D/g, '')) || 0); if (salePrice !== Number(row.bookPrice)) mutation.mutate({ pricebookId: book.id, itemType: row.itemType, itemId: row.itemId, salePrice }); }} />
                           </td>
                         </tr>
                       ))}

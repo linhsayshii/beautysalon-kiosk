@@ -427,7 +427,6 @@
   margin-top: 2px;
 }
 
-/* 5 KiotViet Status Themes */
 /* 1. Đúng giờ (Blue) */
 .staff-shift-card.status-ontime {
   background-color: var(--sky-soft);

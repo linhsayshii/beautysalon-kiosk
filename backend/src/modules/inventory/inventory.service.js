@@ -2,7 +2,7 @@ import { listSort } from '../../lib/list-sort.js';
 import { pool } from '../../db.js';
 import { HttpError } from '../../lib/http.js';
 import { broadcastToBranch, realtimeEvents } from '../../lib/ws.js';
-import { recordCashEntry } from '../cashbook/cashbook.ledger.js';
+import { assertFundsCover, fundForPaymentMethod, recordCashEntry } from '../cashbook/cashbook.ledger.js';
 import { deleteProductImage } from '../media/media.storage.js';
 
 const number = (value) => Number(value ?? 0);
@@ -109,7 +109,7 @@ export async function getInventoryItem({ branchId, type, id }) {
   if (type === 'package') {
     const [itemResult, itemsResult] = await Promise.all([
       pool.query('SELECT * FROM service_packages WHERE branch_id = $1 AND id = $2', [branchId, id]),
-      pool.query('SELECT service_id, units FROM service_package_items WHERE package_id = $1 ORDER BY id', [id]),
+      pool.query('SELECT i.service_id, i.units, s.name AS service_name FROM service_package_items i JOIN services s ON s.id = i.service_id WHERE i.package_id = $1 AND s.branch_id = $2 ORDER BY i.id', [id, branchId]),
     ]);
     const row = itemResult.rows[0];
     if (!row) throw new HttpError(404, 'ITEM_NOT_FOUND', 'Không tìm thấy hàng hóa');
@@ -119,7 +119,7 @@ export async function getInventoryItem({ branchId, type, id }) {
       validityDays: row.validity_days === null ? null : number(row.validity_days), usageSchedule: row.usage_schedule,
       active: row.active, imageUrl: row.image_url, description: row.description, note: row.note,
       commissionType: row.commission_type, commissionRate: number(row.commission_rate),
-      packageItems: itemsResult.rows.map((item) => ({ serviceId: number(item.service_id), units: number(item.units) })),
+      packageItems: itemsResult.rows.map((item) => ({ serviceId: number(item.service_id), serviceName: item.service_name, units: number(item.units) })),
     };
   }
 
@@ -140,20 +140,21 @@ export async function getInventoryItem({ branchId, type, id }) {
   };
 }
 
-async function nextItemCode(client, branchId, type, requestedCode) {
+async function nextItemCode(client, type, requestedCode) {
   if (requestedCode) return requestedCode;
   const source = itemSources[type];
-  await client.query('SELECT pg_advisory_xact_lock($1)', [branchId]);
+  // Goods codes are unique across branches (schema), so the sequence is too.
+  await client.query("SELECT pg_advisory_xact_lock(hashtext('inventory-item-code'))");
   // Only codes shaped like this prefix + digits count: imported SKUs can be
   // 13-digit barcodes or free text. The goods list shows every item type
   // together and imports reuse prefixes across types, so scan all tables.
   const codes = Object.values(itemSources)
-    .map((item) => `SELECT ${item.codeColumn} AS code FROM ${item.table} WHERE branch_id = $1`)
+    .map((item) => `SELECT ${item.codeColumn} AS code FROM ${item.table}`)
     .join(' UNION ALL ');
   const result = await client.query(
-    `SELECT COALESCE(MAX(substring(code FROM $2)::bigint), 0) + 1 AS next_number
-     FROM (${codes}) item_codes WHERE code ~ $3`,
-    [branchId, `^${source.prefix}(\\d{1,15})$`, `^${source.prefix}\\d{1,15}$`],
+    `SELECT COALESCE(MAX(substring(code FROM $1)::bigint), 0) + 1 AS next_number
+     FROM (${codes}) item_codes WHERE code ~ $2`,
+    [`^${source.prefix}(\\d{1,15})$`, `^${source.prefix}\\d{1,15}$`],
   );
   return `${source.prefix}${String(number(result.rows[0].next_number)).padStart(6, '0')}`;
 }
@@ -278,7 +279,7 @@ export async function createInventoryItem({
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
-    const code = await nextItemCode(client, branchId, type, requestedCode);
+    const code = await nextItemCode(client, type, requestedCode);
     let created;
 
     if (type === 'product') {
@@ -358,6 +359,7 @@ export async function createInventoryItem({
       [pricebookId, type, created.id, salePrice],
     );
     await client.query('COMMIT');
+    broadcastToBranch(branchId, realtimeEvents.inventoryUpdated, { itemType: type, itemId: number(created.id) });
     return { itemId: number(created.id), itemType: type, code, name, salePrice };
   } catch (error) {
     await client.query('ROLLBACK');
@@ -539,6 +541,7 @@ export async function updateInventoryItem({
       // The file is only unreachable once the new URL is committed; a failed cleanup just leaves an orphan.
       await deleteProductImage({ branchId, url: previousImageUrl }).catch((error) => console.error('[media] could not delete replaced product image', error));
     }
+    broadcastToBranch(branchId, realtimeEvents.inventoryUpdated, { itemType: type, itemId: number(id) });
     return { itemId: number(id), itemType: type, code: finalCode, name, salePrice, active };
   } catch (error) {
     await client.query('ROLLBACK');
@@ -549,7 +552,12 @@ export async function updateInventoryItem({
   }
 }
 
-export async function listProducts({ branchId, search, type, category, stockStatus, status, page, pageSize, offset }) {
+export async function listProducts({ branchId, search, type, category, stockStatus, status, page, pageSize, offset, sort }) {
+  const orderBy = listSort(sort, {
+    price_desc: 'sale_price DESC', price_asc: 'sale_price ASC',
+    name_asc: 'name ASC', name_desc: 'name DESC',
+    stock_desc: 'stock_quantity DESC NULLS LAST', stock_asc: 'stock_quantity ASC NULLS LAST',
+  }, 'active DESC, item_type, code DESC');
   const parameters = [branchId, search, type, category, stockStatus, status];
   const filters = `
     branch_id = $1
@@ -565,7 +573,7 @@ export async function listProducts({ branchId, search, type, category, stockStat
     pool.query(`${goodsCte}
       SELECT *, COUNT(*) OVER() AS filtered_total
       FROM goods WHERE ${filters}
-      ORDER BY active DESC, item_type, code DESC
+      ORDER BY ${orderBy}, item_type, item_id
       LIMIT $7 OFFSET $8`, [...parameters, pageSize, offset]),
     pool.query(`${goodsCte} SELECT DISTINCT category FROM goods WHERE branch_id = $1 ORDER BY category`, [branchId]),
     pool.query(`${goodsCte}
@@ -651,7 +659,12 @@ export async function quotePosPrices({ branchId, customerId, items }) {
   };
 }
 
-export async function listPricebooks({ branchId, pricebookId, search, category, page, pageSize, offset }) {
+export async function listPricebooks({ branchId, pricebookId, search, category, type = '', page, pageSize, offset, sort }) {
+  const orderBy = listSort(sort, {
+    price_desc: 'COALESCE(pbi.sale_price, g.sale_price) DESC', price_asc: 'COALESCE(pbi.sale_price, g.sale_price) ASC',
+    name_asc: 'g.name ASC', name_desc: 'g.name DESC',
+    cost_desc: 'g.cost_price DESC', cost_asc: 'g.cost_price ASC',
+  }, 'g.item_type, g.code DESC');
   const booksResult = await pool.query(
     `SELECT pb.id, pb.code, pb.name, pb.active, pb.is_default, pb.effective_from, pb.effective_to,
             COUNT(pc.customer_id)::integer AS customer_count
@@ -674,7 +687,7 @@ export async function listPricebooks({ branchId, pricebookId, search, category, 
       pagination: { page, pageSize, total: 0, totalPages: 1 },
     };
   }
-  const parameters = [branchId, book.id, search, category];
+  const parameters = [branchId, book.id, search, category, type];
   const [result, categoriesResult] = await Promise.all([
     pool.query(`${goodsCte}
       SELECT g.*, COALESCE(pbi.sale_price, g.sale_price) AS book_price, pbi.updated_at,
@@ -684,8 +697,9 @@ export async function listPricebooks({ branchId, pricebookId, search, category, 
       WHERE g.branch_id = $1
         AND ($3 = '' OR g.code ILIKE '%' || $3 || '%' OR g.name ILIKE '%' || $3 || '%')
         AND ($4 = '' OR g.category = $4)
-      ORDER BY g.item_type, g.code DESC
-      LIMIT $5 OFFSET $6`, [...parameters, pageSize, offset]),
+        AND ($5 = '' OR g.item_type = $5)
+      ORDER BY ${orderBy}, g.item_type, g.item_id
+      LIMIT $6 OFFSET $7`, [...parameters, pageSize, offset]),
     pool.query(`${goodsCte} SELECT DISTINCT category FROM goods WHERE branch_id = $1 ORDER BY category`, [branchId]),
   ]);
   const total = number(result.rows[0]?.filtered_total);
@@ -702,20 +716,39 @@ export async function listPricebooks({ branchId, pricebookId, search, category, 
 }
 
 export async function updatePricebookItem({ branchId, pricebookId, itemType, itemId, salePrice }) {
-  const book = await pool.query('SELECT id FROM pricebooks WHERE id = $1 AND branch_id = $2', [pricebookId, branchId]);
-  if (!book.rows[0]) throw new HttpError(404, 'PRICEBOOK_NOT_FOUND', 'Không tìm thấy bảng giá');
   const source = itemSources[itemType];
-  const item = await pool.query(`SELECT id FROM ${source.table} WHERE id = $1 AND branch_id = $2 AND active`, [itemId, branchId]);
-  if (!item.rows[0]) throw new HttpError(404, 'ITEM_NOT_FOUND', 'Không tìm thấy hàng hóa trong chi nhánh hiện tại');
-  const result = await pool.query(
-    `INSERT INTO pricebook_items (pricebook_id, item_type, item_id, sale_price)
-     VALUES ($1, $2, $3, $4)
-     ON CONFLICT (pricebook_id, item_type, item_id)
-     DO UPDATE SET sale_price = EXCLUDED.sale_price, updated_at = NOW()
-     RETURNING sale_price, updated_at`,
-    [pricebookId, itemType, itemId, salePrice],
-  );
-  return { itemType, itemId, salePrice: number(result.rows[0].sale_price), updatedAt: result.rows[0].updated_at };
+  if (!source) throw new HttpError(400, 'INVALID_TYPE', 'Loại hàng không hợp lệ');
+  const priceColumn = { product: 'sale_price', service: 'price', package: 'list_price', account_card: 'sale_price' }[itemType];
+  const client = await pool.connect();
+  let saved;
+  try {
+    await client.query('BEGIN');
+    const book = await client.query('SELECT id, is_default FROM pricebooks WHERE id = $1 AND branch_id = $2', [pricebookId, branchId]);
+    if (!book.rows[0]) throw new HttpError(404, 'PRICEBOOK_NOT_FOUND', 'Không tìm thấy bảng giá');
+    const item = await client.query(`SELECT id FROM ${source.table} WHERE id = $1 AND branch_id = $2 AND active FOR UPDATE`, [itemId, branchId]);
+    if (!item.rows[0]) throw new HttpError(404, 'ITEM_NOT_FOUND', 'Không tìm thấy hàng hóa trong chi nhánh hiện tại');
+    const result = await client.query(
+      `INSERT INTO pricebook_items (pricebook_id, item_type, item_id, sale_price)
+       VALUES ($1, $2, $3, $4)
+       ON CONFLICT (pricebook_id, item_type, item_id)
+       DO UPDATE SET sale_price = EXCLUDED.sale_price, updated_at = NOW()
+       RETURNING sale_price, updated_at`,
+      [pricebookId, itemType, itemId, salePrice],
+    );
+    // The default book is the goods' base price; a later name edit must not restore the old price.
+    if (book.rows[0].is_default) {
+      await client.query(`UPDATE ${source.table} SET ${priceColumn} = $1 WHERE id = $2 AND branch_id = $3`, [salePrice, itemId, branchId]);
+    }
+    saved = result.rows[0];
+    await client.query('COMMIT');
+  } catch (error) {
+    await client.query('ROLLBACK');
+    throw error;
+  } finally {
+    client.release();
+  }
+  broadcastToBranch(branchId, realtimeEvents.inventoryUpdated, { pricebookId });
+  return { itemType, itemId, salePrice: number(saved.sale_price), updatedAt: saved.updated_at };
 }
 
 export async function getPricebook({ branchId, id }) {
@@ -832,6 +865,7 @@ export async function createPricebook({ branchId, code, name, active, effectiveF
     }
 
     await client.query('COMMIT');
+    broadcastToBranch(branchId, realtimeEvents.inventoryUpdated, { pricebookId });
     return getPricebook({ branchId, id: pricebookId });
   } catch (error) {
     await client.query('ROLLBACK');
@@ -877,6 +911,7 @@ export async function updatePricebook({ branchId, id, name, active, effectiveFro
       }
     }
     await client.query('COMMIT');
+    broadcastToBranch(branchId, realtimeEvents.inventoryUpdated, { pricebookId: id });
     return getPricebook({ branchId, id });
   } catch (error) {
     await client.query('ROLLBACK');
@@ -892,6 +927,7 @@ export async function deletePricebook({ branchId, id }) {
   if (pricebook.rows[0].is_default) throw new HttpError(400, 'CANNOT_DELETE_DEFAULT', 'Không thể xóa bảng giá mặc định');
 
   await pool.query('DELETE FROM pricebooks WHERE id = $1 AND branch_id = $2', [id, branchId]);
+  broadcastToBranch(branchId, realtimeEvents.inventoryUpdated, { pricebookId: id });
   return { deleted: true };
 }
 
@@ -947,8 +983,8 @@ export async function listPurchaseOrders({ branchId, search, status, dateFrom, d
       WHERE ${filters}
       ORDER BY ${orderBy}, po.id DESC
       LIMIT $6 OFFSET $7`, [...parameters, pageSize, offset]),
-    pool.query(`SELECT COUNT(*) AS total_orders, COALESCE(SUM(po.amount_due), 0) AS total_due,
-      COALESCE(SUM(po.amount_due - po.amount_paid), 0) AS total_debt,
+    pool.query(`SELECT COUNT(*) AS total_orders, COALESCE(SUM(po.amount_due) FILTER (WHERE po.status = 'completed'), 0) AS total_due,
+      COALESCE(SUM(po.amount_due - po.amount_paid) FILTER (WHERE po.status = 'completed'), 0) AS total_debt,
       COUNT(*) FILTER (WHERE po.status = 'draft') AS drafts
       FROM purchase_orders po LEFT JOIN suppliers s ON s.id = po.supplier_id WHERE ${filters}`, parameters),
   ]);
@@ -1003,8 +1039,10 @@ export async function createPurchaseOrder({ branchId, supplierId, status, receiv
     }));
     const subtotal = normalizedItems.reduce((sum, item) => sum + item.lineTotal, 0);
     const amountDue = Math.max(0, subtotal - discount + otherCost);
-    await client.query('SELECT pg_advisory_xact_lock($1)', [branchId]);
-    const sequence = await client.query(`SELECT COALESCE(MAX(NULLIF(regexp_replace(code, '\\D', '', 'g'), '')::integer), 0) + 1 AS next_number FROM purchase_orders WHERE branch_id = $1`, [branchId]);
+    if (amountPaid > amountDue) throw new HttpError(400, 'PAYMENT_EXCEEDS_DUE', 'Tiền trả nhà cung cấp không được vượt số tiền cần trả');
+    // Purchase-order codes are unique across branches (schema).
+    await client.query("SELECT pg_advisory_xact_lock(hashtext('purchase-order-code'))");
+    const sequence = await client.query(`SELECT COALESCE(MAX(substring(code FROM '^PN(\\d{1,9})$')::integer), 0) + 1 AS next_number FROM purchase_orders WHERE code ~ '^PN\\d{1,9}$'`);
     const code = `PN${String(number(sequence.rows[0].next_number)).padStart(6, '0')}`;
     const orderResult = await client.query(`INSERT INTO purchase_orders (
         branch_id, supplier_id, code, status, received_at, subtotal, discount, other_cost,
@@ -1025,6 +1063,7 @@ export async function createPurchaseOrder({ branchId, supplierId, status, receiv
     }
     // Only a received order has actually been paid for; drafts record intent.
     if (status === 'completed') {
+      await assertFundsCover(client, branchId, { [fundForPaymentMethod(paymentMethod)]: -Math.min(amountPaid, amountDue) });
       cashEntry = await recordCashEntry(client, {
         branchId,
         type: 'expense',
@@ -1047,6 +1086,57 @@ export async function createPurchaseOrder({ branchId, supplierId, status, receiv
   } finally {
     client.release();
   }
+  broadcastToBranch(branchId, realtimeEvents.inventoryUpdated, { purchaseOrderId: orderId });
   if (cashEntry) broadcastToBranch(branchId, realtimeEvents.cashbookUpdated, { voucherId: cashEntry.id, action: 'created' });
   return getPurchaseOrder({ branchId, id: orderId });
+}
+
+/** Receive an existing draft once: the row lock serializes repeated taps/retries. */
+export async function completePurchaseOrder({ branchId, id, actorAccountId }) {
+  const client = await pool.connect();
+  let cashEntry = null;
+  let changed = false;
+  try {
+    await client.query('BEGIN');
+    const result = await client.query('SELECT * FROM purchase_orders WHERE id = $1 AND branch_id = $2 FOR UPDATE', [id, branchId]);
+    const order = result.rows[0];
+    if (!order) throw new HttpError(404, 'PURCHASE_ORDER_NOT_FOUND', 'Không tìm thấy phiếu nhập');
+    if (order.status === 'cancelled') throw new HttpError(409, 'PURCHASE_ORDER_CANCELLED', 'Phiếu đã hủy không thể nhập hàng');
+    if (order.status === 'draft') {
+      const items = await client.query(
+        `SELECT poi.*, p.active, p.branch_id FROM purchase_order_items poi
+         JOIN products p ON p.id = poi.product_id WHERE poi.purchase_order_id = $1 ORDER BY poi.id`, [id],
+      );
+      if (!items.rowCount || items.rows.some(item => !item.active || number(item.branch_id) !== number(branchId))) {
+        throw new HttpError(400, 'INVALID_PRODUCT', 'Phiếu nhập có sản phẩm đã ngừng kinh doanh hoặc không hợp lệ');
+      }
+      for (const item of items.rows) {
+        await client.query(
+          `INSERT INTO inventory_balances (branch_id, product_id, quantity) VALUES ($1, $2, $3)
+           ON CONFLICT (branch_id, product_id) DO UPDATE SET quantity = inventory_balances.quantity + EXCLUDED.quantity, updated_at = NOW()`,
+          [branchId, item.product_id, item.quantity],
+        );
+        await client.query('UPDATE products SET last_purchase_price = $1, cost_price = $1 WHERE id = $2 AND branch_id = $3', [item.unit_cost, item.product_id, branchId]);
+      }
+      const supplier = await client.query('SELECT name FROM suppliers WHERE id = $1 AND branch_id = $2', [order.supplier_id, branchId]);
+      await assertFundsCover(client, branchId, { [fundForPaymentMethod(order.payment_method)]: -number(order.amount_paid) });
+      cashEntry = await recordCashEntry(client, {
+        branchId, type: 'expense', categoryKey: 'supplier_payment', amount: number(order.amount_paid),
+        paymentMethod: order.payment_method, sourceType: 'purchase_order', sourceId: id,
+        counterpartyType: 'supplier', counterpartyId: order.supplier_id, counterpartyName: supplier.rows[0]?.name ?? '',
+        note: `Chi trả phiếu nhập ${order.code}`, createdBy: actorAccountId,
+      });
+      await client.query("UPDATE purchase_orders SET status = 'completed', received_at = CURRENT_TIMESTAMP WHERE id = $1 AND branch_id = $2", [id, branchId]);
+      changed = true;
+    }
+    await client.query('COMMIT');
+  } catch (error) {
+    await client.query('ROLLBACK');
+    throw error;
+  } finally {
+    client.release();
+  }
+  if (changed) broadcastToBranch(branchId, realtimeEvents.inventoryUpdated, { purchaseOrderId: id });
+  if (cashEntry) broadcastToBranch(branchId, realtimeEvents.cashbookUpdated, { voucherId: cashEntry.id, action: 'created' });
+  return getPurchaseOrder({ branchId, id });
 }

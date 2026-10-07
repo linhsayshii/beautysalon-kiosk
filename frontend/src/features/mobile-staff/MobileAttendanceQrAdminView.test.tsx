@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -51,6 +51,21 @@ describe('MobileAttendanceQrAdminView', () => {
     expect(QRCode.toDataURL).toHaveBeenCalledWith('attendance-token', expect.objectContaining({
       color: { dark: '#111827', light: '#ffffff' },
     }));
+  });
+
+  it('does not display an active attendance QR when the branch has no GPS', async () => {
+    vi.mocked(attendanceApi.getAttendanceLocation).mockResolvedValue({ data: { name: 'Salon', latitude: null, longitude: null } } as any);
+    render(<QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}><MemoryRouter><MobileAttendanceQrAdminView /></MemoryRouter></QueryClientProvider>);
+    expect(await screen.findByRole('link', { name: 'Thiết lập GPS chi nhánh' })).toHaveAttribute('href', '/m/account');
+    expect(screen.queryByRole('img')).not.toBeInTheDocument();
+  });
+
+  it('retries QR rendering after generation fails for an unchanged token', async () => {
+    vi.mocked(QRCode.toDataURL).mockRejectedValueOnce(new Error('Không tạo được QR')).mockResolvedValue('data:image/png;base64,retried');
+    render(<QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}><MemoryRouter><MobileAttendanceQrAdminView /></MemoryRouter></QueryClientProvider>);
+    expect(await screen.findByText('Không tạo được QR')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Thử lại' }));
+    expect(await screen.findByRole('img', { name: 'Mã QR chấm công cửa hàng' })).toHaveAttribute('src', 'data:image/png;base64,retried');
   });
 
   it('falls back to black when the ink token is not a hex colour', async () => {

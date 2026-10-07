@@ -83,7 +83,7 @@ describe('MobileCustomerCardsView Component', () => {
     vi.spyOn(opsApi, 'getCustomerCard').mockResolvedValue(mockCardDetail as any);
   });
 
-  it('renders header title, search/sort triggers, summary bar and grouped card list without metric boxes', async () => {
+  it('renders header title, search/sort triggers, summary bar and card list without metric boxes', async () => {
     render(
       <MemoryRouter>
         <QueryClientProvider client={queryClient}>
@@ -100,9 +100,9 @@ describe('MobileCustomerCardsView Component', () => {
     expect(screen.queryByText('Số dư thẻ')).not.toBeInTheDocument();
 
     await waitFor(() => {
-      expect(screen.getByText('2 gói, thẻ đã bán')).toBeInTheDocument();
-      expect(screen.getByText('GÓI DỊCH VỤ')).toBeInTheDocument();
-      expect(screen.getByText('THẺ TÀI KHOẢN')).toBeInTheDocument();
+      expect(screen.getByText('2 gói/thẻ')).toBeInTheDocument();
+
+
       expect(screen.getByText('Combo Gội Đầu Dưỡng Sinh 10 Buổi')).toBeInTheDocument();
       expect(screen.getByText('Thẻ VIP Trả Trước 5 Triệu')).toBeInTheDocument();
       expect(screen.getByText('4/10 lượt')).toBeInTheDocument();
@@ -147,7 +147,7 @@ describe('MobileCustomerCardsView Component', () => {
       expect(screen.getByText('Combo Gội Đầu Dưỡng Sinh 10 Buổi')).toBeInTheDocument();
     });
 
-    const cardRow = screen.getByText('Combo Gội Đầu Dưỡng Sinh 10 Buổi').closest('.mobile-operations-row-item');
+    const cardRow = screen.getByText('Combo Gội Đầu Dưỡng Sinh 10 Buổi').closest('.m-list-row');
     fireEvent.click(cardRow!);
 
     await waitFor(() => {

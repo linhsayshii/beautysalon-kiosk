@@ -286,7 +286,7 @@ function MobileKit() {
   const [sheet, setSheet] = useState<'detail' | 'filter' | null>(null);
   return (
     <div className="mobile-app-shell">
-      <main className="mobile-main-content is-full-bleed">
+      <main className="mobile-main-content">
         <div className="m-page">
           <MobilePageHeader
             title="Hàng hóa"
@@ -310,6 +310,12 @@ function MobileKit() {
           </MobilePageHeader>
 
           <div className="m-body">
+            <section className="m-list" aria-label="Danh sách chuẩn">
+              <button className="m-list-row" type="button" onClick={() => setSheet('detail')}>
+                <span className="m-list-copy"><strong className="m-list-title">Gội đầu dưỡng sinh và chăm sóc tóc chuyên sâu</strong><span className="m-list-meta">DV0001 · Dịch vụ tóc</span></span>
+                <span className="m-list-value"><strong>250.000đ</strong><small>60 phút</small></span>
+              </button>
+            </section>
             <section className="m-section">
               <h2 className="m-section-title">Dịch vụ tóc</h2>
               <MobileCard title="Gội đầu dưỡng sinh" subtitle="SP0001 · 60 phút" badge={{ text: 'Đang bán', tone: 'green' }} onClick={() => setSheet('detail')} />
@@ -361,5 +367,3 @@ export function Component() {
   const location = useLocation();
   return location.pathname.startsWith('/ui-kit/mobile') ? <MobileKit /> : <DesktopKit />;
 }
-
-export default Component;

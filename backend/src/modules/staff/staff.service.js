@@ -1,8 +1,7 @@
 import { pool } from '../../db.js';
 import { HttpError, parsePositiveInteger } from '../../lib/http.js';
 import { broadcastToBranch, realtimeEvents } from '../../lib/ws.js';
-import { recordCashEntry } from '../cashbook/cashbook.ledger.js';
-import { config } from '../../config.js';
+import { assertFundsCover, fundForPaymentMethod, recordCashEntry } from '../cashbook/cashbook.ledger.js';
 
 const number = (value) => Number(value ?? 0);
 
@@ -72,16 +71,6 @@ async function saveStaffProfile(client, { branchId, staffId, profile, accountId 
 
 function getDaysInMonth(year, month) {
   return new Date(year, month, 0).getDate();
-}
-
-function calculateShiftDurationHours(startsAt, endsAt) {
-  if (!startsAt || !endsAt) return 8;
-  const [sH, sM] = String(startsAt).split(':').map(Number);
-  const [eH, eM] = String(endsAt).split(':').map(Number);
-  if (isNaN(sH) || isNaN(sM) || isNaN(eH) || isNaN(eM)) return 8;
-  let duration = eH + eM / 60 - (sH + sM / 60);
-  if (duration < 0) duration += 24;
-  return duration > 0 ? duration : 8;
 }
 
 /**
@@ -361,20 +350,6 @@ export async function createShift({ branchId, name, startsAt, endsAt, allowCheck
   return { id: number(row.id), name: row.name, startsAt: row.starts_at, endsAt: row.ends_at, allowCheckInFrom: row.allow_check_in_from, allowCheckInTo: row.allow_check_in_to };
 }
 
-export async function assignShiftSchedule({ branchId, staffId, shiftDate, shiftName, startsAt, endsAt, status = 'scheduled' }) {
-  const staff = await pool.query('SELECT id FROM staff WHERE id = $1 AND branch_id = $2 AND active', [staffId, branchId]);
-  if (!staff.rows[0]) throw new HttpError(400, 'INVALID_STAFF', 'Nhân viên không tồn tại trong chi nhánh hiện tại');
-  const result = await pool.query(
-    `INSERT INTO staff_schedules (branch_id, staff_id, shift_date, starts_at, ends_at, shift_name, status)
-     VALUES ($1, $2, $3::date, $4::time, $5::time, $6, $7)
-     ON CONFLICT (staff_id, shift_date, starts_at) DO UPDATE
-       SET ends_at = EXCLUDED.ends_at, shift_name = EXCLUDED.shift_name, status = EXCLUDED.status
-     RETURNING id, staff_id, TO_CHAR(shift_date, 'YYYY-MM-DD') AS shift_date, starts_at, ends_at, shift_name, status`,
-    [branchId, staffId, shiftDate, startsAt, endsAt, shiftName, status],
-  );
-  return result.rows[0];
-}
-
 export async function getSchedule({ branchId, startDate }) {
   const [shifts, schedules] = await Promise.all([
     listWorkShifts(branchId),
@@ -523,7 +498,9 @@ export async function listCommissions({ branchId, dateFrom, dateTo }) {
   const [rowsResult, staffSummaryResult] = await Promise.all([
     pool.query(
       `SELECT
-         cr.id, cr.source_name, cr.revenue, cr.rate, cr.amount, cr.occurred_on,
+         cr.id, cr.source_name, cr.revenue, cr.rate, cr.amount,
+         -- A calendar day, not an instant: as text it cannot shift a day in JSON.
+         to_char(cr.occurred_on, 'YYYY-MM-DD') AS occurred_on,
          cr.invoice_id, cr.invoice_item_id,
          COALESCE(cr.commission_type, 'service') AS commission_type,
          s.id AS staff_id, s.code AS staff_code, s.name AS staff_name, s.role, s.avatar_tone,
@@ -599,6 +576,9 @@ export async function listCommissions({ branchId, dateFrom, dateTo }) {
  */
 export async function ensureMonthlyPayrollPeriods(branchId) {
   const client = await pool.connect();
+  // One branch at a time: two tabs opening payroll at the start of a month
+  // must not both insert the same period.
+  await client.query('SELECT pg_advisory_lock(hashtext($1), $2::int)', ['payroll-periods', branchId]);
   try {
     const now = new Date();
     const currentYear = now.getFullYear();
@@ -617,41 +597,54 @@ export async function ensureMonthlyPayrollPeriods(branchId) {
       const startsOn = `${year}-${String(month).padStart(2, '0')}-01`;
       const daysInM = getDaysInMonth(year, month);
       const endsOn = `${year}-${String(month).padStart(2, '0')}-${String(daysInM).padStart(2, '0')}`;
-      const code = `BL${String(year)}${String(month).padStart(2, '0')}`;
+      const monthCode = `BL${String(year)}${String(month).padStart(2, '0')}`;
       const name = `Bảng lương tháng ${String(month).padStart(2, '0')}/${year}`;
 
-      // Check if period already exists
       const existing = await client.query(
-        'SELECT id, status FROM payroll_periods WHERE branch_id = $1 AND (code = $2 OR (starts_on = $3 AND ends_on = $4))',
-        [branchId, code, startsOn, endsOn],
+        'SELECT id, status FROM payroll_periods WHERE branch_id = $1 AND (code = $2 OR code = $3 OR (starts_on = $4 AND ends_on = $5))',
+        [branchId, monthCode, `${monthCode}-${branchId}`, startsOn, endsOn],
       );
 
-      let periodId;
-      if (!existing.rowCount) {
-        const insertRes = await client.query(
-          `INSERT INTO payroll_periods (
-             branch_id, code, name, period_type, starts_on, ends_on, status,
-             creator_type, creator_name, updated_data_at
-           ) VALUES ($1, $2, $3, 'monthly', $4, $5, 'draft', 'auto', 'Auto', NOW())
-           RETURNING id`,
-          [branchId, code, name, startsOn, endsOn],
-        );
-        periodId = insertRes.rows[0].id;
-        await calculatePeriodPayrollInternal(client, branchId, periodId, startsOn, endsOn, year, month);
-      } else {
-        periodId = existing.rows[0].id;
-        // If it is current month and status is draft, recalculate
-        if (existing.rows[0].status === 'draft' && year === currentYear && month === currentMonth) {
-          await calculatePeriodPayrollInternal(client, branchId, periodId, startsOn, endsOn, year, month);
+      await client.query('BEGIN');
+      try {
+        if (!existing.rowCount) {
+          // Period codes are unique across branches; a second branch gets its id as a suffix.
+          const taken = await client.query('SELECT 1 FROM payroll_periods WHERE code = $1', [monthCode]);
+          const code = taken.rowCount ? `${monthCode}-${branchId}` : monthCode;
+          const insertRes = await client.query(
+            `INSERT INTO payroll_periods (
+               branch_id, code, name, period_type, starts_on, ends_on, status,
+               creator_type, creator_name, updated_data_at
+             ) VALUES ($1, $2, $3, 'monthly', $4, $5, 'draft', 'auto', 'Auto', NOW())
+             RETURNING id`,
+            [branchId, code, name, startsOn, endsOn],
+          );
+          await calculatePeriodPayrollInternal(client, branchId, insertRes.rows[0].id, startsOn, endsOn, year, month, { keepAdjusted: true });
+        } else if (existing.rows[0].status === 'draft' && year === currentYear && month === currentMonth) {
+          // The current month's draft follows attendance and sales, except
+          // for rows a manager has adjusted by hand.
+          await calculatePeriodPayrollInternal(client, branchId, existing.rows[0].id, startsOn, endsOn, year, month, { keepAdjusted: true });
         }
+        await client.query('COMMIT');
+      } catch (error) {
+        await client.query('ROLLBACK');
+        throw error;
       }
     }
   } finally {
+    await client.query('SELECT pg_advisory_unlock(hashtext($1), $2::int)', ['payroll-periods', branchId]).catch(() => {});
     client.release();
   }
 }
 
-async function calculatePeriodPayrollInternal(client, branchId, periodId, startsOn, endsOn, year, month) {
+/**
+ * Recomputes the attendance- and sales-driven amounts of a draft period:
+ * base salary, commission, tour commission and the automatic deduction.
+ * Overtime, allowance and bonus are entered by hand and always kept.
+ * `keepAdjusted` skips rows a manager edited (automatic refresh); an explicit
+ * "Tải lại dữ liệu" recomputes them too and clears the mark.
+ */
+async function calculatePeriodPayrollInternal(client, branchId, periodId, startsOn, endsOn, year, month, { keepAdjusted = false } = {}) {
   // 1. Standard workdays in the month come from the branch's working weekdays.
   // Holidays stay in the count: they are paid days off.
   const settingsRes = await client.query(
@@ -782,6 +775,7 @@ async function calculatePeriodPayrollInternal(client, branchId, periodId, starts
     const commission = staffCommissionMap.get(sId) || 0;
     const tourCommission = staffTourCommissionMap.get(sId) || 0;
     const existing = existingRecordMap.get(sId);
+    if (existing && (existing.status !== 'draft' || (keepAdjusted && existing.adjusted_at))) continue;
 
     let baseSalary = 0;
     let workUnits = 0;
@@ -810,9 +804,7 @@ async function calculatePeriodPayrollInternal(client, branchId, periodId, starts
       attendanceInfo.earlyDays,
     );
 
-    // Preserve existing manual deduction if it's larger (manager may have added extra deductions)
-    const manualDeduction = existing ? number(existing.deduction) : 0;
-    const deduction = Math.max(autoDeduction, manualDeduction);
+    const deduction = autoDeduction;
     const paidAmount = existing ? number(existing.paid_amount) : 0;
 
     const totalIncome = baseSalary + overtimeSalary + commission + tourCommission + allowance + bonus;
@@ -831,6 +823,8 @@ async function calculatePeriodPayrollInternal(client, branchId, periodId, starts
          base_salary = EXCLUDED.base_salary,
          commission = EXCLUDED.commission,
          tour_commission = EXCLUDED.tour_commission,
+         deduction = EXCLUDED.deduction,
+         adjusted_at = NULL,
          total_income = EXCLUDED.total_income,
          net_salary = EXCLUDED.net_salary,
          remaining_amount = EXCLUDED.remaining_amount,
@@ -1070,18 +1064,23 @@ export async function getPayrollPeriodDetail({ branchId, periodId }) {
 export async function recalculatePayrollPeriod({ branchId, periodId }) {
   const client = await pool.connect();
   try {
+    await client.query('BEGIN');
     const periodRes = await client.query(
-      'SELECT id, starts_on, ends_on, status FROM payroll_periods WHERE id = $1 AND branch_id = $2',
+      'SELECT id, starts_on, ends_on, status FROM payroll_periods WHERE id = $1 AND branch_id = $2 FOR UPDATE',
       [periodId, branchId],
     );
     if (!periodRes.rowCount) throw new HttpError(404, 'PAYROLL_NOT_FOUND', 'Không tìm thấy bảng lương');
     const period = periodRes.rows[0];
-    if (period.status === 'approved') {
-      throw new HttpError(400, 'PAYROLL_ALREADY_APPROVED', 'Bảng lương đã chốt, không thể tính lại');
+    if (period.status !== 'draft') {
+      throw new HttpError(400, 'PAYROLL_ALREADY_APPROVED', 'Chỉ tính lại được bảng lương đang tạm tính');
     }
 
     const d = new Date(period.starts_on);
     await calculatePeriodPayrollInternal(client, branchId, period.id, period.starts_on, period.ends_on, d.getFullYear(), d.getMonth() + 1);
+    await client.query('COMMIT');
+  } catch (error) {
+    await client.query('ROLLBACK');
+    throw error;
   } finally {
     client.release();
   }
@@ -1097,7 +1096,7 @@ export async function updatePayrollRecords({ branchId, periodId, records, note }
       [periodId, branchId],
     );
     if (!periodRes.rowCount) throw new HttpError(404, 'PAYROLL_NOT_FOUND', 'Không tìm thấy bảng lương');
-    if (periodRes.rows[0].status === 'approved') {
+    if (periodRes.rows[0].status !== 'draft') {
       throw new HttpError(400, 'PAYROLL_ALREADY_APPROVED', 'Bảng lương đã chốt, không thể chỉnh sửa');
     }
 
@@ -1113,7 +1112,7 @@ export async function updatePayrollRecords({ branchId, periodId, records, note }
         // Fetch current record
         const curRes = await client.query(
           `SELECT base_salary, overtime_salary, allowance, bonus, commission, tour_commission, deduction, paid_amount, note
-           FROM payroll_records WHERE id = $1 AND payroll_period_id = $2`,
+           FROM payroll_records WHERE id = $1 AND payroll_period_id = $2 FOR UPDATE`,
           [rId, periodId],
         );
         if (curRes.rowCount) {
@@ -1129,6 +1128,9 @@ export async function updatePayrollRecords({ branchId, periodId, records, note }
             throw new HttpError(400, 'INVALID_PAYROLL_AMOUNT', 'Các khoản lương không được âm');
           }
           const paidAmount = number(cur.paid_amount);
+          // Hand-edited automatic amounts stop the automatic refresh for this row.
+          const adjusted = baseSalary !== number(cur.base_salary) || commission !== number(cur.commission)
+            || tourCommission !== number(cur.tour_commission) || deduction !== number(cur.deduction);
           const totalIncome = baseSalary + overtimeSalary + commission + tourCommission + allowance + bonus;
           const netSalary = Math.max(0, totalIncome - deduction);
           const remainingAmount = Math.max(0, netSalary - paidAmount);
@@ -1136,9 +1138,10 @@ export async function updatePayrollRecords({ branchId, periodId, records, note }
           await client.query(
             `UPDATE payroll_records
              SET base_salary = $1, overtime_salary = $2, allowance = $3, bonus = $4, commission = $5, deduction = $6,
-                 total_income = $7, net_salary = $8, remaining_amount = $9, note = $10, tour_commission = $13
+                 total_income = $7, net_salary = $8, remaining_amount = $9, note = $10, tour_commission = $13,
+                 adjusted_at = CASE WHEN $14 THEN NOW() ELSE adjusted_at END
              WHERE id = $11 AND payroll_period_id = $12`,
-            [baseSalary, overtimeSalary, allowance, bonus, commission, deduction, totalIncome, netSalary, remainingAmount, rec.note === undefined ? cur.note : recNote, rId, periodId, tourCommission],
+            [baseSalary, overtimeSalary, allowance, bonus, commission, deduction, totalIncome, netSalary, remainingAmount, rec.note === undefined ? cur.note : recNote, rId, periodId, tourCommission, adjusted],
           );
         }
       }
@@ -1156,34 +1159,52 @@ export async function updatePayrollRecords({ branchId, periodId, records, note }
 }
 
 export async function approvePayrollPeriod({ branchId, periodId, staffId, staffName }) {
-  const result = await pool.query(
-    `UPDATE payroll_periods
-     SET status = 'approved', approved_by_id = $1, approved_by_name = $2, approved_at = NOW(), updated_at = NOW()
-     WHERE id = $3 AND branch_id = $4
-     RETURNING id, status, approved_by_name, approved_at`,
-    [staffId, staffName || 'Quản lý', periodId, branchId],
-  );
-  if (!result.rowCount) throw new HttpError(404, 'PAYROLL_NOT_FOUND', 'Không tìm thấy bảng lương');
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    const result = await client.query(
+      `UPDATE payroll_periods
+       SET status = 'approved', approved_by_id = $1, approved_by_name = $2, approved_at = NOW(), updated_at = NOW()
+       WHERE id = $3 AND branch_id = $4 AND status = 'draft'
+       RETURNING id`,
+      [staffId, staffName || 'Quản lý', periodId, branchId],
+    );
+    if (!result.rowCount) {
+      const exists = await client.query('SELECT 1 FROM payroll_periods WHERE id = $1 AND branch_id = $2', [periodId, branchId]);
+      if (!exists.rowCount) throw new HttpError(404, 'PAYROLL_NOT_FOUND', 'Không tìm thấy bảng lương');
+      throw new HttpError(409, 'PAYROLL_NOT_DRAFT', 'Bảng lương đã chốt hoặc đã hủy');
+    }
+    await client.query(`UPDATE payroll_records SET status = 'approved' WHERE payroll_period_id = $1 AND status = 'draft'`, [periodId]);
+    await client.query('COMMIT');
+  } catch (error) {
+    await client.query('ROLLBACK');
+    throw error;
+  } finally {
+    client.release();
+  }
 
-  await pool.query(
-    `UPDATE payroll_records SET status = 'approved' WHERE payroll_period_id = $1`,
-    [periodId],
-  );
-
-  const period = getPayrollPeriodDetail({ branchId, periodId });
   broadcastToBranch(branchId, 'payroll:approved', { periodId });
-  return period;
+  return getPayrollPeriodDetail({ branchId, periodId });
 }
 
 export async function cancelPayrollPeriod({ branchId, periodId }) {
-  const result = await pool.query(
-    `UPDATE payroll_periods
-     SET status = 'cancelled', updated_at = NOW()
-     WHERE id = $1 AND branch_id = $2
-     RETURNING id, status`,
-    [periodId, branchId],
-  );
-  if (!result.rowCount) throw new HttpError(404, 'PAYROLL_NOT_FOUND', 'Không tìm thấy bảng lương');
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    const period = await client.query('SELECT status FROM payroll_periods WHERE id = $1 AND branch_id = $2 FOR UPDATE', [periodId, branchId]);
+    if (!period.rowCount) throw new HttpError(404, 'PAYROLL_NOT_FOUND', 'Không tìm thấy bảng lương');
+    // Salary already paid sits in the cashbook; cancelling would orphan those vouchers.
+    const paid = await client.query('SELECT COALESCE(SUM(paid_amount), 0) AS paid FROM payroll_records WHERE payroll_period_id = $1', [periodId]);
+    if (number(paid.rows[0].paid) > 0) throw new HttpError(409, 'PAYROLL_HAS_PAYMENTS', 'Bảng lương đã có khoản chi, không thể hủy');
+    await client.query(`UPDATE payroll_periods SET status = 'cancelled', updated_at = NOW() WHERE id = $1`, [periodId]);
+    await client.query(`UPDATE payroll_records SET status = 'cancelled' WHERE payroll_period_id = $1`, [periodId]);
+    await client.query('COMMIT');
+  } catch (error) {
+    await client.query('ROLLBACK');
+    throw error;
+  } finally {
+    client.release();
+  }
   return { id: periodId, status: 'cancelled' };
 }
 
@@ -1194,17 +1215,27 @@ export async function createPayrollPayment({ branchId, periodId, staffId, amount
   try {
     await client.query('BEGIN');
     const recordRes = await client.query(
-      `SELECT id, net_salary, paid_amount, remaining_amount
-       FROM payroll_records
-       WHERE payroll_period_id = $1 AND staff_id = $2`,
-      [periodId, staffId],
+      `SELECT pr.id, pr.net_salary, pr.paid_amount, pp.status AS period_status, pp.name AS period_name
+       FROM payroll_records pr
+       JOIN payroll_periods pp ON pp.id = pr.payroll_period_id
+       WHERE pr.payroll_period_id = $1 AND pr.staff_id = $2 AND pp.branch_id = $3
+       FOR UPDATE OF pr`,
+      [periodId, staffId, branchId],
     );
     if (!recordRes.rowCount) throw new HttpError(404, 'RECORD_NOT_FOUND', 'Không tìm thấy phiếu lương nhân viên');
 
     const rec = recordRes.rows[0];
+    if (rec.period_status !== 'approved') {
+      throw new HttpError(409, 'PAYROLL_NOT_APPROVED', 'Chốt bảng lương trước khi thanh toán');
+    }
     const recId = rec.id;
     const currentPaid = number(rec.paid_amount);
     const netSalary = number(rec.net_salary);
+    const remaining = Math.max(0, netSalary - currentPaid);
+    if (amount > remaining) {
+      throw new HttpError(400, 'PAYMENT_EXCEEDS_REMAINING', `Số tiền vượt số còn phải trả (${remaining.toLocaleString('vi-VN')}đ)`);
+    }
+    await assertFundsCover(client, branchId, { [fundForPaymentMethod(paymentMethod)]: -amount });
     const newPaid = currentPaid + amount;
     const newRemaining = Math.max(0, netSalary - newPaid);
     const status = newRemaining === 0 ? 'paid' : 'approved';
@@ -1236,7 +1267,7 @@ export async function createPayrollPayment({ branchId, periodId, staffId, amount
       counterpartyType: 'staff',
       counterpartyId: staffId,
       counterpartyName: staffRes.rows[0]?.name ?? null,
-      note: note || `Chi lương kỳ ${periodId}`,
+      note: note || `Chi lương ${rec.period_name}`,
       createdBy: actorAccountId ?? null,
     });
 
@@ -1365,16 +1396,6 @@ export async function assignShift({ branchId, staffId, shiftDate, startsAt, ends
   }
 }
 
-// Fallback legacy support
-export async function getPayroll({ branchId, periodCode }) {
-  await ensureMonthlyPayrollPeriods(branchId);
-  const result = await listPayrollPeriods({ branchId, search: periodCode });
-  if (result.rows.length > 0) {
-    return getPayrollPeriodDetail({ branchId, periodId: result.rows[0].id });
-  }
-  return { period: null, rows: [], summary: { totalNetSalary: 0, totalCommission: 0, totalTourCommission: 0 } };
-}
-
 // ============================================================================
 // RECURRING SCHEDULE HELPERS
 // ============================================================================
@@ -1456,107 +1477,9 @@ export async function isHoliday(date, client = pool) {
   return result.rows[0]?.is_holiday || false;
 }
 
-/**
- * Check if schedule exists for staff on date/time
- */
-export async function scheduleExists(staffId, date, startsAt, client = pool) {
-  const result = await client.query(`
-    SELECT EXISTS(
-      SELECT 1 FROM staff_schedules
-      WHERE staff_id = $1
-        AND shift_date = $2::date
-        AND starts_at = $3::time
-    ) as exists
-  `, [staffId, date, startsAt]);
-  return result.rows[0]?.exists || false;
-}
-
 // ============================================================================
 // RECURRING SCHEDULE UPDATE/DELETE WITH PROPAGATE
 // ============================================================================
-
-/**
- * Update a schedule with optional propagation to future weeks
- * @param {number} branchId - Branch ID for authorization
- * @param {number} scheduleId - Schedule ID to update
- * @param {Object} updates - Fields to update (startsAt, endsAt, shiftName)
- * @param {boolean} propagate - If false, break chain (new group for this week only); if true, update all in group from this date forward
- * @returns {Object} { updatedCount, newGroupId? }
- */
-export async function updateSchedule(branchId, scheduleId, updates, propagate = false) {
-  const client = await pool.connect();
-  try {
-    await client.query('BEGIN');
-
-    // Get current schedule
-    const currentResult = await client.query(`
-      SELECT id, staff_id, shift_date, starts_at, ends_at, shift_name, week_group_id, is_source, branch_id
-      FROM staff_schedules WHERE id = $1
-    `, [scheduleId]);
-
-    if (currentResult.rows.length === 0) {
-      throw Object.assign(new Error('Schedule not found'), { status: 404 });
-    }
-
-    const schedule = currentResult.rows[0];
-    const { week_group_id, is_source, shift_date, branch_id: scheduleBranchId } = schedule;
-
-    // Validate branch authorization
-    if (Number(scheduleBranchId) !== Number(branchId)) {
-      throw Object.assign(new Error('Schedule not found'), { status: 404 });
-    }
-
-    if (!propagate || !week_group_id) {
-      // Break chain - create new group for this week only
-      const newGroupId = generateGroupId();
-
-      await client.query(`
-        UPDATE staff_schedules
-        SET starts_at = $1, ends_at = $2, shift_name = $3,
-            week_group_id = $4, is_source = true
-        WHERE id = $5
-      `, [updates.startsAt, updates.endsAt, updates.shiftName, newGroupId, scheduleId]);
-
-      await client.query('COMMIT');
-      broadcastToBranch(branchId, 'staff:schedule_changed', {
-        scheduleId,
-        staffId: schedule.staff_id,
-        action: 'updated',
-      });
-      return { updatedCount: 1, newGroupId };
-    }
-
-    // Propagate - update all in group from this date forward (excluding source)
-    const updateResult = await client.query(`
-      UPDATE staff_schedules
-      SET starts_at = $1, ends_at = $2, shift_name = $3
-      WHERE week_group_id = $4
-        AND shift_date >= $5::date
-        AND is_source = false
-      RETURNING id
-    `, [updates.startsAt, updates.endsAt, updates.shiftName, week_group_id, shift_date]);
-
-    // Update the current schedule (make it source if not already)
-    await client.query(`
-      UPDATE staff_schedules
-      SET starts_at = $1, ends_at = $2, shift_name = $3, is_source = true
-      WHERE id = $4
-    `, [updates.startsAt, updates.endsAt, updates.shiftName, scheduleId]);
-
-    await client.query('COMMIT');
-    broadcastToBranch(branchId, 'staff:schedule_changed', {
-      scheduleId,
-      staffId: schedule.staff_id,
-      action: 'updated',
-    });
-    return { updatedCount: updateResult.rows.length + 1 };
-  } catch (err) {
-    await client.query('ROLLBACK');
-    throw err;
-  } finally {
-    client.release();
-  }
-}
 
 /**
  * Delete a schedule or its entire recurring group.

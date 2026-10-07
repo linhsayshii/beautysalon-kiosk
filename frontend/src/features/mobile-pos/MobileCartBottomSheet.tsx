@@ -11,6 +11,8 @@ import { searchPosCustomers, checkoutPosInvoice, getPosStaff, type PosReceiptDat
 import { BottomSheet } from '@/components/ui/Sheet/BottomSheet';
 import { PAYMENT_METHOD_LABELS } from '@/lib/payment-methods';
 import { expectedLineCommission } from '@/features/pos/commission';
+import { EmptyState, ErrorState, LoadingState } from '@/components/data-display/DataState';
+import { MobileSearchBar } from '@/features/mobile-common/MobileSearchBar';
 
 interface PosLine {
   itemId: number;
@@ -31,6 +33,9 @@ interface PosLine {
   tourCommissionRate?: number;
 }
 
+/** A package session and a paid line for the same service are separate lines. */
+export const posLineKey = (line: Pick<PosLine, 'itemType' | 'itemId' | 'usePackageId'>) => `${line.itemType}:${line.itemId}:${line.usePackageId ?? ''}`;
+
 interface PosCustomer {
   id: number;
   name: string;
@@ -47,9 +52,9 @@ interface MobileCartBottomSheetProps {
   initialDiscount?: number;
   incompleteServiceCount?: number;
   onSelectCustomer: (cust: PosCustomer | null) => void;
-  onUpdateQuantity: (itemId: number, itemType: string, delta: number) => void;
-  onUpdateLineStaff: (itemId: number, itemType: string, staffId: number | null) => void;
-  onUpdateLineConsultant?: (itemId: number, itemType: string, consultantStaffId: number | null) => void;
+  onUpdateQuantity: (lineKey: string, delta: number) => void;
+  onUpdateLineStaff: (lineKey: string, staffId: number | null) => void;
+  onUpdateLineConsultant?: (lineKey: string, consultantStaffId: number | null) => void;
   onClose: () => void;
   onSuccess: (receipt: PosReceiptData) => void;
 }
@@ -90,11 +95,12 @@ export function MobileCartBottomSheet({
   const staffList = staffResponse?.data || [];
 
   // Customer search query
-  const { data: customerResults } = useQuery({
+  const customerSearch = useQuery({
     queryKey: ['pos-customer-search', customerQuery],
     queryFn: () => searchPosCustomers(customerQuery),
-    enabled: customerQuery.trim().length >= 1,
+    enabled: showCustomerSearch && customerQuery.trim().length >= 1,
   });
+  const customerResults = customerSearch.data;
 
   const subtotal = useMemo(() => {
     return lines.reduce((sum, line) => sum + line.salePrice * line.quantity, 0);
@@ -210,40 +216,37 @@ export function MobileCartBottomSheet({
             </button>
           ) : (
             <>
-              <div className="mobile-pos-search-wrapper">
-                <i className="ph ph-magnifying-glass search-icon" />
-                <input
-                  type="text"
-                  className="mobile-pos-search-input"
-                  placeholder="Tìm tên hoặc SĐT khách hàng..."
-                  aria-label="Tìm khách hàng theo tên hoặc số điện thoại"
-                  value={customerQuery}
-                  onChange={(e) => setCustomerQuery(e.target.value)}
-                  autoFocus
-                />
-                <button type="button" className="mobile-pos-search-clear" onClick={() => setShowCustomerSearch(false)} aria-label="Đóng tìm khách hàng">
-                  <i className="ph ph-x" />
-                </button>
-              </div>
+              <MobileSearchBar
+                value={customerQuery}
+                onChange={setCustomerQuery}
+                placeholder="Tên hoặc SĐT"
+                ariaLabel="Tìm khách hàng theo tên hoặc số điện thoại"
+                autoFocus
+                action={<button type="button" className="btn btn-ghost" onClick={() => { setShowCustomerSearch(false); setCustomerQuery(''); }} aria-label="Đóng tìm khách hàng">Hủy</button>}
+              />
 
-              {customerResults?.data && customerResults.data.length > 0 && (
-                <div className="checkout-customer-results">
+              {customerQuery.trim() && (customerSearch.isPending ? <LoadingState compact />
+                : customerSearch.error ? <ErrorState compact error={customerSearch.error} onRetry={() => customerSearch.refetch()} />
+                : !customerResults?.data.length ? <EmptyState compact title="Không tìm thấy khách hàng" message={null} /> : (
+                <div className="m-list checkout-customer-results">
                   {customerResults.data.map((c) => (
                     <button
                       type="button"
                       key={c.id}
+                      className="m-list-row"
                       onClick={() => {
                         onSelectCustomer({ id: c.id, name: c.name, phone: c.phone });
                         setShowCustomerSearch(false);
                         setCustomerQuery('');
                       }}
                     >
-                      <strong>{c.name}</strong>
-                      <small>{c.phone}</small>
+                      <span className="m-list-avatar" aria-hidden="true"><i className="ph ph-user-circle" /></span>
+                      <span className="m-list-copy"><strong>{c.name}</strong><small>{c.phone}</small></span>
+                      <i className="ph ph-caret-right" aria-hidden="true" />
                     </button>
                   ))}
                 </div>
-              )}
+              ))}
             </>
           )}
         </section>
@@ -253,7 +256,7 @@ export function MobileCartBottomSheet({
           <span className="m-section-title">Dịch vụ, sản phẩm ({lines.length})</span>
           <div className="checkout-line-list">
             {lines.map((line) => (
-              <div key={`${line.itemType}-${line.itemId}`} className="mobile-cart-item-row">
+              <div key={posLineKey(line)} className="mobile-cart-item-row">
                 <div className="mobile-cart-item-copy">
                   <div className="mobile-cart-item-title">{line.name}</div>
                   <div className="mobile-cart-item-unitprice">{formatMoney(line.salePrice)} / {line.unit || 'món'}</div>
@@ -264,7 +267,7 @@ export function MobileCartBottomSheet({
                     type="button"
                     className="mobile-cart-qty-btn"
                     aria-label={`Giảm số lượng ${line.name}`}
-                    onClick={() => onUpdateQuantity(line.itemId, line.itemType, -1)}
+                    onClick={() => onUpdateQuantity(posLineKey(line), -1)}
                   >
                     <i className="ph ph-minus" />
                   </button>
@@ -273,7 +276,7 @@ export function MobileCartBottomSheet({
                     type="button"
                     className="mobile-cart-qty-btn"
                     aria-label={`Tăng số lượng ${line.name}`}
-                    onClick={() => onUpdateQuantity(line.itemId, line.itemType, 1)}
+                    onClick={() => onUpdateQuantity(posLineKey(line), 1)}
                   >
                     <i className="ph ph-plus" />
                   </button>
@@ -289,12 +292,12 @@ export function MobileCartBottomSheet({
                 </div>
                 {line.itemType === 'service' && <div className="checkout-line-staff">
                   <span>Nhân viên</span><Select<number | string> aria-label={`Nhân viên thực hiện ${line.name}`} value={line.staffId ?? ''}
-                    onChange={value => onUpdateLineStaff(line.itemId, line.itemType, value === '' ? null : Number(value))}
+                    onChange={value => onUpdateLineStaff(posLineKey(line), value === '' ? null : Number(value))}
                     size="sm" options={[{ value: '', label: 'Chọn nhân viên' }, ...staffList.map(staff => ({ value: staff.id, label: staff.name }))]} />
                 </div>}
                 {line.itemType === 'service' && onUpdateLineConsultant && <div className="checkout-line-staff">
                   <span>Tư vấn</span><Select<number | string> aria-label={`Nhân viên tư vấn ${line.name}`} value={line.consultantStaffId ?? ''}
-                    onChange={value => onUpdateLineConsultant(line.itemId, line.itemType, value === '' ? null : Number(value))}
+                    onChange={value => onUpdateLineConsultant(posLineKey(line), value === '' ? null : Number(value))}
                     size="sm" options={[{ value: '', label: 'Không có' }, ...staffList.map(staff => ({ value: staff.id, label: staff.name }))]} />
                 </div>}
               </div>

@@ -4,7 +4,6 @@ import { ErrorState, LoadingState } from '@/components/data-display/DataState';
 import { PageHeader } from '@/components/ui/PageHeader/PageHeader';
 import { MoneyInput } from '@/components/forms/MoneyInput';
 import { useToast } from '@/components/ui/Toast/ToastProvider';
-import { useComingSoon } from '@/components/ui/Toast/useComingSoon';
 import { formatMoney } from '@/lib/format';
 import { owedTone } from '@/lib/tone';
 import {
@@ -22,7 +21,6 @@ interface StaffPayrollSheetViewProps {
 
 export function StaffPayrollSheetView({ periodId, onBack }: StaffPayrollSheetViewProps) {
   const { notify } = useToast();
-  const comingSoon = useComingSoon();
   const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState('');
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
@@ -200,10 +198,12 @@ export function StaffPayrollSheetView({ periodId, onBack }: StaffPayrollSheetVie
                 <span>{updateMutation.isPending ? 'Đang lưu...' : 'Lưu tạm'}</span>
               </button>
             )}
-            <button type="button" className="btn btn-soft" onClick={() => setIsPaymentModalOpen(true)}>
-              <i className="ph ph-credit-card" />
-              <span>Thanh toán</span>
-            </button>
+            {isApproved && (
+              <button type="button" className="btn btn-soft" onClick={() => setIsPaymentModalOpen(true)}>
+                <i className="ph ph-credit-card" />
+                <span>Thanh toán</span>
+              </button>
+            )}
             {!isApproved && (
               <button
                 type="button"
@@ -239,7 +239,7 @@ export function StaffPayrollSheetView({ periodId, onBack }: StaffPayrollSheetVie
             <table className="detail-table payroll-sheet-table">
               <thead>
                 <tr>
-                  <th className="is-center"><i className="ph ph-trash text-faint" aria-label="Xóa" /></th>
+
                   <th className="is-center">STT</th>
                   <th>Tên nhân viên</th>
                   <th className="is-num">Lương chính</th>
@@ -255,7 +255,7 @@ export function StaffPayrollSheetView({ periodId, onBack }: StaffPayrollSheetVie
                   <th className="is-num">Còn cần trả</th>
                 </tr>
                 <tr className="table-summary-row">
-                  <td colSpan={3} />
+                  <td colSpan={2} />
                   <td className="is-num">{formatMoney(totals.baseSalary)}</td>
                   <td className="is-num">{formatMoney(totals.overtimeSalary)}</td>
                   <td className="is-num">{formatMoney(totals.commission)}</td>
@@ -272,11 +272,7 @@ export function StaffPayrollSheetView({ periodId, onBack }: StaffPayrollSheetVie
               <tbody>
                 {records.map((r, idx) => (
                   <tr key={r.id}>
-                    <td className="is-center">
-                      <button type="button" className="btn btn-ghost btn-icon btn-sm" aria-label="Xóa dòng" onClick={comingSoon}>
-                        <i className="ph ph-trash" />
-                      </button>
-                    </td>
+
                     <td className="is-center text-muted">{idx + 1}</td>
                     <td>
                       <span className="cell-main link">{r.staff.name}</span>

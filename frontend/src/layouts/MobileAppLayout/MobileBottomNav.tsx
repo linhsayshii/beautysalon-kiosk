@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { NavLink, Link } from 'react-router-dom';
+import { NavLink, Link, useLocation } from 'react-router-dom';
 import { useAuth } from '@/features/auth/AuthProvider';
-import { canAccessPath } from '@/features/auth/authorization';
+import { canAccessPath, type AccountRole } from '@/features/auth/authorization';
 import { BottomSheet } from '@/components/ui/Sheet/BottomSheet';
 
 interface QuickActionSheetProps {
@@ -78,76 +78,64 @@ export function MobileQuickActionSheet({ isOpen, onClose }: QuickActionSheetProp
   );
 }
 
+type NavTab = { to: string; icon: string; label: string };
+
+/** Bottom-nav tabs per role; the centre "Tạo mới nhanh" button sits between the two pairs. */
+const NAV_TABS: Record<AccountRole, [NavTab, NavTab, NavTab, NavTab]> = {
+  manager: [
+    { to: '/m/dashboard', icon: 'ph-squares-four', label: 'Tổng quan' },
+    { to: '/m/appointments', icon: 'ph-calendar-blank', label: 'Lịch dịch vụ' },
+    { to: '/m/notifications', icon: 'ph-bell', label: 'Thông báo' },
+    { to: '/m/more', icon: 'ph-list', label: 'Nhiều hơn' },
+  ],
+  cashier: [
+    { to: '/m/pos', icon: 'ph-shopping-cart', label: 'Bán hàng' },
+    { to: '/m/appointments', icon: 'ph-calendar-check', label: 'Lịch hẹn' },
+    { to: '/m/notifications', icon: 'ph-bell', label: 'Thông báo' },
+    { to: '/m/account', icon: 'ph-gear', label: 'Tài khoản' },
+  ],
+  // The staff account opens from the top-bar avatar.
+  staff: [
+    { to: '/m/attendance', icon: 'ph-qr-code', label: 'Chấm công' },
+    { to: '/m/my-schedule', icon: 'ph-calendar-check', label: 'Lịch của tôi' },
+    { to: '/m/salary', icon: 'ph-wallet', label: 'Lương' },
+    { to: '/m/notifications', icon: 'ph-bell', label: 'Thông báo' },
+  ],
+};
+
+/** A tab page has no back button: it is a root the bottom nav switches to. */
+export function useIsTabRoot() {
+  const { account } = useAuth();
+  const { pathname } = useLocation();
+  return Boolean(account && NAV_TABS[account.role].some((tab) => tab.to === pathname));
+}
+
 export function MobileBottomNav() {
   const { account } = useAuth();
   const [isActionSheetOpen, setIsActionSheetOpen] = useState(false);
-  const role = account?.role;
-
-  const renderCenterButton = () => (
-    <button
-      type="button"
-      className="mobile-nav-center-action"
-      onClick={() => setIsActionSheetOpen(true)}
-      aria-label="Tạo mới nhanh"
-    >
-      <i className="ph ph-plus" />
-    </button>
+  if (!account) return null;
+  const [first, second, third, fourth] = NAV_TABS[account.role];
+  const tab = ({ to, icon, label }: NavTab) => (
+    <NavLink key={to} to={to} className={({ isActive }) => `mobile-nav-item ${isActive ? 'is-active' : ''}`}>
+      <i className={`ph ${icon}`} /><span>{label}</span>
+    </NavLink>
   );
 
   return (
     <>
       <nav className="mobile-bottom-nav">
-        {role === 'staff' ? (
-          <>
-            <NavLink to="/m/attendance" className={({ isActive }) => `mobile-nav-item ${isActive ? 'is-active' : ''}`}>
-              <i className="ph ph-qr-code" /><span>Chấm công</span>
-            </NavLink>
-            <NavLink to="/m/my-schedule" className={({ isActive }) => `mobile-nav-item ${isActive ? 'is-active' : ''}`}>
-              <i className="ph ph-calendar-check" /><span>Lịch của tôi</span>
-            </NavLink>
-            {renderCenterButton()}
-            <NavLink to="/m/salary" className={({ isActive }) => `mobile-nav-item ${isActive ? 'is-active' : ''}`}>
-              <i className="ph ph-wallet" /><span>Lương</span>
-            </NavLink>
-            <NavLink to="/m/notifications" className={({ isActive }) => `mobile-nav-item ${isActive ? 'is-active' : ''}`}>
-              <i className="ph ph-bell" /><span>Thông báo</span>
-            </NavLink>
-            {/* Two tabs per side keep the centre button centred; the account is the top-bar avatar. */}
-          </>
-        ) : role === 'cashier' ? (
-          <>
-            <NavLink to="/m/pos" className={({ isActive }) => `mobile-nav-item ${isActive ? 'is-active' : ''}`}>
-              <i className="ph ph-shopping-cart" /><span>Bán hàng</span>
-            </NavLink>
-            <NavLink to="/m/appointments" className={({ isActive }) => `mobile-nav-item ${isActive ? 'is-active' : ''}`}>
-              <i className="ph ph-calendar-check" /><span>Lịch hẹn</span>
-            </NavLink>
-            {renderCenterButton()}
-            <NavLink to="/m/notifications" className={({ isActive }) => `mobile-nav-item ${isActive ? 'is-active' : ''}`}>
-              <i className="ph ph-bell" /><span>Thông báo</span>
-            </NavLink>
-            <NavLink to="/m/account" className={({ isActive }) => `mobile-nav-item ${isActive ? 'is-active' : ''}`}>
-              <i className="ph ph-gear" /><span>Tài khoản</span>
-            </NavLink>
-          </>
-        ) : (
-          /* Manager */
-          <>
-            <NavLink to="/m/dashboard" className={({ isActive }) => `mobile-nav-item ${isActive ? 'is-active' : ''}`}>
-              <i className="ph ph-squares-four" /><span>Tổng quan</span>
-            </NavLink>
-            <NavLink to="/m/appointments" className={({ isActive }) => `mobile-nav-item ${isActive ? 'is-active' : ''}`}>
-              <i className="ph ph-calendar-blank" /><span>Lịch dịch vụ</span>
-            </NavLink>
-            {renderCenterButton()}
-            <NavLink to="/m/notifications" className={({ isActive }) => `mobile-nav-item ${isActive ? 'is-active' : ''}`}>
-              <i className="ph ph-bell" /><span>Thông báo</span>
-            </NavLink>
-            <NavLink to="/m/more" className={({ isActive }) => `mobile-nav-item ${isActive ? 'is-active' : ''}`}>
-              <i className="ph ph-list" /><span>Nhiều hơn</span>
-            </NavLink>
-          </>
-        )}
+        {tab(first)}
+        {tab(second)}
+        <button
+          type="button"
+          className="mobile-nav-center-action"
+          onClick={() => setIsActionSheetOpen(true)}
+          aria-label="Tạo mới nhanh"
+        >
+          <i className="ph ph-plus" />
+        </button>
+        {tab(third)}
+        {tab(fourth)}
       </nav>
 
       <MobileQuickActionSheet

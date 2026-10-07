@@ -6,6 +6,7 @@ import { formatDateTime, formatMoney, formatNumber } from '@/lib/format';
 import { owedTone } from '@/lib/tone';
 import { statusLabels } from '@/types/api';
 import { getPurchaseOrder } from '../inventory.api';
+import { PurchaseOrderActions } from './PurchaseOrderActions';
 
 export function PurchaseOrderDetail({ id }: { id: number }) {
   const query = useQuery({ queryKey: ['purchase-order', id], queryFn: () => getPurchaseOrder(id) });
@@ -58,8 +59,9 @@ export function PurchaseOrderDetail({ id }: { id: number }) {
         <span>Tổng số mặt hàng: <strong>{order.items.length}</strong></span>
         <span>Tổng tiền hàng: <strong>{formatMoney(order.subtotal)}</strong></span>
         <span>Cần trả NCC: <strong className="is-grand">{formatMoney(order.amountDue)}</strong></span>
-        <span>Đã trả NCC: <strong className="text-success">{formatMoney(order.amountPaid)}</strong></span>
+        <span>{order.status === 'draft' ? 'Dự kiến trả NCC' : 'Đã trả NCC'}: <strong className="text-success">{formatMoney(order.amountPaid)}</strong></span>
       </div>
+      {order.status === 'draft' && <PurchaseOrderActions order={order} />}
     </InlineDetail>
   );
 }
