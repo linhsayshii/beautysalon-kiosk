@@ -12,32 +12,13 @@
 
 .pricebook-strip {
   display: flex;
+  align-items: center;
   gap: 8px;
   flex-wrap: wrap;
   min-width: 0;
   flex: 1 1 280px;
 }
 
-.pricebook-chip {
-  padding: 6px 12px;
-  border: 1px solid var(--line);
-  border-radius: 20px;
-  background: var(--surface);
-  color: var(--ink-600);
-  font-size: 13px;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.pricebook-chip:hover {
-  border-color: var(--blue-600);
-}
-
-.pricebook-chip.active {
-  background: var(--blue-600);
-  border-color: var(--blue-600);
-  color: white;
-}
 .pricebook-actions {
   display: flex;
   gap: 8px;

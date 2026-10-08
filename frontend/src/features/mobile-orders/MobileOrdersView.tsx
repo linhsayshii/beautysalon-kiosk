@@ -21,6 +21,7 @@ import {
 import { MobilePageHeader } from '@/components/ui/MobilePageHeader/MobilePageHeader';
 import { APPOINTMENT_STATUS_LABELS } from '@/lib/appointment-status';
 import { PAYMENT_METHOD_LABELS } from '@/lib/payment-methods';
+import { amountTone } from '@/lib/tone';
 
 const salesChannelLabels: Record<string, string> = {
   salon: 'Tại salon',
@@ -521,7 +522,7 @@ export function MobileOrdersView() {
 
                 <div className="mobile-orders-summary-line">
                   <span>Khách đã trả:</span>
-                  <span className="text-strong text-success">
+                  <span className={`text-strong ${amountTone(activeOrder.paidAmount ?? activeOrder.total, 'text-success')}`}>
                     {formatMoney(activeOrder.paidAmount ?? activeOrder.total)}
                   </span>
                 </div>

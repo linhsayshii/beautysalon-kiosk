@@ -70,7 +70,7 @@
 }
 
 .btn-secondary:hover:not(:disabled) {
-  background: var(--surface-hover);
+  background: var(--button-hover);
 }
 
 /* A secondary button used as a toggle (aria-pressed) shows its on state in blue. */
@@ -97,7 +97,7 @@
 .btn-ghost:hover:not(:disabled),
 .btn-ghost.is-active {
   color: var(--ink-950);
-  background: var(--surface-hover);
+  background: var(--button-hover);
 }
 
 .btn-danger {

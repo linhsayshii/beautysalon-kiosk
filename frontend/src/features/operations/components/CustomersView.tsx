@@ -16,6 +16,7 @@ import type { ApiRecord } from '@/types/api';
 import { toOptions, useMetadata } from '@/services/metadata';
 import { CustomerDetail } from './CustomerDetail';
 import { CustomerCreateDialog } from './CustomerCreateDialog';
+import { amountTone, owedTone } from '@/lib/tone';
 
 const initialFilters = { search: '', group: '', debtStatus: '' };
 
@@ -84,11 +85,11 @@ export function CustomersView() {
                             <tr className={`customer-row expandable-data-row ${expanded === row.id ? 'is-expanded' : ''}`} onClick={() => setExpanded((current) => current === row.id ? null : row.id)}>
                               <td data-label="Mã khách"><span className="cell-main link">{row.code}</span></td>
                               <td data-label="Khách hàng"><AvatarName name={row.name} subtitle={row.phone} tone="blue" /></td>
-                              <td data-label="Nhóm khách"><span className="status-badge scheduled">{row.group}</span></td>
+                              <td data-label="Nhóm khách">{row.group}</td>
                               <td data-label="Lần cuối đến">{formatDateTime(row.lastVisit)}</td>
-                              <td data-label="Gói đang dùng" className="numeric-cell">{formatNumber(row.activePackages)}</td>
-                              <td data-label="Tổng chi tiêu" className="money-cell">{formatMoney(row.totalSpent)}</td>
-                              <td data-label="Công nợ" className={`money-cell ${row.debtBalance ? 'text-danger' : 'text-success'}`}>{formatMoney(row.debtBalance)}</td>
+                              <td data-label="Gói đang dùng" className={`numeric-cell ${amountTone(row.activePackages)}`}>{formatNumber(row.activePackages)}</td>
+                              <td data-label="Tổng chi tiêu" className={`money-cell ${amountTone(row.totalSpent)}`}>{formatMoney(row.totalSpent)}</td>
+                              <td data-label="Công nợ" className={`money-cell ${owedTone(row.debtBalance, 'text-muted')}`}>{formatMoney(row.debtBalance)}</td>
                             </tr>
                             {expanded === row.id && (
                               <tr className="customer-detail-row expandable-detail-row">

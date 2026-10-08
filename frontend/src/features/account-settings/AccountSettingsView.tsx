@@ -111,7 +111,7 @@ export function AccountSettingsView() {
             </section>
             <section className="settings-panel security-panel">
               <header>
-                <span className="settings-panel-icon is-security"><i className="ph ph-lock-key" /></span>
+                <span className="settings-panel-icon"><i className="ph ph-lock-key" /></span>
                 <div><h2>Đổi mật khẩu</h2><p>Dùng 8–128 ký tự; không dùng lại mật khẩu cũ.</p></div>
               </header>
               <form onSubmit={savePassword}>

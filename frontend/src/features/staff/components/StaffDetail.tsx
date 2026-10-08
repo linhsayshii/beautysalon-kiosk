@@ -184,7 +184,7 @@ export function StaffDetail({ staff, onEdit }: { staff: ApiRecord; onEdit: (init
         title={staff.name}
         tags={<span className="badge badge-info">{staff.role}</span>}
         meta={<>Mã nhân viên: <strong>{staff.code}</strong>{staff.department && ` • ${staff.department}`}</>}
-        aside={<><div><strong>{staff.branchName || 'Chi nhánh trung tâm'}</strong></div><div>Ngày tạo: {formatDate(staff.createdAt)}</div></>}
+        aside={<><div><strong>{staff.branchName || 'Chi nhánh hiện tại'}</strong></div><div>Ngày tạo: {formatDate(staff.createdAt)}</div></>}
       />
 
       <ValueStrip
@@ -201,8 +201,6 @@ export function StaffDetail({ staff, onEdit }: { staff: ApiRecord; onEdit: (init
             items={[
               { label: 'Số điện thoại', value: staff.phone ?? 'Chưa có' },
               { label: 'Phòng ban', value: staff.department ?? 'Chưa thiết lập' },
-              { label: 'Chức danh', value: staff.role },
-              { label: 'Chi nhánh làm việc', value: staff.branchName ?? 'Chi nhánh hiện tại' },
               { label: 'Hình thức lương', value: salaryTypeLabel(staff) },
               { label: 'Trạng thái hoạt động', value: staff.active === false ? 'Ngừng hoạt động' : 'Đang hoạt động' },
               { label: 'Ngày vào làm', value: staff.startDate ? formatDate(staff.startDate) : (staff.createdAt ? formatDate(staff.createdAt) : 'Chưa có') },

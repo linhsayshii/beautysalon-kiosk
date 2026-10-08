@@ -7,6 +7,41 @@
 .mobile-topbar { view-transition-name: mobile-topbar; }
 .mobile-bottom-nav { view-transition-name: mobile-bottom-nav; }
 
+/* Popovers grow from their trigger and stay mounted for the shorter exit. */
+[data-floating-layer],
+.app-select-popover {
+  opacity: 1;
+  transform: scale(1);
+  transform-origin: top left;
+  animation: none;
+  transition: opacity 150ms ease-out, transform 150ms ease-out;
+}
+
+:is([data-floating-layer], .app-select-popover)[data-side='bottom'][data-align='right'] { transform-origin: top right; }
+:is([data-floating-layer], .app-select-popover)[data-side='top'] { transform-origin: bottom left; }
+:is([data-floating-layer], .app-select-popover)[data-side='top'][data-align='right'] { transform-origin: bottom right; }
+
+[data-floating-layer][data-state='closed'],
+.app-select-popover[data-state='closed'] {
+  opacity: 0;
+  transform: scale(0.95);
+  pointer-events: none;
+  transition-duration: 100ms;
+  transition-timing-function: ease-in;
+}
+
+@starting-style {
+  [data-floating-layer][data-state='open'],
+  .app-select-popover[data-state='open'] {
+    opacity: 0;
+    transform: translateY(-4px) scale(0.95);
+  }
+  [data-floating-layer][data-state='open'][data-side='top'],
+  .app-select-popover[data-state='open'][data-side='top'] {
+    transform: translateY(4px) scale(0.95);
+  }
+}
+
 ::view-transition-group(*) {
   animation-duration: var(--duration);
   animation-timing-function: var(--ease-out);
@@ -52,6 +87,10 @@
 @keyframes route-slide-out-right { to { transform: translateX(100%); } }
 
 @media (prefers-reduced-motion: reduce) {
+  [data-floating-layer],
+  .app-select-popover {
+    transform: none !important;
+  }
   ::view-transition-group(*),
   ::view-transition-old(*),
   ::view-transition-new(*) {

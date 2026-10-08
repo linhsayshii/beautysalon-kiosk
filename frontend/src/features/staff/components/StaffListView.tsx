@@ -3,7 +3,6 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { AvatarName } from '@/components/data-display/AvatarName';
 import { EmptyState, ErrorState, LoadingState } from '@/components/data-display/DataState';
 import { Pagination } from '@/components/data-display/Pagination';
-import { StatusBadge } from '@/components/data-display/Badges';
 import { SummaryStrip } from '@/components/data-display/SummaryStrip';
 import { SearchToolbar } from '@/components/forms/SearchToolbar';
 import { PageHeader } from '@/components/ui/PageHeader/PageHeader';
@@ -15,6 +14,7 @@ import { useWebSocket } from '@/hooks/useWebSocket';
 import { getStaff } from '../staff.api';
 import { StaffCreateDialog } from './StaffCreateDialog';
 import { StaffDetail } from './StaffDetail';
+import { amountTone } from '@/lib/tone';
 
 export function StaffListView() {
   const [search, setSearch] = useState('');
@@ -76,12 +76,13 @@ export function StaffListView() {
                   aria-controls={detailId}
                 >
                   <td data-label="Mã nhân viên"><span className="cell-main link">{row.code}</span></td>
-                  <td data-label="Nhân viên"><AvatarName name={row.name} subtitle={row.role} tone={row.avatarTone} /></td>
+                  <td data-label="Nhân viên"><AvatarName name={row.name} tone={row.avatarTone} /></td>
                   <td data-label="Vai trò">{row.role}</td>
                   <td data-label="Hình thức lương">{statusLabels[row.salaryType] ?? row.salaryType ?? '-'}</td>
-                  <td data-label="Số đơn" className="numeric-cell">{formatNumber(row.monthOrders)}</td>
-                  <td data-label="Doanh thu" className="money-cell">{formatMoney(row.monthRevenue)}</td>
-                  <td data-label="Trạng thái"><StatusBadge status={row.active ? 'active' : 'cancelled'} /></td>
+                  <td data-label="Số đơn" className={`numeric-cell ${amountTone(row.monthOrders)}`}>{formatNumber(row.monthOrders)}</td>
+                  <td data-label="Doanh thu" className={`money-cell ${amountTone(row.monthRevenue)}`}>{formatMoney(row.monthRevenue)}</td>
+                  {/* Working is the normal state, so only a stopped profile gets a badge. */}
+                  <td data-label="Trạng thái">{row.active ? <span className="text-muted">Đang hoạt động</span> : <span className="badge badge-neutral">Ngừng hoạt động</span>}</td>
                 </tr>
                 {isExpanded && <tr id={detailId} className="staff-detail-row expandable-detail-row"><td colSpan={7}><StaffDetail staff={row} onEdit={(initialTab) => setEditingStaff({ staff: row, initialTab })} /></td></tr>}
               </Fragment>;

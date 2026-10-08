@@ -36,5 +36,5 @@ export function GoodsTypeBadge({ type }: { type: string }) {
 // The legacy invoice status 'paid' means posted; paymentStatus tracks settlement.
 export function InvoiceStatusBadge({status,paymentStatus}: {status:string;paymentStatus?:string}) {
   if (status !== 'paid' || !paymentStatus || paymentStatus === 'paid') return <StatusBadge status={status} />;
-  return <span className="status-badge draft">{paymentStatus === 'partial' ? 'Thanh toán một phần' : 'Chưa thanh toán'}</span>;
+  return <span className="status-badge unpaid">{paymentStatus === 'partial' ? 'Thanh toán một phần' : 'Chưa thanh toán'}</span>;
 }

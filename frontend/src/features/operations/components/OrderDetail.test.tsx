@@ -78,11 +78,12 @@ describe('OrderDetail Component', () => {
     expect(screen.getByText('Tại salon')).toBeInTheDocument();
 
     // Layer 4: Value strip check
-    expect(screen.getAllByText(/Tổng tiền hàng:/i).length).toBeGreaterThanOrEqual(1);
+    // The strip is the only totals block; the items tab no longer repeats it under the table.
+    expect(screen.getByText('Tổng tiền hàng')).toBeInTheDocument();
     expect(screen.getAllByText('500.000đ').length).toBeGreaterThanOrEqual(1);
-    expect(screen.getAllByText(/Giảm giá:/i).length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText('50.000đ').length).toBeGreaterThanOrEqual(1);
-    expect(screen.getAllByText(/Tổng thanh toán:/i).length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByText('Tổng thanh toán')).toBeInTheDocument();
+    expect(screen.queryByText(/Tổng tiền hàng:/i)).not.toBeInTheDocument();
     expect(screen.getAllByText('450.000đ').length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText(/^Đã thanh toán$/i)).toBeInTheDocument();
 
@@ -140,7 +141,7 @@ describe('OrderDetail Component', () => {
     renderWithClient(<OrderDetail id={1} />);
     const row = (await screen.findByText('Chăm sóc da chuyên sâu')).closest('tr')!;
     expect(row.querySelectorAll('td')[6]).not.toHaveClass('text-danger');
-    const total = screen.getByText(/^Giảm giá:/).querySelector('strong')!;
+    const total = screen.getByText('Giảm giá', { selector: 'dt' }).nextElementSibling!;
     expect(total).not.toHaveClass('text-danger');
   });
 });

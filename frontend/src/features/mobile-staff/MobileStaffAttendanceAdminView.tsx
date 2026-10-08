@@ -12,6 +12,7 @@ import { weekStartIso, monthStartIso, todayIso, toIsoDate, formatDateOnly } from
 import { formatDecimal, initials } from '@/lib/format';
 import type { ApiRecord } from '@/types/api';
 import { MobilePageHeader } from '@/components/ui/MobilePageHeader/MobilePageHeader';
+import { amountTone } from '@/lib/tone';
 
 // Format timestamp to HH:MM in Vietnam timezone
 function formatTime(value: unknown): string {
@@ -342,7 +343,7 @@ export function MobileStaffAttendanceAdminView() {
                       </div>
 
                       <div className="mobile-staff-row-right">
-                        <span className="mobile-staff-row-value blue">
+                        <span className={`mobile-staff-row-value ${amountTone(stats.workedHours)}`}>
                           {formatDecimal(stats.workedHours)} giờ
                         </span>
                         <span className="text-muted">

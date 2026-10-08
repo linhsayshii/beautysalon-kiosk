@@ -145,11 +145,11 @@ function DesktopKit() {
         <Section title="Badge, chip, tab">
           <div className="btn-group">
             <span className="badge badge-success">Đã thanh toán</span>
-            <span className="badge badge-info">Chờ xác nhận</span>
+            <span className="badge badge-neutral">Chờ xác nhận</span>
             <span className="badge badge-warning">Trả một phần</span>
             <span className="badge badge-danger">Đã hủy</span>
-            <span className="badge badge-violet">Hoàn thành</span>
-            <span className="badge badge-neutral">Nháp</span>
+            <span className="badge badge-info">Đang làm</span>
+            <span className="badge badge-violet">Nghỉ phép</span>
             <span className="status-badge paid">status-badge paid</span>
           </div>
           <div className="btn-group">

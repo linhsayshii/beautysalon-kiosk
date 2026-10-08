@@ -22,7 +22,6 @@
 .app-date-time-trigger > span { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .app-date-time-trigger > i { flex: 0 0 auto; color: var(--ink-700); font-size: 18px; }
 .app-date-time-trigger .is-placeholder { color: var(--ink-400); font-weight: var(--weight-regular); }
-.app-date-time-trigger:hover:not(:disabled) { border-color: var(--blue-400); background: var(--surface-muted); }
 .app-date-time-trigger:focus-visible { border-color: var(--blue-500); box-shadow: var(--focus-ring); outline: 0; }
 .app-date-time-trigger[aria-expanded='true'] { border-color: var(--blue-500); }
 .app-date-time-trigger:disabled { cursor: not-allowed; opacity: .65; }
@@ -45,12 +44,12 @@
 
 .date-picker-body { display: flex; align-items: flex-start; gap: 16px; }
 
-.date-picker-presets { display: grid; flex: 0 0 auto; min-width: 128px; gap: 2px; padding-top: 2px; }
+.date-picker-presets { display: grid; flex: 0 0 auto; min-width: 128px; gap: var(--space-1); padding-top: 2px; }
 .date-picker-preset {
-  min-height: 34px;
+  min-height: 40px;
   padding: 0 12px;
   border: 0;
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-control);
   background: transparent;
   color: var(--ink-950);
   font: inherit;
@@ -89,7 +88,7 @@
 
 .date-picker-weekdays,
 .date-picker-grid { display: grid; grid-template-columns: repeat(7, 40px); }
-.date-picker-weekdays span { padding: 6px 0; color: var(--ink-500); font-size: 12.5px; text-align: center; }
+.date-picker-weekdays span { padding: 6px 0; color: var(--ink-500); font-size: var(--text-xs); text-align: center; }
 .date-picker-grid { row-gap: 2px; }
 
 .date-picker-day {

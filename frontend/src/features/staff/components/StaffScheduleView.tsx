@@ -641,7 +641,7 @@ export function StaffScheduleView() {
                         return (
                           <td key={dIdx} className="day-slot-cell">
                             {cellData.length === 0 ? (
-                              <div
+                              <button type="button"
                                 onClick={() => {
                                   setAssignModalData({
                                     isOpen: true,
@@ -653,10 +653,11 @@ export function StaffScheduleView() {
                                   });
                                 }}
                                 className="empty-slot-btn"
-                                title="Click để xếp nhân viên"
+                                aria-label={`Xếp nhân viên cho ca ${shift.name}`}
+                                title="Xếp nhân viên cho ca"
                               >
-                                <span>Chọn để xếp nhân viên làm việc cho ca.</span>
-                              </div>
+                                <i className="ph ph-plus" aria-hidden="true" />
+                              </button>
                             ) : (
                               <div className="slot-staff-list">
                                 {cellData.map((item) => (

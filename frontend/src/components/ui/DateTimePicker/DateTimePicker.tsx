@@ -135,7 +135,7 @@ function PickerPopover({ anchorRef, isOpen, onClose, label, focusDate, sheetFoot
     };
     // Capture phase so the Escape does not also close a surrounding modal.
     const onKeyDown = (event: globalThis.KeyboardEvent) => {
-      if (event.key !== 'Escape' || document.querySelector('.app-select-popover')) return;
+      if (event.key !== 'Escape' || document.querySelector('.app-select-popover[data-state="open"]')) return;
       event.preventDefault();
       event.stopPropagation();
       onCloseRef.current();
@@ -160,16 +160,15 @@ function PickerPopover({ anchorRef, isOpen, onClose, label, focusDate, sheetFoot
     layer.querySelector<HTMLElement>(`.date-picker-day[data-date="${focusDate}"]:not(.is-outside)`)?.focus({ preventScroll: true });
   }, [focusDate]);
 
-  if (!isOpen) return null;
   if (asSheet) {
     return (
-      <BottomSheet open onClose={onClose} title={label} nested footer={sheetFooter}>
+      <BottomSheet open={isOpen} onClose={onClose} title={label} nested footer={sheetFooter}>
         <div ref={layerRef} className="date-picker-sheet">{children}</div>
       </BottomSheet>
     );
   }
   return (
-    <FloatingLayer anchorRef={anchorRef} layerRef={layerRef} className="date-picker-popover" role="dialog" aria-label={label}>
+    <FloatingLayer open={isOpen} anchorRef={anchorRef} layerRef={layerRef} className="date-picker-popover" role="dialog" aria-label={label}>
       {children}
     </FloatingLayer>
   );

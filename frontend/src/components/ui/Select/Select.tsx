@@ -9,6 +9,7 @@ import {
   useState,
 } from 'react';
 import { createPortal } from 'react-dom';
+import { usePopoverPresence } from '@/components/ui/FloatingLayer/usePopoverPresence';
 
 export interface SelectOption<T = string | number> {
   value: T;
@@ -31,7 +32,7 @@ export interface SelectProps<T = string | number> {
   triggerClassName?: string;
   style?: CSSProperties;
   menuClassName?: string;
-  variant?: 'default' | 'filter' | 'chart' | 'bordered' | 'ghost' | 'pill';
+  variant?: 'default' | 'filter' | 'chart' | 'ghost' | 'pill';
   size?: 'sm' | 'md' | 'lg';
   align?: 'left' | 'right';
   fullWidth?: boolean;
@@ -71,6 +72,7 @@ export function Select<T extends string | number = string>({
   renderOption,
 }: SelectProps<T>) {
   const [isOpen, setIsOpen] = useState(false);
+  const present = usePopoverPresence(isOpen);
   const [highlightedIndex, setHighlightedIndex] = useState<number>(-1);
   const [placement, setPlacement] = useState<'bottom' | 'top'>('bottom');
   const [popoverLayout, setPopoverLayout] = useState<SelectPopoverLayout | null>(null);
@@ -94,7 +96,7 @@ export function Select<T extends string | number = string>({
     const viewportBottom = viewportTop + viewportHeight;
     const spaceBelow = Math.max(0, viewportBottom - rect.bottom - POPOVER_GAP - VIEWPORT_MARGIN);
     const spaceAbove = Math.max(0, rect.top - viewportTop - POPOVER_GAP - VIEWPORT_MARGIN);
-    const estimatedMenuHeight = Math.min(options.length * 40 + 12, MAX_MENU_HEIGHT);
+    const estimatedMenuHeight = Math.min(options.length * 44 + 8, MAX_MENU_HEIGHT);
     const nextPlacement = spaceBelow < estimatedMenuHeight && spaceAbove > spaceBelow ? 'top' : 'bottom';
     const availableHeight = nextPlacement === 'top' ? spaceAbove : spaceBelow;
     const measuredWidth = popoverRef.current?.scrollWidth ?? rect.width;
@@ -283,11 +285,16 @@ export function Select<T extends string | number = string>({
         </span>
       </button>
 
-      {isOpen && popoverLayout && createPortal(
+      {present && popoverLayout && createPortal(
         <div
           ref={popoverRef}
           className={`app-select-popover placement-${placement} align-${align} ${menuClassName}`}
           role="presentation"
+          aria-hidden={!isOpen || undefined}
+          inert={!isOpen}
+          data-state={isOpen ? 'open' : 'closed'}
+          data-side={placement === 'bottom' ? 'bottom' : 'top'}
+          data-align={align}
           style={{
             '--app-select-menu-max-height': `${popoverLayout.maxHeight}px`,
             bottom: popoverLayout.bottom,

@@ -21,7 +21,8 @@
 
 .cashbook-fund-card strong {
   font-size: var(--text-lg);
-  font-weight: var(--weight-bold);
+  font-weight: var(--weight-semibold);
+  font-variant-numeric: tabular-nums;
 }
 
 .cashbook-fund-icon {
@@ -30,20 +31,10 @@
   place-items: center;
   width: 38px;
   height: 38px;
-  border-radius: var(--radius-inner);
-  color: var(--blue-600);
-  background: var(--blue-50);
-  font-size: var(--text-lg);
-}
-
-.cashbook-fund-icon.is-cash {
-  color: var(--green);
-  background: var(--green-soft);
-}
-
-.cashbook-fund-icon.is-bank {
-  color: var(--violet);
-  background: var(--violet-soft);
+  border-radius: var(--radius-sm);
+  color: var(--ink-500);
+  background: var(--surface-muted);
+  font-size: var(--text-xl);
 }
 
 .cashbook-row-cancelled td {

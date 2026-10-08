@@ -5,7 +5,6 @@ import { homeForRole, useAuth } from '@/features/auth/AuthProvider';
 import { hasPermission } from '@/features/auth/authorization';
 import { useStoreName } from '@/services/metadata';
 import { setPreferredUiMode } from '@/pwa/device-detect';
-import { useWebSocket } from '@/hooks/useWebSocket';
 import { initials } from '@/lib/format';
 
 export function Header() {
@@ -17,7 +16,6 @@ export function Header() {
   const navigate = useNavigate();
   const { account, logout } = useAuth();
   const storeName = useStoreName();
-  const { isConnected } = useWebSocket();
 
   useEffect(() => { setMobileOpen(false); setOpenMenu(null); setAccountOpen(false); }, [location.pathname]);
   useEffect(() => {
@@ -47,11 +45,6 @@ export function Header() {
       <Link className="brand" to={account ? homeForRole(account.role) : '/login'} aria-label={`${storeName} - Trang chính`}>
         <span className="brand-mark" aria-hidden="true"><span /><span /></span><span className="brand-name">{storeName}</span>
       </Link>
-      <span
-        className={`status-dot ${isConnected ? 'online' : 'offline'}`}
-        title={isConnected ? 'Realtime connected' : 'Offline'}
-        aria-label={isConnected ? 'Realtime connected' : 'Offline'}
-      />
       {account?.role === 'manager' && <button className="mobile-menu-button icon-button" type="button" aria-label={mobileOpen ? 'Đóng menu' : 'Mở menu'} aria-expanded={mobileOpen} onClick={() => setMobileOpen((value) => !value)}>
         <i className={`ph ${mobileOpen ? 'ph-x' : 'ph-list'}`} />
       </button>}
@@ -60,13 +53,13 @@ export function Header() {
           <NavLink key={group.key} className={({ isActive }) => `nav-link ${isActive ? 'is-active' : ''}`} to={group.to}>{group.label}</NavLink>
         ) : (
           <div className={`nav-menu ${openMenu === group.key ? 'is-open' : ''}`} key={group.key}>
-            <button className={`nav-link nav-trigger ${activeSection === group.key ? 'is-active' : ''}`} type="button" aria-expanded={openMenu === group.key} onClick={(event) => { event.stopPropagation(); setOpenMenu((value) => value === group.key ? null : group.key); }}>
+            <button className={`nav-link nav-trigger ${activeSection === group.key ? 'is-active' : ''}`} type="button" aria-expanded={openMenu === group.key} onClick={(event) => { event.stopPropagation(); setAccountOpen(false); setOpenMenu((value) => value === group.key ? null : group.key); }}>
               {group.label} <i className="ph ph-caret-down" />
             </button>
-            <div className={`product-menu subnav-menu ${group.items && group.items.length < 4 ? 'compact-menu' : ''} ${group.key === 'staff' ? 'staff-menu' : ''}`} role="menu">
+            <div className="product-menu subnav-menu" role="menu">
               <div className="menu-group">
                 {group.items?.map((item) => item.to ? (
-                  <Link className="menu-item" to={item.to} role="menuitem" key={item.label}><span className={`menu-icon ${item.tone}`}><i className={`ph ${item.icon}`} /></span><span>{item.label}</span></Link>
+                  <Link className="menu-item" to={item.to} role="menuitem" key={item.label}><span className="menu-icon"><i className={`ph ${item.icon}`} /></span><span>{item.label}</span></Link>
                 ) : null)}
               </div>
             </div>
@@ -74,15 +67,6 @@ export function Header() {
         ))}
       </nav>}
       <div className="top-actions">
-        <button
-          type="button"
-          className="action-pill mobile-switch-pill"
-          onClick={handleSwitchToMobile}
-          aria-label="Chuyển sang giao diện di động"
-        >
-          <i className="ph ph-device-mobile" aria-hidden="true" />
-          <span>Bản di động</span>
-        </button>
         {account?.role === 'manager' && <NavLink className={({ isActive }) => `action-pill attendance-qr-button ${isActive ? 'is-active' : ''}`} to="/attendance/qr" aria-label="Mở QR chấm công">
           <i className="ph ph-qr-code" aria-hidden="true" /><span>QR chấm công</span>
         </NavLink>}
@@ -99,14 +83,12 @@ export function Header() {
           <span>Thu ngân</span>
         </NavLink>}
         <div className={`account-menu ${accountOpen ? 'is-open' : ''}`}>
-          <button className="account-trigger" type="button" aria-expanded={accountOpen} onClick={() => setAccountOpen((value) => !value)}><span>{initials(account?.displayName)}</span><i className="ph ph-caret-down" /></button>
+          <button className="account-trigger" type="button" aria-expanded={accountOpen} onClick={() => { setOpenMenu(null); setAccountOpen((value) => !value); }}><span>{initials(account?.displayName)}</span><i className="ph ph-caret-down" /></button>
           <div className="account-popover">
             <div><strong>{account?.displayName}</strong><span>{account?.role === 'manager' ? 'Quản lý' : account?.role === 'cashier' ? 'Thu ngân' : 'Nhân viên'} · {account?.branchName}</span></div>
-            <button type="button" className="switch-mobile-menu-item" onClick={handleSwitchToMobile}>
-              <i className="ph ph-device-mobile" />Giao diện di động
-            </button>
             <Link to="/account/settings"><i className="ph ph-gear-six" />Cài đặt tài khoản</Link>
-            <button type="button" onClick={() => logout()}><i className="ph ph-sign-out" />Đăng xuất</button>
+            <button type="button" onClick={handleSwitchToMobile}><i className="ph ph-device-mobile" />Giao diện di động</button>
+            <button type="button" className="account-signout" onClick={() => logout()}><i className="ph ph-sign-out" />Đăng xuất</button>
           </div>
         </div>
       </div>

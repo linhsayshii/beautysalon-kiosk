@@ -70,11 +70,6 @@
   box-sizing: border-box;
 }
 
-.app-select-trigger:hover:not(:disabled) {
-  border-color: var(--blue-400);
-  background-color: var(--surface-muted);
-}
-
 .app-select-trigger:focus-visible,
 .app-select-container.is-open .app-select-trigger {
   border-color: var(--blue-500);
@@ -123,27 +118,18 @@
   z-index: var(--z-popover);
   width: max-content;
   max-width: min(92vw, 360px);
-  padding: 6px;
+  padding: var(--space-1);
   border: 1px solid var(--line);
-  border-radius: 12px;
+  border-radius: 16px;
   background-color: #ffffff;
   box-shadow: 0 12px 32px rgba(15, 23, 42, 0.14), 0 2px 6px rgba(15, 23, 42, 0.04);
-  animation: appSelectFadeIn 120ms cubic-bezier(0.16, 1, 0.3, 1);
   box-sizing: border-box;
 }
 
-@keyframes appSelectFadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(-4px) scale(0.98);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
-}
-
 .app-select-menu {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
   list-style: none;
   margin: 0;
   padding: 0;
@@ -157,11 +143,13 @@
   align-items: center;
   justify-content: space-between;
   gap: 12px;
+  flex-shrink: 0;
+  min-height: 40px;
   padding: 9px 12px;
-  border-radius: 8px;
+  border-radius: var(--radius-control);
   color: var(--ink-800);
   font-size: 13px;
-  font-weight: 550;
+  font-weight: var(--weight-medium);
   cursor: pointer;
   transition: background-color 100ms ease, color 100ms ease;
   user-select: none;
@@ -177,7 +165,7 @@
 .app-select-item.is-selected {
   background-color: var(--blue-50);
   color: var(--blue-700);
-  font-weight: 650;
+  font-weight: var(--weight-semibold);
 }
 
 .app-select-item.is-selected:hover,
@@ -233,13 +221,9 @@
   background-color: var(--surface-muted);
   color: var(--ink-800);
   font-size: 13px;
-  font-weight: 650;
+  font-weight: var(--weight-semibold);
 }
 
-.app-select-container.variant-chart .app-select-trigger:hover:not(:disabled) {
-  background-color: var(--canvas);
-  border-color: var(--blue-400);
-}
 
 .app-select-container.variant-chart.is-open .app-select-trigger {
   background-color: #ffffff;
@@ -259,9 +243,6 @@
 }
 
 /* Bordered variant */
-.app-select-container.variant-bordered .app-select-trigger {
-  border-color: var(--blue-500);
-}
 
 /* Sizes */
 .app-select-container.size-sm .app-select-trigger {

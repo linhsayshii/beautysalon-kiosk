@@ -9,7 +9,7 @@ const SEARCH_DELAY_MS = 400;
 export function SearchToolbar({ value, placeholder, onChange, onSearch, onRefresh, actions }: SearchToolbarProps) {
   const onSearchRef = useRef(onSearch);
   onSearchRef.current = onSearch;
-  // The value last searched, so Enter or the filter button does not trigger a second search.
+  // The value last searched, so Enter does not trigger a second search.
   const searchedValue = useRef(value);
 
   const search = () => {
@@ -27,5 +27,5 @@ export function SearchToolbar({ value, placeholder, onChange, onSearch, onRefres
     return () => window.clearTimeout(timer);
   }, [value]);
 
-  return <div className="data-toolbar"><label className="search-control"><i className="ph ph-magnifying-glass" /><input type="search" value={value} placeholder={placeholder} aria-label="Tìm kiếm" onChange={(event) => onChange(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter') { event.preventDefault(); search(); } }} /></label><div className="table-actions">{actions}<button className="btn btn-secondary btn-icon" type="button" onClick={search} aria-label="Áp dụng bộ lọc"><i className="ph ph-funnel" /></button><button className="btn btn-secondary btn-icon" type="button" onClick={onRefresh} aria-label="Tải lại"><i className="ph ph-arrow-clockwise" /></button></div></div>;
+  return <div className="data-toolbar"><label className="search-control"><i className="ph ph-magnifying-glass" /><input type="search" value={value} placeholder={placeholder} aria-label="Tìm kiếm" onChange={(event) => onChange(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter') { event.preventDefault(); search(); } }} /></label><div className="table-actions">{actions}<button className="btn btn-secondary btn-icon" type="button" onClick={onRefresh} aria-label="Tải lại"><i className="ph ph-arrow-clockwise" /></button></div></div>;
 }

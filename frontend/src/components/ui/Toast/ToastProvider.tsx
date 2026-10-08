@@ -26,7 +26,7 @@ export function ToastProvider({ children }: PropsWithChildren) {
       <div className={`toast ${toast ? 'is-visible' : ''}`} role="status" aria-live="polite" aria-atomic="true">
         <span className="toast-icon"><i className="ph ph-info" aria-hidden="true" /></span>
         <span><strong>{toast?.title ?? 'Thông báo'}</strong><small>{toast?.message ?? ''}</small></span>
-        <button type="button" aria-label="Đóng thông báo" onClick={close}><i className="ph ph-x" aria-hidden="true" /></button>
+        <button type="button" aria-label="Đóng thông báo" onClick={close} tabIndex={toast ? 0 : -1}><i className="ph ph-x" aria-hidden="true" /></button>
       </div>
     </ToastContext.Provider>
   );

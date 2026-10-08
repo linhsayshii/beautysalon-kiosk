@@ -131,31 +131,18 @@ html:has(.mobile-app-shell) body {
 .mobile-brand {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   text-decoration: none;
   color: var(--ink-950);
-  font-weight: 800;
-  font-size: 17px;
+  font-weight: var(--weight-bold);
+  font-size: var(--text-lg);
   letter-spacing: -0.02em;
   min-height: 44px;
 }
 
-.mobile-brand .brand-mark {
-  display: inline-flex;
-  gap: 3.5px;
-  align-items: center;
-}
-
+/* Same two-petal mark as the desktop bar, drawn in brand blue on white. */
 .mobile-brand .brand-mark span {
-  display: inline-block;
-  width: 6.5px;
-  height: 16px;
-  border-radius: 3px;
   background: var(--blue-600);
-}
-
-.mobile-brand .brand-mark span:first-child {
-  height: 22px;
 }
 
 .mobile-store-title {
@@ -163,8 +150,8 @@ html:has(.mobile-app-shell) body {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  font-size: 17px;
-  font-weight: 800;
+  font-size: var(--text-lg);
+  font-weight: var(--weight-bold);
   color: var(--ink-950);
 }
 
@@ -273,7 +260,7 @@ html:has(.mobile-app-shell) body {
 
 .mobile-dropdown-header span {
   font-size: 11px;
-  font-weight: 800;
+  font-weight: var(--weight-bold);
   text-transform: uppercase;
   color: var(--ink-500);
   letter-spacing: 0.03em;
@@ -329,7 +316,7 @@ html:has(.mobile-app-shell) body {
 
 .dropdown-item-info .branch-name {
   font-size: 13px;
-  font-weight: 700;
+  font-weight: var(--weight-bold);
   color: var(--ink-950);
   white-space: nowrap;
   overflow: hidden;
@@ -371,7 +358,7 @@ html:has(.mobile-app-shell) body {
   background: var(--blue-600);
   color: #ffffff;
   font-size: 14px;
-  font-weight: 750;
+  font-weight: var(--weight-semibold);
   text-decoration: none;
   box-shadow: 0 1px 3px rgba(7, 86, 204, 0.3);
   transition: transform 0.15s ease;
@@ -458,7 +445,7 @@ html:has(.mobile-app-shell) body {
 
 .mobile-form-row-title {
   font-size: 15px;
-  font-weight: 600;
+  font-weight: var(--weight-semibold);
   color: var(--ink-800);
   white-space: nowrap;
   overflow: hidden;
@@ -550,7 +537,7 @@ html:has(.mobile-app-shell) body {
   border: 1px solid var(--blue-200);
   color: var(--blue-600);
   font-size: 14px;
-  font-weight: 600;
+  font-weight: var(--weight-semibold);
   cursor: pointer;
   transition: all 0.15s ease;
   width: 100%;
@@ -613,14 +600,14 @@ html:has(.mobile-app-shell) body {
 
 .mobile-form-item-name {
   font-size: 14px;
-  font-weight: 600;
+  font-weight: var(--weight-semibold);
   color: var(--ink-800);
   line-height: 1.3;
 }
 
 .mobile-form-item-price {
   font-size: 14px;
-  font-weight: 700;
+  font-weight: var(--weight-bold);
   color: var(--ink-950);
   text-align: right;
   flex-shrink: 0;
@@ -730,7 +717,7 @@ html:has(.mobile-app-shell) body {
   background: #ffffff;
   color: var(--ink-600);
   font-size: 13px;
-  font-weight: 500;
+  font-weight: var(--weight-medium);
   cursor: pointer;
   transition: all 0.15s ease;
   text-align: center;
@@ -754,7 +741,7 @@ html:has(.mobile-app-shell) body {
   background: var(--pill-tone);
   border-color: var(--pill-tone);
   color: #ffffff;
-  font-weight: 600;
+  font-weight: var(--weight-semibold);
 }
 
 /* --appt-pending is a light grey meant for borders; white text needs a darker grey. */
@@ -797,8 +784,8 @@ html:has(.mobile-app-shell) body {
   gap: 3px;
   text-decoration: none;
   color: var(--ink-400);
-  font-size: 10.5px;
-  font-weight: 600;
+  font-size: var(--text-2xs);
+  font-weight: var(--weight-semibold);
   transition: color 0.15s ease, transform 0.1s ease;
   user-select: none;
   -webkit-tap-highlight-color: transparent;
@@ -811,7 +798,7 @@ html:has(.mobile-app-shell) body {
 
 .mobile-nav-item.is-active {
   color: var(--blue-600);
-  font-weight: 750;
+  font-weight: var(--weight-semibold);
 }
 
 .mobile-nav-item.is-active i {
@@ -829,10 +816,10 @@ html:has(.mobile-app-shell) body {
   width: 48px;
   height: 48px;
   border-radius: 50%;
-  background: linear-gradient(135deg, var(--blue-600) 0%, var(--blue-700) 100%);
+  background: var(--blue-600);
   color: #ffffff;
   border: 4px solid var(--surface);
-  box-shadow: 0 4px 14px rgba(7, 86, 204, 0.4);
+  box-shadow: 0 2px 8px rgba(7, 86, 204, 0.25);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -846,7 +833,7 @@ html:has(.mobile-app-shell) body {
 
 .mobile-nav-center-action i {
   font-size: 24px;
-  font-weight: 700;
+  font-weight: var(--weight-bold);
   transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
@@ -937,7 +924,7 @@ html:has(.mobile-app-shell) body {
   align-items: center;
   gap: 8px;
   font-size: 13px;
-  font-weight: 500;
+  font-weight: var(--weight-medium);
   white-space: nowrap;
 }
 
@@ -959,7 +946,7 @@ html:has(.mobile-app-shell) body {
   border: none;
   border-radius: 999px;
   font-size: 12px;
-  font-weight: 700;
+  font-weight: var(--weight-bold);
   cursor: pointer;
   white-space: nowrap;
   transition: background 0.15s ease;
@@ -987,39 +974,6 @@ html:has(.mobile-app-shell) body {
   color: #ffffff;
 }
 
-/* Header switch pill */
-.mobile-switch-pill {
-  color: var(--blue-600) !important;
-  background: var(--blue-50) !important;
-  border: 1px solid var(--blue-200) !important;
-  font-weight: 700 !important;
-  cursor: pointer;
-}
-
-.mobile-switch-pill:hover {
-  background: var(--blue-100) !important;
-}
-
-.account-popover .switch-mobile-menu-item {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  width: 100%;
-  margin-top: 6px;
-  padding: 9px 10px;
-  border: 0;
-  border-radius: 9px;
-  color: var(--blue-600);
-  background: transparent;
-  font-weight: 700;
-  text-align: left;
-  cursor: pointer;
-}
-
-.account-popover .switch-mobile-menu-item:hover {
-  background: var(--blue-50);
-}
-
 .mobile-quick-action-icon.action-customer {
   background: var(--blue-50);
   color: var(--violet);
@@ -1032,7 +986,7 @@ html:has(.mobile-app-shell) body {
 
 .mobile-quick-action-name {
   font-size: 15px;
-  font-weight: 700;
+  font-weight: var(--weight-bold);
   color: var(--ink-950);
   margin-bottom: 2px;
 }
@@ -1133,11 +1087,11 @@ html:has(.mobile-app-shell) body {
 }
 
 .mobile-main-content .summary-tile > span {
-  font-size: 11.5px;
+  font-size: var(--text-xs);
 }
 
 .mobile-main-content .summary-tile > small {
-  font-size: 10.5px;
+  font-size: var(--text-2xs);
 }
 
 /* Attendance & Schedule Views Mobile Optimization */
@@ -1191,4 +1145,11 @@ html:has(.mobile-app-shell) body {
 .more-user-branch {
   font-variant-numeric: tabular-nums;
   font-feature-settings: "tnum";
+}
+
+/* iOS Safari zooms the page into any focused field under 16px, so every text
+ * field in the phone shell and in sheets uses 16px text. */
+body:has(.mobile-app-shell) :is(input:not([type="checkbox"], [type="radio"], [type="range"]), textarea, select),
+.sheet :is(input:not([type="checkbox"], [type="radio"], [type="range"]), textarea, select) {
+  font-size: 16px;
 }

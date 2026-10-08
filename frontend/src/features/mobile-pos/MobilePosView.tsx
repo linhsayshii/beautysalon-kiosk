@@ -379,16 +379,13 @@ export function MobilePosView() {
 
         {/* Subcategory dropdown / pill */}
         <div className="mobile-pos-filter-row">
-          <div className="chip">
-            <i className="ph ph-funnel" />
-            <Select
-              aria-label="Nhóm hàng"
-              value={selectedSubCategory}
-              onChange={setSelectedSubCategory}
-              variant="ghost"
-              options={[{ value: '', label: 'Tất cả nhóm hàng' }, ...subCategories.map((category) => ({ value: category, label: category }))]}
-            />
-          </div>
+          <Select
+            aria-label="Nhóm hàng"
+            value={selectedSubCategory}
+            onChange={setSelectedSubCategory}
+            variant="pill"
+            options={[{ value: '', label: 'Tất cả nhóm hàng' }, ...subCategories.map((category) => ({ value: category, label: category }))]}
+          />
           <span className="text-muted">
             {filteredItems.length} mặt hàng
           </span>
@@ -467,7 +464,7 @@ export function MobilePosView() {
                       onChange={(staffId) => handleUpdateLineStaff(posLineKey(line), staffId === '' ? null : Number(staffId))}
                       size="sm"
                       triggerClassName="mobile-pos-staff-trigger"
-                      options={[{ value: '', label: '-- Chọn --' }, ...staffList.map((staff) => ({ value: staff.id, label: staff.name }))]}
+                      options={[{ value: '', label: 'Chọn NV' }, ...staffList.map((staff) => ({ value: staff.id, label: staff.name }))]}
                     />
                   </div>
 
@@ -480,14 +477,16 @@ export function MobilePosView() {
                         onChange={(staffId) => handleUpdateLineConsultant(posLineKey(line), staffId === '' ? null : Number(staffId))}
                         size="sm"
                         triggerClassName="mobile-pos-staff-trigger"
-                        options={[{ value: '', label: '-- Không --' }, ...staffList.map((staff) => ({ value: staff.id, label: staff.name }))]}
+                        options={[{ value: '', label: 'Không có' }, ...staffList.map((staff) => ({ value: staff.id, label: staff.name }))]}
                       />
                     </div>
                   )}
 
-                  <div className="commission-badge">
-                    HH: {lineCommission(line).total > 0 ? formatMoney(lineCommission(line).total) : '-'}
-                  </div>
+                  {lineCommission(line).total > 0 && (
+                    <div className="commission-badge">
+                      HH: {formatMoney(lineCommission(line).total)}
+                    </div>
+                  )}
                 </div>
               </div>
             ))}
@@ -500,10 +499,12 @@ export function MobilePosView() {
             <span>Tạm tính:</span>
             <span className="amount">{formatMoney(totalCartAmount)}</span>
           </div>
-          <div className="summary-row commission">
-            <span>Hoa hồng dự kiến:</span>
-            <span className="amount">{formatMoney(totalCommission)}</span>
-          </div>
+          {totalCommission > 0 && (
+            <div className="summary-row commission">
+              <span>Hoa hồng dự kiến:</span>
+              <span className="amount">{formatMoney(totalCommission)}</span>
+            </div>
+          )}
         </div>
 
         <button

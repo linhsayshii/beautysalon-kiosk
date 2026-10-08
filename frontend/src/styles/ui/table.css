@@ -165,7 +165,12 @@
 }
 
 .money-cell {
-  font-weight: var(--weight-bold);
+  font-weight: var(--weight-semibold);
+}
+
+/* A muted (zero) amount drops the weight too, so it reads as "nothing here". */
+.money-cell.text-muted {
+  font-weight: var(--weight-regular);
 }
 
 .avatar-name {
@@ -185,7 +190,7 @@
   border-radius: 11px;
   color: var(--blue-700);
   background: var(--blue-100);
-  font-size: 10px;
+  font-size: var(--text-2xs);
   font-weight: var(--weight-heavy);
 }
 
@@ -215,23 +220,20 @@
 }
 
 .row-edit-button {
-  width: 28px;
-  height: 28px;
-  color: var(--blue-700);
-  font-size: 16px;
+  color: var(--ink-500);
+}
+
+.row-actions-cell {
+  width: 48px;
+  text-align: right;
 }
 
 .row-action:hover,
 .row-edit-button:hover {
-  border-color: var(--line);
-  color: var(--blue-700);
-  background: var(--blue-50);
+  color: var(--ink-950);
+  background: var(--button-hover);
 }
 
-.cell-inline-value {
-  display: inline-block;
-  margin-right: 8px;
-}
 .table-footer {
   display: flex;
   align-items: center;

@@ -32,7 +32,6 @@ export function TopGoods({ rows, period, onPeriodChange }: { rows: ApiRecord[]; 
           value={metric}
           onChange={setMetric}
           options={metricOptions}
-          variant="bordered"
           size="sm"
           aria-label="Chỉ số xếp hạng"
         />
@@ -56,8 +55,16 @@ function formatActivityMoney(description: unknown) {
   return String(description ?? '').replace(/(\d+) đ(?!\p{L})/gu, (_, amount: string) => formatMoney(Number(amount)));
 }
 
+// A count of 0 is not news: mention only the side of the stock range that has goods.
+function StockReminder({ below, above }: { below: number; above: number }) {
+  if (below > 0 && above > 0) return <span>Có <strong>{below} hàng hóa dưới</strong> và <strong>{above} hàng hóa vượt</strong> định mức tồn</span>;
+  if (below > 0) return <span>Có <strong>{below} hàng hóa dưới</strong> định mức tồn</span>;
+  if (above > 0) return <span>Có <strong>{above} hàng hóa vượt</strong> định mức tồn</span>;
+  return <span>Tồn kho đều trong định mức</span>;
+}
+
 export function DashboardSide({ dashboard }: { dashboard: ApiRecord }) {
   const visibleActivities = useMemo(() => (dashboard.activities ?? []).slice(0, 3), [dashboard.activities]);
 
-  return <aside className="dashboard-side" aria-label="Thông tin nhanh"><article className="card reminder-card"><h2>Nhắc việc</h2><h3>Chăm sóc khách hàng</h3><div className="reminder-item"><span className="reminder-icon orange"><i className="ph ph-user" /></span><span>Có <strong>{dashboard.reminders.customersInDebt} khách hàng</strong> đang có công nợ</span></div><h3>Hàng hóa</h3><div className="reminder-item"><span className="reminder-icon red"><i className="ph ph-cube" /></span><span>Có <strong>{dashboard.reminders.productsBelowStock} hàng hóa dưới</strong> và <strong>{dashboard.reminders.productsAboveStock} hàng hóa vượt</strong> định mức tồn</span></div></article><article className="card upcoming-card"><div className="side-card-header"><h2>Lịch hẹn chưa tới <span>{dashboard.upcomingAppointments.length}</span></h2></div><div className="upcoming-list">{dashboard.upcomingAppointments.length ? dashboard.upcomingAppointments.map((item: ApiRecord) => <div className="appointment-item" key={item.id}><span><strong>{item.customerName}</strong><small>{item.note || item.serviceName}</small></span><time>{item.time}</time></div>) : <div className="empty-inline">Không còn lịch hẹn nào trong ngày.</div>}</div></article><article className="card activity-card"><div className="side-card-header"><h2>Hoạt động gần đây</h2></div>{visibleActivities.length ? visibleActivities.map((activity: ApiRecord) => <div className="activity-item" key={activity.id}><span className={`activity-avatar ${activity.avatarTone}`}>{initials(activity.actorName)}</span><p><strong>{activity.actorName}</strong> {formatActivityMoney(activity.description)} {activity.objectCode && <span className="cell-main link">{activity.objectCode}</span>}<time>{relativeTime(activity.occurredAt)}</time></p></div>) : <div className="empty-inline">Chưa có hoạt động gần đây.</div>}</article></aside>;
+  return <aside className="dashboard-side" aria-label="Thông tin nhanh"><article className="card reminder-card"><h2>Nhắc việc</h2><h3>Chăm sóc khách hàng</h3><div className="reminder-item"><span className="reminder-icon orange"><i className="ph ph-user" /></span><span>{dashboard.reminders.customersInDebt > 0 ? <>Có <strong>{dashboard.reminders.customersInDebt} khách hàng</strong> đang có công nợ</> : 'Không có khách hàng nào đang nợ'}</span></div><h3>Hàng hóa</h3><div className="reminder-item"><span className="reminder-icon red"><i className="ph ph-cube" /></span><StockReminder below={dashboard.reminders.productsBelowStock} above={dashboard.reminders.productsAboveStock} /></div></article><article className="card upcoming-card"><div className="side-card-header"><h2>Lịch hẹn chưa tới <span>{dashboard.upcomingAppointments.length}</span></h2></div><div className="upcoming-list">{dashboard.upcomingAppointments.length ? dashboard.upcomingAppointments.map((item: ApiRecord) => <div className="appointment-item" key={item.id}><span><strong>{item.customerName}</strong><small>{item.note || item.serviceName}</small></span><time>{item.time}</time></div>) : <div className="empty-inline">Không còn lịch hẹn nào trong ngày.</div>}</div></article><article className="card activity-card"><div className="side-card-header"><h2>Hoạt động gần đây</h2></div>{visibleActivities.length ? visibleActivities.map((activity: ApiRecord) => <div className="activity-item" key={activity.id}><span className={`activity-avatar ${activity.avatarTone}`}>{initials(activity.actorName)}</span><p><strong>{activity.actorName}</strong> {formatActivityMoney(activity.description)} {activity.objectCode && <span className="cell-main link">{activity.objectCode}</span>}<time>{relativeTime(activity.occurredAt)}</time></p></div>) : <div className="empty-inline">Chưa có hoạt động gần đây.</div>}</article></aside>;
 }
