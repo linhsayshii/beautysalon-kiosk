@@ -126,10 +126,10 @@
   z-index: 45;
   width: 260px;
   max-height: min(700px, calc(100dvh - 102px));
-  padding: 6px;
+  padding: var(--space-1);
   overflow: auto;
   border: 1px solid var(--line);
-  border-radius: var(--radius-control);
+  border-radius: 16px;
   color: var(--ink-950);
   background: var(--surface);
   box-shadow: var(--shadow-float);
@@ -167,6 +167,12 @@
   display: none;
 }
 
+.menu-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
 .menu-group + .menu-group {
   margin-top: 6px;
   padding-top: 6px;
@@ -180,7 +186,7 @@
   gap: 10px;
   min-height: 40px;
   padding: 0 10px;
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-control);
   color: var(--ink-800);
   font-size: var(--text-md);
   font-weight: var(--weight-regular);

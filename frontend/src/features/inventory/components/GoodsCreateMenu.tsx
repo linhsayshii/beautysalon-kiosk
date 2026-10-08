@@ -30,13 +30,13 @@ export function GoodsCreateMenu() {
       <button className="btn btn-primary goods-create-trigger" type="button" aria-haspopup="menu" aria-expanded={menuOpen} onClick={() => setMenuOpen((open) => !open)}>
         <i className="ph ph-plus" aria-hidden="true" />Hàng hóa<i className={`ph ph-caret-${menuOpen ? 'up' : 'down'}`} aria-hidden="true" />
       </button>
-      {menuOpen && <FloatingLayer anchorRef={rootRef} layerRef={menuRef} align="right" className="goods-create-popover" role="menu" aria-label="Chọn loại hàng hóa">
+      <FloatingLayer open={menuOpen} anchorRef={rootRef} layerRef={menuRef} align="right" className="goods-create-popover" role="menu" aria-label="Chọn loại hàng hóa">
         {Object.entries(inventoryTypes).map(([type, item]) => <button key={type} type="button" role="menuitem" onClick={() => { setDialogType(type as InventoryItemType); setMenuOpen(false); }}>
           <i className={`ph ${item.icon}`} aria-hidden="true" />
           <span><strong>{item.label}</strong><small>{item.description}</small></span>
           <i className="ph ph-caret-right" aria-hidden="true" />
         </button>)}
-      </FloatingLayer>}
+      </FloatingLayer>
     </div>
     {dialogType && <GoodsCreateDialog type={dialogType} onClose={() => setDialogType(null)} />}
   </>;

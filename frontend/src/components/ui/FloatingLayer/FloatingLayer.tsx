@@ -9,8 +9,10 @@ import {
   useState,
 } from 'react';
 import { createPortal } from 'react-dom';
+import { usePopoverPresence } from './usePopoverPresence';
 
 interface FloatingLayerProps {
+  open: boolean;
   anchorRef: RefObject<HTMLElement | null>;
   children: ReactNode;
   className: string;
@@ -33,6 +35,7 @@ interface FloatingLayout {
 const VIEWPORT_MARGIN = 8;
 
 export function FloatingLayer({
+  open,
   anchorRef,
   children,
   className,
@@ -43,6 +46,7 @@ export function FloatingLayer({
   role,
   'aria-label': ariaLabel,
 }: FloatingLayerProps) {
+  const present = usePopoverPresence(open);
   const internalRef = useRef<HTMLDivElement>(null);
   const [layout, setLayout] = useState<FloatingLayout | null>(null);
 
@@ -78,10 +82,11 @@ export function FloatingLayer({
   }, [align, anchorRef, gap, matchAnchorWidth]);
 
   useLayoutEffect(() => {
-    updateLayout();
-  }, [updateLayout]);
+    if (open) updateLayout();
+  }, [open, updateLayout]);
 
   useEffect(() => {
+    if (!open) return;
     const update = () => updateLayout();
     window.addEventListener('resize', update);
     window.addEventListener('scroll', update, true);
@@ -93,19 +98,26 @@ export function FloatingLayer({
       window.visualViewport?.removeEventListener('resize', update);
       window.visualViewport?.removeEventListener('scroll', update);
     };
-  }, [updateLayout]);
+  }, [open, updateLayout]);
 
   const setRefs = (node: HTMLDivElement | null) => {
     internalRef.current = node;
     if (layerRef) layerRef.current = node;
   };
 
+  if (!present) return null;
   return createPortal(
     <div
       ref={setRefs}
       className={className}
       role={role}
       aria-label={ariaLabel}
+      aria-hidden={!open || undefined}
+      inert={!open}
+      data-floating-layer
+      data-state={open ? 'open' : 'closed'}
+      data-side={layout?.bottom === undefined ? 'bottom' : 'top'}
+      data-align={align}
       style={{
         bottom: layout?.bottom ?? 'auto',
         left: layout?.left ?? VIEWPORT_MARGIN,

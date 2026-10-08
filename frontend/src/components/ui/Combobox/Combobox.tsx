@@ -94,25 +94,23 @@ export function Combobox({ value, onChange, options, id, placeholder, 'aria-labe
       >
         <i className={`ph ph-caret-${isOpen ? 'up' : 'down'}`} />
       </button>
-      {isOpen && filteredOptions.length > 0 && (
-        <FloatingLayer anchorRef={rootRef} layerRef={menuRef} matchAnchorWidth className="app-select-popover app-combobox-popover" role="presentation">
-          <ul id={`${inputId}-listbox`} className="app-select-menu" role="listbox" aria-label="Gợi ý nhóm hàng">
-            {filteredOptions.map((option, index) => (
-              <li
-                key={option}
-                role="option"
-                aria-selected={option === value}
-                className={`app-select-item ${option === value ? 'is-selected' : ''} ${index === highlightedIndex ? 'is-highlighted' : ''}`}
-                onMouseEnter={() => setHighlightedIndex(index)}
-                onClick={() => choose(option)}
-              >
-                <span className="app-select-item-label">{option}</span>
-                {option === value && <span className="app-select-check"><i className="ph ph-check" /></span>}
-              </li>
-            ))}
-          </ul>
-        </FloatingLayer>
-      )}
+      <FloatingLayer open={isOpen && filteredOptions.length > 0} anchorRef={rootRef} layerRef={menuRef} matchAnchorWidth className="app-select-popover app-combobox-popover" role="presentation">
+        <ul id={`${inputId}-listbox`} className="app-select-menu" role="listbox" aria-label="Gợi ý nhóm hàng">
+          {filteredOptions.map((option, index) => (
+            <li
+              key={option}
+              role="option"
+              aria-selected={option === value}
+              className={`app-select-item ${option === value ? 'is-selected' : ''} ${index === highlightedIndex ? 'is-highlighted' : ''}`}
+              onMouseEnter={() => setHighlightedIndex(index)}
+              onClick={() => choose(option)}
+            >
+              <span className="app-select-item-label">{option}</span>
+              {option === value && <span className="app-select-check"><i className="ph ph-check" /></span>}
+            </li>
+          ))}
+        </ul>
+      </FloatingLayer>
     </div>
   );
 }

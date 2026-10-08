@@ -122,95 +122,93 @@ export function WeekPicker({ currentMonday, onChange }: WeekPickerProps) {
 
 
       {/* Popover Calendar */}
-      {isOpen && (
-        <FloatingLayer anchorRef={containerRef} layerRef={popoverRef} className="week-popover">
-          {/* Header with Month / Year and Navigation */}
-          <div className="week-popover-header">
-            <button
-              type="button"
-              onClick={() => {
-                if (viewMonth === 0) {
-                  setViewMonth(11);
-                  setViewYear((y) => y - 1);
-                } else {
-                  setViewMonth((m) => m - 1);
-                }
-              }}
-              className="week-popover-nav"
-            >
-              <i className="ph ph-caret-left" />
-            </button>
-
-            <span className="week-popover-month">
-              Thg {viewMonth + 1} {viewYear}
-            </span>
-
-            <button
-              type="button"
-              onClick={() => {
-                if (viewMonth === 11) {
-                  setViewMonth(0);
-                  setViewYear((y) => y + 1);
-                } else {
-                  setViewMonth((m) => m + 1);
-                }
-              }}
-              className="week-popover-nav"
-            >
-              <i className="ph ph-caret-right" />
-            </button>
-          </div>
-
-          {/* Weekday headers */}
-          <div className="week-popover-weekdays">
-            <span>T2</span>
-            <span>T3</span>
-            <span>T4</span>
-            <span>T5</span>
-            <span>T6</span>
-            <span>T7</span>
-            <span className="is-sunday">CN</span>
-          </div>
-
-          {/* Days grid */}
-          <div className="week-popover-grid">
-            {days.map((date, idx) => {
-              const inCurrentMonth = date.getMonth() === viewMonth;
-              const inWeek = isSelectedWeek(date);
-              const isStart = isWeekStart(date);
-              const isEnd = isWeekEnd(date);
-              const dayNum = date.getDate();
-
-              let slotClass = 'calendar-day-slot';
-              let badgeClass = 'calendar-day-badge';
-
-              if (inWeek) {
-                slotClass += ' is-in-week';
-                if (isStart) slotClass += ' is-week-start';
-                if (isEnd) slotClass += ' is-week-end';
+      <FloatingLayer open={isOpen} anchorRef={containerRef} layerRef={popoverRef} className="week-popover">
+        {/* Header with Month / Year and Navigation */}
+        <div className="week-popover-header">
+          <button
+            type="button"
+            onClick={() => {
+              if (viewMonth === 0) {
+                setViewMonth(11);
+                setViewYear((y) => y - 1);
+              } else {
+                setViewMonth((m) => m - 1);
               }
+            }}
+            className="week-popover-nav"
+          >
+            <i className="ph ph-caret-left" />
+          </button>
 
-              if (isStart || isEnd) {
-                badgeClass += ' is-endpoint';
-              } else if (inWeek) {
-                badgeClass += ' is-mid-week';
-              } else if (!inCurrentMonth) {
-                badgeClass += ' is-muted';
+          <span className="week-popover-month">
+            Thg {viewMonth + 1} {viewYear}
+          </span>
+
+          <button
+            type="button"
+            onClick={() => {
+              if (viewMonth === 11) {
+                setViewMonth(0);
+                setViewYear((y) => y + 1);
+              } else {
+                setViewMonth((m) => m + 1);
               }
+            }}
+            className="week-popover-nav"
+          >
+            <i className="ph ph-caret-right" />
+          </button>
+        </div>
 
-              return (
-                <div
-                  key={idx}
-                  className={slotClass}
-                  onClick={() => handleSelectDate(date)}
-                >
-                  <span className={badgeClass}>{dayNum}</span>
-                </div>
-              );
-            })}
-          </div>
-        </FloatingLayer>
-      )}
+        {/* Weekday headers */}
+        <div className="week-popover-weekdays">
+          <span>T2</span>
+          <span>T3</span>
+          <span>T4</span>
+          <span>T5</span>
+          <span>T6</span>
+          <span>T7</span>
+          <span className="is-sunday">CN</span>
+        </div>
+
+        {/* Days grid */}
+        <div className="week-popover-grid">
+          {days.map((date, idx) => {
+            const inCurrentMonth = date.getMonth() === viewMonth;
+            const inWeek = isSelectedWeek(date);
+            const isStart = isWeekStart(date);
+            const isEnd = isWeekEnd(date);
+            const dayNum = date.getDate();
+
+            let slotClass = 'calendar-day-slot';
+            let badgeClass = 'calendar-day-badge';
+
+            if (inWeek) {
+              slotClass += ' is-in-week';
+              if (isStart) slotClass += ' is-week-start';
+              if (isEnd) slotClass += ' is-week-end';
+            }
+
+            if (isStart || isEnd) {
+              badgeClass += ' is-endpoint';
+            } else if (inWeek) {
+              badgeClass += ' is-mid-week';
+            } else if (!inCurrentMonth) {
+              badgeClass += ' is-muted';
+            }
+
+            return (
+              <div
+                key={idx}
+                className={slotClass}
+                onClick={() => handleSelectDate(date)}
+              >
+                <span className={badgeClass}>{dayNum}</span>
+              </div>
+            );
+          })}
+        </div>
+      </FloatingLayer>
     </div>
   );
 }

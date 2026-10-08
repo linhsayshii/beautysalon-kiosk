@@ -91,12 +91,15 @@
 }
 
 .goods-create-popover {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
   position: absolute;
   top: calc(100% + 8px);
   right: 0;
   z-index: 45;
   width: 310px;
-  padding: 7px;
+  padding: var(--space-1);
   border: 1px solid var(--line);
   border-radius: var(--radius-card);
   background: var(--surface);
@@ -112,7 +115,7 @@
   min-height: 58px;
   padding: 8px 10px;
   border: 0;
-  border-radius: 11px;
+  border-radius: var(--radius-control);
   color: var(--ink-800);
   background: transparent;
   text-align: left;
@@ -324,6 +327,7 @@
 .account-popover span { color:var(--ink-500); font-size:var(--text-xs); }
 /* Menu rows share one shape; only sign-out is red (it ends the session). */
 .account-popover > a, .account-popover > button { display:flex; align-items:center; gap:10px; width:100%; min-height:40px; padding:0 10px; border:0; border-radius:var(--radius-sm); color:var(--ink-800); background:transparent; font-size:var(--text-md); font-weight:var(--weight-regular); text-align:left; }
+.account-popover > :is(a, button) + :is(a, button) { margin-top:var(--space-1); }
 .account-popover > a > i, .account-popover > button > i { color:var(--ink-500); font-size:18px; }
 .account-popover > a:hover, .account-popover > button:hover { color:var(--ink-950); background:var(--surface-hover); }
 .account-popover > .account-signout { color:var(--red); }

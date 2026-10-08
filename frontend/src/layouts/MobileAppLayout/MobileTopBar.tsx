@@ -71,47 +71,47 @@ export function MobileTopBar() {
               setIsDropdownOpen((prev) => !prev);
             }}
             aria-label={`Chi nhánh: ${account?.branchName || 'Chọn chi nhánh'}`}
+            aria-haspopup="menu"
+            aria-expanded={isDropdownOpen}
             title={account?.branchName || 'Chọn chi nhánh'}
           >
             <i className="ph ph-storefront" />
           </button>
 
           {/* Dropdown Menu */}
-          {isDropdownOpen && (
-            <FloatingLayer anchorRef={dropdownRef} layerRef={dropdownMenuRef} align="right" className="mobile-shop-dropdown-menu" role="menu">
-              <div className="mobile-dropdown-header">
-                <span>Chi nhánh làm việc</span>
-                <small>Đang chọn: <strong>{account?.branchName}</strong></small>
-              </div>
+          <FloatingLayer open={isDropdownOpen} anchorRef={dropdownRef} layerRef={dropdownMenuRef} align="right" className="mobile-shop-dropdown-menu" role="menu">
+            <div className="mobile-dropdown-header">
+              <span>Chi nhánh làm việc</span>
+              <small>Đang chọn: <strong>{account?.branchName}</strong></small>
+            </div>
 
-              <div className="mobile-dropdown-list">
-                {branches.length > 0 ? (
-                  branches.map((b) => {
-                    const isCurrent = Number(b.id) === Number(account?.branchId);
-                    return (
-                      <button
-                        key={b.id}
-                        type="button"
-                        className={`mobile-dropdown-item ${isCurrent ? 'is-current' : ''}`}
-                        onClick={() => handleSelectBranch(Number(b.id))}
-                        role="menuitem"
-                      >
-                        <div className="dropdown-item-info">
-                          <strong className="branch-name">{b.name}</strong>
-                          <span className="branch-addr">{b.address || 'Chi nhánh hệ thống'}</span>
-                        </div>
-                        {isCurrent && (
-                          <i className="ph ph-check-circle current-check-icon" />
-                        )}
-                      </button>
-                    );
-                  })
-                ) : (
-                  <div className="dropdown-loading">Đang tải danh sách...</div>
-                )}
-              </div>
-            </FloatingLayer>
-          )}
+            <div className="mobile-dropdown-list">
+              {branches.length > 0 ? (
+                branches.map((b) => {
+                  const isCurrent = Number(b.id) === Number(account?.branchId);
+                  return (
+                    <button
+                      key={b.id}
+                      type="button"
+                      className={`mobile-dropdown-item ${isCurrent ? 'is-current' : ''}`}
+                      onClick={() => handleSelectBranch(Number(b.id))}
+                      role="menuitem"
+                    >
+                      <div className="dropdown-item-info">
+                        <strong className="branch-name">{b.name}</strong>
+                        <span className="branch-addr">{b.address || 'Chi nhánh hệ thống'}</span>
+                      </div>
+                      {isCurrent && (
+                        <i className="ph ph-check-circle current-check-icon" />
+                      )}
+                    </button>
+                  );
+                })
+              ) : (
+                <div className="dropdown-loading">Đang tải danh sách...</div>
+              )}
+            </div>
+          </FloatingLayer>
         </div>
 
         <Link to="/m/account" className="mobile-avatar-pill">
@@ -121,4 +121,3 @@ export function MobileTopBar() {
     </header>
   );
 }
-
